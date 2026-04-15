@@ -4,6 +4,13 @@ DLC and content activation queries. Static table.
 
 Extracted from 9 call sites across 5 distinct methods in the shipped game Lua.
 
+## Known DLC GUIDs (extracted from `.Civ5Pkg` manifests)
+
+- **Gods & Kings** (Expansion 1): `{0E3751A1-F840-4e1b-9706-519BF484E59D}`
+- **Brave New World** (Expansion 2): `{6DA07636-4123-4018-B643-6575B4EC336B}`
+
+Pass the braced-UUID string to `IsActive` along with `ContentType.GAMEPLAY`. BNW-only Lua globals (`Game.GetActiveLeague()`, trade-route system) are also `nil` on non-BNW installs and serve as implicit feature flags.
+
 ## Methods
 
 ### GetAllPackageIDs

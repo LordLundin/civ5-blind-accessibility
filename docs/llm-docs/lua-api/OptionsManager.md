@@ -4,6 +4,33 @@ User options / config.ini-backed settings. Static table.
 
 Extracted from 374 call sites across 156 distinct methods in the shipped game Lua.
 
+## Protocol: cache / sync / commit
+
+The game options layer is three independent domains (**Game**, **Graphics**, **Resolution**), each with the same three-phase protocol. Miss a phase and edits silently vanish.
+
+1. `Sync<Domain>OptionsCache()` — load current on-disk values into cache.
+2. `Get<Name>_Cached()` / `Set<Name>_Cached(v)` — read/write the cache.
+3. `Commit<Domain>Options()` — persist cache to disk.
+
+**Cancel = call `Sync<Domain>OptionsCache()` again** to overwrite the cache with on-disk state.
+
+### Hidden language control
+
+`LanguagePull` in `Assets/UI/Options/OptionsMenu.xml` is marked `Hidden="1"` and never unhidden — language switching is not reachable through the Options screen at runtime.
+
+## Related: audio volume globals
+
+The audio knobs are **bare globals** (not on the `OptionsManager` table), so they don't appear in the method list below. They also have a **separate commit call** — the Game/Graphics/Resolution `Commit*` functions don't save audio.
+
+- `GetVolumeKnobIDFromName(name)` → int knob ID
+- `GetVolumeKnobValue(knobID)` → float
+- `SetVolumeKnobValue(knobID, value)`
+- `SaveAudioOptions()` — required to persist; not called by the domain `Commit*` functions
+
+Knob name constants (string args to `GetVolumeKnobIDFromName`): `USER_VOLUME_MUSIC`, `USER_VOLUME_SFX`, `USER_VOLUME_AMBIENCE`, `USER_VOLUME_SPEECH`.
+
+Evidence: `Assets/UI/Options/OptionsMenu.lua:40-43`. A sighted user clicking OK on the options screen triggers all three domain commits plus `SaveAudioOptions` — any replacement must do the same.
+
 ## Methods
 
 ### CommitGameOptions
