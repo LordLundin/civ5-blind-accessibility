@@ -24,12 +24,15 @@ Implementation tree (proxy DLL, Lua mod, build scripts) will be filled out as it
 
 ## Test
 
-_TBD — offline test harness will be added once the mod has enough surface to test. Tests must not require launching the game._
+Offline Lua harness lives at `tests/`, invoked by `test.ps1` against the bundled interpreter at `third_party/lua51/lua5.1.exe` (matches the game's Lua 5.1 exactly). Tests are modules returning a table of `test_*` functions; `tests/run.lua` aggregates across suites into a single exit code. No game launch, no network, no Tolk.
 
 - Every test should have a plausible failure mode not covered by another test — don't test the same invariant twice
 - Always test real code paths; never test local helpers that simulate production behavior
 - Exception: text-filter / markup-stripping regression suites keep full coverage (chain of replacements where any change can break unrelated cases)
 - Guard speech-boundary code even when it looks simple — a wrong value reaching Tolk is a silent failure
+
+### Polyfill pattern for engine globals (planned)
+When a feature needs to be tested but depends on engine globals (`Game`, `Controls`, `Events`, `LuaEvents`, `Locale`, etc.), do **not** build a test-only mock. Ship a `CivVAccess_Polyfill.lua` inside the mod that populates stubs and self-disables in-game via a presence check on a reliably-game-only global (`if Game then return end` is the likely sentinel — confirm at implementation time). Production code `include`s the polyfill unconditionally; the game loads the real globals and the polyfill is a no-op, the test harness loads the stubs. This keeps production and test load paths identical and exercises the polyfill against real feature usage instead of only tests — catches divergence that a test-only shim would hide. Borrowed from FactorioAccess's `polyfill.lua`; their sentinel is `script` (game-only), ours needs to be a Civ V equivalent.
 
 ## Project Rules
 

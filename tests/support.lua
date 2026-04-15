@@ -1,12 +1,25 @@
 -- Test support: assertion helpers and a flat registration/runner model.
--- Tests are (name, fn) pairs appended to T.cases. Each fn either returns
--- normally (pass) or calls error (fail). The runner catches and tallies.
+-- Suites return a table of test_*/Test* functions; the runner aggregates.
 
 local T = {}
 T.cases = {}
 
 function T.case(name, fn)
     T.cases[#T.cases + 1] = { name = name, fn = fn }
+end
+
+function T.register(prefix, mod)
+    -- Sort keys for deterministic execution order.
+    local keys = {}
+    for k in pairs(mod) do
+        if type(k) == "string" and (k:match("^test") or k:match("^Test")) then
+            keys[#keys + 1] = k
+        end
+    end
+    table.sort(keys)
+    for _, k in ipairs(keys) do
+        T.case(prefix .. "." .. k, mod[k])
+    end
 end
 
 local function fmt(v)

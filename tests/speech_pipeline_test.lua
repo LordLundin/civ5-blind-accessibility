@@ -1,35 +1,20 @@
--- SpeechPipeline tests. The pipeline has three seams we substitute:
---   _timeSource   -> controllable clock for dedup window behavior
---   _speakAction  -> capturing sink, records (text, interrupt) tuples
---   SpeechEngine  -> stubbed so stop() is observable without Tolk
--- TextFilter is loaded for real; the pipeline's contract is that it filters
--- before speaking, and we want a filter change to break these tests.
+-- SpeechPipeline tests. Seams substituted: _timeSource (controllable
+-- clock), _speakAction (capturing sink), SpeechEngine (stubbed so stop()
+-- is observable). TextFilter is loaded for real — the pipeline's contract
+-- is that it filters before speaking.
 
 local T = require("support")
+local M = {}
 
-Log = {
-    debug = function() end, info = function() end,
-    warn  = function() end, error = function() end,
-}
+local spoken, now, engineStopCount
 
-dofile("src/mod/UI/CivVAccess_TextFilter.lua")
-
--- Stub SpeechEngine. stop() is observable; say() is unused because we
--- override _speakAction, but we define it for safety against future changes.
-local engineStopCount = 0
-SpeechEngine = {
-    say = function() end,
-    stop = function() engineStopCount = engineStopCount + 1 end,
-}
-
-dofile("src/mod/UI/CivVAccess_SpeechPipeline.lua")
-
--- Shared harness state. Each case resets via setup().
-local spoken, now
 local function setup()
     spoken = {}
     now = 0
     engineStopCount = 0
+    SpeechEngine.stop = function() engineStopCount = engineStopCount + 1 end
+    dofile("src/mod/UI/CivVAccess_TextFilter.lua")
+    dofile("src/mod/UI/CivVAccess_SpeechPipeline.lua")
     SpeechPipeline._timeSource = function() return now end
     SpeechPipeline._speakAction = function(text, interrupt)
         spoken[#spoken + 1] = { text = text, interrupt = interrupt }
@@ -37,178 +22,176 @@ local function setup()
     SpeechPipeline._reset()
 end
 
--- Enabled / disabled gate ---------------------------------------------------
+-- Enabled / disabled gate -------------------------------------------------
 
-T.case("disabled: interrupt is a no-op", function()
+function M.test_disabled_interrupt_is_noop()
     setup()
     SpeechPipeline.setEnabled(false)
     SpeechPipeline.speakInterrupt("hello")
     T.eq(#spoken, 0)
-end)
+end
 
-T.case("disabled: queued is a no-op", function()
+function M.test_disabled_queued_is_noop()
     setup()
     SpeechPipeline.setEnabled(false)
     SpeechPipeline.speakQueued("hello")
     T.eq(#spoken, 0)
-end)
+end
 
-T.case("setEnabled coerces truthy value to true", function()
+function M.test_set_enabled_coerces_truthy()
     setup()
     SpeechPipeline.setEnabled("yes")
     T.truthy(SpeechPipeline.isActive())
-end)
+end
 
-T.case("setEnabled coerces nil to false", function()
+function M.test_set_enabled_coerces_nil_to_false()
     setup()
     SpeechPipeline.setEnabled(nil)
     T.falsy(SpeechPipeline.isActive())
-end)
+end
 
--- Happy path ---------------------------------------------------------------
+-- Happy path --------------------------------------------------------------
 
-T.case("interrupt speaks with interrupt=true", function()
+function M.test_interrupt_speaks_with_interrupt_true()
     setup()
     SpeechPipeline.speakInterrupt("hello")
     T.eq(#spoken, 1)
     T.eq(spoken[1].text, "hello")
     T.eq(spoken[1].interrupt, true)
-end)
+end
 
-T.case("queued speaks with interrupt=false", function()
+function M.test_queued_speaks_with_interrupt_false()
     setup()
     SpeechPipeline.speakQueued("hello")
     T.eq(#spoken, 1)
     T.eq(spoken[1].interrupt, false)
-end)
+end
 
--- Filtering is applied before speaking -------------------------------------
+-- Filtering ---------------------------------------------------------------
 
-T.case("interrupt filters markup before speaking", function()
+function M.test_interrupt_filters_markup_before_speaking()
     setup()
     SpeechPipeline.speakInterrupt("[COLOR_X]hi[ENDCOLOR]")
     T.eq(spoken[1].text, "hi")
-end)
+end
 
-T.case("queued filters markup before speaking", function()
+function M.test_queued_filters_markup_before_speaking()
     setup()
     SpeechPipeline.speakQueued("  hi\tthere  ")
     T.eq(spoken[1].text, "hi there")
-end)
+end
 
--- Empty / nil after filter -------------------------------------------------
+-- Empty / nil after filter -----------------------------------------------
 
-T.case("nil input does not speak", function()
+function M.test_nil_input_does_not_speak()
     setup()
     SpeechPipeline.speakInterrupt(nil)
     SpeechPipeline.speakQueued(nil)
     T.eq(#spoken, 0)
-end)
+end
 
-T.case("empty string does not speak", function()
+function M.test_empty_string_does_not_speak()
     setup()
     SpeechPipeline.speakInterrupt("")
     SpeechPipeline.speakQueued("")
     T.eq(#spoken, 0)
-end)
+end
 
-T.case("markup that filters to empty does not speak", function()
+function M.test_markup_filtering_to_empty_does_not_speak()
     setup()
     SpeechPipeline.speakInterrupt("[COLOR_X][ENDCOLOR]")
     T.eq(#spoken, 0)
-end)
+end
 
--- Interrupt dedup window ---------------------------------------------------
+-- Interrupt dedup ---------------------------------------------------------
 
-T.case("same interrupt text within window is suppressed", function()
+function M.test_same_interrupt_within_window_suppressed()
     setup()
     SpeechPipeline.speakInterrupt("hi")
     now = 0.04
     SpeechPipeline.speakInterrupt("hi")
     T.eq(#spoken, 1)
-end)
+end
 
-T.case("same interrupt text after window speaks again", function()
+function M.test_same_interrupt_after_window_speaks_again()
     setup()
     SpeechPipeline.speakInterrupt("hi")
     now = 0.06
     SpeechPipeline.speakInterrupt("hi")
     T.eq(#spoken, 2)
-end)
+end
 
-T.case("different interrupt text within window speaks", function()
+function M.test_different_interrupt_within_window_speaks()
     setup()
     SpeechPipeline.speakInterrupt("hi")
     SpeechPipeline.speakInterrupt("bye")
     T.eq(#spoken, 2)
-end)
+end
 
-T.case("dedup compares the filtered form, not the raw input", function()
-    -- Both raw strings filter to "hi"; second must be suppressed.
+function M.test_dedup_compares_filtered_form()
     setup()
     SpeechPipeline.speakInterrupt("  hi  ")
     SpeechPipeline.speakInterrupt("[COLOR_X]hi[ENDCOLOR]")
     T.eq(#spoken, 1)
-end)
+end
 
-T.case("dedup window exactly at boundary suppresses", function()
-    -- Window is "< 0.05", so now=0.05 is outside (speaks).
+function M.test_dedup_window_at_boundary_speaks()
+    -- Strict <, so now=0.05 is outside the window.
     setup()
     SpeechPipeline.speakInterrupt("hi")
     now = 0.05
     SpeechPipeline.speakInterrupt("hi")
     T.eq(#spoken, 2)
-end)
+end
 
--- Queued does not dedup ----------------------------------------------------
+-- Queued does not dedup ---------------------------------------------------
 
-T.case("queued duplicates are not suppressed", function()
+function M.test_queued_duplicates_not_suppressed()
     setup()
     SpeechPipeline.speakQueued("hi")
     SpeechPipeline.speakQueued("hi")
     T.eq(#spoken, 2)
-end)
+end
 
-T.case("queued does not populate the interrupt dedup window", function()
-    -- A queued speak of "hi" must not block a subsequent interrupt "hi".
+function M.test_queued_does_not_populate_interrupt_window()
     setup()
     SpeechPipeline.speakQueued("hi")
     SpeechPipeline.speakInterrupt("hi")
     T.eq(#spoken, 2)
     T.eq(spoken[2].interrupt, true)
-end)
+end
 
-T.case("interrupt dedup state does not block queued speech", function()
+function M.test_interrupt_dedup_does_not_block_queued()
     setup()
     SpeechPipeline.speakInterrupt("hi")
     SpeechPipeline.speakQueued("hi")
     T.eq(#spoken, 2)
     T.eq(spoken[2].interrupt, false)
-end)
+end
 
--- stop() delegates ---------------------------------------------------------
+-- stop() ------------------------------------------------------------------
 
-T.case("stop delegates to SpeechEngine.stop", function()
+function M.test_stop_delegates_to_engine()
     setup()
     SpeechPipeline.stop()
     T.eq(engineStopCount, 1)
-end)
+end
 
--- _reset -------------------------------------------------------------------
+-- _reset ------------------------------------------------------------------
 
-T.case("_reset clears dedup state", function()
+function M.test_reset_clears_dedup_state()
     setup()
     SpeechPipeline.speakInterrupt("hi")
     SpeechPipeline._reset()
     SpeechPipeline.speakInterrupt("hi")
     T.eq(#spoken, 2)
-end)
+end
 
-T.case("_reset re-enables a disabled pipeline", function()
+function M.test_reset_reenables_disabled_pipeline()
     setup()
     SpeechPipeline.setEnabled(false)
     SpeechPipeline._reset()
     T.truthy(SpeechPipeline.isActive())
-end)
+end
 
-os.exit(T.run() and 0 or 1)
+return M

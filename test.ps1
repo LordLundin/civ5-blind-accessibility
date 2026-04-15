@@ -11,20 +11,5 @@ if (-not (Test-Path $lua)) {
     exit 2
 }
 
-$suites = @(
-    "tests/text_filter_test.lua",
-    "tests/speech_pipeline_test.lua"
-)
-
-$failed = 0
-foreach ($suite in $suites) {
-    Write-Host "=== $suite ==="
-    & $lua "-e" "package.path='tests/?.lua;'..package.path" $suite
-    if ($LASTEXITCODE -ne 0) { $failed++ }
-}
-
-if ($failed -gt 0) {
-    Write-Host "$failed suite(s) failed."
-    exit 1
-}
-Write-Host "All suites passed."
+& $lua "-e" "package.path='tests/?.lua;'..package.path" "tests/run.lua"
+exit $LASTEXITCODE
