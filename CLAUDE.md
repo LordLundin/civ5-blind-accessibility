@@ -10,7 +10,6 @@ When a build fails on a Lua API or engine behavior, look it up in `docs/llm-docs
 
 ## Project Structure
 
-- `docs/technical-reference.md` — engine facts, architecture decisions, confirmed dead ends, open questions. Authoritative for "how the mod fits into the game."
 - `docs/hotkey-reference.md` — every engine-defined keybinding across base / G&K / BNW, plus screen-reader collision notes and candidate-safe keys.
 - `docs/llm-docs/` — derived reference material (Lua API per class, Events / LuaEvents catalogs, screen inventory, external resource pointers). Load on demand. See `docs/llm-docs/CLAUDE.md` for what's in each file and when to consult it.
 
