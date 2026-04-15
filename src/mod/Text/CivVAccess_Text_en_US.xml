@@ -4,5 +4,8 @@
         <Row Tag="TXT_KEY_CIVVACCESS_BOOT_INGAME">
             <Text>Civilization V accessibility loaded in-game.</Text>
         </Row>
+        <Row Tag="TXT_KEY_CIVVACCESS_BOOT_FRONTEND">
+            <Text>Accessibility mod ready.</Text>
+        </Row>
     </Language_en_US>
 </GameData>

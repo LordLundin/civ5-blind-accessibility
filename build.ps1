@@ -166,7 +166,19 @@ function Invoke-Deploy {
     Write-Host "  $modDir"
     Copy-Item -Path (Join-Path $modSrcDir '*') -Destination $modDir -Recurse -Force
 
-    return @{ GameDir = $gameDir; ModDir = $modDir }
+    # Sibling copy of the Lua modules into the game dir so the proxy can
+    # read them at runtime during front-end bootstrap (front-end Contexts
+    # load before any Civ V mod activates and cannot be reached via VFS).
+    $bootstrapDir = Join-Path $gameDir 'CivVAccess'
+    if (-not (Test-Path $bootstrapDir)) {
+        New-Item -ItemType Directory -Path $bootstrapDir -Force | Out-Null
+    }
+    Write-Host "Deploying bootstrap Lua to:"
+    Write-Host "  $bootstrapDir"
+    $uiSrc = Join-Path $modSrcDir 'UI'
+    Copy-Item -Path (Join-Path $uiSrc 'CivVAccess_*.lua') -Destination $bootstrapDir -Force
+
+    return @{ GameDir = $gameDir; ModDir = $modDir; BootstrapDir = $bootstrapDir }
 }
 
 if (-not $SkipBuild) {
@@ -179,8 +191,9 @@ if (-not $SkipDeploy) {
     $result = Invoke-Deploy -ExplicitGameDir $GameDir
     Write-Host ""
     Write-Host "Deploy complete."
-    Write-Host "  Proxy:  $($result.GameDir)"
-    Write-Host "  Mod:    $($result.ModDir)"
+    Write-Host "  Proxy:     $($result.GameDir)"
+    Write-Host "  Mod:       $($result.ModDir)"
+    Write-Host "  Bootstrap: $($result.BootstrapDir)"
     Write-Host ""
     Write-Host "Reminder: for Lua.log output, set LoggingEnabled=1 in:"
     Write-Host "  $env:USERPROFILE\Documents\My Games\Sid Meier's Civilization 5\config.ini"

@@ -4,6 +4,8 @@
 
 if ContextPtr ~= nil then return end
 
+civvaccess_shared = civvaccess_shared or {}
+
 Locale = Locale or {
     ConvertTextKey = function(key) return key end,
 }

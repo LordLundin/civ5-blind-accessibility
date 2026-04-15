@@ -1,12 +1,15 @@
 -- LIFO stack of active UI handlers. Top of stack is the currently focused
--- screen; InputRouter walks from the top. State is per-Context until the
--- proxy shared-state table lands (see followup plan).
+-- screen; InputRouter walks from the top. State lives on the proxy-owned
+-- civvaccess_shared table so every Context sandbox references the same
+-- stack within a given lua_State (one per phase: front-end / in-game).
 
 HandlerStack = {}
 
-local _stack = {}
-local _pushFrames = {}
-local _pushCounter = 0
+civvaccess_shared = civvaccess_shared or {}
+civvaccess_shared.stack       = civvaccess_shared.stack       or {}
+civvaccess_shared.pushFrames  = civvaccess_shared.pushFrames  or {}
+civvaccess_shared.pushCounter = civvaccess_shared.pushCounter or 0
+local _shared = civvaccess_shared
 
 local function invoke(handler, methodName)
     local fn = handler[methodName]
@@ -20,21 +23,21 @@ local function invoke(handler, methodName)
 end
 
 function HandlerStack._reset()
-    _stack = {}
-    _pushFrames = {}
-    _pushCounter = 0
+    _shared.stack = {}
+    _shared.pushFrames = {}
+    _shared.pushCounter = 0
 end
 
 function HandlerStack.count()
-    return #_stack
+    return #_shared.stack
 end
 
 function HandlerStack.active()
-    return _stack[#_stack]
+    return _shared.stack[#_shared.stack]
 end
 
 function HandlerStack.at(i)
-    return _stack[i]
+    return _shared.stack[i]
 end
 
 function HandlerStack.push(handler)
@@ -42,7 +45,7 @@ function HandlerStack.push(handler)
         Log.warn("HandlerStack.push: nil handler")
         return false
     end
-    local prevTop = _stack[#_stack]
+    local prevTop = _shared.stack[#_shared.stack]
     if prevTop ~= nil then
         -- The previous top loses focus when covered. No onDeactivate here;
         -- it only fires on removal. This mirrors ONI's model.
@@ -57,24 +60,24 @@ function HandlerStack.push(handler)
             return false
         end
     end
-    _pushCounter = _pushCounter + 1
-    _stack[#_stack + 1] = handler
-    _pushFrames[#_pushFrames + 1] = _pushCounter
-    Log.debug("HandlerStack.push '" .. tostring(handler.name) .. "' (depth=" .. #_stack .. ")")
+    _shared.pushCounter = _shared.pushCounter + 1
+    _shared.stack[#_shared.stack + 1] = handler
+    _shared.pushFrames[#_shared.pushFrames + 1] = _shared.pushCounter
+    Log.debug("HandlerStack.push '" .. tostring(handler.name) .. "' (depth=" .. #_shared.stack .. ")")
     return true
 end
 
 function HandlerStack.pop()
-    local n = #_stack
+    local n = #_shared.stack
     if n == 0 then
         Log.warn("HandlerStack.pop: empty stack")
         return nil
     end
-    local top = _stack[n]
-    _stack[n] = nil
-    _pushFrames[n] = nil
+    local top = _shared.stack[n]
+    _shared.stack[n] = nil
+    _shared.pushFrames[n] = nil
     invoke(top, "onDeactivate")
-    local newTop = _stack[#_stack]
+    local newTop = _shared.stack[#_shared.stack]
     if newTop ~= nil then
         invoke(newTop, "onActivate")
     end
@@ -82,11 +85,11 @@ function HandlerStack.pop()
 end
 
 function HandlerStack.replace(handler)
-    local n = #_stack
+    local n = #_shared.stack
     if n > 0 then
-        local top = _stack[n]
-        _stack[n] = nil
-        _pushFrames[n] = nil
+        local top = _shared.stack[n]
+        _shared.stack[n] = nil
+        _shared.pushFrames[n] = nil
         invoke(top, "onDeactivate")
     end
     return HandlerStack.push(handler)
@@ -94,18 +97,18 @@ end
 
 function HandlerStack.popAbove(target)
     local found = false
-    for i = 1, #_stack do
-        if _stack[i] == target then
+    for i = 1, #_shared.stack do
+        if _shared.stack[i] == target then
             found = true
             -- Pop everything above i without reactivating intermediates.
-            for j = #_stack, i + 1, -1 do
-                local h = _stack[j]
-                _stack[j] = nil
-                _pushFrames[j] = nil
+            for j = #_shared.stack, i + 1, -1 do
+                local h = _shared.stack[j]
+                _shared.stack[j] = nil
+                _shared.pushFrames[j] = nil
                 invoke(h, "onDeactivate")
             end
             -- Target is now the top and is (re)exposed.
-            invoke(_stack[i], "onActivate")
+            invoke(_shared.stack[i], "onActivate")
             break
         end
     end
@@ -113,15 +116,15 @@ function HandlerStack.popAbove(target)
 end
 
 function HandlerStack.removeByName(name)
-    for i = #_stack, 1, -1 do
-        if _stack[i].name == name then
-            local h = _stack[i]
-            local wasTop = (i == #_stack)
-            table.remove(_stack, i)
-            table.remove(_pushFrames, i)
+    for i = #_shared.stack, 1, -1 do
+        if _shared.stack[i].name == name then
+            local h = _shared.stack[i]
+            local wasTop = (i == #_shared.stack)
+            table.remove(_shared.stack, i)
+            table.remove(_shared.pushFrames, i)
             invoke(h, "onDeactivate")
             if wasTop then
-                local newTop = _stack[#_stack]
+                local newTop = _shared.stack[#_shared.stack]
                 if newTop ~= nil then
                     invoke(newTop, "onActivate")
                 end
@@ -133,17 +136,17 @@ function HandlerStack.removeByName(name)
 end
 
 function HandlerStack.deactivateAll()
-    for i = #_stack, 1, -1 do
-        local h = _stack[i]
-        _stack[i] = nil
-        _pushFrames[i] = nil
+    for i = #_shared.stack, 1, -1 do
+        local h = _shared.stack[i]
+        _shared.stack[i] = nil
+        _shared.pushFrames[i] = nil
         invoke(h, "onDeactivate")
     end
 end
 
 function HandlerStack.clear()
-    _stack = {}
-    _pushFrames = {}
+    _shared.stack = {}
+    _shared.pushFrames = {}
 end
 
 function HandlerStack.collectHelpEntries()
@@ -152,8 +155,8 @@ function HandlerStack.collectHelpEntries()
     local function keyOf(e)
         return tostring(e.key) .. ":" .. tostring(e.mods or 0)
     end
-    for i = #_stack, 1, -1 do
-        local h = _stack[i]
+    for i = #_shared.stack, 1, -1 do
+        local h = _shared.stack[i]
         local entries = h.helpEntries
         if entries == nil and type(h.bindings) == "table" then
             entries = h.bindings

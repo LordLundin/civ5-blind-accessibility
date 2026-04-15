@@ -7,6 +7,10 @@ local T = require("support")
 -- The polyfill's sentinel check keeps it a no-op in-game; here it fires.
 dofile("src/mod/UI/CivVAccess_Polyfill.lua")
 
+-- Shared state table that the proxy installs per-Context in-game.
+-- HandlerStack and others read it as a module-level reference.
+civvaccess_shared = civvaccess_shared or {}
+
 -- Log and SpeechEngine stay as test-owned capturing stubs so suites can
 -- monkey-patch them (warn-capture, stop() observation). They're deliberately
 -- not in the polyfill: production code owns the real implementations and
