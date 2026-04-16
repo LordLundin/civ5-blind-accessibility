@@ -4,11 +4,9 @@
 TickPump = {}
 
 local _frame = 0
-local _installed = false
 
 function TickPump._reset()
     _frame = 0
-    _installed = false
 end
 
 function TickPump.frame()
@@ -28,11 +26,9 @@ function TickPump.tick()
     end
 end
 
+-- Re-appliable: SetUpdate is replace-semantics (the engine exposes ClearUpdate
+-- as a counterpart), so re-calling install on a new ContextPtr after a Context
+-- rebuild rewires the pump cleanly. No idempotency guard.
 function TickPump.install(ctx)
-    if _installed then
-        Log.warn("TickPump.install called twice; ignoring")
-        return
-    end
-    _installed = true
     ctx:SetUpdate(TickPump.tick)
 end

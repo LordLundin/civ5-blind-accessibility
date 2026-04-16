@@ -22,9 +22,7 @@
 HandlerStack = {}
 
 civvaccess_shared = civvaccess_shared or {}
-civvaccess_shared.stack       = civvaccess_shared.stack       or {}
-civvaccess_shared.pushFrames  = civvaccess_shared.pushFrames  or {}
-civvaccess_shared.pushCounter = civvaccess_shared.pushCounter or 0
+civvaccess_shared.stack = civvaccess_shared.stack or {}
 local _shared = civvaccess_shared
 
 local function invoke(handler, methodName)
@@ -40,8 +38,6 @@ end
 
 function HandlerStack._reset()
     _shared.stack = {}
-    _shared.pushFrames = {}
-    _shared.pushCounter = 0
 end
 
 function HandlerStack.count()
@@ -61,11 +57,6 @@ function HandlerStack.push(handler)
         Log.warn("HandlerStack.push: nil handler")
         return false
     end
-    local prevTop = _shared.stack[#_shared.stack]
-    if prevTop ~= nil then
-        -- The previous top loses focus when covered. No onDeactivate here;
-        -- it only fires on removal. This mirrors ONI's model.
-    end
     local fn = handler.onActivate
     if type(fn) == "function" then
         local ok, err = pcall(fn, handler)
@@ -76,9 +67,7 @@ function HandlerStack.push(handler)
             return false
         end
     end
-    _shared.pushCounter = _shared.pushCounter + 1
     _shared.stack[#_shared.stack + 1] = handler
-    _shared.pushFrames[#_shared.pushFrames + 1] = _shared.pushCounter
     Log.debug("HandlerStack.push '" .. tostring(handler.name) .. "' (depth=" .. #_shared.stack .. ")")
     return true
 end
@@ -91,7 +80,6 @@ function HandlerStack.pop()
     end
     local top = _shared.stack[n]
     _shared.stack[n] = nil
-    _shared.pushFrames[n] = nil
     invoke(top, "onDeactivate")
     local newTop = _shared.stack[#_shared.stack]
     if newTop ~= nil then
@@ -105,7 +93,6 @@ function HandlerStack.replace(handler)
     if n > 0 then
         local top = _shared.stack[n]
         _shared.stack[n] = nil
-        _shared.pushFrames[n] = nil
         invoke(top, "onDeactivate")
     end
     return HandlerStack.push(handler)
@@ -120,7 +107,6 @@ function HandlerStack.popAbove(target)
             for j = #_shared.stack, i + 1, -1 do
                 local h = _shared.stack[j]
                 _shared.stack[j] = nil
-                _shared.pushFrames[j] = nil
                 invoke(h, "onDeactivate")
             end
             -- Target is now the top and is (re)exposed.
@@ -137,7 +123,6 @@ function HandlerStack.removeByName(name)
             local h = _shared.stack[i]
             local wasTop = (i == #_shared.stack)
             table.remove(_shared.stack, i)
-            table.remove(_shared.pushFrames, i)
             invoke(h, "onDeactivate")
             if wasTop then
                 local newTop = _shared.stack[#_shared.stack]
@@ -155,14 +140,12 @@ function HandlerStack.deactivateAll()
     for i = #_shared.stack, 1, -1 do
         local h = _shared.stack[i]
         _shared.stack[i] = nil
-        _shared.pushFrames[i] = nil
         invoke(h, "onDeactivate")
     end
 end
 
 function HandlerStack.clear()
     _shared.stack = {}
-    _shared.pushFrames = {}
 end
 
 function HandlerStack.collectHelpEntries()

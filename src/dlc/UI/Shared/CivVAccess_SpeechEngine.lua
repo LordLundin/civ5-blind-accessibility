@@ -8,9 +8,7 @@ local _missingWarned = false
 local function tolkMissing()
     if not _missingWarned then
         _missingWarned = true
-        if Log and Log.error then
-            Log.error("SpeechEngine: tolk global not present; speech disabled. Is the proxy DLL loaded?")
-        end
+        Log.error("SpeechEngine: tolk global not present; speech disabled. Is the proxy DLL loaded?")
     end
 end
 

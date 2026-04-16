@@ -333,6 +333,12 @@ static void register_tolk(lua_State *L) {
 
 static void register_civvaccess_shared(lua_State *L) {
     int top = ORIG_lua_gettop(L);
+    ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "civvaccess_shared");
+    if (ORIG_lua_type(L, -1) != LUA_TNIL) {
+        ORIG_lua_settop(L, top);
+        return;
+    }
+    ORIG_lua_settop(L, -2); /* pop nil */
     ORIG_lua_createtable(L, 0, 4);
     ORIG_lua_setfield(L, LUA_GLOBALSINDEX, "civvaccess_shared");
     ORIG_lua_settop(L, top);

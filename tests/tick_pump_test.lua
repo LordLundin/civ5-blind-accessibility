@@ -48,16 +48,13 @@ function M.test_tick_handler_error_caught_and_logged()
     T.truthy(#errors >= 1)
 end
 
-function M.test_install_idempotent_second_call_warns()
+function M.test_install_rewires_setupdate_each_call()
     setup()
-    local warns = {}
-    Log.warn = function(msg) warns[#warns + 1] = msg end
     local calls = 0
     local ctx = { SetUpdate = function(self, fn) calls = calls + 1 end }
     TickPump.install(ctx)
     TickPump.install(ctx)
-    T.eq(calls, 1)
-    T.truthy(#warns >= 1)
+    T.eq(calls, 2)
 end
 
 return M

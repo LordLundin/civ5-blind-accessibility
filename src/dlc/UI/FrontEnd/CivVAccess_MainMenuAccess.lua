@@ -16,7 +16,6 @@ SimpleListHandler.install(ContextPtr, {
     name          = "MainMenu",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAIN_MENU"),
     priorShowHide = priorShowHide,
-    priorInput    = nil,
     items = {
         { controlName = "SinglePlayerButton",    textKey = "TXT_KEY_MODDING_SINGLE_PLAYER",
           activate    = function() SinglePlayerClick() end },

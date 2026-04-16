@@ -134,7 +134,7 @@ function SimpleListHandler.create(spec)
             controlName = item.controlName,
             textKey     = item.textKey,
             activate    = item.activate,
-            _control    = Controls and Controls[item.controlName] or nil,
+            _control    = Controls[item.controlName],
         }
         if resolved._control == nil then
             Log.warn("SimpleListHandler '" .. self.name .. "': missing control '"
