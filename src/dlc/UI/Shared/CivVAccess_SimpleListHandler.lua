@@ -10,6 +10,11 @@
 --   activate     (fn, required)     fires on Enter; typically calls the
 --                                   game's own click handler global
 --
+-- Spec may also carry an optional `preamble` string (already resolved by the
+-- caller via Text.key / Text.format) that is queued after displayName on
+-- entry, before the first item. Used for screens that carry static message
+-- text on screen (e.g. ExitConfirm's "are you sure" prompt).
+--
 -- Items whose Controls.X is missing at create() are permanently invalid
 -- (logged once). Items whose :IsHidden() flips at runtime are transparently
 -- skipped. After activate fires, if the just-activated item has flipped
@@ -118,10 +123,13 @@ function SimpleListHandler.create(spec)
     assert(type(spec.name) == "string" and spec.name ~= "", "spec.name required")
     assert(type(spec.displayName) == "string" and spec.displayName ~= "", "spec.displayName required")
     assert(type(spec.items) == "table", "spec.items required")
+    assert(spec.preamble == nil or (type(spec.preamble) == "string" and spec.preamble ~= ""),
+        "spec.preamble must be a non-empty string if provided")
 
     local self = {
         name = spec.name,
         displayName = spec.displayName,
+        preamble = spec.preamble,
         items = {},
         capturesAllInput = true,
         _index = 1,
@@ -161,6 +169,9 @@ function SimpleListHandler.create(spec)
         local first = firstValidIndex(self.items)
         self._index = first or 1
         SpeechPipeline.speakInterrupt(self.displayName)
+        if self.preamble then
+            SpeechPipeline.speakQueued(self.preamble)
+        end
         if first ~= nil then
             SpeechPipeline.speakQueued(labelOf(self.items[first]))
         end

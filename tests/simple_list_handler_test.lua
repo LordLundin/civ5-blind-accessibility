@@ -212,6 +212,22 @@ function M.test_onActivate_speaks_displayName_then_first_item()
     T.falsy(speaks[2].interrupt, "first item queued")
 end
 
+function M.test_onActivate_preamble_queued_between_displayName_and_first_item()
+    setup()
+    setControls({"A", "B", "C"})
+    local spec = basicSpec()
+    spec.preamble = "Are you sure?"
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    T.eq(#speaks, 3)
+    T.eq(speaks[1].text, "Test Screen")
+    T.truthy(speaks[1].interrupt)
+    T.eq(speaks[2].text, "Are you sure?")
+    T.falsy(speaks[2].interrupt, "preamble queued")
+    T.eq(speaks[3].text, "LABEL_A")
+    T.falsy(speaks[3].interrupt, "first item queued")
+end
+
 function M.test_onActivate_all_hidden_speaks_only_displayName()
     setup()
     setControls({"A", "B", "C"})

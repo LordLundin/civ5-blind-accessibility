@@ -11,6 +11,7 @@ local priorInput    = InputHandler
 SimpleListHandler.install(ContextPtr, {
     name          = "ExitConfirm",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_EXIT_CONFIRM"),
+    preamble      = Text.key("TXT_KEY_MENU_EXIT_WARN"),
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
     items = {
