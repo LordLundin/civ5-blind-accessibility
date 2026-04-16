@@ -106,7 +106,7 @@ local function onEnter(self)
     -- (MultiplayerSelect toggle), advance the cursor and speak the next valid.
     if not isValid(item) then
         local next = nextValidIndex(self.items, self._index, 1)
-        if next ~= nil and next ~= self._index then
+        if next ~= nil then
             self._index = next
             SpeechPipeline.speakQueued(labelOf(self.items[next]))
         end
@@ -116,11 +116,12 @@ end
 function SimpleListHandler.create(spec)
     assert(type(spec) == "table", "SimpleListHandler.create requires a spec table")
     assert(type(spec.name) == "string" and spec.name ~= "", "spec.name required")
+    assert(type(spec.displayName) == "string" and spec.displayName ~= "", "spec.displayName required")
     assert(type(spec.items) == "table", "spec.items required")
 
     local self = {
         name = spec.name,
-        displayName = spec.displayName or spec.name,
+        displayName = spec.displayName,
         items = {},
         capturesAllInput = true,
         _index = 1,

@@ -1,6 +1,6 @@
 -- Dispatches keyboard events down the HandlerStack, top-first. Stateless.
--- Screen wrappers (followup plan) call dispatch() from their Context's
--- SetInputHandler; until then this module is offline-tested only.
+-- Called from each screen's SetInputHandler (via SimpleListHandler.install
+-- for front-end screens, directly from in-game handlers).
 
 InputRouter = {}
 
