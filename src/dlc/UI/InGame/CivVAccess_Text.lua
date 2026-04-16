@@ -6,8 +6,15 @@
 Text = {}
 
 local function lookup(key, ...)
-    local n = select("#", ...)
-    if n > 0 then
+    if type(key) == "string" and key:sub(1, 19) == "TXT_KEY_CIVVACCESS_" then
+        local mapped = CivVAccess_Strings and CivVAccess_Strings[key]
+        if mapped ~= nil then
+            return mapped
+        end
+        -- Fall through to Locale so the missing-key warning still fires via
+        -- the engine's passthrough behavior (returns the key unchanged).
+    end
+    if select("#", ...) > 0 then
         return Locale.ConvertTextKey(key, ...)
     end
     return Locale.ConvertTextKey(key)

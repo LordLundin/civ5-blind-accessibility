@@ -50,6 +50,18 @@ function M.test_key_no_warn_for_non_txt_key_input()
     teardown()
 end
 
+function M.test_key_returns_civvaccess_string_from_table()
+    setup()
+    local calls = 0
+    Locale.ConvertTextKey = function() calls = calls + 1; return "SHOULD_NOT_BE_CALLED" end
+    CivVAccess_Strings = CivVAccess_Strings or {}
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_FIXTURE"] = "hello"
+    T.eq(Text.key("TXT_KEY_CIVVACCESS_TEST_FIXTURE"), "hello")
+    T.eq(calls, 0)
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_FIXTURE"] = nil
+    teardown()
+end
+
 function M.test_format_passes_varargs_through()
     setup()
     local capturedArgs

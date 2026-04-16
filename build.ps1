@@ -36,7 +36,8 @@ $repoRoot  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $buildBat  = Join-Path $repoRoot 'src\proxy\build_proxy.bat'
 $stageDir  = Join-Path $repoRoot 'build\proxy\stage'
 $dlcSrcDir = Join-Path $repoRoot 'src\dlc'
-$dlcName   = 'CivVAccess'
+$dlcName   = 'DLC_CivVAccess'
+$legacyDlcDirs = @('CivVAccess')
 $legacyModDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
 
 $proxyFiles = @(
@@ -189,6 +190,24 @@ function Invoke-Deploy {
         Write-Host "  $legacyBootstrap"
         Remove-Item -LiteralPath $legacyBootstrap -Recurse -Force
     }
+    foreach ($legacy in $legacyDlcDirs) {
+        $p = Join-Path $gameDir "Assets\DLC\$legacy"
+        if ((Test-Path $p) -and ($p -ne $dlcDir)) {
+            Write-Host "Removing legacy DLC directory:"
+            Write-Host "  $p"
+            Remove-Item -LiteralPath $p -Recurse -Force
+        }
+    }
+
+    # Clear the Civ V DLC/Localization cache so the engine re-enumerates our
+    # DLC on next launch. Without this, the cached DLC list can suppress
+    # newly-added or newly-renamed DLCs until the user forces a refresh.
+    $cacheDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\cache"
+    if (Test-Path $cacheDir) {
+        Write-Host "Clearing DLC cache:"
+        Write-Host "  $cacheDir"
+        Get-ChildItem -LiteralPath $cacheDir -File | Remove-Item -Force
+    }
 
     return @{ GameDir = $gameDir; DlcDir = $dlcDir }
 }
@@ -221,10 +240,12 @@ function Invoke-Uninstall {
         }
     }
 
-    $dlcDir = Join-Path $gameDir "Assets\DLC\$dlcName"
-    if (Test-Path $dlcDir) {
-        Write-Host "  Removing DLC: $dlcDir"
-        Remove-Item -LiteralPath $dlcDir -Recurse -Force
+    foreach ($name in @($dlcName) + $legacyDlcDirs) {
+        $p = Join-Path $gameDir "Assets\DLC\$name"
+        if (Test-Path $p) {
+            Write-Host "  Removing DLC: $p"
+            Remove-Item -LiteralPath $p -Recurse -Force
+        }
     }
 
     $legacyBootstrap = Join-Path $gameDir 'CivVAccess'
