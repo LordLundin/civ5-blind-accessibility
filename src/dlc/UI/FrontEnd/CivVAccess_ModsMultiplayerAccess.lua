@@ -33,7 +33,10 @@ SimpleListHandler.install(ContextPtr, {
         { controlName = "HotSeatButton",   textKey = "TXT_KEY_MULTIPLAYER_HOTSEAT_GAME",
           activate    = function() HotSeatButtonClick() end },
         { controlName = "ReconnectButton", textKey = "TXT_KEY_MULTIPLAYER_RECONNECT",
-          activate    = function() ReconnectButtonClick() end },
+          activate    = function()
+              ReconnectButtonClick()
+              SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_MP_RECONNECTING"))
+          end },
         { controlName = "BackButton",      textKey = "TXT_KEY_MODDING_MENU_BACK",
           activate    = function() BackButtonClick() end },
     },
