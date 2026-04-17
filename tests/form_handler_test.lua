@@ -689,6 +689,94 @@ function M.test_install_esc_bypasses_to_prior_input()
     T.eq(priorFired, 1)
 end
 
+function M.test_pulldown_sub_pop_preserves_cursor_position()
+    setup()
+    local pd = makePullDownWithMetatable()
+    local cb = Polyfill.makeCheckBox()
+    populateControls({ PD = pd, CB = cb })
+    patchProbeFromPullDown(pd)
+    pd:RegisterSelectionCallback(function() end)
+    local inst = {}
+    pd:BuildEntry("InstanceOne", inst)
+    inst.Button:SetText("Entry")
+
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "CB",  textKey = "LBL_CB" },
+            { kind = "pulldown", controlName = "PD",  textKey = "LBL_PD" },
+        },
+    })
+    HandlerStack.push(h)
+    -- Move cursor to the pulldown (item 2).
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._index, 2)
+    -- Open the sub.
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(HandlerStack.count(), 2)
+    -- Select the only entry, which pops the sub and re-activates the form.
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(HandlerStack.count(), 1)
+    T.eq(h._index, 2, "cursor stayed on the pulldown after sub pop")
+end
+
+function M.test_tab_position_preserved_across_pulldown_sub()
+    setup()
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    patchProbeFromPullDown(pd)
+    pd:RegisterSelectionCallback(function() end)
+    local inst = {}
+    pd:BuildEntry("InstanceOne", inst)
+    inst.Button:SetText("Entry")
+
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        tabs = {
+            { name = "TAB_A",
+              items = {
+                  { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" },
+              } },
+            { name = "TAB_B",
+              items = {
+                  { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" },
+                  { kind = "pulldown", controlName = "PD", textKey = "LBL_PD" },
+              } },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    T.eq(h._tabIndex, 2)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._index, 2, "on pulldown in tab B")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- open sub
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- select entry
+    T.eq(h._tabIndex, 2, "tab preserved")
+    T.eq(h._index, 2, "item index preserved")
+end
+
+function M.test_close_reopen_resets_cursor()
+    setup()
+    local cbA = Polyfill.makeCheckBox()
+    local cbB = Polyfill.makeCheckBox()
+    populateControls({ A = cbA, B = cbB })
+    local ctx = makeContextPtr()
+    FormHandler.install(ctx, {
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "A", textKey = "LBL_A" },
+            { kind = "checkbox", controlName = "B", textKey = "LBL_B" },
+        },
+    })
+    ctx._sh(false, false)
+    local h = HandlerStack.active()
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._index, 2)
+    ctx._sh(true, false)   -- hide
+    ctx._sh(false, false)  -- reopen
+    T.eq(HandlerStack.active()._index, 1, "cursor reset on reopen")
+end
+
 function M.test_install_esc_on_subhandler_closes_sub_not_screen()
     setup()
     local pd = makePullDownWithMetatable()

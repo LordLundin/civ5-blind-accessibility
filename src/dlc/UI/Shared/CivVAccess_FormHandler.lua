@@ -563,6 +563,11 @@ function FormHandler.create(spec)
         capturesAllInput = true,
         _index           = 1,
         _tabIndex        = 1,
+        -- _initialized gates the first-open setup (reset cursor to first
+        -- item, speak displayName + tab + item). Re-activations from the
+        -- same open (pulldown sub-handler pop) preserve cursor position
+        -- and just re-announce where the user is.
+        _initialized     = false,
     }
 
     if spec.tabs then
@@ -614,32 +619,49 @@ function FormHandler.create(spec)
     }
 
     function self.onActivate()
-        if self.tabs then
-            self._tabIndex = 1
-            local tab = self.tabs[1]
-            if type(tab.showPanel) == "function" then
-                local ok, err = pcall(tab.showPanel)
-                if not ok then
-                    Log.error("FormHandler '" .. self.name .. "' initial showPanel: "
-                        .. tostring(err))
-                end
-            end
-        end
         local items = currentItems(self)
-        local first = nextValidIndex(items, 0, 1)
-        self._index = first or 1
-        SpeechPipeline.speakInterrupt(self.displayName)
-        if self.tabs then
-            SpeechPipeline.speakQueued(Text.key(self.tabs[self._tabIndex].name))
+        if not self._initialized then
+            -- Fresh screen open: jump to tab 1's first valid item and
+            -- speak displayName + tab name + item.
+            if self.tabs then
+                self._tabIndex = 1
+                local tab = self.tabs[1]
+                if type(tab.showPanel) == "function" then
+                    local ok, err = pcall(tab.showPanel)
+                    if not ok then
+                        Log.error("FormHandler '" .. self.name .. "' initial showPanel: "
+                            .. tostring(err))
+                    end
+                end
+                items = currentItems(self)
+            end
+            local first = nextValidIndex(items, 0, 1)
+            self._index = first or 1
+            self._initialized = true
+            SpeechPipeline.speakInterrupt(self.displayName)
+            if self.tabs then
+                SpeechPipeline.speakQueued(Text.key(self.tabs[self._tabIndex].name))
+            end
+            if first ~= nil then
+                SpeechPipeline.speakQueued(buildSpeech(self, items[first]))
+            end
+            return
         end
-        if first ~= nil then
-            speakItem(self, items[first], false)
+
+        -- Re-activation (e.g., pulldown sub-handler just popped). Preserve
+        -- cursor position; just re-announce the current widget so the user
+        -- hears their location and any state change their selection caused.
+        local item = items[self._index]
+        if item ~= nil then
+            SpeechPipeline.speakInterrupt(buildSpeech(self, item))
         end
     end
 
+    -- onDeactivate intentionally preserves _index / _tabIndex so a pushed
+    -- sub-handler (pulldown sub-mode) can pop back and the user lands
+    -- where they were. The ShowHide(hide=true) path clears _initialized
+    -- so the next screen open starts fresh.
     function self.onDeactivate()
-        self._index    = 1
-        self._tabIndex = 1
     end
 
     return self
@@ -659,7 +681,10 @@ function FormHandler.install(ContextPtr, spec)
             end
         end
         HandlerStack.removeByName(handler.name, false)
-        if bIsHide then return end
+        if bIsHide then
+            handler._initialized = false
+            return
+        end
         HandlerStack.push(handler)
     end)
 
