@@ -11,7 +11,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MULTIPLAYER_SELECT"] = "Multiplaye
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_EXIT_CONFIRM"]       = "Exit game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEGAL"]              = "Legal notices"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_EULA"]               = "End user license agreement"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WORLD_PICKER"]       = "World size"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MODS_ERROR"]         = "Mod error"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_FRONT_END_POPUP"]    = "Notice"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MODS_MENU"]          = "Mods"
