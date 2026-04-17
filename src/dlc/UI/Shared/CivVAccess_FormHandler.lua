@@ -56,8 +56,48 @@ FormHandler = {}
 local STEP_SMALL = 0.01
 local STEP_BIG   = 0.10
 
+-- Speech composition follows the oni-access pattern: segments joined by
+-- ", " (comma-space) so the screen reader pauses between them, and the
+-- tooltip is appended last as a single segment after the full value.
+-- Format: "<label>, <value>[, disabled][, <tooltip>]"
+-- Buttons have no value, so their base form is just "<label>".
+-- Tooltip dedupes against existing segments so a checkbox whose label
+-- and tooltip are the same phrase does not get announced twice.
+
 local function labelOf(item)
     return Text.key(item.textKey)
+end
+
+local function tooltipText(item)
+    if item.tooltipKey == nil then return nil end
+    local t = Text.key(item.tooltipKey)
+    if t == nil or t == "" then return nil end
+    return t
+end
+
+-- Drop any tooltip sentence that duplicates an existing ", "-separated
+-- segment in `base`. Sentences are separated by ". " in localized tooltip
+-- text. Adapted from oni-access's WidgetOps.AppendTooltip.
+local function appendTooltip(base, tooltip)
+    if tooltip == nil or tooltip == "" then return base end
+    if base == nil or base == "" then return tooltip end
+
+    local seen = {}
+    for segment in string.gmatch(base, "([^,]+)") do
+        local trimmed = segment:match("^%s*(.-)%s*$")
+        if trimmed ~= "" then seen[trimmed] = true end
+    end
+
+    local novel = {}
+    for sentence in string.gmatch(tooltip, "([^%.]+)") do
+        local trimmed = sentence:match("^%s*(.-)%s*$")
+        if trimmed ~= "" and not seen[trimmed] then
+            novel[#novel + 1] = trimmed
+        end
+    end
+
+    if #novel == 0 then return base end
+    return base .. ", " .. table.concat(novel, ", ")
 end
 
 local function isNavigable(item)
@@ -71,68 +111,62 @@ local function isActivatable(item)
     return not item._control:IsDisabled()
 end
 
-local function announceLabel(item)
-    if item.kind == "tabstrip" then
-        return labelOf(item)
-    end
-    if not isActivatable(item) then
-        return labelOf(item) .. " " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
-    end
-    return labelOf(item)
+-- Base announcement = label, plus value for widgets that have one. Disabled
+-- adds ", disabled" between label/value and the tooltip.
+local function checkboxValue(item)
+    local on = item._control:IsChecked()
+    return Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
 end
 
--- Speech assembly for each kind on focus (Down/Up land here, onActivate
--- queues the first-item speech). These must never crash on a missing live
--- value; fall back to the label alone if state is unreadable.
-local function checkboxValueText(item)
-    local c = item._control
-    local keyOn  = "TXT_KEY_CIVVACCESS_CHECK_ON"
-    local keyOff = "TXT_KEY_CIVVACCESS_CHECK_OFF"
-    local on = c:IsChecked()
-    return labelOf(item) .. " " .. Text.key(on and keyOn or keyOff)
-end
-
-local function sliderValueText(item)
+local function sliderValue(item)
     local labelCtrl = item._labelControl
-    if labelCtrl == nil then return labelOf(item) end
+    if labelCtrl == nil then return nil end
     local ok, value = pcall(function() return labelCtrl:GetText() end)
-    if not ok or value == nil or value == "" then return labelOf(item) end
-    return labelOf(item) .. " " .. tostring(value)
+    if not ok or value == nil or value == "" then return nil end
+    return tostring(value)
 end
 
-local function pulldownValueText(item)
+local function pulldownValue(item)
     local c = item._control
     local ok, btn = pcall(function() return c:GetButton() end)
-    if not ok or btn == nil then return labelOf(item) end
+    if not ok or btn == nil then return nil end
     local ok2, text = pcall(function() return btn:GetText() end)
-    if not ok2 or text == nil or text == "" then return labelOf(item) end
-    return labelOf(item) .. " " .. tostring(text)
+    if not ok2 or text == nil or text == "" then return nil end
+    return tostring(text)
 end
 
-local function tabstripValueText(self, item)
+local function tabstripValue(self)
     local tab = self.tabs and self.tabs[self._tabIndex]
-    if tab == nil then return labelOf(item) end
-    return labelOf(item) .. " " .. Text.key(tab.name)
+    if tab == nil then return nil end
+    return Text.key(tab.name)
+end
+
+local function buildSpeech(self, item)
+    local parts = { labelOf(item) }
+    local kind = item.kind
+    local value = nil
+    if kind == "checkbox" then
+        value = checkboxValue(item)
+    elseif kind == "slider" then
+        value = sliderValue(item)
+    elseif kind == "pulldown" then
+        value = pulldownValue(item)
+    elseif kind == "tabstrip" then
+        value = tabstripValue(self)
+    end
+    if value ~= nil and value ~= "" then
+        parts[#parts + 1] = value
+    end
+    if not isActivatable(item) then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
+    end
+    local base = table.concat(parts, ", ")
+    return appendTooltip(base, tooltipText(item))
 end
 
 local function speakItem(self, item, interrupt)
     local fn = interrupt and SpeechPipeline.speakInterrupt or SpeechPipeline.speakQueued
-    if not isActivatable(item) then
-        fn(announceLabel(item))
-        return
-    end
-    local kind = item.kind
-    if kind == "checkbox" then
-        fn(checkboxValueText(item))
-    elseif kind == "slider" then
-        fn(sliderValueText(item))
-    elseif kind == "pulldown" then
-        fn(pulldownValueText(item))
-    elseif kind == "tabstrip" then
-        fn(tabstripValueText(self, item))
-    else
-        fn(labelOf(item))
-    end
+    fn(buildSpeech(self, item))
 end
 
 -- Item resolution -----------------------------------------------------
@@ -145,6 +179,7 @@ local function resolveItems(self, items, context)
         local resolved = {
             kind         = item.kind,
             textKey      = item.textKey,
+            tooltipKey   = item.tooltipKey,
             controlName  = item.controlName,
             activate     = item.activate,
             step         = item.step or STEP_SMALL,
@@ -232,7 +267,7 @@ local function switchTab(self, newTabIndex)
     self._index = first or 1
     SpeechPipeline.speakInterrupt(Text.key(tab.name))
     if first ~= nil then
-        speakItem(self, items[first], false)
+        SpeechPipeline.speakQueued(buildSpeech(self, items[first]))
     end
 end
 
@@ -262,7 +297,7 @@ local function activateCheckbox(self, item)
     -- implementations do fire) and leave a documented TODO only if we ever
     -- find a screen where state diverges.
     Events.AudioPlay2DSound("AS2D_IF_SELECT")
-    SpeechPipeline.speakInterrupt(checkboxValueText(item))
+    SpeechPipeline.speakInterrupt(buildSpeech(self, item))
 end
 
 local function clampUnit(v)
@@ -278,17 +313,17 @@ local function adjustSlider(self, item, delta)
     if next == cur then
         -- Still announce so the user learns they are at an end; label text
         -- already reflects the clamp from the last SetValue.
-        SpeechPipeline.speakInterrupt(sliderValueText(item))
+        SpeechPipeline.speakInterrupt(buildSpeech(self, item))
         return
     end
     c:SetValue(next)
-    SpeechPipeline.speakInterrupt(sliderValueText(item))
+    SpeechPipeline.speakInterrupt(buildSpeech(self, item))
 end
 
 local function snapSlider(self, item, targetValue)
     local c = item._control
     c:SetValue(targetValue)
-    SpeechPipeline.speakInterrupt(sliderValueText(item))
+    SpeechPipeline.speakInterrupt(buildSpeech(self, item))
 end
 
 local function activatePullDown(self, item)
@@ -299,7 +334,7 @@ local function activatePullDown(self, item)
         Log.warn("FormHandler '" .. self.name .. "' pulldown '"
             .. tostring(item.controlName) .. "': "
             .. (callback == nil and "callback not captured" or "no entries captured"))
-        SpeechPipeline.speakInterrupt(pulldownValueText(item))
+        SpeechPipeline.speakInterrupt(buildSpeech(self, item))
         return
     end
     -- Synthesize a SimpleListHandler-shaped sub-handler from probe state.
@@ -384,7 +419,7 @@ end
 
 local function onActivate(self, item)
     if not isActivatable(item) then
-        SpeechPipeline.speakInterrupt(announceLabel(item))
+        SpeechPipeline.speakInterrupt(buildSpeech(self, item))
         return
     end
     local kind = item.kind
@@ -395,12 +430,12 @@ local function onActivate(self, item)
     elseif kind == "pulldown" then
         activatePullDown(self, item)
     elseif kind == "tabstrip" then
-        -- Tabstrip has no Enter verb; Left/Right cycles. Announce the value
-        -- so the user knows nothing happened.
-        SpeechPipeline.speakInterrupt(tabstripValueText(self, item))
+        -- Tabstrip has no Enter verb; Left/Right cycles. Re-announce so
+        -- the user knows nothing happened.
+        SpeechPipeline.speakInterrupt(buildSpeech(self, item))
     elseif kind == "slider" then
-        -- Slider Enter = no-op, just re-announce so user relocates themselves.
-        SpeechPipeline.speakInterrupt(sliderValueText(item))
+        -- Slider Enter = no-op, just re-announce so the user can relocate.
+        SpeechPipeline.speakInterrupt(buildSpeech(self, item))
     end
 end
 

@@ -149,7 +149,7 @@ function M.test_checkbox_enter_toggles_and_announces_on()
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(cb:IsChecked(), true)
-    T.eq(speaks[#speaks].text, "LBL_FOO on")
+    T.eq(speaks[#speaks].text, "LBL_FOO, on")
 end
 
 function M.test_checkbox_space_toggles_back_and_announces_off()
@@ -166,7 +166,7 @@ function M.test_checkbox_space_toggles_back_and_announces_off()
     speaks = {}
     InputRouter.dispatch(Keys.VK_SPACE, 0, WM_KEYDOWN)
     T.eq(cb:IsChecked(), false)
-    T.eq(speaks[#speaks].text, "LBL_FOO off")
+    T.eq(speaks[#speaks].text, "LBL_FOO, off")
 end
 
 function M.test_checkbox_focus_announces_current_state()
@@ -183,10 +183,10 @@ function M.test_checkbox_focus_announces_current_state()
     })
     HandlerStack.push(h)
     T.eq(speaks[1].text, "Screen")
-    T.eq(speaks[2].text, "LBL_A on")
+    T.eq(speaks[2].text, "LBL_A, on")
     speaks = {}
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    T.eq(speaks[1].text, "LBL_B off")
+    T.eq(speaks[1].text, "LBL_B, off")
 end
 
 -- Slider -----------------------------------------------------------
@@ -210,7 +210,7 @@ function M.test_slider_right_increments_by_small_step()
     speaks = {}
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(slider:GetValue(), 0.51)
-    T.eq(speaks[1].text, "LBL_SLD 51%")
+    T.eq(speaks[1].text, "LBL_SLD, 51%")
 end
 
 function M.test_slider_left_decrements()
@@ -364,7 +364,88 @@ function M.test_pulldown_enter_without_probe_logs_warn_and_announces_current()
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.truthy(#warns >= 1, "missing probe state warns")
-    T.eq(speaks[#speaks].text, "LBL_PD Current")
+    T.truthy(#speaks >= 1, "announced despite missing probe state")
+    T.eq(speaks[#speaks].text, "LBL_PD, Current")
+end
+
+-- Tooltip appending -----------------------------------------------
+
+function M.test_tooltip_appended_after_label_value()
+    setup()
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_SHOW_MAP"]    = "Show map"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_SHOW_MAP_TT"] = "Toggles the map overlay"
+    local cb = Polyfill.makeCheckBox({ checked = true })
+    populateControls({ Foo = cb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "Foo",
+              textKey    = "TXT_KEY_CIVVACCESS_TEST_SHOW_MAP",
+              tooltipKey = "TXT_KEY_CIVVACCESS_TEST_SHOW_MAP_TT" },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(speaks[2].text, "Show map, on, Toggles the map overlay")
+end
+
+function M.test_tooltip_dedupes_against_label()
+    setup()
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_FS"]    = "Fullscreen"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_FS_TT"] = "Fullscreen. Some extra detail"
+    local cb = Polyfill.makeCheckBox({ checked = false })
+    populateControls({ X = cb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "X",
+              textKey    = "TXT_KEY_CIVVACCESS_TEST_FS",
+              tooltipKey = "TXT_KEY_CIVVACCESS_TEST_FS_TT" },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(speaks[2].text, "Fullscreen, off, Some extra detail",
+        "duplicate 'Fullscreen' sentence dropped from tooltip")
+end
+
+function M.test_tooltip_absent_gives_plain_announce()
+    setup()
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_VOL"] = "Volume"
+    local slider = Polyfill.makeSlider({ value = 0.5 })
+    local label  = Polyfill.makeLabel("50%")
+    populateControls({ S = slider, L = label })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "slider", controlName = "S", labelControlName = "L",
+              textKey = "TXT_KEY_CIVVACCESS_TEST_VOL" },  -- no tooltipKey
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(speaks[2].text, "Volume, 50%")
+end
+
+function M.test_tooltip_appears_after_adjust_too()
+    setup()
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_VOL"]    = "Volume"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_VOL_TT"] = "Adjust music volume"
+    local slider = Polyfill.makeSlider({ value = 0.5 })
+    local label  = Polyfill.makeLabel("50%")
+    populateControls({ S = slider, L = label })
+    slider:RegisterSliderCallback(function(v)
+        label:SetText(string.format("%d%%", math.floor(v * 100 + 0.5)))
+    end)
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "slider", controlName = "S", labelControlName = "L",
+              textKey    = "TXT_KEY_CIVVACCESS_TEST_VOL",
+              tooltipKey = "TXT_KEY_CIVVACCESS_TEST_VOL_TT" },
+        },
+    })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(speaks[1].text, "Volume, 51%, Adjust music volume")
 end
 
 -- Tabs -------------------------------------------------------------
