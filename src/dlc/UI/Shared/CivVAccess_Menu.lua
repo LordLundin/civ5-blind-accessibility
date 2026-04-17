@@ -470,6 +470,19 @@ function Menu.install(ContextPtr, spec)
     return handler
 end
 
+-- Minimal InputHandler that routes Esc to backFn and consumes everything
+-- else (returns true). Convenience for screens whose only non-menu input
+-- contract is "Esc = go back".
+
+function Menu.escOnlyInput(backFn)
+    return function(uiMsg, wParam)
+        if (uiMsg == 256 or uiMsg == 260) and wParam == Keys.VK_ESCAPE then
+            backFn()
+        end
+        return true
+    end
+end
+
 -- EditMode sub-handler ----------------------------------------------------
 --
 -- Pushed above the menu when Textfield.activate fires. capturesAllInput is
@@ -488,42 +501,34 @@ end
 function Menu._pushEdit(menu, textfieldItem)
     local editBox       = textfieldItem._control
     local priorCallback = textfieldItem.priorCallback
+    local errCtx        = "Menu '" .. menu.name .. "' textfield '"
+        .. tostring(textfieldItem.controlName) .. "'"
 
-    local okGet, text = pcall(function() return editBox:GetText() end)
-    if not okGet then
-        Log.error("Menu '" .. menu.name .. "' textfield '"
-            .. tostring(textfieldItem.controlName)
-            .. "' GetText failed: " .. tostring(text))
+    local function safe(op, fn)
+        local ok, result = pcall(fn)
+        if not ok then
+            Log.error(errCtx .. " " .. op .. " failed: " .. tostring(result))
+        end
+        return ok, result
     end
+
+    local okGet, text = safe("GetText", function() return editBox:GetText() end)
     local originalText = (okGet and text) or ""
 
-    local okClear, errClear = pcall(function() editBox:SetText("") end)
-    if not okClear then
-        Log.error("Menu '" .. menu.name .. "' textfield '"
-            .. tostring(textfieldItem.controlName)
-            .. "' clear SetText failed: " .. tostring(errClear))
-    end
+    safe("clear SetText", function() editBox:SetText("") end)
 
     -- Wrapping callback chains every character to the screen's validator so
     -- typing keeps driving the screen's own state (e.g. SetMaxTurns). Does
     -- not own the Enter-pop: that is the edit-mode Esc/Enter bindings.
     local function wrappingCallback(t, control, bIsEnter)
         if priorCallback then
-            local ok, err = pcall(priorCallback, t, control, bIsEnter)
-            if not ok then
-                Log.error("Menu '" .. menu.name .. "' textfield '"
-                    .. tostring(textfieldItem.controlName)
-                    .. "' prior callback failed: " .. tostring(err))
-            end
+            safe("prior callback",
+                function() priorCallback(t, control, bIsEnter) end)
         end
     end
 
-    local okReg, errReg = pcall(function() editBox:RegisterCallback(wrappingCallback) end)
-    if not okReg then
-        Log.error("Menu '" .. menu.name .. "' textfield '"
-            .. tostring(textfieldItem.controlName)
-            .. "' RegisterCallback failed: " .. tostring(errReg))
-    end
+    safe("RegisterCallback",
+        function() editBox:RegisterCallback(wrappingCallback) end)
 
     local subName = menu.name .. "/" .. tostring(textfieldItem.controlName) .. "_Edit"
     local sub = {
@@ -534,33 +539,22 @@ function Menu._pushEdit(menu, textfieldItem)
 
     local function exit(restore)
         if restore then
-            local ok, err = pcall(function() editBox:SetText(originalText) end)
-            if not ok then
-                Log.error("Menu '" .. menu.name .. "' textfield '"
-                    .. tostring(textfieldItem.controlName)
-                    .. "' restore SetText failed: " .. tostring(err))
-            end
+            safe("restore SetText",
+                function() editBox:SetText(originalText) end)
         elseif priorCallback ~= nil then
             -- Non-CallOnChar EditBoxes only fire priorCallback on Enter, and
             -- our Enter binding just intercepted that Enter. Invoke prior
             -- manually with bIsEnter=true so the screen commits the value
             -- the same way a native Enter would. Safe for CallOnChar boxes
             -- too (the setter/validator is idempotent).
-            local okG, typed = pcall(function() return editBox:GetText() end)
-            local okC, errC = pcall(priorCallback, (okG and typed) or "",
-                editBox, true)
-            if not okC then
-                Log.error("Menu '" .. menu.name .. "' textfield '"
-                    .. tostring(textfieldItem.controlName)
-                    .. "' commit callback failed: " .. tostring(errC))
-            end
+            local okG, typed = safe("commit GetText",
+                function() return editBox:GetText() end)
+            local committed = (okG and typed) or ""
+            safe("commit callback",
+                function() priorCallback(committed, editBox, true) end)
         end
-        local okReg2, errReg2 = pcall(function() editBox:RegisterCallback(priorCallback) end)
-        if not okReg2 then
-            Log.error("Menu '" .. menu.name .. "' textfield '"
-                .. tostring(textfieldItem.controlName)
-                .. "' restore RegisterCallback failed: " .. tostring(errReg2))
-        end
+        safe("restore RegisterCallback",
+            function() editBox:RegisterCallback(priorCallback) end)
         parkFocus(menu)
         HandlerStack.removeByName(subName, true)
         if restore then
@@ -599,12 +593,7 @@ function Menu._pushEdit(menu, textfieldItem)
             -- first frame). Don't steal focus.
             return
         end
-        local okF, errF = pcall(function() editBox:TakeFocus() end)
-        if not okF then
-            Log.error("Menu '" .. menu.name .. "' textfield '"
-                .. tostring(textfieldItem.controlName)
-                .. "' TakeFocus failed: " .. tostring(errF))
-        end
+        safe("TakeFocus", function() editBox:TakeFocus() end)
     end)
 end
 

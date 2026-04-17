@@ -7,18 +7,11 @@
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_ModListPreamble")
 
-local priorInput = function(uiMsg, wParam, lParam)
-    if (uiMsg == 256 or uiMsg == 260) and wParam == Keys.VK_ESCAPE then
-        NavigateBack()
-    end
-    return true
-end
-
 Menu.install(ContextPtr, {
     name        = "ModsMenu",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MODS_MENU"),
     preamble    = ModListPreamble.fn(),
-    priorInput  = priorInput,
+    priorInput  = Menu.escOnlyInput(NavigateBack),
     items = {
         MenuItems.Button({ controlName = "SinglePlayerButton",
             textKey  = "TXT_KEY_MODDING_SINGLE_PLAYER",

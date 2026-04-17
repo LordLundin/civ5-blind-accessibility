@@ -326,7 +326,6 @@ end
 local function buildChoice(button, callback, parentControlName)
     local choice = {
         kind      = "choice",
-        _control  = button,
         _button   = button,
         _callback = callback,
     }

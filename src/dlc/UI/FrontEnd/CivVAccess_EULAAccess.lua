@@ -5,18 +5,11 @@
 
 include("CivVAccess_FrontendCommon")
 
-local priorInput = function(uiMsg, wParam, lParam)
-    if (uiMsg == 256 or uiMsg == 260) and wParam == Keys.VK_ESCAPE then
-        NavigateBack()
-    end
-    return true
-end
-
 Menu.install(ContextPtr, {
     name        = "EULA",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_EULA"),
     preamble    = Text.key("TXT_KEY_MODDING_EULA_BODY"),
-    priorInput  = priorInput,
+    priorInput  = Menu.escOnlyInput(NavigateBack),
     items = {
         MenuItems.Button({ controlName = "DeclineButton",
             textKey  = "TXT_KEY_MODDING_EULA_DECLINE",
