@@ -41,23 +41,28 @@
 --     registered or entries not yet built), Enter announces the current value
 --     and logs a Log.warn per the no-silent-failures rule.
 --
---   { kind = "textfield", controlName, textKey, [priorCallback], [commitFn],
+--   { kind = "textfield", controlName, textKey, [priorCallback],
 --     [visibilityControlName] }
---     Enter pushes a TextFieldSubHandler that clears the EditBox, calls
---     TakeFocus so the engine routes typing there, and exits on Escape
---     (restoring the snapshot) or Enter (popping and -- if commitFn is
---     given -- firing it to drive the screen's natural commit).
+--     Enter on the item flips the form into an `_editing` mode: the
+--     EditBox's text is snapshotted, cleared, and given engine focus, a
+--     wrapping callback chains to priorCallback on every character, and
+--     the handler's own bindings shrink to Escape (cancel, restore the
+--     snapshot) and Enter (commit, preserve the typed text). While
+--     editing, capturesAllInput is false so unbound keys -- every
+--     printable character, Backspace, arrows for caret movement -- fall
+--     through the mod's InputRouter and reach the focused EditBox for
+--     native engine handling (including IME composition). On exit the
+--     prior callback is reinstated and focus is parked on
+--     `focusParkControl` so arrow keys reach the form's navigation
+--     bindings again.
 --     priorCallback, if given, is the EditBox's already-registered
---     callback (typically a validator) so our wrapper can chain through
---     on every character and restore it on pop.
+--     callback (typically a validator) so typing keeps driving the
+--     screen's per-character commit; the original is restored on exit.
 --     visibilityControlName, if given, points at a wrapper Box whose
 --     SetHide controls whether the EditBox is visually present (common
 --     for MaxTurnsEditbox / TurnTimerEditbox containers). FormHandler's
 --     isNavigable skips the item when that wrapper is hidden.
 --     Announcement on focus: "<label>, edit, <current text or 'blank'>".
---     The spec-level `focusParkControl` (a non-EditBox control name) is
---     passed through to the sub-handler so it can TakeFocus on pop,
---     releasing the EditBox's engine focus grab on the arrow keys.
 --
 -- Navigation: Up / Down wrap within the current tab. Tab / Shift+Tab cycle
 -- tabs when the spec has tabs. Home / End are reserved for slider snap,
@@ -65,6 +70,10 @@
 -- capturesAllInput barrier and routes to priorInput (screen's own Back / OnNo).
 
 FormHandler = {}
+
+-- Forward declarations so switchTab can call parkFocus (defined further
+-- down with the textfield edit-mode helpers).
+local parkFocus
 
 -- Kinds ----------------------------------------------------------------
 
@@ -249,10 +258,7 @@ local function resolveItems(self, items, context)
         elseif item.kind == "textfield" then
             assert(item.priorCallback == nil or type(item.priorCallback) == "function",
                 context .. " item " .. i .. " (textfield) priorCallback must be a function")
-            assert(item.commitFn == nil or type(item.commitFn) == "function",
-                context .. " item " .. i .. " (textfield) commitFn must be a function")
             resolved.priorCallback = item.priorCallback
-            resolved.commitFn      = item.commitFn
             if item.visibilityControlName ~= nil then
                 resolved.visibilityControlName = item.visibilityControlName
                 resolved._visibilityControl    = Controls[item.visibilityControlName]
@@ -306,6 +312,12 @@ local function switchTab(self, newTabIndex)
                 .. tostring(tab.name) .. "' failed: " .. tostring(err))
         end
     end
+    -- Tab switch makes a new panel visible, and the engine auto-focuses
+    -- the first EditBox in that panel. Once an EditBox holds engine focus
+    -- arrow keys are consumed by caret movement before reaching our
+    -- InputHandler. Park focus off the EditBox so form navigation keeps
+    -- working. Same call as the install-time show path.
+    parkFocus(self)
     local items = currentItems(self)
     local first = nextValidIndex(items, 0, 1)
     self._index = first or 1
@@ -506,6 +518,120 @@ local function activatePullDown(self, item)
     HandlerStack.push(sub)
 end
 
+-- Textfield edit mode ------------------------------------------------
+--
+-- Not a separate handler: the form itself swaps into `_editing = true`
+-- with a smaller bindings array (Escape / Enter) and capturesAllInput
+-- off so unbound keys fall through to the engine-focused EditBox.
+-- A pushed sub-handler would sit *above* the form, and unbound keydowns
+-- would walk into the form's own capturesAllInput=true and be eaten
+-- before ever reaching the engine's EditBox router -- that was the bug
+-- that motivated folding the sub in as a state.
+
+parkFocus = function(self)
+    if self._focusParkControl == nil then return end
+    local park = Controls[self._focusParkControl]
+    if park == nil then
+        Log.warn("FormHandler '" .. self.name
+            .. "' focus-park control '" .. tostring(self._focusParkControl)
+            .. "' not found")
+        return
+    end
+    local ok, err = pcall(function() park:TakeFocus() end)
+    if not ok then
+        Log.error("FormHandler '" .. self.name
+            .. "' focus-park TakeFocus failed: " .. tostring(err))
+    end
+end
+
+local function enterEdit(self, item)
+    local editBox = item._control
+    local okGet, text = pcall(function() return editBox:GetText() end)
+    if not okGet then
+        Log.error("FormHandler '" .. self.name .. "' textfield '"
+            .. tostring(item.controlName) .. "' GetText failed: " .. tostring(text))
+    end
+    self._editingItem         = item
+    self._editingOriginal     = (okGet and text) or ""
+    self._editingPriorCallback = item.priorCallback
+
+    local okClear, errClear = pcall(function() editBox:SetText("") end)
+    if not okClear then
+        Log.error("FormHandler '" .. self.name .. "' textfield '"
+            .. tostring(item.controlName) .. "' clear SetText failed: " .. tostring(errClear))
+    end
+
+    -- Wrapping callback chains per-character to the screen's validator
+    -- so typing keeps driving the screen's own state (e.g. SetMaxTurns).
+    -- Does not own the Enter pop: that is the edit-mode binding below.
+    local priorCallback = item.priorCallback
+    local function wrappingCallback(text, control, bIsEnter)
+        if priorCallback then
+            local ok, err = pcall(priorCallback, text, control, bIsEnter)
+            if not ok then
+                Log.error("FormHandler '" .. self.name .. "' textfield '"
+                    .. tostring(item.controlName) .. "' prior callback failed: "
+                    .. tostring(err))
+            end
+        end
+    end
+
+    local okReg, errReg = pcall(function() editBox:RegisterCallback(wrappingCallback) end)
+    if not okReg then
+        Log.error("FormHandler '" .. self.name .. "' textfield '"
+            .. tostring(item.controlName) .. "' RegisterCallback failed: " .. tostring(errReg))
+    end
+
+    local okFocus, errFocus = pcall(function() editBox:TakeFocus() end)
+    if not okFocus then
+        Log.error("FormHandler '" .. self.name .. "' textfield '"
+            .. tostring(item.controlName) .. "' TakeFocus failed: " .. tostring(errFocus))
+    end
+
+    self.bindings         = self._editBindings
+    self.capturesAllInput = false
+    self._editing         = true
+
+    SpeechPipeline.speakInterrupt(
+        Text.format("TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING", labelOf(item)))
+end
+
+local function exitEdit(self, restore)
+    local item = self._editingItem
+    if item == nil then return end
+    local editBox = item._control
+    local priorCallback = self._editingPriorCallback
+
+    if restore then
+        local ok, err = pcall(function() editBox:SetText(self._editingOriginal or "") end)
+        if not ok then
+            Log.error("FormHandler '" .. self.name .. "' textfield '"
+                .. tostring(item.controlName) .. "' restore SetText failed: " .. tostring(err))
+        end
+    end
+
+    local okReg, errReg = pcall(function() editBox:RegisterCallback(priorCallback) end)
+    if not okReg then
+        Log.error("FormHandler '" .. self.name .. "' textfield '"
+            .. tostring(item.controlName) .. "' restore RegisterCallback failed: " .. tostring(errReg))
+    end
+
+    parkFocus(self)
+
+    local labelText = labelOf(item)
+    self._editingItem          = nil
+    self._editingOriginal      = nil
+    self._editingPriorCallback = nil
+    self.bindings              = self._navBindings
+    self.capturesAllInput      = true
+    self._editing              = false
+
+    if restore then
+        SpeechPipeline.speakInterrupt(
+            Text.format("TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED", labelText))
+    end
+end
+
 local function onActivate(self, item)
     if not isActivatable(item) then
         SpeechPipeline.speakInterrupt(buildSpeech(self, item))
@@ -519,8 +645,7 @@ local function onActivate(self, item)
     elseif kind == "pulldown" then
         activatePullDown(self, item)
     elseif kind == "textfield" then
-        TextFieldSubHandler.push(self.name, item, labelOf(item),
-            self._focusParkControl)
+        enterEdit(self, item)
     elseif kind == "slider" then
         -- Slider Enter = no-op, just re-announce so the user can relocate.
         SpeechPipeline.speakInterrupt(buildSpeech(self, item))
@@ -603,18 +728,26 @@ function FormHandler.create(spec)
         capturesAllInput = true,
         _index           = 1,
         _tabIndex        = 1,
-        -- Name of a non-EditBox control for the textfield sub-handler to
-        -- TakeFocus on after pop. Without this, screens that let the user
-        -- return to the form (Escape without closing the popup) would leave
-        -- the EditBox holding engine focus and swallowing arrow keys. The
-        -- engine has no ClearFocus API; only way to defocus an EditBox is
-        -- to TakeFocus on a different widget.
+        -- Name of a non-EditBox control the form can TakeFocus on to
+        -- release an engine-held EditBox focus: applied on screen show,
+        -- on every tab switch (engine auto-focuses the first EditBox in
+        -- the newly visible panel), and on exit from textfield edit mode.
+        -- The engine has no ClearFocus API; only way to defocus an
+        -- EditBox is to TakeFocus on a different widget.
         _focusParkControl = spec.focusParkControl,
         -- _initialized gates the first-open setup (reset cursor to first
         -- item, speak displayName + tab + item). Re-activations from the
         -- same open (pulldown sub-handler pop) preserve cursor position
         -- and just re-announce where the user is.
         _initialized     = false,
+        -- Textfield edit-mode state. While _editing is true the handler
+        -- swaps self.bindings to self._editBindings and flips
+        -- capturesAllInput off so typing falls through to the focused
+        -- EditBox. See enterEdit / exitEdit for the full state machine.
+        _editing                  = false,
+        _editingItem              = nil,
+        _editingOriginal          = nil,
+        _editingPriorCallback     = nil,
     }
 
     if spec.tabs then
@@ -638,7 +771,7 @@ function FormHandler.create(spec)
         self._items = resolveItems(self, spec.items, "items")
     end
 
-    self.bindings = {
+    self._navBindings = {
         { key = Keys.VK_UP,     mods = 0,          description = "Previous item",
           fn = function() onUp(self) end },
         { key = Keys.VK_DOWN,   mods = 0,          description = "Next item",
@@ -664,6 +797,15 @@ function FormHandler.create(spec)
         { key = Keys.VK_TAB,    mods = MOD_SHIFT,  description = "Previous tab",
           fn = function() onShiftTab(self) end },
     }
+    -- Narrow binding set for textfield edit mode. All other keys fall
+    -- through (capturesAllInput=false) to the engine-focused EditBox.
+    self._editBindings = {
+        { key = Keys.VK_ESCAPE, mods = 0, description = "Cancel edit",
+          fn = function() exitEdit(self, true) end },
+        { key = Keys.VK_RETURN, mods = 0, description = "Commit edit",
+          fn = function() exitEdit(self, false) end },
+    }
+    self.bindings = self._navBindings
 
     function self.onActivate()
         local items = currentItems(self)
@@ -741,27 +883,20 @@ function FormHandler.install(ContextPtr, spec)
         -- Park focus on a non-EditBox control before push so arrow keys are
         -- not swallowed by a base-screen TakeFocus on an EditBox (e.g.,
         -- ChangePassword's ShowHideHandler focuses the Old/New password box).
-        if handler._focusParkControl ~= nil then
-            local park = Controls[handler._focusParkControl]
-            if park ~= nil then
-                local ok, err = pcall(function() park:TakeFocus() end)
-                if not ok then
-                    Log.error("FormHandler '" .. handler.name
-                        .. "' show-time focus-park failed: " .. tostring(err))
-                end
-            end
-        end
+        parkFocus(handler)
         HandlerStack.push(handler)
     end)
 
     ContextPtr:SetInputHandler(function(msg, wp, lp)
         if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
-            -- Esc has two meanings depending on what's on top of the stack:
-            -- on the form itself, bypass to the screen's own Back / OnNo;
-            -- on a pushed sub-handler (pulldown sub-mode), let that handler
-            -- own Esc so cancel closes the sub without backing out the screen.
+            -- Esc has three meanings depending on state:
+            --   on the form (non-edit): bypass to the screen's Back / OnNo.
+            --   on the form in edit mode: route to the edit-mode binding so
+            --     the text is restored and edit mode exits -- the user is
+            --     *not* trying to close the screen.
+            --   on a pushed sub (pulldown): let the sub's Esc cancel it.
             local top = HandlerStack.active()
-            if top == handler then
+            if top == handler and not handler._editing then
                 if priorInput then return priorInput(msg, wp, lp) end
                 return false
             end

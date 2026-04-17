@@ -70,9 +70,13 @@ local function setup()
     civvaccess_shared.checkBoxCallbacks      = {}
 
     CivVAccess_Strings = CivVAccess_Strings or {}
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"]        = "on"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"]       = "off"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"]    = "disabled"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"]           = "on"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"]          = "off"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"]     = "edit"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"]    = "blank"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"]  = "editing {1_Label}"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
 
     resetPDMetatable()
 end
@@ -894,6 +898,157 @@ function M.test_install_prior_showhide_chained()
     ctx._sh(false, false)
     T.eq(priorArg, false)
     T.eq(HandlerStack.count(), 1)
+end
+
+-- Textfield edit mode --------------------------------------------------
+
+function M.test_enter_on_textfield_enters_edit_mode()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "Athens" })
+    populateControls({ E = eb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(h._editing, true, "form flipped to edit mode")
+    T.eq(h._editingOriginal, "Athens", "original text snapshotted")
+    T.eq(eb:GetText(), "", "editbox cleared")
+    T.eq(eb._hasFocus, true, "engine focus taken for typing")
+    T.eq(h.capturesAllInput, false,
+        "capturesAllInput off so unbound keys fall through to the EditBox")
+    T.eq(h.bindings, h._editBindings, "bindings swapped to edit set")
+    local found = false
+    for _, s in ipairs(speaks) do
+        if s.text == "editing LBL" then found = true end
+    end
+    T.truthy(found, "editing announcement fired")
+end
+
+function M.test_escape_during_edit_restores_and_exits()
+    setup()
+    local eb   = Polyfill.makeEditBox({ text = "Athens" })
+    local park = Polyfill.makeButton()
+    populateControls({ E = eb, Park = park })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        focusParkControl = "Park",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- enter edit
+    eb:SetText("partial")
+    park._hasFocus = nil
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)  -- cancel
+    T.eq(h._editing, false, "edit mode exited")
+    T.eq(eb:GetText(), "Athens", "original text restored")
+    T.eq(h.bindings, h._navBindings, "nav bindings restored")
+    T.eq(h.capturesAllInput, true, "capturesAllInput restored")
+    T.eq(park._hasFocus, true, "focus parked off the EditBox")
+    local foundRestored = false
+    for _, s in ipairs(speaks) do
+        if s.text == "LBL restored" then foundRestored = true end
+    end
+    T.truthy(foundRestored, "restored announcement fired")
+end
+
+function M.test_enter_during_edit_commits_without_restoring()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "Athens" })
+    populateControls({ E = eb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- enter edit
+    eb:SetText("new name")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- commit
+    T.eq(h._editing, false, "edit mode exited")
+    T.eq(eb:GetText(), "new name", "typed text preserved, no restore on commit")
+    T.eq(h.bindings, h._navBindings, "nav bindings restored")
+end
+
+function M.test_edit_mode_has_no_arrow_bindings()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "" })
+    populateControls({ E = eb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    -- The edit bindings array should not contain Up/Down/Left/Right.
+    for _, b in ipairs(h._editBindings) do
+        T.truthy(b.key ~= Keys.VK_UP and b.key ~= Keys.VK_DOWN
+                 and b.key ~= Keys.VK_LEFT and b.key ~= Keys.VK_RIGHT,
+            "edit bindings must not intercept arrow keys")
+    end
+end
+
+function M.test_reenter_edit_installs_fresh_wrapping_callback()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "first" })
+    populateControls({ E = eb })
+    local priorCalls = 0
+    local function prior() priorCalls = priorCalls + 1 end
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL",
+              priorCallback = prior },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- enter
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- commit
+    T.eq(eb._cb, prior, "prior reinstated on exit")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- re-enter
+    T.truthy(eb._cb ~= prior, "new wrapping callback installed")
+    eb._cb("x", eb, false)
+    T.eq(priorCalls, 1, "re-entered wrapper still chains to prior")
+end
+
+function M.test_tab_switch_reparks_focus_on_configured_control()
+    setup()
+    local cbA  = Polyfill.makeCheckBox()
+    local ebB  = Polyfill.makeEditBox({ text = "" })
+    local park = Polyfill.makeButton()
+    populateControls({ CA = cbA, EB = ebB, Park = park })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        focusParkControl = "Park",
+        tabs = {
+            { name = "TAB_A",
+              items = { { kind = "checkbox", controlName = "CA", textKey = "L" } } },
+            { name = "TAB_B",
+              showPanel = function()
+                  -- Simulates the engine auto-focusing an EditBox in the
+                  -- newly shown panel.
+                  ebB:TakeFocus()
+              end,
+              items = { { kind = "textfield", controlName = "EB", textKey = "L" } } },
+        },
+    })
+    HandlerStack.push(h)
+    park._hasFocus = nil
+    ebB._hasFocus  = nil
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    T.eq(h._tabIndex, 2)
+    T.eq(park._hasFocus, true,
+        "park control focused after tab switch so arrow keys reach the form")
 end
 
 return M

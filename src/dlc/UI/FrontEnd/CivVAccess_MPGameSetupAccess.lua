@@ -6,7 +6,6 @@
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_FormHandler")
-include("CivVAccess_TextFieldSubHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler

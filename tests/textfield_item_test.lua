@@ -34,7 +34,6 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_TickPump.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_TextFieldSubHandler.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_FormHandler.lua")
     HandlerStack._reset()
 
@@ -52,7 +51,6 @@ local function setup()
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"]    = "blank"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"]  = "editing {1_Label}"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_COMMITTED"]= "{1_Label} committed"
 end
 
 local function populateControls(map)
