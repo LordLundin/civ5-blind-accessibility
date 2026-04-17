@@ -124,6 +124,27 @@ function Polyfill.makeCheckBox(opts)
     return self
 end
 
+function Polyfill.makeEditBox(opts)
+    opts = opts or {}
+    local self = {
+        _text      = opts.text or "",
+        _hidden    = false,
+        _disabled  = false,
+        _cb        = nil,
+        _hasFocus  = false,
+    }
+    function self:GetText() return self._text end
+    function self:SetText(s) self._text = s or "" end
+    function self:ClearString() self._text = "" end
+    function self:RegisterCallback(fn) self._cb = fn end
+    function self:TakeFocus() self._hasFocus = true end
+    function self:IsHidden() return self._hidden end
+    function self:IsDisabled() return self._disabled end
+    function self:SetHide(h) self._hidden = h and true or false end
+    function self:SetDisabled(d) self._disabled = d and true or false end
+    return self
+end
+
 function Polyfill.makePullDown()
     local button = Polyfill.makeButton()
     local self = {

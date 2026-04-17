@@ -5,11 +5,28 @@
 
 Text = {}
 
+-- Engine-style {N_Tag} substitution for mod-authored mapped strings. The
+-- game's Locale.ConvertTextKey does this for TXT_KEY_*, but we short-circuit
+-- Locale for our own keys to keep the mapping table as the source of truth,
+-- so we do substitution here. Only the positional {N_...} form is handled;
+-- the Tag after the underscore is ignored (same as the engine when args
+-- arrive by position).
+local function substitute(s, args, argCount)
+    if argCount == 0 then return s end
+    return (s:gsub("{(%d+)_[^}]*}", function(n)
+        local v = args[tonumber(n)]
+        if v == nil then return "" end
+        return tostring(v)
+    end))
+end
+
 local function lookup(key, ...)
     if type(key) == "string" and key:sub(1, 19) == "TXT_KEY_CIVVACCESS_" then
         local mapped = CivVAccess_Strings and CivVAccess_Strings[key]
         if mapped ~= nil then
-            return mapped
+            local argCount = select("#", ...)
+            if argCount == 0 then return mapped end
+            return substitute(mapped, { ... }, argCount)
         end
         -- Fall through to Locale so the missing-key warning still fires via
         -- the engine's passthrough behavior (returns the key unchanged).

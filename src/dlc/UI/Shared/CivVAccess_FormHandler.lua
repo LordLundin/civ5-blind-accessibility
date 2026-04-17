@@ -1,7 +1,7 @@
 -- Reusable handler for mixed-widget form screens (Options, AdvancedSetup,
 -- MPGameSetup, StagingRoom). Where SimpleListHandler assumes a flat list of
 -- buttons with one verb (Enter), FormHandler supports item kinds --
--- button, checkbox, slider, pulldown -- each with its own
+-- button, checkbox, slider, pulldown, textfield -- each with its own
 -- activation and announcement. Multi-tab screens use Tab / Shift+Tab to
 -- cycle through tabs.
 --
@@ -40,6 +40,15 @@
 --     entry button's voids. If probe state is missing (callback not yet
 --     registered or entries not yet built), Enter announces the current value
 --     and logs a Log.warn per the no-silent-failures rule.
+--
+--   { kind = "textfield", controlName, textKey, [priorCallback] }
+--     Enter pushes a TextFieldSubHandler that clears the EditBox, calls
+--     TakeFocus so the engine routes typing there, and exits on Escape
+--     (restoring the snapshot) or Enter (chained to the engine's native
+--     callback fire). priorCallback, if given, is the EditBox's already-
+--     registered callback (typically a validator or committer) so our
+--     wrapper can chain through on every character and restore it on pop.
+--     Announcement on focus: "<label>, edit, <current text or 'blank'>".
 --
 -- Navigation: Up / Down wrap within the current tab. Tab / Shift+Tab cycle
 -- tabs when the spec has tabs. Home / End are reserved for slider snap,
@@ -130,6 +139,14 @@ local function pulldownValue(item)
     return tostring(text)
 end
 
+local function textfieldValue(item)
+    local ok, text = pcall(function() return item._control:GetText() end)
+    if not ok or text == nil or text == "" then
+        return Text.key("TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK")
+    end
+    return tostring(text)
+end
+
 local function buildSpeech(self, item)
     local parts
     local kind = item.kind
@@ -158,6 +175,9 @@ local function buildSpeech(self, item)
         else
             parts = { labelOf(item) }
         end
+    elseif kind == "textfield" then
+        parts = { labelOf(item), Text.key("TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"),
+                  textfieldValue(item) }
     else
         parts = { labelOf(item) }
     end
@@ -210,6 +230,13 @@ local function resolveItems(self, items, context)
         elseif item.kind == "button" then
             assert(type(item.activate) == "function",
                 context .. " item " .. i .. " (button) needs activate fn")
+        elseif item.kind == "textfield" then
+            assert(item.priorCallback == nil or type(item.priorCallback) == "function",
+                context .. " item " .. i .. " (textfield) priorCallback must be a function")
+            assert(item.commitFn == nil or type(item.commitFn) == "function",
+                context .. " item " .. i .. " (textfield) commitFn must be a function")
+            resolved.priorCallback = item.priorCallback
+            resolved.commitFn      = item.commitFn
         end
         out[#out + 1] = resolved
     end
@@ -466,6 +493,8 @@ local function onActivate(self, item)
         activateCheckbox(self, item)
     elseif kind == "pulldown" then
         activatePullDown(self, item)
+    elseif kind == "textfield" then
+        TextFieldSubHandler.push(self.name, item, labelOf(item))
     elseif kind == "slider" then
         -- Slider Enter = no-op, just re-announce so the user can relocate.
         SpeechPipeline.speakInterrupt(buildSpeech(self, item))
