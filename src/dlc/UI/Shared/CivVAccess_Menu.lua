@@ -223,6 +223,11 @@ function Menu.create(spec)
         capturesAllInput  = spec.capturesAllInput ~= false,
         _index            = 1,
         _tabIndex         = 1,
+        -- Optional 1-based cursor to land on at first onActivate. Used by
+        -- Pulldown to open its child sub-menu pre-positioned on the current
+        -- selection. Ignored if the target index is not navigable at open
+        -- time; falls through to the first-valid default.
+        _initialIndex     = spec.initialIndex,
         _focusParkControl = spec.focusParkControl,
         -- _initialized gates the first-open setup (reset cursor, speak
         -- displayName + preamble + tab + item). Re-activations from a sub
@@ -308,7 +313,14 @@ function Menu.create(spec)
                 items = currentItems(self)
             end
             local first = nextValidIndex(items, 0, 1)
-            self._index = first or 1
+            local startIndex = first or 1
+            if self._initialIndex ~= nil then
+                local target = items[self._initialIndex]
+                if target ~= nil and target:isNavigable() then
+                    startIndex = self._initialIndex
+                end
+            end
+            self._index = startIndex
             self._initialized = true
             SpeechPipeline.speakInterrupt(self.displayName)
             local preambleText = resolvePreamble(self)
@@ -319,8 +331,8 @@ function Menu.create(spec)
             if self.tabs then
                 SpeechPipeline.speakQueued(Text.key(self.tabs[self._tabIndex].name))
             end
-            if first ~= nil then
-                SpeechPipeline.speakQueued(items[first]:announce(self))
+            if items[startIndex] ~= nil then
+                SpeechPipeline.speakQueued(items[startIndex]:announce(self))
             end
             return
         end

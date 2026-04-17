@@ -390,14 +390,23 @@ function MenuItems.Pulldown(spec)
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
         local subName = menu.name .. "/" .. tostring(self.controlName) .. "_PullDown"
         local childItems = {}
+        local currentText = pulldownCurrentValue(self)
+        local initialIndex
         for i, inst in ipairs(entries) do
             childItems[i] = buildChoice(inst.Button, callback, self.controlName)
+            if initialIndex == nil and currentText ~= nil then
+                local ok, t = pcall(function() return inst.Button:GetText() end)
+                if ok and t ~= nil and tostring(t) == currentText then
+                    initialIndex = i
+                end
+            end
         end
         local child = Menu.create({
-            name        = subName,
-            displayName = resolveLabel(self),
-            items       = childItems,
-            escapePops  = true,
+            name         = subName,
+            displayName  = resolveLabel(self),
+            items        = childItems,
+            initialIndex = initialIndex,
+            escapePops   = true,
         })
         HandlerStack.push(child)
     end
