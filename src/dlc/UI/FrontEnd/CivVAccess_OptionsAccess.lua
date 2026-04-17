@@ -29,10 +29,14 @@ FormHandler.install(ContextPtr, {
             name      = "TXT_KEY_GAME_OPTIONS",
             showPanel = function() OnCategory(1) end,
             items     = {
+                -- WheelSteps=10 per XML; use 0.1 so each press advances
+                -- the integer-second label visibly (default 0.01 would
+                -- take 5-10 presses before the label changes).
                 { kind = "slider",   controlName = "Tooltip1TimerSlider",
                   labelControlName = "Tooltip1TimerLength",
                   textKey    = "TXT_KEY_OPSCREEN_TOOLTIP_1_TIMER_LENGTH",
-                  tooltipKey = "TXT_KEY_OPSCREEN_TOOLTIP_1_TIMER_LENGTH_TT" },
+                  tooltipKey = "TXT_KEY_OPSCREEN_TOOLTIP_1_TIMER_LENGTH_TT",
+                  step = 0.1, bigStep = 0.2 },
                 { kind = "pulldown", controlName = "TutorialPull",
                   textKey    = "TXT_KEY_OPSCREEN_TUTORIAL_LEVEL",
                   tooltipKey = "TXT_KEY_OPSCREEN_TUTORIAL_LEVEL_TT" },
@@ -119,14 +123,17 @@ FormHandler.install(ContextPtr, {
                   textKey    = "TXT_KEY_OPSCREEN_SELECT_LANG" },
                 { kind = "pulldown", controlName = "SpokenLanguagePull",
                   textKey    = "TXT_KEY_OPSCREEN_SELECT_SPOKEN_LANG" },
+                -- WheelSteps=10 per XML for both drag and pinch sliders.
                 { kind = "slider",   controlName = "DragSpeedSlider",
                   labelControlName = "DragSpeedValue",
                   textKey    = "TXT_KEY_DRAG_SPEED",
-                  tooltipKey = "TXT_KEY_DRAG_SPEED_TT" },
+                  tooltipKey = "TXT_KEY_DRAG_SPEED_TT",
+                  step = 0.1, bigStep = 0.2 },
                 { kind = "slider",   controlName = "PinchSpeedSlider",
                   labelControlName = "PinchSpeedValue",
                   textKey    = "TXT_KEY_PINCH_SPEED",
-                  tooltipKey = "TXT_KEY_PINCH_SPEED_TT" },
+                  tooltipKey = "TXT_KEY_PINCH_SPEED_TT",
+                  step = 0.1, bigStep = 0.2 },
             },
         },
         {

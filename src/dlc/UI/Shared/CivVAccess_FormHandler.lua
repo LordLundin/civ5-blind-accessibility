@@ -131,19 +131,37 @@ local function pulldownValue(item)
 end
 
 local function buildSpeech(self, item)
-    local parts = { labelOf(item) }
+    local parts
     local kind = item.kind
-    local value = nil
-    if kind == "checkbox" then
-        value = checkboxValue(item)
-    elseif kind == "slider" then
-        value = sliderValue(item)
+
+    if kind == "slider" then
+        -- Civ V's options sliders use a "composite" label control whose
+        -- text is set by the slider's own callback to a pre-formatted
+        -- "Label: Value" string (e.g. "Map Info Delay: 1 seconds"). In
+        -- that case the textKey is only a format template with an
+        -- unresolved {1_Num} placeholder -- announcing it would just
+        -- duplicate the label portion and leak the placeholder. Use the
+        -- label control text as the whole announcement when present;
+        -- fall back to the textKey label otherwise.
+        local v = sliderValue(item)
+        if v ~= nil and v ~= "" then
+            parts = { v }
+        else
+            parts = { labelOf(item) }
+        end
+    elseif kind == "checkbox" then
+        parts = { labelOf(item), checkboxValue(item) }
     elseif kind == "pulldown" then
-        value = pulldownValue(item)
+        local v = pulldownValue(item)
+        if v ~= nil and v ~= "" then
+            parts = { labelOf(item), v }
+        else
+            parts = { labelOf(item) }
+        end
+    else
+        parts = { labelOf(item) }
     end
-    if value ~= nil and value ~= "" then
-        parts[#parts + 1] = value
-    end
+
     if not isActivatable(item) then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
     end

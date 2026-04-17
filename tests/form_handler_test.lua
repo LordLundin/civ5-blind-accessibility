@@ -227,7 +227,8 @@ function M.test_slider_right_increments_by_small_step()
     speaks = {}
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(slider:GetValue(), 0.51)
-    T.eq(speaks[1].text, "LBL_SLD, 51%")
+    -- Composite slider: label control text replaces the whole announcement.
+    T.eq(speaks[1].text, "51%")
 end
 
 function M.test_slider_fires_captured_callback_on_adjust()
@@ -503,7 +504,24 @@ function M.test_tooltip_absent_gives_plain_announce()
         },
     })
     HandlerStack.push(h)
-    T.eq(speaks[2].text, "Volume, 50%")
+    T.eq(speaks[2].text, "50%", "composite slider uses label control text alone")
+end
+
+function M.test_slider_empty_label_falls_back_to_textKey()
+    setup()
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_SLD"] = "Delay"
+    local slider = Polyfill.makeSlider({ value = 0.5 })
+    local label  = Polyfill.makeLabel("")  -- label control not yet populated
+    populateControls({ Sld = slider, Lbl = label })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "slider", controlName = "Sld", labelControlName = "Lbl",
+              textKey = "TXT_KEY_CIVVACCESS_TEST_SLD" },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(speaks[2].text, "Delay", "empty label control -> textKey label alone")
 end
 
 function M.test_tooltip_appears_after_adjust_too()
@@ -527,7 +545,7 @@ function M.test_tooltip_appears_after_adjust_too()
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
-    T.eq(speaks[1].text, "Volume, 51%, Adjust music volume")
+    T.eq(speaks[1].text, "51%, Adjust music volume")
 end
 
 -- Tabs -------------------------------------------------------------
