@@ -414,9 +414,11 @@ function M.test_pulldown_enter_pushes_subhandler_from_probe()
     })
     HandlerStack.push(h)
     speaks = {}
+    sounds = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(HandlerStack.count(), 2, "sub pushed on top")
     T.eq(HandlerStack.active().name, "T/PD_PullDown")
+    T.eq(sounds[1], "AS2D_IF_SELECT", "click sound on dropdown open")
     -- First-entry text should be spoken
     local heard = false
     for _, s in ipairs(speaks) do if s.text == "Easy" then heard = true end end

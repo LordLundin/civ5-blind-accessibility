@@ -378,6 +378,10 @@ local function activatePullDown(self, item)
         SpeechPipeline.speakInterrupt(buildSpeech(self, item))
         return
     end
+    -- Match the click feedback on button / checkbox activation: the user
+    -- just committed to a sub-menu, so the same "AS2D_IF_SELECT" confirms
+    -- the action regardless of keyboard-vs-mouse entry.
+    Events.AudioPlay2DSound("AS2D_IF_SELECT")
     -- Synthesize a SimpleListHandler-shaped sub-handler from probe state.
     local subItems = {}
     for i, inst in ipairs(entries) do
