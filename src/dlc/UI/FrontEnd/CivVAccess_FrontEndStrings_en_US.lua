@@ -20,13 +20,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CONTENT_SWITCH"]     = "Updating g
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WAITING_PLAYERS"]    = "Waiting for players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"]       = "Joining room"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_OPTIONS"]            = "Options"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CREDITS"]            = "Credits"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_READY"]                = "Enter to begin"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"]                  = "on"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"]                 = "off"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"]            = "edit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"]           = "blank"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"]         = "editing {1_Label}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"]        = "{1_Label} restored"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOAD_MENU"]          = "Load game"
 -- Disambiguating labels: the game's UI reuses a single label for two visually-
 -- separated controls (grid header or fullscreen/windowed toggle distinguishes
 -- sighted users). Without that visual context the two items announce
