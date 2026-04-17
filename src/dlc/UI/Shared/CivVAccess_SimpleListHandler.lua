@@ -12,12 +12,20 @@
 --                                   live control text (pre-localized or set
 --                                   by the screen after our items are built);
 --                                   called with item._control at announce time
---   tooltipFn    (fn(control))      optional; read at announce time and
---                                   appended after the label. For buttons
---                                   whose tooltip is set dynamically via
+--   tooltipKey   (string)           TXT_KEY_* whose localized text is
+--                                   appended after the label. For XML-declared
+--                                   static tooltips. Cheapest form; prefer
+--                                   this over tooltipFn when the tooltip is a
+--                                   fixed TXT_KEY.
+--   tooltipText  (string)           literal already-localized tooltip, same
+--                                   role as tooltipKey for text that is not
+--                                   a TXT_KEY.
+--   tooltipFn    (fn(control))      read at announce time. For buttons whose
+--                                   tooltip is set dynamically via
 --                                   SetToolTipString (Play Now settings
---                                   summary, disabled-reason hints) rather
---                                   than declared in XML.
+--                                   summary, disabled-reason hints) or
+--                                   depends on live state.
+--                                   Priority: tooltipFn > tooltipText > tooltipKey.
 --   activate     (fn, required)     fires on Enter; typically calls the
 --                                   game's own click handler global
 --
@@ -67,15 +75,23 @@ local function isActivatable(item)
 end
 
 local function tooltipOf(item)
-    if item.tooltipFn == nil then return nil end
-    local ok, result = pcall(item.tooltipFn, item._control)
-    if not ok then
-        Log.error("SimpleListHandler tooltipFn '"
-            .. tostring(item.controlName) .. "' failed: " .. tostring(result))
-        return nil
+    if item.tooltipFn ~= nil then
+        local ok, result = pcall(item.tooltipFn, item._control)
+        if not ok then
+            Log.error("SimpleListHandler tooltipFn '"
+                .. tostring(item.controlName) .. "' failed: " .. tostring(result))
+            return nil
+        end
+        if result == nil or result == "" then return nil end
+        return tostring(result)
     end
-    if result == nil or result == "" then return nil end
-    return tostring(result)
+    if item.tooltipText ~= nil and item.tooltipText ~= "" then
+        return item.tooltipText
+    end
+    if item.tooltipKey == nil then return nil end
+    local t = Text.key(item.tooltipKey)
+    if t == nil or t == "" then return nil end
+    return t
 end
 
 local function announceLabel(item)
@@ -200,6 +216,8 @@ function SimpleListHandler.create(spec)
             controlName = item.controlName,
             textKey     = item.textKey,
             labelFn     = item.labelFn,
+            tooltipKey  = item.tooltipKey,
+            tooltipText = item.tooltipText,
             tooltipFn   = item.tooltipFn,
             activate    = item.activate,
             _control    = Controls[item.controlName],
