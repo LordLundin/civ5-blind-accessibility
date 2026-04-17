@@ -29,10 +29,18 @@ local function playNowSettingsSummary()
         parts[#parts + 1] = Text.key("TXT_KEY_RANDOM_MAP_SCRIPT")
     else
         local savedMapScript = PreGame.GetMapScript()
+        local found = false
         for mapScript in GameInfo.MapScripts() do
             if mapScript.FileName == savedMapScript then
                 parts[#parts + 1] = Text.key(mapScript.Name or mapScript.Description)
+                found = true
                 break
+            end
+        end
+        if not found then
+            local mapData = UI.GetMapPreview(savedMapScript)
+            if mapData ~= nil then
+                parts[#parts + 1] = Text.key(mapData.Name)
             end
         end
     end
