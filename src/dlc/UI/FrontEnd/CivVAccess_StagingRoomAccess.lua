@@ -7,7 +7,6 @@
 -- discovery pass and a dynamic-item-list variant of FormHandler.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 include("CivVAccess_FormHandler")
 
 local priorShowHide = ShowHideHandler

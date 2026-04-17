@@ -187,8 +187,6 @@ local function resolveItems(self, items, context)
             tooltipKey   = item.tooltipKey,
             controlName  = item.controlName,
             activate     = item.activate,
-            step         = item.step or STEP_SMALL,
-            bigStep      = item.bigStep or STEP_BIG,
         }
         assert(type(item.controlName) == "string",
             context .. " item " .. i .. ".controlName required")
@@ -202,6 +200,8 @@ local function resolveItems(self, items, context)
                 context .. " item " .. i .. " (slider) needs labelControlName")
             resolved.labelControlName = item.labelControlName
             resolved._labelControl    = Controls[item.labelControlName]
+            resolved.step             = item.step    or STEP_SMALL
+            resolved.bigStep          = item.bigStep or STEP_BIG
             if resolved._labelControl == nil then
                 Log.warn("FormHandler '" .. self.name .. "': missing label control '"
                     .. item.labelControlName .. "' for slider '"
@@ -227,16 +227,7 @@ end
 -- Navigation ----------------------------------------------------------
 
 local function nextValidIndex(items, start, step)
-    local n = #items
-    if n == 0 then return nil end
-    local i = start
-    for _ = 1, n do
-        i = i + step
-        if i > n then i = 1 end
-        if i < 1 then i = n end
-        if isNavigable(items[i]) then return i end
-    end
-    return nil
+    return Nav.next(items, start, step, isNavigable)
 end
 
 local function moveTo(self, newIndex)
@@ -382,43 +373,42 @@ local function activatePullDown(self, item)
     -- just committed to a sub-menu, so the same "AS2D_IF_SELECT" confirms
     -- the action regardless of keyboard-vs-mouse entry.
     Events.AudioPlay2DSound("AS2D_IF_SELECT")
-    -- Synthesize a SimpleListHandler-shaped sub-handler from probe state.
-    local subItems = {}
+    -- Keep live button references only; read text and voids at speech /
+    -- fire time so a between-push-and-select refresh of the pulldown is
+    -- reflected in what the user hears and what we forward to the callback.
+    local subButtons = {}
     for i, inst in ipairs(entries) do
-        local btn = inst.Button
-        -- Synthesize an item whose controlName/textKey paths reuse the
-        -- SimpleListHandler contract. _control is the entry's button,
-        -- textKey is bypassed (textLiteral used instead) since entry text
-        -- is dynamic per-row and not a TXT_KEY.
-        local text = ""
-        if btn ~= nil then
-            local ok, t = pcall(function() return btn:GetText() end)
-            if ok and t ~= nil then text = t end
-        end
-        subItems[i] = {
-            _button       = btn,
-            _text         = text,
-            _void1        = btn and btn:GetVoid1() or nil,
-            _void2        = btn and btn:GetVoid2() or nil,
-        }
+        subButtons[i] = inst.Button
     end
 
     local subName = self.name .. "/" .. tostring(item.controlName) .. "_PullDown"
     local sub = {
-        name              = subName,
-        capturesAllInput  = true,
-        _index            = 1,
-        _items            = subItems,
+        name             = subName,
+        capturesAllInput = true,
+        _index           = 1,
     }
 
+    local function liveEntryText(btn)
+        if btn == nil then return nil end
+        local ok, t = pcall(function() return btn:GetText() end)
+        if not ok or t == nil or t == "" then return nil end
+        return t
+    end
+
     local function speakSub(i)
-        local e = subItems[i]
-        if e == nil then return end
-        SpeechPipeline.speakInterrupt(e._text ~= "" and e._text or tostring(i))
+        local btn = subButtons[i]
+        local text = liveEntryText(btn)
+        if text == nil then
+            Log.warn("FormHandler pulldown '" .. tostring(item.controlName)
+                .. "' entry " .. i .. " has no text; announcing label")
+            SpeechPipeline.speakInterrupt(labelOf(item))
+            return
+        end
+        SpeechPipeline.speakInterrupt(text)
     end
 
     local function walk(step)
-        local n = #subItems
+        local n = #subButtons
         if n == 0 then return end
         local i = sub._index + step
         if i > n then i = 1 end
@@ -428,10 +418,12 @@ local function activatePullDown(self, item)
     end
 
     local function fire()
-        local e = subItems[sub._index]
-        if e == nil then return end
+        local btn = subButtons[sub._index]
+        if btn == nil then return end
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        local ok, err = pcall(callback, e._void1, e._void2)
+        local v1, v2
+        pcall(function() v1 = btn:GetVoid1(); v2 = btn:GetVoid2() end)
+        local ok, err = pcall(callback, v1, v2)
         if not ok then
             Log.error("FormHandler pulldown '" .. tostring(item.controlName)
                 .. "' callback failed: " .. tostring(err))
@@ -642,12 +634,18 @@ function FormHandler.create(spec)
         end
 
         -- Re-activation (e.g., pulldown sub-handler just popped). Preserve
-        -- cursor position; just re-announce the current widget so the user
-        -- hears their location and any state change their selection caused.
+        -- cursor position; just re-announce the current widget. Validate
+        -- the cursor first: a pulldown selection can flip item visibility
+        -- (e.g., Scenario check toggles MaxTurns-related rows), so the
+        -- cached _index might now point at a hidden or out-of-range slot.
         local item = items[self._index]
-        if item ~= nil then
-            SpeechPipeline.speakInterrupt(buildSpeech(self, item))
+        if item == nil or not isNavigable(item) then
+            local next = nextValidIndex(items, self._index - 1, 1)
+            if next == nil then return end
+            self._index = next
+            item = items[next]
         end
+        SpeechPipeline.speakInterrupt(buildSpeech(self, item))
     end
 
     -- onDeactivate intentionally preserves _index / _tabIndex so a pushed

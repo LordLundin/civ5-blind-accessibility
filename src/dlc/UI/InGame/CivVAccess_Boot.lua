@@ -8,6 +8,7 @@ include("CivVAccess_SpeechPipeline")
 include("CivVAccess_HandlerStack")
 include("CivVAccess_InputRouter")
 include("CivVAccess_TickPump")
+include("CivVAccess_Nav")
 include("CivVAccess_BaselineHandler")
 
 -- Boot fires any time a new in-game Context loads, which may include the

@@ -7,7 +7,6 @@
 -- and have no stable Controls.X name we can enumerate here.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 include("CivVAccess_FormHandler")
 
 local priorShowHide = ShowHideHandler

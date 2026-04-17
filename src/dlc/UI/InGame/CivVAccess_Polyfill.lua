@@ -149,3 +149,22 @@ function Polyfill.makePullDown()
     function self:SetDisabled(d) self._disabled = d and true or false end
     return self
 end
+
+-- Strip instance methods off a makePullDown polyfill and attach `mt` so
+-- method lookups fall through to __index. Tests use this to simulate the
+-- engine's shared-metatable dispatch so PullDownProbe can patch the
+-- metatable exactly as it does in-game. Keeping the strip list in one
+-- place protects against drift if makePullDown gains a new method.
+function Polyfill.makePullDownWithMetatable(mt)
+    local pd = Polyfill.makePullDown()
+    pd.GetButton                 = nil
+    pd.ClearEntries              = nil
+    pd.BuildEntry                = nil
+    pd.CalculateInternals        = nil
+    pd.RegisterSelectionCallback = nil
+    pd.IsHidden                  = nil
+    pd.IsDisabled                = nil
+    pd.SetHide                   = nil
+    pd.SetDisabled               = nil
+    return setmetatable(pd, mt)
+end

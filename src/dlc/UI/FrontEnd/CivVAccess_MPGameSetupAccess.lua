@@ -5,7 +5,6 @@
 -- First pass covers the fixed-position widgets.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 include("CivVAccess_FormHandler")
 
 local priorShowHide = ShowHideHandler

@@ -43,11 +43,7 @@ local function setup()
 end
 
 local function makePD()
-    local pd = Polyfill.makePullDown()
-    pd.GetButton, pd.ClearEntries, pd.BuildEntry, pd.CalculateInternals = nil, nil, nil, nil
-    pd.RegisterSelectionCallback, pd.IsHidden, pd.IsDisabled = nil, nil, nil
-    pd.SetHide, pd.SetDisabled = nil, nil
-    return setmetatable(pd, _shared_mt)
+    return Polyfill.makePullDownWithMetatable(_shared_mt)
 end
 
 -- ---------------------------------------------------------------------

@@ -53,21 +53,8 @@ local function announceLabel(item)
     return labelOf(item) .. " " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
 end
 
--- Walk from `start` in direction `step` (+1 / -1), wrapping, looking for a
--- navigable item. Cap iterations at #items so an all-invalid list terminates
--- instead of spinning. Callers with no starting cursor pass start=0 (step=1)
--- to find the first valid item, or start=#items+1 (step=-1) to find the last.
 local function nextValidIndex(items, start, step)
-    local n = #items
-    if n == 0 then return nil end
-    local i = start
-    for _ = 1, n do
-        i = i + step
-        if i > n then i = 1 end
-        if i < 1 then i = n end
-        if isNavigable(items[i]) then return i end
-    end
-    return nil
+    return Nav.next(items, start, step, isNavigable)
 end
 
 local function speakIndex(self, index)

@@ -13,7 +13,6 @@
 -- user never lands on something that would not accept input.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 include("CivVAccess_FormHandler")
 
 local priorShowHide = ShowHideHandler

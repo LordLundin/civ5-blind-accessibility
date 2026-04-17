@@ -56,6 +56,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_InputRouter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TickPump.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_FormHandler.lua")
     HandlerStack._reset()
@@ -93,12 +94,7 @@ end
 
 local function makePullDownWithMetatable()
     if _test_pd_mt == nil then resetPDMetatable() end
-    local pd = Polyfill.makePullDown()
-    -- Strip instance methods so __index lookup applies.
-    pd.GetButton, pd.ClearEntries, pd.BuildEntry, pd.CalculateInternals = nil, nil, nil, nil
-    pd.RegisterSelectionCallback, pd.IsHidden, pd.IsDisabled = nil, nil, nil
-    pd.SetHide, pd.SetDisabled = nil, nil
-    return setmetatable(pd, _test_pd_mt)
+    return Polyfill.makePullDownWithMetatable(_test_pd_mt)
 end
 
 -- Factory -----------------------------------------------------------
@@ -740,6 +736,38 @@ function M.test_pulldown_sub_pop_preserves_cursor_position()
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(HandlerStack.count(), 1)
     T.eq(h._index, 2, "cursor stayed on the pulldown after sub pop")
+end
+
+function M.test_sub_pop_advances_cursor_off_hidden_item()
+    setup()
+    local pd = makePullDownWithMetatable()
+    local cbAfter = Polyfill.makeCheckBox()
+    populateControls({ PD = pd, After = cbAfter })
+    patchProbeFromPullDown(pd)
+    -- The pulldown's selection callback hides the pulldown itself (as a
+    -- proxy for the "Scenario check toggles visibility" pattern), forcing
+    -- re-activation to land on a different valid item.
+    pd:RegisterSelectionCallback(function()
+        pd:SetHide(true)
+    end)
+    local inst = {}
+    pd:BuildEntry("InstanceOne", inst)
+    inst.Button:SetText("Entry")
+
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "pulldown", controlName = "PD",    textKey = "LBL_PD" },
+            { kind = "checkbox", controlName = "After", textKey = "LBL_AFTER" },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(h._index, 1, "starts on pulldown")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- open sub
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- select; pulldown hides
+    T.eq(h._index, 2, "cursor advanced off the now-hidden pulldown")
+    T.truthy(#speaks >= 1, "re-activation announced the new current item")
 end
 
 function M.test_tab_position_preserved_across_pulldown_sub()
