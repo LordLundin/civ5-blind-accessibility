@@ -6,7 +6,12 @@
 --
 -- Item shape:
 --   controlName  (string, required) XML ID on Controls; resolved at create()
---   textKey      (string, required) TXT_KEY_* for the spoken label
+--   textKey      (string)           TXT_KEY_* for the spoken label; required
+--                                   unless labelFn is given
+--   labelFn      (fn(control))      alternative to textKey when the label is
+--                                   live control text (pre-localized or set
+--                                   by the screen after our items are built);
+--                                   called with item._control at announce time
 --   activate     (fn, required)     fires on Enter; typically calls the
 --                                   game's own click handler global
 --
@@ -35,6 +40,15 @@
 SimpleListHandler = {}
 
 local function labelOf(item)
+    if item.labelFn then
+        local ok, result = pcall(item.labelFn, item._control)
+        if not ok then
+            Log.error("SimpleListHandler labelFn '"
+                .. tostring(item.controlName) .. "' failed: " .. tostring(result))
+            return ""
+        end
+        return result or ""
+    end
     return Text.key(item.textKey)
 end
 
@@ -156,11 +170,13 @@ function SimpleListHandler.create(spec)
 
     for i, item in ipairs(spec.items) do
         assert(type(item.controlName) == "string", "item " .. i .. ".controlName required")
-        assert(type(item.textKey) == "string", "item " .. i .. ".textKey required")
+        assert(type(item.textKey) == "string" or type(item.labelFn) == "function",
+            "item " .. i .. " needs textKey (string) or labelFn (function)")
         assert(type(item.activate) == "function", "item " .. i .. ".activate required")
         local resolved = {
             controlName = item.controlName,
             textKey     = item.textKey,
+            labelFn     = item.labelFn,
             activate    = item.activate,
             _control    = Controls[item.controlName],
         }

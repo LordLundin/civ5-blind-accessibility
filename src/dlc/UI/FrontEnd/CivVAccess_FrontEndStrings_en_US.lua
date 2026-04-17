@@ -43,3 +43,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPSCREEN_RESOLUTION_W"]      = "Windowed 
 -- ("Max Turns, on" -> "Max Turns, edit, 500") do not start with the same word.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_MAX_TURNS"]            = "Turn count"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_TURN_TIMER"]           = "Timer seconds"
+-- Options-screen countdown popup. Shown 20s after resolution / language
+-- change; auto-reverts if the user takes no action.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_INTRO"]     = "{1_Message}. Reverting in 20 seconds."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_EXPIRED"]   = "Time expired, reverted."

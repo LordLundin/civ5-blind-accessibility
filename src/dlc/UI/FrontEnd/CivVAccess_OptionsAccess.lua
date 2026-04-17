@@ -15,11 +15,13 @@
 -- The three bottom buttons (Defaults / Cancel / Accept) live outside every
 -- per-tab Container and stay visible regardless of which tab is active, so
 -- they are appended to each tab's item list below. The GraphicsChangedPopup
--- and Countdown modals that OnOK / OnApplyRes raise are separate screens in
--- their own right and are not part of this form handler.
+-- and Countdown modals that OnOK / OnApplyRes raise are nested widgets in
+-- the same Context; their handlers are pushed on top of the form handler
+-- and driven by wrapping the engine's show / close globals (below).
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_FormHandler")
+include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
@@ -281,3 +283,138 @@ FormHandler.install(ContextPtr, {
         },
     },
 })
+
+-- Modal popup wiring -----------------------------------------------------
+--
+-- OptionsMenu raises two modals inside its own Context:
+--   * GraphicsChangedPopup -- single OK when non-resolution graphics
+--     options were changed at Accept time.
+--   * Countdown            -- Yes/No with a 20-second auto-revert timer,
+--                             raised after Apply Resolution or a Language
+--                             pulldown selection.
+--
+-- Both are driven by wrapping the engine's show / close globals rather
+-- than watching widget visibility: the globals are the choke points the
+-- game itself funnels through. The close wrappers also re-install
+-- TickPump, which the game's ClearUpdate() unhooks (ShowResolutionCountdown
+-- / ShowLanguageCountdown call SetUpdate(OnUpdate), clobbering the pump).
+-- Without that re-install, later TickPump.runOnce callbacks (e.g. the
+-- textfield edit-mode's deferred TakeFocus) would silently never fire.
+--
+-- Mouse clicks on the Countdown / GraphicsChangedOK buttons go through
+-- the engine's RegisterCallback, which captured the pre-wrap globals and
+-- therefore bypasses our wrappers. Keyboard activation (our items' own
+-- activate fn) and engine-internal calls (OnUpdate -> OnCountdownNo on
+-- timer expiry, OnApplyRes -> ShowResolutionCountdown) both resolve the
+-- global fresh at call time and land on the wrapped version.
+
+-- Set by our popup items' activate fn; nil means the close handler was
+-- invoked from engine-internal code (the 20s timer expiry via OnUpdate).
+-- Distinguishing is necessary because the expiry path wants a spoken
+-- "time expired, reverted" while user-clicked paths do not.
+local countdownUserAction
+
+local graphicsPopup = SimpleListHandler.create({
+    name        = "OptionsGraphicsChanged",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_FRONT_END_POPUP"),
+    preamble    = Text.key("TXT_KEY_OPSCREEN_VDOP_RESTART"),
+    items = {
+        { controlName = "GraphicsChangedOK",
+          textKey     = "TXT_KEY_OK_BUTTON",
+          activate    = function() OnGraphicsChangedOK() end },
+    },
+})
+
+-- No first so the initial cursor lands on the safer option: accidentally
+-- accepting a resolution / language change is not recoverable without
+-- another trip through this flow; accidentally reverting is.
+local countdownPopup = SimpleListHandler.create({
+    name        = "OptionsCountdown",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_FRONT_END_POPUP"),
+    preamble    = function()
+        local msg = ""
+        if Controls.CountdownMessage then
+            msg = Controls.CountdownMessage:GetText() or ""
+        end
+        return Text.format("TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_INTRO", msg)
+    end,
+    items = {
+        { controlName = "CountNo",
+          labelFn     = function(c) return c:GetText() end,
+          activate    = function()
+              countdownUserAction = "no"
+              OnCountdownNo()
+          end },
+        { controlName = "CountYes",
+          labelFn     = function(c) return c:GetText() end,
+          activate    = function()
+              countdownUserAction = "yes"
+              OnCountdownYes()
+          end },
+    },
+})
+
+local function maybePushGraphicsPopup()
+    if Controls.GraphicsChangedPopup
+       and not Controls.GraphicsChangedPopup:IsHidden() then
+        HandlerStack.push(graphicsPopup)
+    end
+end
+
+local origShowResolutionCountdown = ShowResolutionCountdown
+function ShowResolutionCountdown()
+    origShowResolutionCountdown()
+    HandlerStack.push(countdownPopup)
+end
+
+local origShowLanguageCountdown = ShowLanguageCountdown
+function ShowLanguageCountdown()
+    origShowLanguageCountdown()
+    HandlerStack.push(countdownPopup)
+end
+
+local origOnCountdownYes = OnCountdownYes
+function OnCountdownYes()
+    countdownUserAction = nil
+    origOnCountdownYes()
+    -- Language Yes reloads the UI (SystemUpdateUI), so ContextPtr may be
+    -- tearing down. pcall the re-install so a dying Context doesn't log.
+    pcall(function() TickPump.install(ContextPtr) end)
+    HandlerStack.removeByName(countdownPopup.name, true)
+    -- OnOK with both flags set raises the graphics popup underneath the
+    -- countdown; hand off once countdown closes.
+    maybePushGraphicsPopup()
+end
+
+local origOnCountdownNo = OnCountdownNo
+function OnCountdownNo()
+    local wasUserAction = countdownUserAction ~= nil
+    countdownUserAction = nil
+    origOnCountdownNo()
+    pcall(function() TickPump.install(ContextPtr) end)
+    if wasUserAction then
+        HandlerStack.removeByName(countdownPopup.name, true)
+    else
+        -- Timer expiry: announce the revert, then pop silently so the
+        -- form's re-activate announcement doesn't interrupt mid-phrase.
+        SpeechPipeline.speakInterrupt(
+            Text.key("TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_EXPIRED"))
+        HandlerStack.removeByName(countdownPopup.name, false)
+    end
+    maybePushGraphicsPopup()
+end
+
+local origOnOK = OnOK
+function OnOK()
+    origOnOK()
+    -- Countdown takes priority when both popups are revealed (the
+    -- countdown's close wrappers hand off to the graphics popup).
+    if Controls.Countdown and not Controls.Countdown:IsHidden() then return end
+    maybePushGraphicsPopup()
+end
+
+local origOnGraphicsChangedOK = OnGraphicsChangedOK
+function OnGraphicsChangedOK()
+    origOnGraphicsChangedOK()
+    HandlerStack.removeByName(graphicsPopup.name, true)
+end
