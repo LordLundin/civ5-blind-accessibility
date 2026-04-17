@@ -11,12 +11,39 @@
 -- specific controls when multiplayer category is off) are still listed --
 -- FormHandler's isNavigable skips them when IsHidden() returns true, so the
 -- user never lands on something that would not accept input.
+--
+-- The three bottom buttons (Defaults / Cancel / Accept) live outside every
+-- per-tab Container and stay visible regardless of which tab is active, so
+-- they are appended to each tab's item list below. The GraphicsChangedPopup
+-- and Countdown modals that OnOK / OnApplyRes raise are separate screens in
+-- their own right and are not part of this form handler.
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_FormHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
+
+-- Appended to every tab's item list so the three bottom buttons stay
+-- reachable from any tab (matches their always-visible placement in XML).
+local commonButtons = {
+    { kind = "button", controlName = "DefaultButton",
+      textKey    = "TXT_KEY_OPSCREEN_DEFAULTS_BUTTON",
+      tooltipKey = "TXT_KEY_OPSCREEN_DEFAULTS_BUTTON_TT",
+      activate   = function() OnDefault() end },
+    { kind = "button", controlName = "CancelButton",
+      textKey  = "TXT_KEY_OPSCREEN_CANCEL_BUTTON",
+      activate = function() OnCancel() end },
+    { kind = "button", controlName = "AcceptButton",
+      textKey    = "TXT_KEY_OPSCREEN_SAVE_BUTTON",
+      tooltipKey = "TXT_KEY_OPSCREEN_SAVE_BUTTON_TT",
+      activate   = function() OnOK() end },
+}
+
+local function withButtons(items)
+    for _, b in ipairs(commonButtons) do items[#items + 1] = b end
+    return items
+end
 
 FormHandler.install(ContextPtr, {
     name             = "OptionsMenu",
@@ -28,7 +55,7 @@ FormHandler.install(ContextPtr, {
         {
             name      = "TXT_KEY_GAME_OPTIONS",
             showPanel = function() OnCategory(1) end,
-            items     = {
+            items     = withButtons({
                 -- WheelSteps=10 per XML; use 0.1 so each press advances
                 -- the integer-second label visibly (default 0.01 would
                 -- take 5-10 presses before the label changes).
@@ -83,12 +110,12 @@ FormHandler.install(ContextPtr, {
                 { kind = "checkbox", controlName = "QuickSelectionAdvCheckbox",
                   textKey    = "TXT_KEY_OPSCREEN_QUICK_SELECTION_ADVANCE",
                   tooltipKey = "TXT_KEY_OPSCREEN_QUICK_SELECTION_ADVANCE_TT" },
-            },
+            }),
         },
         {
             name      = "TXT_KEY_INTERFACE_OPTIONS",
             showPanel = function() OnCategory(2) end,
-            items     = {
+            items     = withButtons({
                 { kind = "textfield", controlName = "AutosaveTurnsEdit",
                   textKey       = "TXT_KEY_OPSCREEN_TURNS_FOR_AUTOSAVES",
                   tooltipKey    = "TXT_KEY_OPSCREEN_TURNS_FOR_AUTOSAVES_TT",
@@ -142,12 +169,12 @@ FormHandler.install(ContextPtr, {
                   textKey    = "TXT_KEY_PINCH_SPEED",
                   tooltipKey = "TXT_KEY_PINCH_SPEED_TT",
                   step = 0.1, bigStep = 0.2 },
-            },
+            }),
         },
         {
             name      = "TXT_KEY_VIDEO_OPTIONS",
             showPanel = function() OnCategory(3) end,
-            items     = {
+            items     = withButtons({
                 { kind = "pulldown", controlName = "FSResolutionPull",
                   textKey = "TXT_KEY_CIVVACCESS_OPSCREEN_RESOLUTION_FS" },
                 { kind = "pulldown", controlName = "WResolutionPull",
@@ -187,12 +214,12 @@ FormHandler.install(ContextPtr, {
                   textKey = "TXT_KEY_OPSCREEN_WATER_QUALITY" },
                 { kind = "pulldown", controlName = "TextureQualityPull",
                   textKey = "TXT_KEY_OPSCREEN_TEXTURE_QUALITY" },
-            },
+            }),
         },
         {
             name      = "TXT_KEY_AUDIO_OPTIONS",
             showPanel = function() OnCategory(4) end,
-            items     = {
+            items     = withButtons({
                 { kind = "slider", controlName = "MusicVolumeSlider",
                   labelControlName = "MusicVolumeSliderValue",
                   textKey = "TXT_KEY_OPSCREEN_MUSIC_SLIDER" },
@@ -205,12 +232,12 @@ FormHandler.install(ContextPtr, {
                 { kind = "slider", controlName = "SpeechVolumeSlider",
                   labelControlName = "SpeechVolumeSliderValue",
                   textKey = "TXT_KEY_OPSCREEN_SPEECH_SLIDER" },
-            },
+            }),
         },
         {
             name      = "TXT_KEY_MULTIPLAYER_OPTIONS",
             showPanel = function() OnCategory(5) end,
-            items     = {
+            items     = withButtons({
                 { kind = "checkbox", controlName = "TurnNotifySteamInviteCheckbox",
                   textKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_STEAM_INVITE",
                   tooltipKey = "TXT_KEY_OPSCREEN_TURN_NOTIFY_STEAM_INVITE_TT" },
@@ -250,7 +277,7 @@ FormHandler.install(ContextPtr, {
                 { kind = "textfield", controlName = "LANNickNameEdit",
                   textKey       = "TXT_KEY_MP_NICK_NAME",
                   priorCallback = OnLANNickNameChanged },
-            },
+            }),
         },
     },
 })
