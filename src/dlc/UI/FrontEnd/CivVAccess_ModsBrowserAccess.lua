@@ -40,6 +40,9 @@ end)
 LuaEvents.CivVAccessModsBrowserWorkshop.Add(function()
     OnWorkshopButtonClicked()
 end)
+LuaEvents.CivVAccessModsBrowserBack.Add(function()
+    NavigateBack()
+end)
 
 local function deleteButtonLabel()
     local l = Controls.SmallButton1Label

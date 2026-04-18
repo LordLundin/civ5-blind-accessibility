@@ -607,12 +607,13 @@ function InstalledPanel.buildPickerItems(entryFactory, mainHandlerRef)
     })
 
     -- Shell buttons from the parent ModsBrowser Context. The parent's
-    -- Next / Workshop live in a different sandbox; we fire cross-Context
-    -- LuaEvents that ModsBrowserAccess handles in its own sandbox. Back is
-    -- already reachable via Esc at picker level 1 (falls through to the
-    -- parent's NavigateBack and closes the browser). Workshop is gated
-    -- on Steam overlay availability, matching base's SmallButton2:SetHide
-    -- (ModsBrowser.lua line 38).
+    -- Next / Workshop / Back bodies live in a different sandbox; we fire
+    -- cross-Context LuaEvents that ModsBrowserAccess handles in its own
+    -- sandbox. Esc at picker level 1 does not reach the parent's Esc
+    -- handler in practice (InstalledPanel's input handler consumes it
+    -- ahead of the parent), so Back is exposed here as an explicit
+    -- Choice. Workshop is gated on Steam overlay availability, matching
+    -- base's SmallButton2:SetHide (ModsBrowser.lua line 38).
     items[#items + 1] = BaseMenuItems.Choice({
         textKey  = "TXT_KEY_MODDING_NEXT",
         activate = function() LuaEvents.CivVAccessModsBrowserNext() end,
@@ -623,6 +624,10 @@ function InstalledPanel.buildPickerItems(entryFactory, mainHandlerRef)
             activate = function() LuaEvents.CivVAccessModsBrowserWorkshop() end,
         })
     end
+    items[#items + 1] = BaseMenuItems.Choice({
+        textKey  = "TXT_KEY_MODDING_BACK",
+        activate = function() LuaEvents.CivVAccessModsBrowserBack() end,
+    })
 
     return items
 end
