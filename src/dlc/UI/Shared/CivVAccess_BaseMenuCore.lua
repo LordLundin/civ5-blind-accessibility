@@ -32,55 +32,32 @@
 --                         otherwise at level > 1 go back a level; at
 --                         level 1 bypass to screen's priorInput
 --
+-- Tabs are owned by BaseMenuTabs (validation, switch / cycle, per-tab hooks).
+-- ContextPtr-level wiring (ShowHide chaining, deferred push, escAtLevelOne,
+-- input dispatch) lives in BaseMenuInstall; this file stops at
+-- BaseMenu.create which produces just the handler object. Help, Pulldown
+-- sub-menus, and Options popups consume create() directly without install.
+--
 -- Spec:
 --   name              (string, required) stack identity.
 --   displayName       (string, required) spoken on screen activation.
---   items   OR  tabs  array of item tables (see BaseMenuItems), or per-tab array
---                     of { name = "TXT_KEY", showPanel = fn, items = {...},
---                          onActivate = fn(handler), autoDrillToLevel = N,
---                          nameFn = fn(handler) -> string,
---                          onCtrlUp = fn(handler), onCtrlDown = fn(handler) }.
---                     onActivate fires during switchTab between index reset
---                     and announcement, letting callers (PickerReader) stage
---                     items / restore a saved cursor. autoDrillToLevel drills
---                     into the first navigable group at each level up to N
---                     before speaking the first leaf (reader tab opens inside
---                     the first section rather than on its header).
---                     nameFn replaces the tab-name announcement on switch
---                     with a dynamic string (pedia reader speaks the article
---                     title in place of "Content"). Empty/nil result skips
---                     the tab-name speech entirely (no fallback to tab.name).
---                     onCtrlUp / onCtrlDown override BaseMenu's default Ctrl+
---                     Up/Down sibling-group jump when the tab is active
---                     (pedia reader uses these to move across articles).
+--   items   OR  tabs  array of item tables (see BaseMenuItems), or per-tab
+--                     array (see BaseMenuTabs.normalize for tab-entry
+--                     fields).
 --   preamble          string | fn() -> string, spoken after displayName.
 --                     A function preamble is re-readable via refresh() so
 --                     dynamic status text (FrontEndPopup body, JoiningRoom
 --                     status) can speak the latest on change.
---   shouldActivate    fn() -> bool; predicate consulted on every non-hide
---                     ShowHide. Return false to skip the push + announce
---                     without blocking the prior ShowHide (WaitingForPlayers
---                     splash during SP loads).
---   deferActivate    when true, push is deferred one tick through TickPump
---                    so a same-frame hide (EULA -> Mods transition) can
---                    cancel the pending push before speech fires.
---   priorShowHide,    screen's existing ShowHide / Input handlers; chained
---   priorInput        so the game's own wiring keeps working beneath ours.
 --   focusParkControl  name of a non-EditBox control the menu can TakeFocus
 --                     on to release any engine-held EditBox focus (auto-
 --                     focused on tab switch or after edit-mode exit).
 --   escapePops        when true, adds an Esc binding that pops this menu
 --                     by name. Used by Pulldown's child menus so Esc cancels
 --                     the sub without bypassing to the screen's priorInput.
---   tickOwner         default true; when true install wires ContextPtr's
---                     SetUpdate to TickPump so runOnce callbacks (edit-mode
---                     TakeFocus, deferred pushes) fire.
 --   capturesAllInput  default true; the modal barrier for InputRouter.
---   escAtLevelOne     optional fn(handler) -> bool. Consulted before priorInput
---                     when Esc fires at level 1. Return true to consume (stay
---                     open); return false/nil to fall through to priorInput
---                     (close the screen). PickerReader uses this to bounce
---                     the reader tab back to the picker tab.
+--   initialIndex      optional 1-based cursor at level 1 to land on at
+--                     first onActivate. Used by Pulldown to open its child
+--                     sub-menu pre-positioned on the current selection.
 
 BaseMenu = {}
 
@@ -221,104 +198,16 @@ local function resetSearch(self)
     if self._search ~= nil then self._search:clear() end
 end
 
--- Tabs --------------------------------------------------------------------
-
--- Walk the first navigable group at each level until reaching targetLevel,
--- or until the next item isn't a group / has no navigable children. Silent
--- on boundary: caller is responsible for the speech that follows. Used by
--- switchTab to honor a tab spec's autoDrillToLevel, letting a PickerReader
--- reader-tab open already inside the first section rather than on the
--- section's header leaf.
-local function autoDrillTo(self, targetLevel)
-    while self._level < targetLevel do
-        local items = currentItems(self)
-        local cur = items[currentIndex(self)]
-        if cur == nil or cur.kind ~= "group" then return end
-        local children = cur:children()
-        local first = nextValidIndex(children, 0, 1)
-        if first == nil then return end
-        self._level = self._level + 1
-        self._indices[self._level] = first
-    end
-end
-
--- Core tab-activation path. `force` (used by switchToTab for programmatic
--- cross-tab jumps) bypasses the same-tab no-op so a PickerReader Entry
--- activation can re-enter the reader tab and re-announce even when it is
--- already the active tab. The Tab/Shift+Tab binding path sets force=false
--- so a wraparound onto the current tab is a no-op.
-local function switchTab(self, newTabIndex, force)
-    if self.tabs == nil then return end
-    local n = #self.tabs
-    if n == 0 then return end
-    if newTabIndex < 1 then newTabIndex = n end
-    if newTabIndex > n then newTabIndex = 1 end
-    if newTabIndex == self._tabIndex and not force then return end
-    self._tabIndex = newTabIndex
-    local tab = self.tabs[newTabIndex]
-    if type(tab.showPanel) == "function" then
-        local ok, err = pcall(tab.showPanel)
-        if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' showPanel for tab '"
-                .. tostring(tab.name) .. "': " .. tostring(err))
-        end
-    end
-    parkFocus(self)
-    -- Reset nesting on tab switch: the new tab's items are a fresh list.
-    self._level = 1
-    local items = currentItems(self)
-    local first = nextValidIndex(items, 0, 1)
-    self._indices = { first or 1 }
-    resetSearch(self)
-    -- onActivate fires between the reset and the announcement so callers
-    -- (PickerReader's picker tab after a cross-tab return; reader tab on
-    -- fresh selection) can swap items, restore a saved cursor, or set
-    -- _level/_indices directly; the final announcement below speaks the
-    -- item the callback landed on.
-    if type(tab.onActivate) == "function" then
-        local ok, err = pcall(tab.onActivate, self)
-        if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' onActivate for tab '"
-                .. tostring(tab.name) .. "': " .. tostring(err))
-        end
-    end
-    if type(tab.autoDrillToLevel) == "number" then
-        autoDrillTo(self, tab.autoDrillToLevel)
-    end
-    -- Tab-name announcement: nameFn overrides the static tab.name (pedia
-    -- reader speaks the current article title instead of "Content"). An
-    -- empty nameFn result means "say nothing for the tab name" — no
-    -- fallback to tab.name.
-    local nameText
-    if type(tab.nameFn) == "function" then
-        local ok, result = pcall(tab.nameFn, self)
-        if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' nameFn for tab '"
-                .. tostring(tab.name) .. "': " .. tostring(result))
-        else
-            nameText = result
-        end
-    else
-        nameText = Text.key(tab.name)
-    end
-    if nameText ~= nil and nameText ~= "" then
-        SpeechPipeline.speakInterrupt(nameText)
-    end
-    local finalItems = currentItems(self)
-    local finalItem = finalItems[currentIndex(self)]
-    if finalItem ~= nil then
-        if nameText ~= nil and nameText ~= "" then
-            SpeechPipeline.speakQueued(finalItem:announce(self))
-        else
-            SpeechPipeline.speakInterrupt(finalItem:announce(self))
-        end
-    end
-end
-
-local function cycleTab(self, step)
-    if self.tabs == nil then return end
-    switchTab(self, self._tabIndex + step, false)
-end
+-- Navigation helpers BaseMenuTabs needs to call back into. Built once at
+-- module load time after all five upvalues are defined (Lua local function
+-- declarations bind early, so the table captures stable references).
+local nav = {
+    nextValidIndex = nextValidIndex,
+    currentItems   = currentItems,
+    currentIndex   = currentIndex,
+    parkFocus      = parkFocus,
+    resetSearch    = resetSearch,
+}
 
 -- Navigation / activation -------------------------------------------------
 
@@ -496,23 +385,12 @@ local function onRight(self, big)
     end
 end
 
--- Per-tab hook dispatch. PickerReader's reader tab overrides Ctrl+Up/Down to
--- mean "prev/next article" rather than the default "prev/next sibling group".
--- Falls back to default behavior on tabs without a hook and on screens with
--- no tabs at all.
-local function tabHook(self, name)
-    if self.tabs == nil then return nil end
-    local tab = self.tabs[self._tabIndex]
-    if tab == nil then return nil end
-    local fn = tab[name]
-    if type(fn) == "function" then return fn end
-    return nil
-end
-
 -- Ctrl+Up/Down at level 1 jumps among top-level groups (skipping leaves);
 -- at level > 1 jumps to the prev/next sibling group at the parent level.
+-- A tab can override either direction via tab.onCtrlUp / onCtrlDown (pedia
+-- reader uses these to move across articles).
 local function onCtrlUp(self)
-    local hook = tabHook(self, "onCtrlUp")
+    local hook = BaseMenuTabs.hook(self, "onCtrlUp")
     if hook ~= nil then
         local ok, err = pcall(hook, self)
         if not ok then
@@ -531,7 +409,7 @@ local function onCtrlUp(self)
 end
 
 local function onCtrlDown(self)
-    local hook = tabHook(self, "onCtrlDown")
+    local hook = BaseMenuTabs.hook(self, "onCtrlDown")
     if hook ~= nil then
         local ok, err = pcall(hook, self)
         if not ok then
@@ -548,9 +426,6 @@ local function onCtrlDown(self)
     end
     jumpSiblingGroup(self, 1, false)
 end
-
-local function onTab(self)      cycleTab(self,  1) end
-local function onShiftTab(self) cycleTab(self, -1) end
 
 -- Search interface / input dispatch ---------------------------------------
 --
@@ -644,38 +519,7 @@ function BaseMenu.create(spec)
     }
 
     if spec.tabs then
-        check(type(spec.tabs) == "table" and #spec.tabs > 0,
-            "spec.tabs must be a non-empty array")
-        local tabs = {}
-        for i, tab in ipairs(spec.tabs) do
-            check(type(tab.name) == "string",
-                "tab " .. i .. ".name (TXT_KEY) required")
-            check(type(tab.items) == "table",
-                "tab " .. i .. ".items required")
-            check(tab.onActivate == nil or type(tab.onActivate) == "function",
-                "tab " .. i .. ".onActivate must be a function if provided")
-            check(tab.autoDrillToLevel == nil
-                or (type(tab.autoDrillToLevel) == "number"
-                    and tab.autoDrillToLevel >= 1),
-                "tab " .. i .. ".autoDrillToLevel must be a positive number")
-            check(tab.nameFn == nil or type(tab.nameFn) == "function",
-                "tab " .. i .. ".nameFn must be a function if provided")
-            check(tab.onCtrlUp == nil or type(tab.onCtrlUp) == "function",
-                "tab " .. i .. ".onCtrlUp must be a function if provided")
-            check(tab.onCtrlDown == nil or type(tab.onCtrlDown) == "function",
-                "tab " .. i .. ".onCtrlDown must be a function if provided")
-            tabs[i] = {
-                name             = tab.name,
-                showPanel        = tab.showPanel,
-                onActivate       = tab.onActivate,
-                autoDrillToLevel = tab.autoDrillToLevel,
-                nameFn           = tab.nameFn,
-                onCtrlUp         = tab.onCtrlUp,
-                onCtrlDown       = tab.onCtrlDown,
-                _items           = tab.items,
-            }
-        end
-        self.tabs = tabs
+        self.tabs = BaseMenuTabs.normalize(spec.tabs)
     else
         check(type(spec.items) == "table", "spec.items or spec.tabs required")
         self._items = spec.items
@@ -707,9 +551,9 @@ function BaseMenu.create(spec)
         { key = Keys.VK_SPACE,  mods = 0,         description = "Activate / drill",
           fn = function() onEnter(self) end },
         { key = Keys.VK_TAB,    mods = 0,         description = "Next tab",
-          fn = function() onTab(self) end },
+          fn = function() BaseMenuTabs.cycle(self,  1, nav) end },
         { key = Keys.VK_TAB,    mods = MOD_SHIFT, description = "Previous tab",
-          fn = function() onShiftTab(self) end },
+          fn = function() BaseMenuTabs.cycle(self, -1, nav) end },
         { key = Keys.VK_F1,     mods = 0,         description = "Read screen header",
           fn = function() self.readHeader() end },
     }
@@ -748,16 +592,9 @@ function BaseMenu.create(spec)
             self._level = 1
             self._indices = { 1 }
             resetSearch(self)
+            local tabNameText
             if self.tabs then
-                self._tabIndex = 1
-                local tab = self.tabs[1]
-                if type(tab.showPanel) == "function" then
-                    local ok, err = pcall(tab.showPanel)
-                    if not ok then
-                        Log.error("BaseMenu '" .. self.name
-                            .. "' initial showPanel: " .. tostring(err))
-                    end
-                end
+                tabNameText = BaseMenuTabs.openInitial(self)
             end
             items = currentItems(self)
             local first = nextValidIndex(items, 0, 1)
@@ -776,24 +613,8 @@ function BaseMenu.create(spec)
                 SpeechPipeline.speakQueued(preambleText)
             end
             lastPreambleText = preambleText
-            if self.tabs then
-                local tab0 = self.tabs[self._tabIndex]
-                local nameText
-                if type(tab0.nameFn) == "function" then
-                    local ok, result = pcall(tab0.nameFn, self)
-                    if not ok then
-                        Log.error("BaseMenu '" .. self.name
-                            .. "' nameFn for tab '" .. tostring(tab0.name)
-                            .. "': " .. tostring(result))
-                    else
-                        nameText = result
-                    end
-                else
-                    nameText = Text.key(tab0.name)
-                end
-                if nameText ~= nil and nameText ~= "" then
-                    SpeechPipeline.speakQueued(nameText)
-                end
+            if tabNameText ~= nil and tabNameText ~= "" then
+                SpeechPipeline.speakQueued(tabNameText)
             end
             if items[startIndex] ~= nil then
                 SpeechPipeline.speakQueued(items[startIndex]:announce(self))
@@ -904,158 +725,16 @@ function BaseMenu.create(spec)
     -- dependent state (setItems on the target tab, cursor hints via a
     -- tab.onActivate) before invoking this.
     function self.switchToTab(idx)
-        switchTab(self, idx, true)
+        BaseMenuTabs.switch(self, idx, true, nav)
     end
 
     return self
 end
 
--- Install -----------------------------------------------------------------
-
-function BaseMenu.install(ContextPtr, spec)
-    local handler        = BaseMenu.create(spec)
-    local priorShowHide  = spec.priorShowHide
-    local priorInput     = spec.priorInput
-    local deferActivate  = spec.deferActivate == true
-    local shouldActivate = spec.shouldActivate
-    local onShow         = spec.onShow
-    local tickOwner      = spec.tickOwner ~= false
-    local escAtLevelOne  = spec.escAtLevelOne
-    local pendingPush    = false
-
-    if tickOwner then
-        TickPump.install(ContextPtr)
-    end
-
-    local function runDeferredPush()
-        if not pendingPush then return end
-        pendingPush = false
-        if ContextPtr:IsHidden() then return end
-        HandlerStack.push(handler)
-    end
-
-    ContextPtr:SetShowHideHandler(function(bIsHide, bIsInit)
-        if priorShowHide then
-            local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
-            if not ok then
-                Log.error("BaseMenu '" .. handler.name
-                    .. "' prior ShowHide: " .. tostring(err))
-            end
-        end
-        -- reactivate=false: we're about to push this same handler back on;
-        -- firing onActivate on whatever is underneath would spuriously
-        -- announce a screen the user is about to be pulled off of.
-        HandlerStack.removeByName(handler.name, false)
-        if bIsHide then
-            handler._initialized = false
-            pendingPush = false
-            return
-        end
-        if shouldActivate ~= nil then
-            local ok, should = pcall(shouldActivate)
-            if not ok then
-                Log.error("BaseMenu '" .. handler.name
-                    .. "' shouldActivate: " .. tostring(should))
-                return
-            end
-            if not should then return end
-        end
-        -- onShow runs after priorShowHide (so the base screen's setters
-        -- have finalized) and before the push (so setInitialIndex /
-        -- setItems calls land before onActivate reads them). Receives the
-        -- handler so callers don't need a forward-declared upvalue.
-        if onShow ~= nil then
-            local ok, err = pcall(onShow, handler)
-            if not ok then
-                Log.error("BaseMenu '" .. handler.name
-                    .. "' onShow: " .. tostring(err))
-            end
-        end
-        -- Park before push so arrow keys are not swallowed by a base-screen
-        -- TakeFocus on an EditBox (e.g., ChangePassword's ShowHide focuses
-        -- the Old/New password box).
-        parkFocus(handler)
-        if deferActivate then
-            pendingPush = true
-            if not tickOwner then TickPump.install(ContextPtr) end
-            TickPump.runOnce(runDeferredPush)
-        else
-            HandlerStack.push(handler)
-        end
-    end)
-
-    ContextPtr:SetInputHandler(function(msg, wp, lp)
-        local top = HandlerStack.active()
-        -- During edit mode, claim the Enter KEYUP so the engine's default
-        -- Enter-release doesn't revoke focus from the EditBox we just took
-        -- focus on. Without this, typed characters end up nowhere.
-        if top ~= nil and top._editMode and msg == 257
-                and wp == Keys.VK_RETURN then
-            return true
-        end
-        if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
-            -- Esc on the menu itself: if a type-ahead search is live, clear
-            -- it and stay at the current level. Otherwise at level > 1 go
-            -- up a level; at level 1 bypass to the screen's own Back / OnNo.
-            -- Esc on a sub (pulldown / edit mode) runs the sub's binding.
-            if top == handler then
-                if handler._search:isSearchActive() or handler._search:hasBuffer() then
-                    handler._search:clear()
-                    SpeechPipeline.speakInterrupt(
-                        Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
-                    return true
-                end
-                if handler._level > 1 then
-                    handler._goBackLevel()
-                    return true
-                end
-                if escAtLevelOne ~= nil then
-                    -- Level-1 Esc hook. Consumed (return true) means the
-                    -- screen stays open; unconsumed falls through to the
-                    -- screen's own priorInput (closes the pedia, ExitConfirm,
-                    -- etc.). PickerReader uses this to bounce the reader tab
-                    -- back to the picker tab rather than closing the screen.
-                    local ok, consumed = pcall(escAtLevelOne, handler)
-                    if not ok then
-                        Log.error("BaseMenu '" .. handler.name
-                            .. "' escAtLevelOne: " .. tostring(consumed))
-                    elseif consumed then
-                        return true
-                    end
-                end
-                if priorInput then return priorInput(msg, wp, lp) end
-                return false
-            end
-            local mods = InputRouter.currentModifierMask()
-            if InputRouter.dispatch(wp, mods, msg) then return true end
-            if priorInput then return priorInput(msg, wp, lp) end
-            return false
-        end
-        local mods = InputRouter.currentModifierMask()
-        if InputRouter.dispatch(wp, mods, msg) then return true end
-        if priorInput then return priorInput(msg, wp, lp) end
-        return false
-    end)
-
-    return handler
-end
-
--- Minimal InputHandler that routes Esc to backFn and consumes everything
--- else (returns true). Convenience for screens whose only non-menu input
--- contract is "Esc = go back".
-
-function BaseMenu.escOnlyInput(backFn)
-    return function(uiMsg, wParam)
-        if (uiMsg == 256 or uiMsg == 260) and wParam == Keys.VK_ESCAPE then
-            backFn()
-        end
-        return true
-    end
-end
-
--- Exposed so BaseMenuEditMode can release focus on commit / cancel. The
--- parkFocus logic reads _focusParkControl / _parkDisabled off the handler,
--- so it must be invoked with the menu handler (not the edit sub).
+-- Exposed so BaseMenuInstall and BaseMenuEditMode can release focus without
+-- touching module locals. parkFocus reads _focusParkControl / _parkDisabled
+-- off the handler, so it must be invoked with the menu handler (not the
+-- edit sub).
 BaseMenu._parkFocus = parkFocus
 
 return BaseMenu

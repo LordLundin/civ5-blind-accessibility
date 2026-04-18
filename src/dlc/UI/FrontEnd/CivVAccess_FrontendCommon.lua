@@ -21,11 +21,15 @@ include("CivVAccess_Nav")
 include("CivVAccess_BaseMenuItems")
 include("CivVAccess_TypeAheadSearch")
 include("CivVAccess_BaseMenuHelp")
+include("CivVAccess_BaseMenuTabs")
 -- The BaseMenu container file is named with a "Core" suffix to avoid a
 -- stem-prefix collision with BaseMenuItems: Civ V's include index drops
 -- the shorter of two stems when one is a prefix of the other, leaving the
 -- BaseMenu stem unreachable in every Context. "BaseMenuCore" is just a
--- unique stem; the global it defines is still `BaseMenu`.
+-- unique stem; the global it defines is still `BaseMenu`. BaseMenuTabs
+-- loads first because Core's create() / onActivate call into it; Install
+-- loads after because it builds on Core's BaseMenu.create.
 include("CivVAccess_BaseMenuCore")
+include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
