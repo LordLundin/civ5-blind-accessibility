@@ -7,13 +7,11 @@
 
 include("CivVAccess_FrontendCommon")
 
-local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
-local handler
 -- Parallel to the last-built items[]: civIds[i] is the civID committed by
 -- items[i]:activate (or -1 for Random / no civ). Rebuilt on every show
--- alongside items so currentIndex can map PreGame.GetCivilization back
--- to a slot.
+-- alongside items so currentIndex can map PreGame.GetCivilization back to
+-- a slot. Unlike the other Select* screens' caches this is regenerated
+-- inside rebuildItems on every show, not carried across shows.
 local civIds = {}
 
 local function currentIndex()
@@ -168,7 +166,7 @@ local function buildScenarioItems(traitsQuery)
     return items
 end
 
-local function rebuildItems()
+local function rebuildItems(h)
     local traitsQuery = DB.CreateQuery([[SELECT Description, ShortDescription FROM Traits
         INNER JOIN Leader_Traits ON Traits.Type = Leader_Traits.TraitType
         WHERE Leader_Traits.LeaderType = ? LIMIT 1]])
@@ -178,20 +176,18 @@ local function rebuildItems()
     else
         items = buildRegularItems(traitsQuery)
     end
-    if handler ~= nil then handler.setItems(items) end
+    if h ~= nil then h.setItems(items) end
     return items
 end
 
-handler = BaseMenu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name          = "SelectCivilization",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CIVILIZATION"),
-    priorShowHide = function(bIsHide, bIsInit)
-        if priorShowHide ~= nil then priorShowHide(bIsHide, bIsInit) end
-        if not bIsHide and handler ~= nil then
-            rebuildItems()
-            handler.setInitialIndex(currentIndex())
-        end
+    priorShowHide = ShowHideHandler,
+    priorInput    = InputHandler,
+    onShow        = function(h)
+        rebuildItems(h)
+        h.setInitialIndex(currentIndex())
     end,
-    priorInput    = priorInput,
-    items         = rebuildItems(),
+    items         = rebuildItems(nil),
 })

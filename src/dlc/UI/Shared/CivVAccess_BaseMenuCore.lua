@@ -379,11 +379,20 @@ function BaseMenu.create(spec)
     -- Update the cursor position that onActivate lands on the next time
     -- _initialized is false. `_initialized` resets on every hide through
     -- install's ShowHide wrapper, so a caller that recomputes the index
-    -- in priorShowHide before the next push will have it honored on open.
+    -- in onShow or priorShowHide will have it honored on the next open.
     -- Clears back to `nil` when passed nil. Invalid / out-of-range values
     -- fall through the same isNavigable check spec.initialIndex uses.
     function self.setInitialIndex(idx)
         self._initialIndex = idx
+    end
+
+    -- Set the live cursor position. Does not announce (callers doing
+    -- their own speech, e.g. folder drill-in, own the announcement).
+    -- No-op on nil; silent when idx is out of range (setItems already
+    -- clamps invalid slots on the next navigation key).
+    function self.setIndex(idx)
+        if idx == nil then return end
+        self._index = idx
     end
 
     -- Re-evaluate a function preamble; speakInterrupt if the result changed
@@ -408,6 +417,7 @@ function BaseMenu.install(ContextPtr, spec)
     local priorInput     = spec.priorInput
     local deferActivate  = spec.deferActivate == true
     local shouldActivate = spec.shouldActivate
+    local onShow         = spec.onShow
     local tickOwner      = spec.tickOwner ~= false
     local pendingPush    = false
 
@@ -447,6 +457,17 @@ function BaseMenu.install(ContextPtr, spec)
                 return
             end
             if not should then return end
+        end
+        -- onShow runs after priorShowHide (so the base screen's setters
+        -- have finalized) and before the push (so setInitialIndex /
+        -- setItems calls land before onActivate reads them). Receives the
+        -- handler so callers don't need a forward-declared upvalue.
+        if onShow ~= nil then
+            local ok, err = pcall(onShow, handler)
+            if not ok then
+                Log.error("BaseMenu '" .. handler.name
+                    .. "' onShow: " .. tostring(err))
+            end
         end
         -- Park before push so arrow keys are not swallowed by a base-screen
         -- TakeFocus on an EditBox (e.g., ChangePassword's ShowHide focuses

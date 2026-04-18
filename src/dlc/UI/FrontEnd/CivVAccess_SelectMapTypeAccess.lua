@@ -91,10 +91,15 @@ function View(folder)
     if handler ~= nil then
         local items, selectedIdx = buildItemsForFolder(folder)
         handler.setItems(items)
-        -- Takes effect on the next fresh open (install's ShowHide clears
-        -- _initialized on hide). On drill-in the handler stays active, so
-        -- the cursor just clamps via setItems.
+        -- setInitialIndex only fires through onActivate on the next fresh
+        -- open (install's ShowHide clears _initialized on hide). On
+        -- drill-in the handler stays active, so reset the cursor directly
+        -- so the user isn't left at the old parent-folder index. If the
+        -- current pick is in this folder, land on it; otherwise land on
+        -- the first real entry (slot 2 when a Back entry exists, else 1).
         handler.setInitialIndex(selectedIdx)
+        local hasBack = folder.ParentFolder ~= nil
+        handler.setIndex(selectedIdx or (hasBack and 2 or 1))
     end
 end
 

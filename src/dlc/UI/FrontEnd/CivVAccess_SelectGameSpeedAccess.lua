@@ -3,11 +3,6 @@
 
 include("CivVAccess_FrontendCommon")
 
-local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
-local handler
-local sortedIds = {}
-
 local function sortedSpeeds()
     local speeds = {}
     for info in GameInfo.GameSpeeds() do
@@ -24,8 +19,8 @@ end
 
 local function currentIndex()
     local current = PreGame.GetGameSpeed()
-    for i, id in ipairs(sortedIds) do
-        if id == current then return i end
+    for i, info in ipairs(sortedSpeeds()) do
+        if info.ID == current then return i end
     end
 end
 
@@ -33,7 +28,6 @@ local function buildItems()
     local items = {}
     for _, info in ipairs(sortedSpeeds()) do
         local id = info.ID
-        sortedIds[#sortedIds + 1] = id
         items[#items + 1] = BaseMenuItems.Choice({
             labelText   = Text.key(info.Description),
             tooltipText = Text.key(info.Help),
@@ -43,15 +37,11 @@ local function buildItems()
     return items
 end
 
-handler = BaseMenu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name          = "SelectGameSpeed",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_GAME_SPEED"),
-    priorShowHide = function(bIsHide, bIsInit)
-        if priorShowHide ~= nil then priorShowHide(bIsHide, bIsInit) end
-        if not bIsHide and handler ~= nil then
-            handler.setInitialIndex(currentIndex())
-        end
-    end,
-    priorInput    = priorInput,
+    priorShowHide = ShowHideHandler,
+    priorInput    = InputHandler,
+    onShow        = function(h) h.setInitialIndex(currentIndex()) end,
     items         = buildItems(),
 })

@@ -19,8 +19,12 @@ local function labelFromControl(controlName)
         local c = Controls[controlName]
         if c == nil then return "" end
         local ok, t = pcall(function() return c:GetText() end)
-        if not ok or t == nil then return "" end
-        return t
+        if not ok then
+            Log.warn("GameSetupScreen labelFromControl '" .. controlName
+                .. "' GetText failed: " .. tostring(t))
+            return ""
+        end
+        return t or ""
     end
 end
 
