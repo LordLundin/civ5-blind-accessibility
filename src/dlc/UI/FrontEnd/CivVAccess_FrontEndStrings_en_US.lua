@@ -28,6 +28,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DIFFICULTY"]         = "Difficulty
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GAME_SPEED"]         = "Game speed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CIVILIZATION"]       = "Civilization"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SET_CIV_NAMES"]      = "Name civilization"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SCENARIOS"]          = "Scenarios"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CUSTOM_MOD_GAME"]    = "Custom mod game"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_TUTORIAL"]           = "Tutorial"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MODS_BROWSER"]       = "Browse mods"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WORLD_PICKER"]       = "World size"
+-- Appended to a tutorial entry when the mod-tracked completion flag for
+-- that slot is set. LoadTutorial reads from g_TutorialEntries[i].
+-- CompletedIcon:IsHidden().
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TUTORIAL_COMPLETED"]        = "completed"
 -- Civ-picker entry prefixes: colons are read by screen readers as a brief
 -- pause, so "Unique ability: Glory of Rome, +25% Wonder production" parses
 -- as prefix then value without needing extra connective words.
