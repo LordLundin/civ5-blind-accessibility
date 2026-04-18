@@ -51,6 +51,126 @@ local function civEntryAnnounce(inst, index)
     return labels[index]
 end
 
+-- Map-type entries: supported-size suffix --------------------------------
+--
+-- Some maps are constrained to a single size (Japanese Mainland -> Tiny),
+-- or a subset (a hypothetical Standard+Huge-only map). Pure map scripts
+-- (Continents, Donut) work at every size; Maps() rows are constrained by
+-- the set of Map_Sizes rows keyed to their MapType; WB files not in
+-- Map_Sizes are pinned to their embedded wb.MapSize.
+--
+-- We replicate base's MapTypes.FullSync build order (map scripts + Maps
+-- rows + loose WB files, sorted by name) to pair each entry with a size
+-- summary. The summary is "Standard only" for single-size, a comma list
+-- for few-size sets, and nil for all-sizes (skipped so the common case
+-- stays concise).
+
+local function worldNameById(worldID)
+    local w = GameInfo.Worlds[worldID]
+    if w == nil then return nil end
+    return Text.key(w.Description)
+end
+
+local function worldNameByType(typeKey)
+    local w = GameInfo.Worlds[typeKey]
+    if w == nil then return nil end
+    return Text.key(w.Description)
+end
+
+local _mapSizeLabelsCache
+local function mapTypeSizeLabels()
+    if _mapSizeLabelsCache ~= nil then return _mapSizeLabelsCache end
+
+    -- Build mapScripts mirroring base AdvancedSetup MapTypes.FullSync.
+    local mapScripts = {
+        [0] = { name = Locale.ConvertTextKey("TXT_KEY_RANDOM_MAP_SCRIPT"),
+                allSizes = true },
+    }
+    for row in GameInfo.MapScripts{SupportsSinglePlayer = 1, Hidden = 0} do
+        mapScripts[#mapScripts + 1] = {
+            name     = Locale.ConvertTextKey(row.Name),
+            allSizes = true,  -- pure script: size is input, not constraint
+        }
+    end
+    for row in GameInfo.Maps() do
+        local sizes = {}
+        for srow in GameInfo.Map_Sizes{MapType = row.Type} do
+            sizes[#sizes + 1] = worldNameByType(srow.WorldSizeType)
+        end
+        mapScripts[#mapScripts + 1] = {
+            name  = Locale.Lookup(row.Name),
+            sizes = sizes,
+        }
+    end
+    -- Loose WB files (not in Map_Sizes): pinned to wb.MapSize.
+    local filter = {}
+    for row in GameInfo.Map_Sizes() do filter[row.FileName] = true end
+    for _, map in ipairs(Modding.GetMapFiles()) do
+        if not filter[map.File] then
+            local wb = UI.GetMapPreview(map.File)
+            local name
+            if map.Name and not Locale.IsNilOrWhitespace(map.Name) then
+                name = map.Name
+            elseif wb ~= nil and not Locale.IsNilOrWhitespace(wb.Name) then
+                name = Locale.Lookup(wb.Name)
+            else
+                name = Path.GetFileNameWithoutExtension(map.File)
+            end
+            local sizes = {}
+            if wb ~= nil and wb.MapSize ~= nil then
+                local s = worldNameById(wb.MapSize)
+                if s ~= nil then sizes[#sizes + 1] = s end
+            end
+            mapScripts[#mapScripts + 1] = { name = name, sizes = sizes }
+        end
+    end
+
+    table.sort(mapScripts,
+        function(a, b) return Locale.Compare(a.name, b.name) == -1 end)
+
+    local total
+    do
+        local n = 0
+        for _ in GameInfo.Worlds("ID >= 0") do n = n + 1 end
+        total = n
+    end
+
+    local labels = {}
+    for i, s in ipairs(mapScripts) do
+        if s.allSizes or s.sizes == nil or #s.sizes == 0 then
+            labels[i] = nil
+        elseif #s.sizes == total then
+            -- Constrained set covers every size the game ships; no signal.
+            labels[i] = nil
+        elseif #s.sizes == 1 then
+            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY",
+                s.sizes[1])
+        else
+            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED",
+                table.concat(s.sizes, ", "))
+        end
+    end
+    _mapSizeLabelsCache = labels
+    return labels
+end
+
+local function mapTypeEntryAnnounce(inst, index)
+    local text = ""
+    local ok, t = pcall(function() return inst.Button:GetText() end)
+    if ok and t ~= nil then text = tostring(t) end
+    local parts = { text }
+    local sizeInfo = mapTypeSizeLabels()[index]
+    if sizeInfo ~= nil and sizeInfo ~= "" then
+        parts[#parts + 1] = sizeInfo
+    end
+    local combined = table.concat(parts, ", ")
+    local tipOk, tip = pcall(function() return inst.Button:GetToolTipString() end)
+    if tipOk and tip ~= nil and tip ~= "" then
+        return BaseMenuItems.appendTooltip(combined, tostring(tip))
+    end
+    return combined
+end
+
 -- Helpers -----------------------------------------------------------------
 
 local function safeText(getter)
@@ -347,7 +467,8 @@ buildItems = function()
     return {
         -- Global settings.
         BaseMenuItems.Pulldown({ controlName = "MapTypePullDown",
-            textKey = "TXT_KEY_AD_SETUP_MAP_TYPE" }),
+            textKey         = "TXT_KEY_AD_SETUP_MAP_TYPE",
+            entryAnnounceFn = mapTypeEntryAnnounce }),
         BaseMenuItems.Pulldown({ controlName = "MapSizePullDown",
             textKey = "TXT_KEY_AD_SETUP_MAP_SIZE" }),
         BaseMenuItems.Pulldown({ controlName = "HandicapPullDown",

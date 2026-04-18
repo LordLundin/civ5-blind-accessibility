@@ -1807,6 +1807,34 @@ function M.test_pulldown_fallback_fires_per_entry_button_callback()
     T.eq(HandlerStack.count(), 1, "sub popped after commit")
 end
 
+function M.test_pulldown_inner_button_disabled_marks_inactivatable()
+    setup()
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    patchProbeFromPullDown(pd)
+    pd:RegisterSelectionCallback(function() end)
+    local inst = {}
+    pd:BuildEntry("InstanceOne", inst)
+    inst.Button:SetText("Only Option")
+    -- Base code pattern: disable the pulldown's inner button, not the
+    -- pulldown userdata itself (e.g., map-size-locked maps).
+    pd:GetButton():SetDisabled(true)
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL" }) } })
+    HandlerStack.push(h)
+    local item = h._items[1]
+    T.falsy(item:isActivatable(), "inner button disabled blocks activation")
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(HandlerStack.count(), 1, "sub not pushed when button disabled")
+    -- Announcement should carry the disabled suffix.
+    local found = false
+    for _, s in ipairs(speaks) do
+        if s.text and s.text:find("disabled") then found = true end
+    end
+    T.truthy(found, "disabled suffix announced")
+end
+
 function M.test_pulldown_entry_announce_fn_replaces_entry_text()
     setup()
     local pd = makePullDownWithMetatable()

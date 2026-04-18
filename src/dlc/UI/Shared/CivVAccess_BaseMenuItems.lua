@@ -490,8 +490,24 @@ function BaseMenuItems.Pulldown(spec)
         end
     end
     copyCommonFields(spec, item)
-    item.isNavigable   = isNavigable
-    item.isActivatable = isActivatable
+    item.isNavigable = isNavigable
+    -- Pulldowns override the shared isActivatable to also check the inner
+    -- button's IsDisabled. Base code commonly disables the clickable area
+    -- via pulldown:GetButton():SetDisabled(true) rather than the pulldown
+    -- userdata itself -- e.g., AdvancedSetup disables the Map Size
+    -- pulldown's button when the selected map locks to one size. Without
+    -- this both-sides check, the pulldown would still report activatable
+    -- and let the user open a no-op sub-menu.
+    function item:isActivatable()
+        if not isNavigable(self) then return false end
+        if self._control:IsDisabled() then return false end
+        local ok, btn = pcall(function() return self._control:GetButton() end)
+        if ok and btn ~= nil then
+            local okD, disabled = pcall(function() return btn:IsDisabled() end)
+            if okD and disabled then return false end
+        end
+        return true
+    end
     function item:announce(menu)
         -- Team-style pulldowns don't set the button's text; instead a
         -- sibling label (e.g. Controls.TeamLabel) holds the selected
