@@ -6,6 +6,7 @@
 -- is cheap and removes the dependency on those flags.
 
 include("CivVAccess_FrontendCommon")
+include("CivVAccess_CivDetails")
 
 -- Parallel to the last-built items[]: civIds[i] is the civID committed by
 -- items[i]:activate (or -1 for Random / no civ). Rebuilt on every show
@@ -21,64 +22,7 @@ local function currentIndex()
     end
 end
 
--- Each civ announce is: leader, civ short name, then for each non-empty
--- piece a prefix-labeled clause -- "Unique ability: <name>, <description>",
--- "Unique unit: <name>", "Unique building: <name>", "Unique improvement:
--- <name>". Civ name has no prefix (it's obvious from context); everything
--- else does, because a flat run of nouns otherwise sounds like one big
--- list the player has to parse.
-
-local uniqueUnitsQuery = DB.CreateQuery([[SELECT Description FROM Units
-    INNER JOIN Civilization_UnitClassOverrides
-    ON Units.Type = Civilization_UnitClassOverrides.UnitType
-    WHERE Civilization_UnitClassOverrides.CivilizationType = ? AND
-    Civilization_UnitClassOverrides.UnitType IS NOT NULL]])
-
-local uniqueBuildingsQuery = DB.CreateQuery([[SELECT Description FROM Buildings
-    INNER JOIN Civilization_BuildingClassOverrides
-    ON Buildings.Type = Civilization_BuildingClassOverrides.BuildingType
-    WHERE Civilization_BuildingClassOverrides.CivilizationType = ? AND
-    Civilization_BuildingClassOverrides.BuildingType IS NOT NULL]])
-
-local uniqueImprovementsQuery = DB.CreateQuery(
-    [[SELECT Description FROM Improvements WHERE CivilizationType = ?]])
-
-local function appendLabeled(parts, labelKey, value)
-    if value == nil or value == "" then return end
-    parts[#parts + 1] = Text.key(labelKey) .. ": " .. value
-end
-
--- Appends the shared suffix (ability + uniques) to `parts` for a civ row
--- that has row.Type (civ type) and row.LeaderType. traitsQuery yields
--- {Description, ShortDescription} rows for a leader.
-local function appendCivDetails(parts, row, traitsQuery)
-    for t in traitsQuery(row.LeaderType) do
-        local name = Text.key(t.ShortDescription)
-        local desc = Text.key(t.Description)
-        if name ~= nil and name ~= "" then
-            local value = name
-            if desc ~= nil and desc ~= "" then
-                value = value .. ", " .. desc
-            end
-            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIQUE_ABILITY")
-                .. ": " .. value
-        end
-    end
-    for urow in uniqueUnitsQuery(row.Type) do
-        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_UNIT",
-            Text.key(urow.Description))
-    end
-    for urow in uniqueBuildingsQuery(row.Type) do
-        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_BUILDING",
-            Text.key(urow.Description))
-    end
-    for urow in uniqueImprovementsQuery(row.Type) do
-        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT",
-            Text.key(urow.Description))
-    end
-end
-
-local function buildRegularItems(traitsQuery)
+local function buildRegularItems()
     civIds = { -1 }
     local items = {
         BaseMenuItems.Choice({
@@ -104,23 +48,18 @@ local function buildRegularItems(traitsQuery)
     end
     table.sort(entries, function(a, b) return Locale.Compare(a[1], b[1]) == -1 end)
     for _, entry in ipairs(entries) do
-        local row = entry[2]
+        local row   = entry[2]
         local civID = row.ID
-        local parts = {
-            Text.key(row.LeaderDescription),
-            Text.key(row.ShortDescription),
-        }
-        appendCivDetails(parts, row, traitsQuery)
         civIds[#civIds + 1] = civID
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = table.concat(parts, ", "),
+            labelText = CivDetails.richLabel(row),
             activate  = function() CivilizationSelected(civID) end,
         })
     end
     return items
 end
 
-local function buildScenarioItems(traitsQuery)
+local function buildScenarioItems()
     civIds = {}
     local items = {}
     local civList = UI.GetMapPlayers(PreGame.GetMapScript())
@@ -147,17 +86,12 @@ local function buildScenarioItems(traitsQuery)
     end
     table.sort(entries, function(a, b) return Locale.Compare(a[1], b[1]) == -1 end)
     for _, entry in ipairs(entries) do
-        local row = entry[2]
-        local scenarioCivID = entry[3]
-        local civID = row.ID
-        local parts = {
-            Text.key(row.LeaderDescription),
-            Text.key(row.ShortDescription),
-        }
-        appendCivDetails(parts, row, traitsQuery)
-        civIds[#civIds + 1] = civID
+        local row            = entry[2]
+        local scenarioCivID  = entry[3]
+        local civID          = row.ID
+        civIds[#civIds + 1]  = civID
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = table.concat(parts, ", "),
+            labelText = CivDetails.richLabel(row),
             activate  = function()
                 CivilizationSelected(civID, scenarioCivID)
             end,
@@ -167,14 +101,11 @@ local function buildScenarioItems(traitsQuery)
 end
 
 local function rebuildItems(h)
-    local traitsQuery = DB.CreateQuery([[SELECT Description, ShortDescription FROM Traits
-        INNER JOIN Leader_Traits ON Traits.Type = Leader_Traits.TraitType
-        WHERE Leader_Traits.LeaderType = ? LIMIT 1]])
     local items
     if PreGame.GetLoadWBScenario() and IsWBMap(PreGame.GetMapScript()) then
-        items = buildScenarioItems(traitsQuery)
+        items = buildScenarioItems()
     else
-        items = buildRegularItems(traitsQuery)
+        items = buildRegularItems()
     end
     if h ~= nil then h.setItems(items) end
     return items

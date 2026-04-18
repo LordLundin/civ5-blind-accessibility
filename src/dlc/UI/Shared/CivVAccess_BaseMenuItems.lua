@@ -414,7 +414,7 @@ end
 --                      map-script option dropdowns wire each entry's button
 --                      with its own closure capturing the option id and
 --                      value; the closure takes no args).
-local function buildChoice(button, callback, useVoids, parentControlName)
+local function buildChoice(button, callback, useVoids, parentControlName, announceOverride)
     local choice = {
         kind      = "choice",
         _button   = button,
@@ -424,6 +424,14 @@ local function buildChoice(button, callback, useVoids, parentControlName)
     function choice:isNavigable()   return self._button ~= nil end
     function choice:isActivatable() return self._button ~= nil end
     function choice:announce(menu)
+        -- Pulldowns with a spec.entryAnnounceFn (civ pulldowns, etc.)
+        -- supply per-entry rich text that replaces the button-text
+        -- default. Override is a thunk the Pulldown activate built with
+        -- the inst+index closed over.
+        if announceOverride ~= nil then
+            local ok, t = pcall(announceOverride)
+            if ok and t ~= nil and t ~= "" then return tostring(t) end
+        end
         local ok, t = pcall(function() return self._button:GetText() end)
         if not ok or t == nil or t == "" then
             Log.warn("BaseMenu pulldown '" .. tostring(parentControlName)
@@ -464,10 +472,13 @@ function BaseMenuItems.Pulldown(spec)
     assertTooltip(spec, "Pulldown")
     assert(spec.valueFn == nil or type(spec.valueFn) == "function",
         "Pulldown.valueFn must be a function if provided")
+    assert(spec.entryAnnounceFn == nil or type(spec.entryAnnounceFn) == "function",
+        "Pulldown.entryAnnounceFn must be a function if provided")
     local item = {
-        kind     = "pulldown",
-        _control = resolveControl(spec, "Pulldown"),
-        _valueFn = spec.valueFn,
+        kind              = "pulldown",
+        _control          = resolveControl(spec, "Pulldown"),
+        _valueFn          = spec.valueFn,
+        _entryAnnounceFn  = spec.entryAnnounceFn,
     }
     if spec.visibilityControlName ~= nil then
         item.visibilityControlName = spec.visibilityControlName
@@ -525,6 +536,7 @@ function BaseMenuItems.Pulldown(spec)
         local currentText = pulldownCurrentValue(self)
         local initialIndex
         local fallbackUsed = 0
+        local entryAnnounceFn = self._entryAnnounceFn
         for i, inst in ipairs(entries) do
             local cb = topCallback
             local useVoids = topCallback ~= nil
@@ -532,7 +544,13 @@ function BaseMenuItems.Pulldown(spec)
                 cb = PullDownProbe.buttonCallbackFor(inst.Button, Mouse.eLClick)
                 if cb ~= nil then fallbackUsed = fallbackUsed + 1 end
             end
-            childItems[i] = buildChoice(inst.Button, cb, useVoids, self.controlName)
+            local announceOverride
+            if entryAnnounceFn ~= nil then
+                local idx = i
+                announceOverride = function() return entryAnnounceFn(inst, idx) end
+            end
+            childItems[i] = buildChoice(inst.Button, cb, useVoids,
+                self.controlName, announceOverride)
             if initialIndex == nil and currentText ~= nil then
                 local ok, t = pcall(function() return inst.Button:GetText() end)
                 if ok and t ~= nil and tostring(t) == currentText then

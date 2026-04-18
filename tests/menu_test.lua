@@ -1807,6 +1807,37 @@ function M.test_pulldown_fallback_fires_per_entry_button_callback()
     T.eq(HandlerStack.count(), 1, "sub popped after commit")
 end
 
+function M.test_pulldown_entry_announce_fn_replaces_entry_text()
+    setup()
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    patchProbeFromPullDown(pd)
+    pd:ClearEntries()
+    pd:RegisterSelectionCallback(function() end)
+    local i1, i2 = {}, {}
+    pd:BuildEntry("InstanceOne", i1)
+    pd:BuildEntry("InstanceOne", i2)
+    i1.Button:SetText("Plain A")
+    i2.Button:SetText("Plain B")
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = {
+            BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD",
+                entryAnnounceFn = function(inst, idx)
+                    return "rich " .. idx
+                end }),
+        } })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- drill
+    local richHeard = {}
+    for _, s in ipairs(speaks) do richHeard[s.text] = true end
+    T.truthy(richHeard["rich 1"], "override used for first entry announce")
+    -- Move to second entry and confirm its override announce too.
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(speaks[#speaks].text, "rich 2")
+end
+
 function M.test_pulldown_no_callback_at_all_logs_warn()
     setup()
     local pd = makePullDownWithMetatable()

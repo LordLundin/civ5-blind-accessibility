@@ -25,6 +25,7 @@
 -- without notice and slot presence can flip when Add AI / Remove fires.
 
 include("CivVAccess_FrontendCommon")
+include("CivVAccess_CivDetails")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
@@ -32,6 +33,23 @@ local priorInput    = InputHandler
 -- Forward decls so activate closures reference handler before it's set.
 local handler
 local buildItems
+
+-- Session-stable rich labels for the civ pulldown's sub-menu entries.
+-- Leader + civ + unique ability / unit / building / improvement, in the
+-- same leader-alphabetical order the base file uses for playableCivs.
+-- Cached because the playable civ list doesn't change mid-session on
+-- this screen.
+local _civLabelsCache
+local function civPulldownLabels()
+    if _civLabelsCache == nil then
+        _civLabelsCache = CivDetails.pulldownLabels()
+    end
+    return _civLabelsCache
+end
+local function civEntryAnnounce(inst, index)
+    local labels = civPulldownLabels()
+    return labels[index]
+end
 
 -- Helpers -----------------------------------------------------------------
 
@@ -93,9 +111,12 @@ local function humanSlotChildren()
         -- announcement is "Napoleon of France" rather than a generic
         -- "Random Leader" label plus a different current value. No static
         -- tooltipKey: "The game will randomly pick..." is stale once the
-        -- user picks a specific civ.
+        -- user picks a specific civ. entryAnnounceFn replaces each sub-
+        -- menu entry's default announce with the same rich text the
+        -- SelectCivilization picker produces (leader / civ / uniques).
         BaseMenuItems.Pulldown({ controlName = "CivPulldown",
-            labelFn = function() return pulldownButtonText(Controls.CivPulldown) end }),
+            labelFn         = function() return pulldownButtonText(Controls.CivPulldown) end,
+            entryAnnounceFn = civEntryAnnounce }),
         -- When CivName is visible (custom name set), announce the custom
         -- text; Enter reopens the name editor.
         BaseMenuItems.Choice({
@@ -133,7 +154,8 @@ local function slotChildren(slotIndex)
         if slot == nil then return {} end
         local items = {
             BaseMenuItems.Pulldown({ control = slot.CivPulldown,
-                labelFn = function() return pulldownButtonText(slot.CivPulldown) end }),
+                labelFn         = function() return pulldownButtonText(slot.CivPulldown) end,
+                entryAnnounceFn = civEntryAnnounce }),
             BaseMenuItems.Pulldown({ control = slot.TeamPullDown,
                 labelFn = function() return safeText(function() return slot.TeamLabel:GetText() end) end }),
         }
