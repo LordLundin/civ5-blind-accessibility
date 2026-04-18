@@ -2257,13 +2257,76 @@ function M.test_choice_without_selectedfn_does_not_reannounce()
     speaks = {}
     choice:activate(h)
     T.eq(fired, true)
-    -- Select-and-close Choices (SelectCivilization, pulldown entries) pop
-    -- the handler synchronously; re-announcing before the screen's own
-    -- close path would speakInterrupt and get immediately overridden by
-    -- the next screen's onActivate. Skipping the re-announce when
-    -- selectedFn is nil preserves that behavior.
+    -- Without selectedFn we skip the re-announce entirely (the caller
+    -- opted into the browse-then-commit pattern only by supplying one).
     T.eq(#speaks, 0, "no re-announce without selectedFn")
     T.eq(choice:announce(h), "Apple", "no 'selected' prefix without selectedFn")
+end
+
+-- Pulldown sub-menus precompute per-entry "this matches the committed
+-- value" at activate time and pass it into buildChoice. The entry whose
+-- button text equals the pulldown's current value announces with the
+-- "selected" prefix so the user can identify the committed pick while
+-- browsing the sub. Non-matching entries stay unprefixed.
+function M.test_pulldown_sub_entry_announces_selected_for_current_value()
+    setup()
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    patchProbeFromPullDown(pd)
+    pd:ClearEntries()
+    pd:RegisterSelectionCallback(function() end)
+    local inst1 = {}
+    pd:BuildEntry("InstanceOne", inst1)
+    inst1.Button:SetText("Easy")
+    local inst2 = {}
+    pd:BuildEntry("InstanceOne", inst2)
+    inst2.Button:SetText("Hard")
+    -- Parent pulldown's committed value is "Hard".
+    pd:GetButton():SetText("Hard")
+
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+
+    local sub = HandlerStack.active()
+    T.eq(sub.name, "T/PD_PullDown")
+    T.eq(sub._items[1]:announce(sub), "Easy",
+        "non-matching entry has no 'selected' prefix")
+    T.eq(sub._items[2]:announce(sub), "selected, Hard",
+        "matching entry announces with 'selected' prefix")
+end
+
+function M.test_choice_selectedfn_skips_reannounce_when_activate_pops_handler()
+    setup()
+    populateControls({})
+    -- Simulates a Select*-style screen: activate commits then closes the
+    -- screen (HandlerStack.pop). The parent's own onActivate will speak;
+    -- our re-announce would race against that and produce a stutter.
+    local choice
+    choice = BaseMenuItems.Choice({
+        labelText  = "Apple",
+        selectedFn = function() return true end,
+        activate   = function() HandlerStack.pop() end,
+    })
+    local parent = BaseMenu.create({ name = "PARENT", displayName = "Parent",
+        items = { BaseMenuItems.Button({ controlName = "X", textKey = "X",
+            activate = function() end }) } })
+    local h = BaseMenu.create({ name = "T", displayName = "Test",
+        items = { choice } })
+    setCtrls({"X"})
+    HandlerStack.push(parent)
+    HandlerStack.push(h)
+
+    speaks = {}
+    choice:activate(h)
+    -- HandlerStack.pop reactivates parent which speaks its own content.
+    -- The critical invariant is that no "selected, Apple" entry appears
+    -- after that -- the child's re-announce was suppressed.
+    for _, s in ipairs(speaks) do
+        T.truthy(s.text ~= "selected, Apple",
+            "suppressed re-announce after handler pop")
+    end
 end
 
 return M

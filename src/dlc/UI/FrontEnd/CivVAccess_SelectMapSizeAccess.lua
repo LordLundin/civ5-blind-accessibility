@@ -28,6 +28,7 @@ local function buildItems()
         labelText         = Text.key(randomLabel),
         tooltipText       = Text.key(randomHelp),
         visibilityControl = g_RandomSizeControl.Root,
+        selectedFn        = function() return PreGame.IsRandomWorldSize() end,
         activate          = function() SizeSelected(-1) end,
     })
     for info in GameInfo.Worlds() do
@@ -37,6 +38,13 @@ local function buildItems()
             labelText         = Text.key(info.Description),
             tooltipText       = Text.key(info.Help),
             visibilityControl = entry and entry.Root or nil,
+            -- PreGame.GetWorldSize can return a stale value while
+            -- IsRandomWorldSize is true, so check both to avoid falsely
+            -- flagging a specific size as selected under Random.
+            selectedFn        = function()
+                return not PreGame.IsRandomWorldSize()
+                    and PreGame.GetWorldSize() == id
+            end,
             activate          = function() SizeSelected(id) end,
         })
     end

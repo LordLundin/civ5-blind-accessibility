@@ -165,9 +165,21 @@ local function buildItemsForFolder(folder)
                     label = name .. ", " .. suffix
                 end
             end
+            -- Sub-folders are drill-ins with no "selected" concept; only
+            -- leaves whose name matches the current PreGame map script
+            -- carry a selection flag. Captured at build time because the
+            -- commit path closes the screen (HandlerStack.active()
+            -- guards the re-announce).
+            local isCurrentLeaf = (not isSubFolder)
+                and selectionName ~= nil and name == selectionName
+            local selectedFn
+            if isCurrentLeaf then
+                selectedFn = function() return true end
+            end
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText   = label,
                 tooltipText = desc,
+                selectedFn  = selectedFn,
                 activate    = function()
                     if callback ~= nil then callback() end
                     -- Sub-folder drill-in: announce the folder so the user
@@ -178,9 +190,7 @@ local function buildItemsForFolder(folder)
                     end
                 end,
             })
-            if not isSubFolder and selectionName ~= nil and name == selectionName then
-                selectedIdx = #items
-            end
+            if isCurrentLeaf then selectedIdx = #items end
         end
     end
     return items, selectedIdx

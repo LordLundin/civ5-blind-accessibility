@@ -31,6 +31,7 @@ local function buildItems()
         items[#items + 1] = BaseMenuItems.Choice({
             labelText   = Text.key(info.Description),
             tooltipText = Text.key(info.Help),
+            selectedFn  = function() return PreGame.GetGameSpeed() == id end,
             activate    = function() SpeedSelected(id) end,
         })
     end

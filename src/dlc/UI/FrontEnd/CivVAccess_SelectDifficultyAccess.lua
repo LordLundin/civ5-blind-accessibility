@@ -24,6 +24,7 @@ local function buildItems()
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText   = Text.key(info.Description),
                 tooltipText = Text.key(info.Help),
+                selectedFn  = function() return PreGame.GetHandicap(0) == id end,
                 activate    = function() DifficultySelected(id) end,
             })
         end

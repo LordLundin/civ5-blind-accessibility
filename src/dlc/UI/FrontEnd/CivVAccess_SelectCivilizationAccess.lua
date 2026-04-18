@@ -29,6 +29,7 @@ local function buildRegularItems()
             labelText   = Text.key("TXT_KEY_RANDOM_LEADER") .. ", "
                         .. Text.key("TXT_KEY_RANDOM_CIV"),
             tooltipText = Text.key("TXT_KEY_RANDOM_LEADER_HELP"),
+            selectedFn  = function() return PreGame.GetCivilization(0) == -1 end,
             activate    = function() CivilizationSelected(-1) end,
         }),
     }
@@ -52,8 +53,9 @@ local function buildRegularItems()
         local civID = row.ID
         civIds[#civIds + 1] = civID
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = CivDetails.richLabel(row),
-            activate  = function() CivilizationSelected(civID) end,
+            labelText  = CivDetails.richLabel(row),
+            selectedFn = function() return PreGame.GetCivilization(0) == civID end,
+            activate   = function() CivilizationSelected(civID) end,
         })
     end
     return items
@@ -91,8 +93,13 @@ local function buildScenarioItems()
         local civID          = row.ID
         civIds[#civIds + 1]  = civID
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = CivDetails.richLabel(row),
-            activate  = function()
+            labelText  = CivDetails.richLabel(row),
+            -- Base's currentIndex checks PreGame.GetCivilization(0)
+            -- unconditionally, so we mirror that. Scenario slot targeting
+            -- is only used by activate (for the SetCivilization write);
+            -- the "which is currently set" read is always slot 0.
+            selectedFn = function() return PreGame.GetCivilization(0) == civID end,
+            activate   = function()
                 CivilizationSelected(civID, scenarioCivID)
             end,
         })

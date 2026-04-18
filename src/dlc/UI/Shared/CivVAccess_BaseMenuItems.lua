@@ -346,12 +346,15 @@ function BaseMenuItems.Choice(spec)
             Log.error("BaseMenu '" .. tostring(menu.name) .. "' choice activate failed: "
                 .. tostring(err))
         end
-        -- On browse-then-commit screens the activate just flips a
-        -- selection flag; re-announce so the user hears the new state.
-        -- Select-and-close screens leave selectedFn nil and skip this to
-        -- avoid speaking right before the screen's own close handler
-        -- pops us and the next screen's onActivate speaks.
-        if self._selectedFn ~= nil then
+        -- Re-announce gives audio confirmation on browse-then-commit
+        -- screens whose activate just flips a selection flag (the menu
+        -- stays open, no other speech to collide with). Skip when the
+        -- user's activate popped this handler off the stack: select-and-
+        -- close screens (Select* pickers, Pulldown sub-menus) close
+        -- synchronously inside activate, and the parent's own
+        -- onActivate speakInterrupt is already in flight -- adding our
+        -- own would race against it and produce a stutter.
+        if self._selectedFn ~= nil and HandlerStack.active() == menu then
             SpeechPipeline.speakInterrupt(self:announce(menu))
         end
     end
@@ -471,16 +474,25 @@ end
 --                      map-script option dropdowns wire each entry's button
 --                      with its own closure capturing the option id and
 --                      value; the closure takes no args).
-local function buildChoice(button, callback, useVoids, parentControlName, announceOverride)
+--
+-- isSelected: pre-computed boolean that the Pulldown activator sets when
+-- this entry's text matches the pulldown's current value. When true, the
+-- announce prepends "selected" so the user can identify the committed
+-- pick while browsing the sub-menu. No re-announce-on-activate: a sub-
+-- menu entry's activate pops the sub, and the parent's re-announce on
+-- pop already speaks the new value.
+local function buildChoice(button, callback, useVoids, parentControlName, announceOverride, isSelected)
     local choice = {
-        kind      = "choice",
-        _button   = button,
-        _callback = callback,
-        _useVoids = useVoids,
+        kind        = "choice",
+        _button     = button,
+        _callback   = callback,
+        _useVoids   = useVoids,
+        _isSelected = isSelected,
     }
     function choice:isNavigable()   return self._button ~= nil end
     function choice:isActivatable() return self._button ~= nil end
     function choice:announce(menu)
+        local text
         -- Pulldowns with a spec.entryAnnounceFn (civ pulldowns, etc.)
         -- supply per-entry rich text that replaces the button-text
         -- default. Override is a thunk the Pulldown activate built with
@@ -491,23 +503,29 @@ local function buildChoice(button, callback, useVoids, parentControlName, announ
                 Log.warn("BaseMenu pulldown '" .. tostring(parentControlName)
                     .. "' entryAnnounceFn failed: " .. tostring(t))
             elseif t ~= nil and t ~= "" then
-                return tostring(t)
+                text = tostring(t)
             end
         end
-        local ok, t = pcall(function() return self._button:GetText() end)
-        if not ok or t == nil or t == "" then
-            Log.warn("BaseMenu pulldown '" .. tostring(parentControlName)
-                .. "' entry has no text")
-            return ""
+        if text == nil then
+            local ok, t = pcall(function() return self._button:GetText() end)
+            if not ok or t == nil or t == "" then
+                Log.warn("BaseMenu pulldown '" .. tostring(parentControlName)
+                    .. "' entry has no text")
+                return ""
+            end
+            text = t
+            -- Per-entry tooltip (info.Help for handicaps, civ.Description for
+            -- civs, possibleValue.ToolTip for map-script options). Best-effort:
+            -- some Button userdata may not expose GetToolTipString.
+            local tipOk, tip = pcall(function() return self._button:GetToolTipString() end)
+            if tipOk and tip ~= nil and tip ~= "" then
+                text = BaseMenuItems.appendTooltip(text, tostring(tip))
+            end
         end
-        -- Per-entry tooltip (info.Help for handicaps, civ.Description for
-        -- civs, possibleValue.ToolTip for map-script options). Best-effort:
-        -- some Button userdata may not expose GetToolTipString.
-        local tipOk, tip = pcall(function() return self._button:GetToolTipString() end)
-        if tipOk and tip ~= nil and tip ~= "" then
-            return BaseMenuItems.appendTooltip(t, tostring(tip))
+        if self._isSelected then
+            return Text.key("TXT_KEY_CIVVACCESS_CHOICE_SELECTED") .. ", " .. text
         end
-        return t
+        return text
     end
     function choice:activate(menu)
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
@@ -627,14 +645,16 @@ function BaseMenuItems.Pulldown(spec)
                 local idx = i
                 announceOverride = function() return entryAnnounceFn(inst, idx) end
             end
-            childItems[i] = buildChoice(inst.Button, cb, useVoids,
-                self.controlName, announceOverride)
-            if initialIndex == nil and currentText ~= nil then
+            local isSelected = false
+            if currentText ~= nil then
                 local ok, t = pcall(function() return inst.Button:GetText() end)
                 if ok and t ~= nil and tostring(t) == currentText then
-                    initialIndex = i
+                    isSelected = true
+                    if initialIndex == nil then initialIndex = i end
                 end
             end
+            childItems[i] = buildChoice(inst.Button, cb, useVoids,
+                self.controlName, announceOverride, isSelected)
         end
         if topCallback == nil and fallbackUsed == 0 then
             Log.warn("BaseMenu '" .. menu.name .. "' pulldown '"
