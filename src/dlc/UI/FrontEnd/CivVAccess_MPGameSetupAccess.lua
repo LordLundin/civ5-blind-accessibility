@@ -17,6 +17,130 @@ include("CivVAccess_FrontendCommon")
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 
+-- Map-type entries: supported-size suffix -------------------------------
+--
+-- Same three shapes as AdvancedSetup, but the MP pulldown builds its
+-- entries in a different order (see MPGameOptions.RefreshMapScripts):
+--   * MapScripts filtered by SupportsMultiplayer = 1 (size-agnostic).
+--   * GameInfo.Maps() rows (size-constrained via Map_Sizes).
+--   * Loose WB maps not referenced by Map_Sizes (pinned to wb.MapSize).
+-- MP sorts with raw a.Name < b.Name (not Locale.Compare) and has no
+-- Random entry and no t[0] seed, so pulldown index i == our ipairs i.
+
+local _mpMapSizeLabelsCache
+
+local function worldNameById(worldID)
+    local w = GameInfo.Worlds[worldID]
+    if w == nil then return nil end
+    return Text.key(w.Description)
+end
+
+local function worldNameByType(typeKey)
+    local w = GameInfo.Worlds[typeKey]
+    if w == nil then return nil end
+    return Text.key(w.Description)
+end
+
+local function safeText(getter, context)
+    local ok, t = pcall(getter)
+    if not ok then
+        Log.warn("MPGameSetupAccess safeText"
+            .. (context and (" [" .. context .. "]") or "")
+            .. " failed: " .. tostring(t))
+        return ""
+    end
+    if t == nil then return "" end
+    return tostring(t)
+end
+
+local function mpMapTypeSizeLabels()
+    if _mpMapSizeLabelsCache ~= nil then return _mpMapSizeLabelsCache end
+
+    local mapScripts = {}
+    for row in GameInfo.MapScripts{SupportsMultiplayer = 1} do
+        mapScripts[#mapScripts + 1] = {
+            name     = Locale.ConvertTextKey(row.Name),
+            allSizes = true,
+        }
+    end
+    for row in GameInfo.Maps() do
+        local sizes = {}
+        for srow in GameInfo.Map_Sizes{MapType = row.Type} do
+            local s = worldNameByType(srow.WorldSizeType)
+            if s ~= nil then sizes[#sizes + 1] = s end
+        end
+        mapScripts[#mapScripts + 1] = {
+            name  = Locale.Lookup(row.Name),
+            sizes = sizes,
+        }
+    end
+    local filter = {}
+    for row in GameInfo.Map_Sizes() do filter[row.FileName] = true end
+    for _, map in ipairs(Modding.GetMapFiles()) do
+        if not filter[map.File] then
+            local wb = UI.GetMapPreview(map.File)
+            local name
+            if map.Name and not Locale.IsNilOrWhitespace(map.Name) then
+                name = map.Name
+            elseif wb ~= nil and not Locale.IsNilOrWhitespace(wb.Name) then
+                name = Locale.Lookup(wb.Name)
+            else
+                name = Path.GetFileNameWithoutExtension(map.File)
+            end
+            local sizes = {}
+            if wb ~= nil and wb.MapSize ~= nil then
+                local s = worldNameById(wb.MapSize)
+                if s ~= nil then sizes[#sizes + 1] = s end
+            end
+            mapScripts[#mapScripts + 1] = { name = name, sizes = sizes }
+        end
+    end
+
+    -- MP's sort: raw string compare on Name, not Locale.Compare.
+    table.sort(mapScripts, function(a, b) return a.name < b.name end)
+
+    local total
+    do
+        local n = 0
+        for _ in GameInfo.Worlds("ID >= 0") do n = n + 1 end
+        total = n
+    end
+
+    local labels = {}
+    for i, s in ipairs(mapScripts) do
+        if s.allSizes or s.sizes == nil or #s.sizes == 0 then
+            labels[i] = nil
+        elseif #s.sizes == total then
+            labels[i] = nil
+        elseif #s.sizes == 1 then
+            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY",
+                s.sizes[1])
+        else
+            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED",
+                table.concat(s.sizes, ", "))
+        end
+    end
+    _mpMapSizeLabelsCache = labels
+    return labels
+end
+
+local function mapTypeEntryAnnounce(inst, index)
+    local text = safeText(function() return inst.Button:GetText() end,
+        "MapType entry GetText")
+    local sizeInfo = mpMapTypeSizeLabels()[index]
+    local parts = { text }
+    if sizeInfo ~= nil and sizeInfo ~= "" then
+        parts[#parts + 1] = sizeInfo
+    end
+    local combined = table.concat(parts, ", ")
+    local tip = safeText(function() return inst.Button:GetToolTipString() end,
+        "MapType entry GetToolTipString")
+    if tip ~= "" then
+        return BaseMenuItems.appendTooltip(combined, tip)
+    end
+    return combined
+end
+
 -- Dynamic children --------------------------------------------------------
 --
 -- Each section iterates GameInfo (with the same filters + sort base uses
@@ -178,7 +302,8 @@ local function buildItems(handler)
             activateCallback = function() OnPrivateGame() end }),
         -- Global settings.
         BaseMenuItems.Pulldown({ controlName = "MapTypePullDown",
-            textKey = "TXT_KEY_AD_SETUP_MAP_TYPE" }),
+            textKey         = "TXT_KEY_AD_SETUP_MAP_TYPE",
+            entryAnnounceFn = mapTypeEntryAnnounce }),
         BaseMenuItems.Pulldown({ controlName = "MapSizePullDown",
             textKey = "TXT_KEY_AD_SETUP_MAP_SIZE" }),
         BaseMenuItems.Pulldown({ controlName = "GameSpeedPullDown",
@@ -265,6 +390,7 @@ BaseMenu.install(ContextPtr, {
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
     onShow        = function(h)
+        _mpMapSizeLabelsCache = nil
         h.setItems(buildItems(h))
     end,
     items         = {
