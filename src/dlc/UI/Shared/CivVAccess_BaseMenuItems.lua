@@ -430,7 +430,12 @@ local function buildChoice(button, callback, useVoids, parentControlName, announ
         -- the inst+index closed over.
         if announceOverride ~= nil then
             local ok, t = pcall(announceOverride)
-            if ok and t ~= nil and t ~= "" then return tostring(t) end
+            if not ok then
+                Log.warn("BaseMenu pulldown '" .. tostring(parentControlName)
+                    .. "' entryAnnounceFn failed: " .. tostring(t))
+            elseif t ~= nil and t ~= "" then
+                return tostring(t)
+            end
         end
         local ok, t = pcall(function() return self._button:GetText() end)
         if not ok or t == nil or t == "" then
