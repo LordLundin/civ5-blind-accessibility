@@ -19,6 +19,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MODS_MULTIPLAYER"]   = "Mods multi
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CONTENT_SWITCH"]     = "Updating game data"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WAITING_PLAYERS"]    = "Waiting for players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"]       = "Joining room"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOBBY"]              = "Lobby"
+-- Lobby (PickerReader over the server listing). Row format reads as
+-- "<server>, <members>, <map>" so the distinguishing server name comes
+-- first; Members format speaks "X of Y" instead of the engine's "X/Y"
+-- caption that screen readers mangle as "slash".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SERVERS_TAB"]         = "Servers"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_DETAILS_TAB"]         = "Server details"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_NO_SERVERS"]          = "No servers found."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_MEMBERS"]             = "{1_Num} of {2_Max}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_PICKER_ROW"]          = "{1_Server}, {2_Members}, {3_Map}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SORT_ASC"]            = "ascending"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SORT_DESC"]           = "descending"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_NO_SELECTION"]        = "No server selected. Switch to the servers tab to pick one."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_OPTIONS"]            = "Options"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CREDITS"]            = "Credits"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GAME_SETUP"]         = "Set up game"
