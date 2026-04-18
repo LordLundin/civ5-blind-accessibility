@@ -66,6 +66,8 @@ local function setup()
     civvaccess_shared.sliderCallbacks        = {}
     civvaccess_shared.checkBoxProbeInstalled = false
     civvaccess_shared.checkBoxCallbacks      = {}
+    civvaccess_shared.buttonProbeInstalled   = false
+    civvaccess_shared.buttonCallbacks        = {}
 
     CivVAccess_Strings = CivVAccess_Strings or {}
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"]    = "disabled"
@@ -1755,6 +1757,73 @@ function M.test_group_itemsFn_is_called_lazily_and_cached()
     InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)   -- back
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)  -- drill again
     T.eq(calls, 1, "children cached after first drill")
+end
+
+function M.test_pulldown_fallback_fires_per_entry_button_callback()
+    setup()
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    patchProbeFromPullDown(pd)
+    -- Shared metatable so the button probe's patch covers every entry
+    -- button built for this pulldown.
+    local btnProto = Polyfill.makeButton()
+    local btnMt = { __index = {
+        SetText          = btnProto.SetText,
+        GetText          = btnProto.GetText,
+        SetVoid1         = btnProto.SetVoid1,
+        GetVoid1         = btnProto.GetVoid1,
+        IsHidden         = btnProto.IsHidden,
+        IsDisabled       = btnProto.IsDisabled,
+        SetHide          = btnProto.SetHide,
+        SetDisabled      = btnProto.SetDisabled,
+        RegisterCallback = btnProto.RegisterCallback,
+    }}
+    -- Pre-build instances with buttons that share the metatable, then
+    -- register the probe from the first of those buttons before any
+    -- per-button RegisterCallback calls.
+    local inst1 = { Button = Polyfill.makeButtonWithMetatable(btnMt) }
+    local inst2 = { Button = Polyfill.makeButtonWithMetatable(btnMt) }
+    PullDownProbe.ensureButtonInstalled(inst1.Button)
+    pd:ClearEntries()
+    pd:BuildEntry("InstanceOne", inst1)
+    pd:BuildEntry("InstanceOne", inst2)
+    inst1.Button:SetText("Temperate")
+    inst2.Button:SetText("Cool")
+    -- No top-level RegisterSelectionCallback: per-entry click callbacks
+    -- only. Mirrors the map-script option dropdown pattern.
+    local fired = {}
+    inst1.Button:RegisterCallback(Mouse.eLClick, function() fired[#fired + 1] = "t" end)
+    inst2.Button:RegisterCallback(Mouse.eLClick, function() fired[#fired + 1] = "c" end)
+
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- drill into sub
+    T.eq(HandlerStack.count(), 2, "sub pushed via per-entry fallback")
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- commit second entry
+    T.eq(#fired, 1)
+    T.eq(fired[1], "c", "second entry's per-button callback fired")
+    T.eq(HandlerStack.count(), 1, "sub popped after commit")
+end
+
+function M.test_pulldown_no_callback_at_all_logs_warn()
+    setup()
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    patchProbeFromPullDown(pd)
+    pd:ClearEntries()
+    local inst = {}
+    pd:BuildEntry("InstanceOne", inst)
+    inst.Button:SetText("Lonely")
+    -- Neither top-level callback nor per-button click callback registered.
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) } })
+    HandlerStack.push(h)
+    warns = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(HandlerStack.count(), 1, "sub not pushed with no callback")
+    T.truthy(#warns >= 1, "warn logged")
 end
 
 function M.test_group_cached_false_rebuilds_on_every_drill()

@@ -25,6 +25,8 @@ local function setup()
     civvaccess_shared.sliderCallbacks        = {}
     civvaccess_shared.checkBoxProbeInstalled = false
     civvaccess_shared.checkBoxCallbacks      = {}
+    civvaccess_shared.buttonProbeInstalled   = false
+    civvaccess_shared.buttonCallbacks        = {}
 
     -- Fresh metatable per setup so one test's patched __index does not bleed
     -- into another. Instance factory strips methods so lookup falls through.
@@ -198,6 +200,62 @@ function M.test_checkbox_probe_captures_handler()
     local fn = function() end
     cb:RegisterCheckHandler(fn)
     T.eq(PullDownProbe.checkBoxCallbackFor(cb), fn)
+end
+
+-- Button probe --------------------------------------------------------
+
+local function buttonMt()
+    local proto = Polyfill.makeButton()
+    return { __index = {
+        SetText          = proto.SetText,
+        GetText          = proto.GetText,
+        SetVoid1         = proto.SetVoid1,
+        GetVoid1         = proto.GetVoid1,
+        SetVoid2         = proto.SetVoid2,
+        GetVoid2         = proto.GetVoid2,
+        IsHidden         = proto.IsHidden,
+        IsDisabled       = proto.IsDisabled,
+        SetHide          = proto.SetHide,
+        SetDisabled      = proto.SetDisabled,
+        RegisterCallback = proto.RegisterCallback,
+    }}
+end
+
+function M.test_button_probe_captures_click_callback_by_mouse_event()
+    setup()
+    local mt = buttonMt()
+    local b  = Polyfill.makeButtonWithMetatable(mt)
+    T.truthy(PullDownProbe.ensureButtonInstalled(b))
+    local fn = function() end
+    b:RegisterCallback(Mouse.eLClick, fn)
+    T.eq(PullDownProbe.buttonCallbackFor(b, Mouse.eLClick), fn)
+end
+
+function M.test_button_probe_ignores_non_numeric_mouse_event()
+    setup()
+    -- EditBox:RegisterCallback takes (fn) with no mouse event. Shouldn't
+    -- be captured as a button click callback.
+    local mt = buttonMt()
+    local b  = Polyfill.makeButtonWithMetatable(mt)
+    T.truthy(PullDownProbe.ensureButtonInstalled(b))
+    local fn = function() end
+    b:RegisterCallback(fn, nil)
+    T.eq(PullDownProbe.buttonCallbackFor(b, Mouse.eLClick), nil,
+        "non-numeric first arg not captured as click")
+end
+
+function M.test_button_probe_separate_buttons_have_separate_callbacks()
+    setup()
+    local mt = buttonMt()
+    local b1 = Polyfill.makeButtonWithMetatable(mt)
+    local b2 = Polyfill.makeButtonWithMetatable(mt)
+    T.truthy(PullDownProbe.ensureButtonInstalled(b1))
+    local f1 = function() end
+    local f2 = function() end
+    b1:RegisterCallback(Mouse.eLClick, f1)
+    b2:RegisterCallback(Mouse.eLClick, f2)
+    T.eq(PullDownProbe.buttonCallbackFor(b1, Mouse.eLClick), f1)
+    T.eq(PullDownProbe.buttonCallbackFor(b2, Mouse.eLClick), f2)
 end
 
 return M

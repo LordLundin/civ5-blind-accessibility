@@ -1,7 +1,9 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.{lua,xml}.
--- Contents above the bootstrap marker are a verbatim copy of the base-game
--- file. Re-diff against the base after any Civ V patch.
+-- Contents below (between ProbeBoot and the bootstrap marker at the bottom)
+-- are a verbatim copy of the base-game file. Re-diff against the base
+-- after any Civ V patch.
+include("CivVAccess_ProbeBoot")
 -------------------------------------------------
 -- Multiplayer Game Setup Screen
 -------------------------------------------------

@@ -43,5 +43,12 @@ PullDownProbe.installFromControls(
         -- MPGameSetupScreen / StagingRoom / AdvancedSetup
         "MaxTurnsCheck", "TurnTimerCheck", "ScenarioCheck",
         "PrivateGameCheckbox",
+    },
+    {
+        -- Buttons: shared metatable across GridButton / TextButton usages.
+        -- First resolvable wins; all screens that use ProbeBoot have at
+        -- least a BackButton or DefaultButton at top-level Controls.
+        "BackButton", "DefaultButton", "StartButton", "LaunchButton",
+        "LoadGameButton", "ExitButton", "AddAIButton", "EditButton",
     }
 )

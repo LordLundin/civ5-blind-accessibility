@@ -1,7 +1,9 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/GameSetup/AdvancedSetup.{lua,xml}. Contents
--- above the bootstrap marker are a verbatim copy of the base-game file.
--- Re-diff against the base after any Civ V patch.
+-- below (between ProbeBoot and the bootstrap marker at the bottom) are a
+-- verbatim copy of the base-game file. Re-diff against the base after any
+-- Civ V patch.
+include("CivVAccess_ProbeBoot")
 -------------------------------------------------
 -- Advanced Settings Screen
 -------------------------------------------------

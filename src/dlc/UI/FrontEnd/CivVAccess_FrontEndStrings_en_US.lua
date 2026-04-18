@@ -65,6 +65,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MP_GAME_SETUP"]        = "Multipla
 -- {1} 1-based slot number, {2} civ description from the slot's pulldown,
 -- {3} team text from the slot's team pulldown (already includes "Team N").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AI_SLOT"]                     = "AI {1_Num}, {2_Civ}, {3_Team}"
+-- Human slot label: {1} civ text (from CivPulldown button or, when custom
+-- name is set, from CivName), {2} team text.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HUMAN_SLOT"]                  = "You, {1_Civ}, {2_Team}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_PLAYERS"]               = "Players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_AI_PLAYERS"]            = "AI players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_VICTORY_CONDITIONS"]    = "Victory conditions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_GAME_OPTIONS"]          = "Game options"

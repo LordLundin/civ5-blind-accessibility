@@ -20,6 +20,14 @@ Events = Events or {
     AudioPlay2DSound = function(_scriptID) end,
 }
 
+-- Mouse event constants. Engine exposes these; offline we just need a few
+-- distinct numbers for tests that register per-button click callbacks.
+Mouse = Mouse or {
+    eLClick  = 1,
+    eRClick  = 2,
+    eMClick  = 3,
+}
+
 -- Windows virtual-key codes. Subset that the mod's bindings actually name by
 -- Keys.* rather than numeric literal; grow this list as new bindings appear.
 Keys = Keys or {
@@ -61,6 +69,7 @@ function Polyfill.makeButton()
     local self = {
         _void1 = nil, _void2 = nil, _text = "",
         _hasFocus = false, _hidden = false, _disabled = false,
+        _cbs = {},
     }
     function self:SetText(s) self._text = s or "" end
     function self:GetText() return self._text end
@@ -77,6 +86,7 @@ function Polyfill.makeButton()
     function self:SetHide(h) self._hidden = h and true or false end
     function self:SetDisabled(d) self._disabled = d and true or false end
     function self:TakeFocus() self._hasFocus = true end
+    function self:RegisterCallback(mouseEvent, fn) self._cbs[mouseEvent] = fn end
     return self
 end
 
@@ -194,4 +204,28 @@ function Polyfill.makePullDownWithMetatable(mt)
     pd.SetHide                   = nil
     pd.SetDisabled               = nil
     return setmetatable(pd, mt)
+end
+
+-- Strip instance methods off a makeButton polyfill and attach `mt` so
+-- method lookups fall through to __index. Used by tests that exercise the
+-- button probe's per-click RegisterCallback capture.
+function Polyfill.makeButtonWithMetatable(mt)
+    local b = Polyfill.makeButton()
+    b.SetText             = nil
+    b.GetText             = nil
+    b.LocalizeAndSetText  = nil
+    b.LocalizeAndSetToolTip = nil
+    b.SetToolTipString    = nil
+    b.SetVoid1            = nil
+    b.SetVoid2            = nil
+    b.SetVoids            = nil
+    b.GetVoid1            = nil
+    b.GetVoid2            = nil
+    b.IsHidden            = nil
+    b.IsDisabled          = nil
+    b.SetHide             = nil
+    b.SetDisabled         = nil
+    b.TakeFocus           = nil
+    b.RegisterCallback    = nil
+    return setmetatable(b, mt)
 end

@@ -402,13 +402,24 @@ local function pulldownCurrentValue(item)
 end
 
 -- Child item class for pulldown entries. Not a public factory; built inline
--- when Pulldown.activate opens the sub-menu. Forwards the live entry's
--- void1/void2 to the captured selection callback and pops the child.
-local function buildChoice(button, callback, parentControlName)
+-- when Pulldown.activate opens the sub-menu.
+--
+-- Two activation modes:
+--   useVoids = true  -> invoke callback(button:GetVoid1(), button:GetVoid2()).
+--                      This is the top-level RegisterSelectionCallback path
+--                      used by most pulldowns (Select* pulldowns set voids
+--                      on each entry and the callback dispatches by id).
+--   useVoids = false -> invoke callback() with no args. Used when the
+--                      callback came from per-button RegisterCallback (the
+--                      map-script option dropdowns wire each entry's button
+--                      with its own closure capturing the option id and
+--                      value; the closure takes no args).
+local function buildChoice(button, callback, useVoids, parentControlName)
     local choice = {
         kind      = "choice",
         _button   = button,
         _callback = callback,
+        _useVoids = useVoids,
     }
     function choice:isNavigable()   return self._button ~= nil end
     function choice:isActivatable() return self._button ~= nil end
@@ -419,13 +430,25 @@ local function buildChoice(button, callback, parentControlName)
                 .. "' entry has no text")
             return ""
         end
+        -- Per-entry tooltip (info.Help for handicaps, civ.Description for
+        -- civs, possibleValue.ToolTip for map-script options). Best-effort:
+        -- some Button userdata may not expose GetToolTipString.
+        local tipOk, tip = pcall(function() return self._button:GetToolTipString() end)
+        if tipOk and tip ~= nil and tip ~= "" then
+            return BaseMenuItems.appendTooltip(t, tostring(tip))
+        end
         return t
     end
     function choice:activate(menu)
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        local v1, v2
-        pcall(function() v1 = self._button:GetVoid1(); v2 = self._button:GetVoid2() end)
-        local ok, err = pcall(self._callback, v1, v2)
+        local ok, err
+        if self._useVoids then
+            local v1, v2
+            pcall(function() v1 = self._button:GetVoid1(); v2 = self._button:GetVoid2() end)
+            ok, err = pcall(self._callback, v1, v2)
+        else
+            ok, err = pcall(self._callback)
+        end
         if not ok then
             Log.error("BaseMenu pulldown '" .. tostring(parentControlName)
                 .. "' callback failed: " .. tostring(err))
@@ -439,9 +462,12 @@ end
 function BaseMenuItems.Pulldown(spec)
     assertLabel(spec, "Pulldown")
     assertTooltip(spec, "Pulldown")
+    assert(spec.valueFn == nil or type(spec.valueFn) == "function",
+        "Pulldown.valueFn must be a function if provided")
     local item = {
         kind     = "pulldown",
         _control = resolveControl(spec, "Pulldown"),
+        _valueFn = spec.valueFn,
     }
     if spec.visibilityControlName ~= nil then
         item.visibilityControlName = spec.visibilityControlName
@@ -456,40 +482,70 @@ function BaseMenuItems.Pulldown(spec)
     item.isNavigable   = isNavigable
     item.isActivatable = isActivatable
     function item:announce(menu)
-        local v = pulldownCurrentValue(self)
+        -- Team-style pulldowns don't set the button's text; instead a
+        -- sibling label (e.g. Controls.TeamLabel) holds the selected
+        -- value. Callers pass valueFn to source the value from there.
+        local v
+        if self._valueFn ~= nil then
+            local ok, result = pcall(self._valueFn, self._control)
+            if ok and result ~= nil then v = tostring(result) end
+        end
+        if v == nil then v = pulldownCurrentValue(self) end
+        local label = resolveLabel(self)
         local parts
-        if v ~= nil and v ~= "" then
-            parts = { resolveLabel(self), v }
+        -- If labelFn was sourced from the button's own text (the civ /
+        -- slot pulldown pattern), label and value are identical; emit
+        -- once rather than "X, X".
+        if v ~= nil and v ~= "" and v ~= label then
+            parts = { label, v }
         else
-            parts = { resolveLabel(self) }
+            parts = { label }
         end
         return composeSpeech(self, parts)
     end
     function item:activate(menu)
         local pulldown = self._control
-        local callback = PullDownProbe.callbackFor(pulldown)
-        local entries  = PullDownProbe.entriesFor(pulldown)
-        if callback == nil or entries == nil or #entries == 0 then
+        local topCallback = PullDownProbe.callbackFor(pulldown)
+        local entries     = PullDownProbe.entriesFor(pulldown)
+        if entries == nil or #entries == 0 then
             Log.warn("BaseMenu '" .. menu.name .. "' pulldown '"
-                .. tostring(self.controlName) .. "': "
-                .. (callback == nil and "callback not captured"
-                                     or "no entries captured"))
+                .. tostring(self.controlName) .. "': no entries captured")
             SpeechPipeline.speakInterrupt(self:announce(menu))
             return
         end
+        -- Two wiring patterns. Most pulldowns have a single
+        -- RegisterSelectionCallback that dispatches by void. Map-script
+        -- option dropdowns instead wire each entry's button with its own
+        -- RegisterCallback(Mouse.eLClick, fn) closure. Prefer the top-level
+        -- path when present; otherwise fall back to per-entry button
+        -- callbacks (captured by the button probe).
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
         local subName = menu.name .. "/" .. tostring(self.controlName) .. "_PullDown"
         local childItems = {}
         local currentText = pulldownCurrentValue(self)
         local initialIndex
+        local fallbackUsed = 0
         for i, inst in ipairs(entries) do
-            childItems[i] = buildChoice(inst.Button, callback, self.controlName)
+            local cb = topCallback
+            local useVoids = topCallback ~= nil
+            if cb == nil then
+                cb = PullDownProbe.buttonCallbackFor(inst.Button, Mouse.eLClick)
+                if cb ~= nil then fallbackUsed = fallbackUsed + 1 end
+            end
+            childItems[i] = buildChoice(inst.Button, cb, useVoids, self.controlName)
             if initialIndex == nil and currentText ~= nil then
                 local ok, t = pcall(function() return inst.Button:GetText() end)
                 if ok and t ~= nil and tostring(t) == currentText then
                     initialIndex = i
                 end
             end
+        end
+        if topCallback == nil and fallbackUsed == 0 then
+            Log.warn("BaseMenu '" .. menu.name .. "' pulldown '"
+                .. tostring(self.controlName)
+                .. "': no top-level callback and no per-entry fallbacks captured")
+            SpeechPipeline.speakInterrupt(self:announce(menu))
+            return
         end
         local child = BaseMenu.create({
             name         = subName,

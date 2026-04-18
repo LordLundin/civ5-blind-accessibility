@@ -23,10 +23,21 @@
 -- State layout on civvaccess_shared:
 --   pullDownProbeInstalled   bool, guards the pulldown patch
 --   sliderProbeInstalled     bool, guards the slider patch
+--   buttonProbeInstalled     bool, guards the button patch
 --   pullDownCallbacks        pulldown -> fn last registered
 --   pullDownEntries          pulldown -> { instance, instance, ... }
 --                            cleared when the screen calls ClearEntries
 --   sliderCallbacks          slider -> fn last registered
+--   buttonCallbacks          button -> { [mouseEvent] = fn, ... }
+--                            captured per-button click callbacks, keyed by
+--                            mouse event number (typically Mouse.eLClick).
+--                            Lets Pulldown fall back to per-entry callbacks
+--                            when a pulldown was wired with per-button
+--                            RegisterCallback instead of one top-level
+--                            RegisterSelectionCallback (map-script option
+--                            dropdowns do this; each entry's button
+--                            captures its own closure over the option id +
+--                            value).
 --
 -- PullDown instance is the `controlTable` passed to BuildEntry, so
 -- instance.Button is the per-entry button; read at activation time.
@@ -213,12 +224,65 @@ function PullDownProbe.checkBoxCallbackFor(checkbox)
     return t and t[checkbox] or nil
 end
 
+-- ---------- Button ----------
+--
+-- Captures per-button RegisterCallback(mouseEvent, fn). Mostly useful for
+-- pulldown entry buttons whose dropdown was wired with per-entry click
+-- callbacks rather than one pulldown-level RegisterSelectionCallback.
+-- Guard on `type(mouseEvent) == "number"` so we ignore other callers
+-- (EditBox:RegisterCallback takes a single function argument with no
+-- mouse event; don't capture those).
+
+function PullDownProbe.ensureButtonInstalled(sampleButton)
+    if civvaccess_shared.buttonProbeInstalled then return true end
+    if sampleButton == nil then
+        Log.warn("PullDownProbe: ensureButtonInstalled called without a sample button")
+        return false
+    end
+    local mt = getmetatable(sampleButton)
+    if mt == nil then
+        Log.warn("PullDownProbe: button sample has no accessible metatable; button probe disabled")
+        return false
+    end
+
+    local origReg = resolveMethod(mt.__index, sampleButton, "RegisterCallback")
+    if type(origReg) ~= "function" then
+        Log.warn("PullDownProbe: RegisterCallback missing on button metatable")
+        return false
+    end
+
+    civvaccess_shared.buttonCallbacks = civvaccess_shared.buttonCallbacks or {}
+    local callbacks = civvaccess_shared.buttonCallbacks
+
+    patchIndex(mt, {
+        RegisterCallback = function(self, mouseEvent, fn)
+            if type(mouseEvent) == "number" and type(fn) == "function" then
+                local perButton = callbacks[self]
+                if perButton == nil then perButton = {}; callbacks[self] = perButton end
+                perButton[mouseEvent] = fn
+            end
+            return origReg(self, mouseEvent, fn)
+        end,
+    })
+    civvaccess_shared.buttonProbeInstalled = true
+    Log.info("PullDownProbe: button metatable patched")
+    return true
+end
+
+function PullDownProbe.buttonCallbackFor(button, mouseEvent)
+    local t = civvaccess_shared.buttonCallbacks
+    if t == nil then return nil end
+    local perButton = t[button]
+    if perButton == nil then return nil end
+    return perButton[mouseEvent]
+end
+
 -- ---------- Bulk install ----------
 
 -- Walk a list of known-stable control names for each widget kind. First
 -- resolvable sample of each kind is enough since its metatable is shared
 -- with every widget of that kind in the lua_State.
-function PullDownProbe.installFromControls(pullDownNames, sliderNames, checkBoxNames)
+function PullDownProbe.installFromControls(pullDownNames, sliderNames, checkBoxNames, buttonNames)
     if type(Controls) ~= "userdata" and type(Controls) ~= "table" then
         return
     end
@@ -243,6 +307,14 @@ function PullDownProbe.installFromControls(pullDownNames, sliderNames, checkBoxN
             local c = Controls[name]
             if c ~= nil then
                 if PullDownProbe.ensureCheckBoxInstalled(c) then break end
+            end
+        end
+    end
+    if not civvaccess_shared.buttonProbeInstalled then
+        for _, name in ipairs(buttonNames or {}) do
+            local c = Controls[name]
+            if c ~= nil then
+                if PullDownProbe.ensureButtonInstalled(c) then break end
             end
         end
     end
