@@ -36,7 +36,14 @@
 --   name              (string, required) stack identity.
 --   displayName       (string, required) spoken on screen activation.
 --   items   OR  tabs  array of item tables (see BaseMenuItems), or per-tab array
---                     of { name = "TXT_KEY", showPanel = fn, items = {...} }.
+--                     of { name = "TXT_KEY", showPanel = fn, items = {...},
+--                          onActivate = fn(handler), autoDrillToLevel = N }.
+--                     onActivate fires during switchTab between index reset
+--                     and announcement, letting callers (PickerReader) stage
+--                     items / restore a saved cursor. autoDrillToLevel drills
+--                     into the first navigable group at each level up to N
+--                     before speaking the first leaf (reader tab opens inside
+--                     the first section rather than on its header).
 --   preamble          string | fn() -> string, spoken after displayName.
 --                     A function preamble is re-readable via refresh() so
 --                     dynamic status text (FrontEndPopup body, JoiningRoom
@@ -60,6 +67,11 @@
 --                     SetUpdate to TickPump so runOnce callbacks (edit-mode
 --                     TakeFocus, deferred pushes) fire.
 --   capturesAllInput  default true; the modal barrier for InputRouter.
+--   escAtLevelOne     optional fn(handler) -> bool. Consulted before priorInput
+--                     when Esc fires at level 1. Return true to consume (stay
+--                     open); return false/nil to fall through to priorInput
+--                     (close the screen). PickerReader uses this to bounce
+--                     the reader tab back to the picker tab.
 
 BaseMenu = {}
 
@@ -202,13 +214,37 @@ end
 
 -- Tabs --------------------------------------------------------------------
 
-local function switchTab(self, newTabIndex)
+-- Walk the first navigable group at each level until reaching targetLevel,
+-- or until the next item isn't a group / has no navigable children. Silent
+-- on boundary: caller is responsible for the speech that follows. Used by
+-- switchTab to honor a tab spec's autoDrillToLevel, letting a PickerReader
+-- reader-tab open already inside the first section rather than on the
+-- section's header leaf.
+local function autoDrillTo(self, targetLevel)
+    while self._level < targetLevel do
+        local items = currentItems(self)
+        local cur = items[currentIndex(self)]
+        if cur == nil or cur.kind ~= "group" then return end
+        local children = cur:children()
+        local first = nextValidIndex(children, 0, 1)
+        if first == nil then return end
+        self._level = self._level + 1
+        self._indices[self._level] = first
+    end
+end
+
+-- Core tab-activation path. `force` (used by switchToTab for programmatic
+-- cross-tab jumps) bypasses the same-tab no-op so a PickerReader Entry
+-- activation can re-enter the reader tab and re-announce even when it is
+-- already the active tab. The Tab/Shift+Tab binding path sets force=false
+-- so a wraparound onto the current tab is a no-op.
+local function switchTab(self, newTabIndex, force)
     if self.tabs == nil then return end
     local n = #self.tabs
     if n == 0 then return end
     if newTabIndex < 1 then newTabIndex = n end
     if newTabIndex > n then newTabIndex = 1 end
-    if newTabIndex == self._tabIndex then return end
+    if newTabIndex == self._tabIndex and not force then return end
     self._tabIndex = newTabIndex
     local tab = self.tabs[newTabIndex]
     if type(tab.showPanel) == "function" then
@@ -225,15 +261,32 @@ local function switchTab(self, newTabIndex)
     local first = nextValidIndex(items, 0, 1)
     self._indices = { first or 1 }
     resetSearch(self)
+    -- onActivate fires between the reset and the announcement so callers
+    -- (PickerReader's picker tab after a cross-tab return; reader tab on
+    -- fresh selection) can swap items, restore a saved cursor, or set
+    -- _level/_indices directly; the final announcement below speaks the
+    -- item the callback landed on.
+    if type(tab.onActivate) == "function" then
+        local ok, err = pcall(tab.onActivate, self)
+        if not ok then
+            Log.error("BaseMenu '" .. self.name .. "' onActivate for tab '"
+                .. tostring(tab.name) .. "': " .. tostring(err))
+        end
+    end
+    if type(tab.autoDrillToLevel) == "number" then
+        autoDrillTo(self, tab.autoDrillToLevel)
+    end
     SpeechPipeline.speakInterrupt(Text.key(tab.name))
-    if first ~= nil then
-        SpeechPipeline.speakQueued(items[first]:announce(self))
+    local finalItems = currentItems(self)
+    local finalItem = finalItems[currentIndex(self)]
+    if finalItem ~= nil then
+        SpeechPipeline.speakQueued(finalItem:announce(self))
     end
 end
 
 local function cycleTab(self, step)
     if self.tabs == nil then return end
-    switchTab(self, self._tabIndex + step)
+    switchTab(self, self._tabIndex + step, false)
 end
 
 -- Navigation / activation -------------------------------------------------
@@ -537,10 +590,18 @@ function BaseMenu.create(spec)
                 "tab " .. i .. ".name (TXT_KEY) required")
             check(type(tab.items) == "table",
                 "tab " .. i .. ".items required")
+            check(tab.onActivate == nil or type(tab.onActivate) == "function",
+                "tab " .. i .. ".onActivate must be a function if provided")
+            check(tab.autoDrillToLevel == nil
+                or (type(tab.autoDrillToLevel) == "number"
+                    and tab.autoDrillToLevel >= 1),
+                "tab " .. i .. ".autoDrillToLevel must be a positive number")
             tabs[i] = {
-                name      = tab.name,
-                showPanel = tab.showPanel,
-                _items    = tab.items,
+                name             = tab.name,
+                showPanel        = tab.showPanel,
+                onActivate       = tab.onActivate,
+                autoDrillToLevel = tab.autoDrillToLevel,
+                _items           = tab.items,
             }
         end
         self.tabs = tabs
@@ -749,6 +810,16 @@ function BaseMenu.create(spec)
     -- touching module locals.
     self._goBackLevel = function() goBackLevel(self) end
 
+    -- Programmatic cross-tab jump. Unlike the Tab-key path, a same-tab call
+    -- still fires the tab's onActivate + autoDrill + announcement so a
+    -- PickerReader Entry activation can re-enter the reader tab on repeat
+    -- picks without a no-op. Caller is responsible for staging any
+    -- dependent state (setItems on the target tab, cursor hints via a
+    -- tab.onActivate) before invoking this.
+    function self.switchToTab(idx)
+        switchTab(self, idx, true)
+    end
+
     return self
 end
 
@@ -762,6 +833,7 @@ function BaseMenu.install(ContextPtr, spec)
     local shouldActivate = spec.shouldActivate
     local onShow         = spec.onShow
     local tickOwner      = spec.tickOwner ~= false
+    local escAtLevelOne  = spec.escAtLevelOne
     local pendingPush    = false
 
     if tickOwner then
@@ -849,6 +921,20 @@ function BaseMenu.install(ContextPtr, spec)
                 if handler._level > 1 then
                     handler._goBackLevel()
                     return true
+                end
+                if escAtLevelOne ~= nil then
+                    -- Level-1 Esc hook. Consumed (return true) means the
+                    -- screen stays open; unconsumed falls through to the
+                    -- screen's own priorInput (closes the pedia, ExitConfirm,
+                    -- etc.). PickerReader uses this to bounce the reader tab
+                    -- back to the picker tab rather than closing the screen.
+                    local ok, consumed = pcall(escAtLevelOne, handler)
+                    if not ok then
+                        Log.error("BaseMenu '" .. handler.name
+                            .. "' escAtLevelOne: " .. tostring(consumed))
+                    elseif consumed then
+                        return true
+                    end
                 end
                 if priorInput then return priorInput(msg, wp, lp) end
                 return false

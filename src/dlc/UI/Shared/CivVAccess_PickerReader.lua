@@ -1,0 +1,308 @@
+-- Two-tab picker + reader pattern on top of BaseMenu. A picker tab hosts a
+-- nested list of selectable Entries; Enter on an Entry rebuilds the reader
+-- tab's items from the Entry's buildReader callback and switches tabs.
+-- Shift+Tab (or Esc at reader level 1) returns to the picker, landing the
+-- cursor on the just-opened Entry.
+--
+-- Modeled on ONI Access's CodexScreenHandler split (CategoriesTab + ContentTab),
+-- but collapsed into one BaseMenu since our nested navigation natively handles
+-- drill levels. Reusable across any "pick from a list, read details in another
+-- panel" flow -- Civilopedia is the first consumer; the save-file LoadMenu is
+-- a candidate second.
+--
+-- Usage:
+--   local pr = PickerReader.create()
+--   local pickerItems = buildMyPickerItems(pr.Entry)  -- pr.Entry is a factory
+--   pr.install(ContextPtr, {
+--       name = "MyScreen",
+--       displayName = "...",
+--       pickerTabName = "TXT_KEY_...",
+--       readerTabName = "TXT_KEY_...",
+--       emptyReaderText = "...",
+--       pickerItems = pickerItems,
+--       priorShowHide = ..., priorInput = ..., focusParkControl = "...",
+--   })
+--
+-- Entry spec (PickerReader.Entry factory returned from create()):
+--   id                opaque string identifier; used to restore the picker
+--                     cursor on return from the reader tab, and passed to
+--                     buildReader so it can source fresh data every call.
+--   textKey / labelText / labelFn   label source (one required)
+--   tooltipKey / tooltipText / tooltipFn   optional tooltip
+--   visibilityControl / visibilityControlName   optional gate
+--   buildReader       fn(handler, id) -> { items = {...}, autoDrillToLevel = N }
+--                     Called on every activation; must not cache. Returning nil
+--                     or an empty items list shows the emptyReaderText.
+
+PickerReader = {}
+
+local function check(cond, msg)
+    if not cond then
+        Log.error(msg)
+        error(msg, 2)
+    end
+end
+
+-- Label / tooltip resolution matches BaseMenuItems' conventions so Entry
+-- specs look familiar. Duplicated rather than exported from BaseMenuItems
+-- because BaseMenuItems.labelOf requires a resolved item table, not a spec.
+local function resolveLabel(spec)
+    if spec.labelText ~= nil then return spec.labelText end
+    if spec.labelFn ~= nil then
+        local ok, result = pcall(spec.labelFn)
+        if not ok then
+            Log.error("PickerReader.Entry labelFn failed: " .. tostring(result))
+            return ""
+        end
+        return result or ""
+    end
+    return Text.key(spec.textKey)
+end
+
+local function resolveTooltip(spec)
+    if spec.tooltipFn ~= nil then
+        local ok, result = pcall(spec.tooltipFn)
+        if not ok then
+            Log.error("PickerReader.Entry tooltipFn failed: " .. tostring(result))
+            return nil
+        end
+        if result == nil or result == "" then return nil end
+        return tostring(result)
+    end
+    if spec.tooltipText ~= nil and spec.tooltipText ~= "" then
+        return spec.tooltipText
+    end
+    if spec.tooltipKey == nil then return nil end
+    local t = Text.key(spec.tooltipKey)
+    if t == nil or t == "" then return nil end
+    return t
+end
+
+-- Walk picker items (which may include nested Groups) and invoke visit
+-- at every Entry leaf, passing the 1-based path of indices from the top
+-- level down to the leaf. Returns immediately if visit returns true.
+local function forEachEntry(items, path, visit)
+    for i, item in ipairs(items) do
+        path[#path + 1] = i
+        if item.kind == "entry" then
+            if visit(item, path) then
+                path[#path] = nil
+                return true
+            end
+        elseif item.kind == "group" then
+            local children = item:children()
+            if forEachEntry(children, path, visit) then
+                path[#path] = nil
+                return true
+            end
+        end
+        path[#path] = nil
+    end
+    return false
+end
+
+-- Restore picker cursor to the Entry whose id matches state.selectedId.
+-- Called from the picker tab's onActivate when returning from the reader.
+-- Silent on miss (Entry may have become hidden; the tab's default first-
+-- valid cursor stays). Walks via forEachEntry so nested categories work.
+local function restorePickerCursor(handler, state, pickerTabIdx)
+    if state.selectedId == nil then return end
+    local tab = handler.tabs[pickerTabIdx]
+    if tab == nil or tab._items == nil then return end
+    local found = false
+    local foundPath
+    forEachEntry(tab._items, {}, function(entry, path)
+        if entry.id == state.selectedId then
+            foundPath = { }
+            for k, v in ipairs(path) do foundPath[k] = v end
+            found = true
+            return true
+        end
+        return false
+    end)
+    if not found then return end
+    handler._level = #foundPath
+    handler._indices = {}
+    for l, idx in ipairs(foundPath) do
+        handler._indices[l] = idx
+    end
+end
+
+-- Shared navigability / activability for Entry leaves. Mirrors BaseMenuItems'
+-- Choice behavior: no _control, so navigability is gated only by an optional
+-- visibility control. Activatable implies navigable.
+local function entryIsNavigable(self)
+    if self._visibilityControl ~= nil and self._visibilityControl:IsHidden() then
+        return false
+    end
+    return true
+end
+
+local function entryIsActivatable(self) return self:isNavigable() end
+
+-- Create a PickerReader session. Returns a table with two fields:
+--   Entry(spec) - factory for leaf items that drive cross-tab moves
+--   install(ContextPtr, config) - wraps BaseMenu.install with a two-tab spec
+-- Call Entry() to build picker items; then hand the items to install via
+-- config.pickerItems. The session closes over its own state (selectedId,
+-- tab indices) so Entry closures written before install know which session
+-- they belong to.
+function PickerReader.create()
+    local state = {
+        selectedId = nil,
+        pickerTabIdx = 1,
+        readerTabIdx = 2,
+        -- Wired by install() so Entry:activate can call handler methods.
+        handler = nil,
+    }
+    local session = {}
+
+    function session.Entry(spec)
+        check(type(spec) == "table", "PickerReader.Entry requires a spec table")
+        check(type(spec.id) == "string" and spec.id ~= "",
+            "PickerReader.Entry.id required (non-empty string)")
+        check(type(spec.textKey) == "string"
+            or type(spec.labelText) == "string"
+            or type(spec.labelFn) == "function",
+            "PickerReader.Entry needs textKey, labelText, or labelFn")
+        check(spec.tooltipFn == nil or type(spec.tooltipFn) == "function",
+            "PickerReader.Entry.tooltipFn must be a function if provided")
+        check(type(spec.buildReader) == "function",
+            "PickerReader.Entry.buildReader required (fn(handler, id))")
+        local item = {
+            kind         = "entry",
+            id           = spec.id,
+            textKey      = spec.textKey,
+            labelText    = spec.labelText,
+            labelFn      = spec.labelFn,
+            tooltipKey   = spec.tooltipKey,
+            tooltipText  = spec.tooltipText,
+            tooltipFn    = spec.tooltipFn,
+            _buildReader = spec.buildReader,
+        }
+        if spec.visibilityControl ~= nil then
+            item._visibilityControl = spec.visibilityControl
+        elseif spec.visibilityControlName ~= nil then
+            item.visibilityControlName = spec.visibilityControlName
+            item._visibilityControl    = Controls[spec.visibilityControlName]
+            if item._visibilityControl == nil then
+                Log.warn("PickerReader.Entry: missing visibility control '"
+                    .. spec.visibilityControlName .. "'")
+            end
+        end
+        item.isNavigable   = entryIsNavigable
+        item.isActivatable = entryIsActivatable
+        function item:announce(menu)
+            local label = resolveLabel(self)
+            local tooltip = resolveTooltip(self)
+            return BaseMenuItems.appendTooltip(label, tooltip)
+        end
+        function item:activate(menu)
+            Events.AudioPlay2DSound("AS2D_IF_SELECT")
+            state.selectedId = self.id
+            local ok, result = pcall(self._buildReader, menu, self.id)
+            if not ok then
+                Log.error("PickerReader '" .. tostring(menu.name)
+                    .. "' buildReader for id '" .. tostring(self.id)
+                    .. "' failed: " .. tostring(result))
+                return
+            end
+            local readerItems = result and result.items
+            local drillLevel  = result and result.autoDrillToLevel
+            if type(readerItems) ~= "table" or #readerItems == 0 then
+                -- buildReader returned nothing usable; keep the user on the
+                -- picker with a speech cue so they know the pick registered
+                -- but no content was available.
+                SpeechPipeline.speakInterrupt(
+                    Text.key("TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"))
+                return
+            end
+            menu.setItems(readerItems, state.readerTabIdx)
+            -- Stash the per-article drill level on the internal tabs entry
+            -- so switchToTab's auto-drill picks it up. Default to 1 when the
+            -- consumer didn't specify -- flat-reader articles don't drill.
+            menu.tabs[state.readerTabIdx].autoDrillToLevel = drillLevel or 1
+            menu.switchToTab(state.readerTabIdx)
+        end
+        function item:adjust(menu, dir, big) end
+        return item
+    end
+
+    function session.install(ContextPtr, config)
+        check(type(config) == "table",
+            "PickerReader.install requires a config table")
+        check(type(config.name) == "string" and config.name ~= "",
+            "config.name required")
+        check(type(config.displayName) == "string" and config.displayName ~= "",
+            "config.displayName required")
+        check(type(config.pickerTabName) == "string",
+            "config.pickerTabName (TXT_KEY) required")
+        check(type(config.readerTabName) == "string",
+            "config.readerTabName (TXT_KEY) required")
+        check(type(config.pickerItems) == "table" and #config.pickerItems > 0,
+            "config.pickerItems required (non-empty array)")
+
+        local emptyReaderText = config.emptyReaderText
+            or Text.key("TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION")
+
+        -- Reader tab opens with a single informational Text item so first
+        -- Tab-over before any selection reads something sensible rather
+        -- than speaking into an empty list.
+        local readerPlaceholder = {
+            BaseMenuItems.Text({ labelText = emptyReaderText }),
+        }
+
+        local bmSpec = {
+            name             = config.name,
+            displayName      = config.displayName,
+            preamble         = config.preamble,
+            priorShowHide    = config.priorShowHide,
+            priorInput       = config.priorInput,
+            focusParkControl = config.focusParkControl,
+            deferActivate    = config.deferActivate,
+            shouldActivate   = config.shouldActivate,
+            onShow           = config.onShow,
+            tabs = {
+                {
+                    name  = config.pickerTabName,
+                    items = config.pickerItems,
+                    onActivate = function(handler)
+                        restorePickerCursor(handler, state, state.pickerTabIdx)
+                    end,
+                },
+                {
+                    name  = config.readerTabName,
+                    items = readerPlaceholder,
+                },
+            },
+            escAtLevelOne = function(handler)
+                -- Esc on reader tab -> back to picker (landing on the
+                -- selected entry). Esc on picker tab -> fall through, the
+                -- screen closes.
+                if handler._tabIndex == state.readerTabIdx then
+                    handler.switchToTab(state.pickerTabIdx)
+                    return true
+                end
+                return false
+            end,
+        }
+
+        local handler = BaseMenu.install(ContextPtr, bmSpec)
+        state.handler = handler
+
+        -- Exposed so in-reader navigations (Civilopedia's follow-link path)
+        -- can update the stored selection without touching internal state.
+        -- Shift+Tab back to the picker then lands on the just-navigated-to
+        -- Entry rather than the one the user originally opened from.
+        function handler.setPickerReaderSelection(id)
+            if type(id) ~= "string" or id == "" then return end
+            state.selectedId = id
+        end
+
+        return handler
+    end
+
+    return session
+end
+
+return PickerReader
