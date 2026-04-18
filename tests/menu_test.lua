@@ -2331,4 +2331,108 @@ function M.test_choice_selectedfn_skips_reannounce_when_activate_pops_handler()
     end
 end
 
+-- Per-tab hook overrides ------------------------------------------------
+
+function M.test_tab_nameFn_overrides_tab_name_on_switch()
+    setup()
+    local cbA = Polyfill.makeCheckBox()
+    local cbB = Polyfill.makeCheckBox()
+    populateControls({ CA = cbA, CB = cbB })
+    local dynamic = "first call"
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        tabs = {
+            { name = "TAB_A",
+              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) } },
+            { name = "TAB_B",
+              nameFn = function() return dynamic end,
+              items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) } },
+        } })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    T.eq(speaks[1].text, "first call",
+        "nameFn result replaces tab.name on switch")
+    -- Switch away + back; nameFn re-runs and picks up the new value.
+    dynamic = "second call"
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    T.eq(speaks[1].text, "second call",
+        "nameFn re-evaluated on every switch")
+end
+
+function M.test_tab_nameFn_empty_result_skips_tab_name_announcement()
+    setup()
+    local cbA = Polyfill.makeCheckBox()
+    local cbB = Polyfill.makeCheckBox()
+    populateControls({ CA = cbA, CB = cbB })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        tabs = {
+            { name = "TAB_A",
+              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) } },
+            { name = "TAB_B",
+              nameFn = function() return "" end,
+              items = { BaseMenuItems.Checkbox({ controlName = "CB", labelText = "item B" }) } },
+        } })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    -- Empty nameFn means the tab-name announcement is skipped; the item
+    -- announcement still fires (as interrupt, since nothing preceded it).
+    for _, s in ipairs(speaks) do
+        T.truthy(s.text ~= "TAB_B",
+            "TAB_B literal never spoken when nameFn returns empty")
+    end
+    local sawItem = false
+    for _, s in ipairs(speaks) do
+        if tostring(s.text):find("item B", 1, true) then sawItem = true; break end
+    end
+    T.truthy(sawItem, "first item still announced after empty nameFn")
+end
+
+function M.test_tab_onCtrlUp_hook_overrides_sibling_group_jump()
+    setup()
+    local cbA = Polyfill.makeCheckBox()
+    local cbB = Polyfill.makeCheckBox()
+    populateControls({ CA = cbA, CB = cbB })
+    local hookCalls = 0
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        tabs = {
+            { name = "TAB_A",
+              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) } },
+            { name = "TAB_B",
+              onCtrlUp   = function(handler) hookCalls = hookCalls + 1 end,
+              onCtrlDown = function(handler) hookCalls = hookCalls + 10 end,
+              items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) } },
+        } })
+    HandlerStack.push(h)
+    -- Switch to the hooked tab and fire Ctrl+Up then Ctrl+Down.
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_UP,   2, WM_KEYDOWN) -- mods=MOD_CTRL
+    InputRouter.dispatch(Keys.VK_DOWN, 2, WM_KEYDOWN)
+    T.eq(hookCalls, 11,
+        "onCtrlUp+onCtrlDown each fired once on the active hooked tab")
+end
+
+function M.test_tab_without_onCtrl_hook_falls_back_to_default()
+    setup()
+    local g1a = BaseMenuItems.Checkbox({ controlName = "C1a", textKey = "L1a" })
+    local g1b = BaseMenuItems.Checkbox({ controlName = "C1b", textKey = "L1b" })
+    local g2a = BaseMenuItems.Checkbox({ controlName = "C2a", textKey = "L2a" })
+    populateControls({ C1a = Polyfill.makeCheckBox(), C1b = Polyfill.makeCheckBox(),
+                       C2a = Polyfill.makeCheckBox() })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        tabs = {
+            { name = "UNHOOKED",
+              items = {
+                BaseMenuItems.Group({ labelText = "G1", items = { g1a, g1b } }),
+                BaseMenuItems.Group({ labelText = "G2", items = { g2a } }),
+              } },
+        } })
+    HandlerStack.push(h)
+    T.eq(h._indices[1], 1, "starts on G1")
+    InputRouter.dispatch(Keys.VK_DOWN, 2, WM_KEYDOWN) -- Ctrl+Down
+    T.eq(h._indices[1], 2, "default Ctrl+Down jumped to G2 (no tab hook)")
+end
+
 return M

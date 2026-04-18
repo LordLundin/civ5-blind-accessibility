@@ -157,6 +157,92 @@ function PickerReader.create()
     }
     local session = {}
 
+    -- Shared entry-activation path. Enter on a picker Entry and Ctrl+Up/Down
+    -- on the reader tab both go through here. They differ only in whether an
+    -- activation sound plays: Enter is a deliberate pick, Ctrl+arrows are
+    -- navigation within an open article. On success, switchToTab(force=true)
+    -- re-enters the reader tab, firing the reader tab's nameFn (article
+    -- title) + first-item announcement.
+    local function activateEntry(entry, menu, playSound)
+        if playSound then
+            Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        end
+        state.selectedId = entry.id
+        local ok, result = pcall(entry._buildReader, menu, entry.id)
+        if not ok then
+            Log.error("PickerReader '" .. tostring(menu.name)
+                .. "' buildReader for id '" .. tostring(entry.id)
+                .. "' failed: " .. tostring(result))
+            return false
+        end
+        local readerItems = result and result.items
+        local drillLevel  = result and result.autoDrillToLevel
+        if type(readerItems) ~= "table" or #readerItems == 0 then
+            SpeechPipeline.speakInterrupt(
+                Text.key("TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"))
+            return false
+        end
+        menu.setItems(readerItems, state.readerTabIdx)
+        menu.tabs[state.readerTabIdx].autoDrillToLevel = drillLevel or 1
+        menu.switchToTab(state.readerTabIdx)
+        return true
+    end
+
+    -- Walk the picker tree into a flat list of Entry refs in display order.
+    -- Used by reader-tab Ctrl+Up/Down to find the adjacent article. Built on
+    -- demand (not cached) because category Groups carry cached=false and may
+    -- rebuild child entries between invocations — the ids stay stable but
+    -- the table refs don't, so a cached flat list would go stale.
+    local function flattenEntries(pickerItems)
+        local flat = {}
+        forEachEntry(pickerItems, {}, function(entry)
+            flat[#flat + 1] = entry
+            return false
+        end)
+        return flat
+    end
+
+    -- Resolve the label for a given selectedId by walking the picker. Used
+    -- by the reader tab's nameFn to announce the article title in place of
+    -- the static "Content" tab name. Returns empty string on miss so switchTab
+    -- speaks nothing for the tab name.
+    local function labelForId(id)
+        if id == nil then return "" end
+        local handler = state.handler
+        if handler == nil or handler.tabs == nil then return "" end
+        local pickerTab = handler.tabs[state.pickerTabIdx]
+        if pickerTab == nil or pickerTab._items == nil then return "" end
+        local found = ""
+        forEachEntry(pickerTab._items, {}, function(entry)
+            if entry.id == id then
+                found = resolveLabel(entry) or ""
+                return true
+            end
+            return false
+        end)
+        return found
+    end
+
+    -- Navigate to the Entry adjacent to the currently-selected article in
+    -- the picker's flat display order. Step is -1 (prev) or +1 (next). At
+    -- boundaries silently no-ops (no wrap, per spec). If no article is
+    -- currently selected this is also a no-op.
+    local function navigateAdjacent(menu, step)
+        local handler = state.handler
+        if handler == nil or handler.tabs == nil then return end
+        local pickerTab = handler.tabs[state.pickerTabIdx]
+        if pickerTab == nil or pickerTab._items == nil then return end
+        local flat = flattenEntries(pickerTab._items)
+        local currentIdx
+        for i, entry in ipairs(flat) do
+            if entry.id == state.selectedId then currentIdx = i; break end
+        end
+        if currentIdx == nil then return end
+        local targetIdx = currentIdx + step
+        if targetIdx < 1 or targetIdx > #flat then return end
+        activateEntry(flat[targetIdx], menu, false)
+    end
+
     function session.Entry(spec)
         check(type(spec) == "table", "PickerReader.Entry requires a spec table")
         check(type(spec.id) == "string" and spec.id ~= "",
@@ -198,31 +284,7 @@ function PickerReader.create()
             return BaseMenuItems.appendTooltip(label, tooltip)
         end
         function item:activate(menu)
-            Events.AudioPlay2DSound("AS2D_IF_SELECT")
-            state.selectedId = self.id
-            local ok, result = pcall(self._buildReader, menu, self.id)
-            if not ok then
-                Log.error("PickerReader '" .. tostring(menu.name)
-                    .. "' buildReader for id '" .. tostring(self.id)
-                    .. "' failed: " .. tostring(result))
-                return
-            end
-            local readerItems = result and result.items
-            local drillLevel  = result and result.autoDrillToLevel
-            if type(readerItems) ~= "table" or #readerItems == 0 then
-                -- buildReader returned nothing usable; keep the user on the
-                -- picker with a speech cue so they know the pick registered
-                -- but no content was available.
-                SpeechPipeline.speakInterrupt(
-                    Text.key("TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"))
-                return
-            end
-            menu.setItems(readerItems, state.readerTabIdx)
-            -- Stash the per-article drill level on the internal tabs entry
-            -- so switchToTab's auto-drill picks it up. Default to 1 when the
-            -- consumer didn't specify -- flat-reader articles don't drill.
-            menu.tabs[state.readerTabIdx].autoDrillToLevel = drillLevel or 1
-            menu.switchToTab(state.readerTabIdx)
+            activateEntry(self, menu, true)
         end
         function item:adjust(menu, dir, big) end
         return item
@@ -273,6 +335,18 @@ function PickerReader.create()
                 {
                     name  = config.readerTabName,
                     items = readerPlaceholder,
+                    -- Replace the static "Content" tab-name announcement
+                    -- with the currently-selected article's label. Empty
+                    -- on initial state so switchTab speaks only the
+                    -- placeholder item and not a redundant tab name.
+                    nameFn = function() return labelForId(state.selectedId) end,
+                    -- Ctrl+Up / Ctrl+Down on the reader: move to the
+                    -- prev/next Entry in the picker's flat display order
+                    -- (no wrap). The shared activateEntry path re-enters
+                    -- the reader tab and announces the new article title
+                    -- (via nameFn) + first content element.
+                    onCtrlUp   = function(h) navigateAdjacent(h, -1) end,
+                    onCtrlDown = function(h) navigateAdjacent(h,  1) end,
                 },
             },
             escAtLevelOne = function(handler)

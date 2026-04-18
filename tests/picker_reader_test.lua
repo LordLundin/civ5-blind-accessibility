@@ -284,4 +284,162 @@ function M.test_tab_cycling_preserves_reader_items_after_selection()
     T.eq(h._tabIndex, 2, "back on reader tab")
 end
 
+-- session.install-driven tests --------------------------------------------
+--
+-- These go through the real install path (which needs a ContextPtr) so we
+-- can exercise the reader-tab nameFn + Ctrl+Up/Down hooks PickerReader
+-- wires. The stub ContextPtr captures the ShowHide/Input handlers so tests
+-- can drive them manually.
+
+local function makeContextPtr()
+    return {
+        SetShowHideHandler = function(self, fn) self._sh = fn end,
+        SetInputHandler    = function(self, fn) self._in = fn end,
+        _hidden            = false,
+        IsHidden           = function(self) return self._hidden end,
+        SetUpdate          = function(self, fn) self._update = fn end,
+    }
+end
+
+local function makeInstalledFixture()
+    local session = PickerReader.create()
+    local buildCalls = {}
+    local defaultBuilder = function(handler, id)
+        buildCalls[#buildCalls + 1] = id
+        return {
+            items = {
+                BaseMenuItems.Text({ labelText = "first leaf " .. id }),
+                BaseMenuItems.Text({ labelText = "second leaf " .. id }),
+            },
+            autoDrillToLevel = 1,
+        }
+    end
+    local pickerItems = {
+        session.Entry({ id = "A", labelText = "Alpha", buildReader = defaultBuilder }),
+        BaseMenuItems.Group({
+            labelText = "Group",
+            items = {
+                session.Entry({ id = "B", labelText = "Bravo",   buildReader = defaultBuilder }),
+                session.Entry({ id = "C", labelText = "Charlie", buildReader = defaultBuilder }),
+            },
+        }),
+        session.Entry({ id = "D", labelText = "Delta", buildReader = defaultBuilder }),
+    }
+    CivVAccess_Strings["TXT_KEY_INSTALL_PICKER_TAB"] = "Picker"
+    CivVAccess_Strings["TXT_KEY_INSTALL_READER_TAB"] = "Content"
+    local ctx = makeContextPtr()
+    local handler = session.install(ctx, {
+        name          = "InstalledPedia",
+        displayName   = "Installed Pedia",
+        pickerTabName = "TXT_KEY_INSTALL_PICKER_TAB",
+        readerTabName = "TXT_KEY_INSTALL_READER_TAB",
+        pickerItems   = pickerItems,
+    })
+    -- Mimic the engine's show sequence that BaseMenu.install wires: the
+    -- ShowHide closure pushes the handler onto HandlerStack + fires
+    -- onActivate. Without it the menu isn't active and InputRouter
+    -- dispatch goes nowhere.
+    ctx._sh(false, false)
+    return session, handler, ctx, buildCalls
+end
+
+function M.test_install_reader_nameFn_speaks_article_title_not_content()
+    setup()
+    local _, handler, _, buildCalls = makeInstalledFixture()
+    -- Activate Alpha (top-level entry).
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(buildCalls[#buildCalls], "A", "build fired for Alpha")
+    T.eq(handler._tabIndex, 2, "switched to reader")
+    local saidAlpha, saidContent = false, false
+    for _, s in ipairs(speaks) do
+        if tostring(s.text):find("Alpha", 1, true)  then saidAlpha = true end
+        if tostring(s.text):find("Content", 1, true) then saidContent = true end
+    end
+    T.truthy(saidAlpha, "article title 'Alpha' spoken on reader switch")
+    T.falsy(saidContent, "static 'Content' tab name suppressed by nameFn")
+end
+
+function M.test_install_reader_nameFn_empty_when_no_selection()
+    setup()
+    local _, handler, _, _ = makeInstalledFixture()
+    -- User Tabs into the reader before picking anything. nameFn returns
+    -- empty -> no tab-name speech; the placeholder item still speaks.
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    T.eq(handler._tabIndex, 2, "tabbed to reader")
+    local saidContent = false
+    for _, s in ipairs(speaks) do
+        if tostring(s.text):find("Content", 1, true) then saidContent = true end
+    end
+    T.falsy(saidContent, "Content tab-name suppressed when no article selected")
+end
+
+function M.test_install_reader_ctrl_down_advances_article()
+    setup()
+    local _, handler, _, buildCalls = makeInstalledFixture()
+    -- Land on Alpha so selectedId is set.
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(buildCalls[#buildCalls], "A")
+    local callsBefore = #buildCalls
+    speaks = {}
+    -- Ctrl+Down should advance to Bravo (next in flat order: A, B, C, D).
+    InputRouter.dispatch(Keys.VK_DOWN, 2, WM_KEYDOWN)
+    T.eq(buildCalls[#buildCalls], "B", "Ctrl+Down advanced to next entry")
+    T.eq(#buildCalls, callsBefore + 1, "buildReader fired once for the new entry")
+    local saidBravo = false
+    for _, s in ipairs(speaks) do
+        if tostring(s.text):find("Bravo", 1, true) then saidBravo = true; break end
+    end
+    T.truthy(saidBravo, "Bravo article title announced on Ctrl+Down")
+end
+
+function M.test_install_reader_ctrl_up_goes_to_previous_article()
+    setup()
+    local _, handler, _, buildCalls = makeInstalledFixture()
+    -- Start on Charlie by drilling into group + picking second entry.
+    InputRouter.dispatch(Keys.VK_DOWN,   0, WM_KEYDOWN) -- Alpha -> Group
+    InputRouter.dispatch(Keys.VK_RIGHT,  0, WM_KEYDOWN) -- drill group
+    InputRouter.dispatch(Keys.VK_DOWN,   0, WM_KEYDOWN) -- Bravo -> Charlie
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- activate Charlie
+    T.eq(buildCalls[#buildCalls], "C")
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_UP, 2, WM_KEYDOWN) -- Ctrl+Up
+    T.eq(buildCalls[#buildCalls], "B", "Ctrl+Up moved to previous entry")
+end
+
+function M.test_install_reader_ctrl_up_at_first_article_is_noop()
+    setup()
+    local _, _, _, buildCalls = makeInstalledFixture()
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- Alpha
+    local callsBefore = #buildCalls
+    InputRouter.dispatch(Keys.VK_UP, 2, WM_KEYDOWN)
+    T.eq(#buildCalls, callsBefore,
+        "Ctrl+Up at first article does not re-fire buildReader (no wrap)")
+end
+
+function M.test_install_reader_ctrl_down_at_last_article_is_noop()
+    setup()
+    local _, _, _, buildCalls = makeInstalledFixture()
+    -- Navigate to Delta (last entry).
+    InputRouter.dispatch(Keys.VK_END,    0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(buildCalls[#buildCalls], "D")
+    local callsBefore = #buildCalls
+    InputRouter.dispatch(Keys.VK_DOWN, 2, WM_KEYDOWN)
+    T.eq(#buildCalls, callsBefore,
+        "Ctrl+Down at last article does not re-fire buildReader (no wrap)")
+end
+
+function M.test_install_reader_ctrl_keys_on_picker_tab_use_default_behavior()
+    setup()
+    local _, handler, _, buildCalls = makeInstalledFixture()
+    -- Still on picker, selectedId is nil. Ctrl+Down at level 1 is the
+    -- default "next sibling group" navigation; with a flat picker it
+    -- just moves cursor, never invokes buildReader.
+    T.eq(handler._tabIndex, 1, "on picker tab")
+    InputRouter.dispatch(Keys.VK_DOWN, 2, WM_KEYDOWN)
+    T.eq(#buildCalls, 0, "picker-tab Ctrl+Down does not trigger article nav")
+end
+
 return M

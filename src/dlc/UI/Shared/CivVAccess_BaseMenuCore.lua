@@ -37,13 +37,22 @@
 --   displayName       (string, required) spoken on screen activation.
 --   items   OR  tabs  array of item tables (see BaseMenuItems), or per-tab array
 --                     of { name = "TXT_KEY", showPanel = fn, items = {...},
---                          onActivate = fn(handler), autoDrillToLevel = N }.
+--                          onActivate = fn(handler), autoDrillToLevel = N,
+--                          nameFn = fn(handler) -> string,
+--                          onCtrlUp = fn(handler), onCtrlDown = fn(handler) }.
 --                     onActivate fires during switchTab between index reset
 --                     and announcement, letting callers (PickerReader) stage
 --                     items / restore a saved cursor. autoDrillToLevel drills
 --                     into the first navigable group at each level up to N
 --                     before speaking the first leaf (reader tab opens inside
 --                     the first section rather than on its header).
+--                     nameFn replaces the tab-name announcement on switch
+--                     with a dynamic string (pedia reader speaks the article
+--                     title in place of "Content"). Empty/nil result skips
+--                     the tab-name speech entirely (no fallback to tab.name).
+--                     onCtrlUp / onCtrlDown override BaseMenu's default Ctrl+
+--                     Up/Down sibling-group jump when the tab is active
+--                     (pedia reader uses these to move across articles).
 --   preamble          string | fn() -> string, spoken after displayName.
 --                     A function preamble is re-readable via refresh() so
 --                     dynamic status text (FrontEndPopup body, JoiningRoom
@@ -276,11 +285,33 @@ local function switchTab(self, newTabIndex, force)
     if type(tab.autoDrillToLevel) == "number" then
         autoDrillTo(self, tab.autoDrillToLevel)
     end
-    SpeechPipeline.speakInterrupt(Text.key(tab.name))
+    -- Tab-name announcement: nameFn overrides the static tab.name (pedia
+    -- reader speaks the current article title instead of "Content"). An
+    -- empty nameFn result means "say nothing for the tab name" — no
+    -- fallback to tab.name.
+    local nameText
+    if type(tab.nameFn) == "function" then
+        local ok, result = pcall(tab.nameFn, self)
+        if not ok then
+            Log.error("BaseMenu '" .. self.name .. "' nameFn for tab '"
+                .. tostring(tab.name) .. "': " .. tostring(result))
+        else
+            nameText = result
+        end
+    else
+        nameText = Text.key(tab.name)
+    end
+    if nameText ~= nil and nameText ~= "" then
+        SpeechPipeline.speakInterrupt(nameText)
+    end
     local finalItems = currentItems(self)
     local finalItem = finalItems[currentIndex(self)]
     if finalItem ~= nil then
-        SpeechPipeline.speakQueued(finalItem:announce(self))
+        if nameText ~= nil and nameText ~= "" then
+            SpeechPipeline.speakQueued(finalItem:announce(self))
+        else
+            SpeechPipeline.speakInterrupt(finalItem:announce(self))
+        end
     end
 end
 
@@ -465,9 +496,31 @@ local function onRight(self, big)
     end
 end
 
+-- Per-tab hook dispatch. PickerReader's reader tab overrides Ctrl+Up/Down to
+-- mean "prev/next article" rather than the default "prev/next sibling group".
+-- Falls back to default behavior on tabs without a hook and on screens with
+-- no tabs at all.
+local function tabHook(self, name)
+    if self.tabs == nil then return nil end
+    local tab = self.tabs[self._tabIndex]
+    if tab == nil then return nil end
+    local fn = tab[name]
+    if type(fn) == "function" then return fn end
+    return nil
+end
+
 -- Ctrl+Up/Down at level 1 jumps among top-level groups (skipping leaves);
 -- at level > 1 jumps to the prev/next sibling group at the parent level.
 local function onCtrlUp(self)
+    local hook = tabHook(self, "onCtrlUp")
+    if hook ~= nil then
+        local ok, err = pcall(hook, self)
+        if not ok then
+            Log.error("BaseMenu '" .. self.name .. "' onCtrlUp hook: "
+                .. tostring(err))
+        end
+        return
+    end
     if self._level == 1 then
         local target = findSiblingGroup(currentItems(self),
             currentIndex(self), -1)
@@ -478,6 +531,15 @@ local function onCtrlUp(self)
 end
 
 local function onCtrlDown(self)
+    local hook = tabHook(self, "onCtrlDown")
+    if hook ~= nil then
+        local ok, err = pcall(hook, self)
+        if not ok then
+            Log.error("BaseMenu '" .. self.name .. "' onCtrlDown hook: "
+                .. tostring(err))
+        end
+        return
+    end
     if self._level == 1 then
         local target = findSiblingGroup(currentItems(self),
             currentIndex(self), 1)
@@ -596,11 +658,20 @@ function BaseMenu.create(spec)
                 or (type(tab.autoDrillToLevel) == "number"
                     and tab.autoDrillToLevel >= 1),
                 "tab " .. i .. ".autoDrillToLevel must be a positive number")
+            check(tab.nameFn == nil or type(tab.nameFn) == "function",
+                "tab " .. i .. ".nameFn must be a function if provided")
+            check(tab.onCtrlUp == nil or type(tab.onCtrlUp) == "function",
+                "tab " .. i .. ".onCtrlUp must be a function if provided")
+            check(tab.onCtrlDown == nil or type(tab.onCtrlDown) == "function",
+                "tab " .. i .. ".onCtrlDown must be a function if provided")
             tabs[i] = {
                 name             = tab.name,
                 showPanel        = tab.showPanel,
                 onActivate       = tab.onActivate,
                 autoDrillToLevel = tab.autoDrillToLevel,
+                nameFn           = tab.nameFn,
+                onCtrlUp         = tab.onCtrlUp,
+                onCtrlDown       = tab.onCtrlDown,
                 _items           = tab.items,
             }
         end
@@ -706,7 +777,23 @@ function BaseMenu.create(spec)
             end
             lastPreambleText = preambleText
             if self.tabs then
-                SpeechPipeline.speakQueued(Text.key(self.tabs[self._tabIndex].name))
+                local tab0 = self.tabs[self._tabIndex]
+                local nameText
+                if type(tab0.nameFn) == "function" then
+                    local ok, result = pcall(tab0.nameFn, self)
+                    if not ok then
+                        Log.error("BaseMenu '" .. self.name
+                            .. "' nameFn for tab '" .. tostring(tab0.name)
+                            .. "': " .. tostring(result))
+                    else
+                        nameText = result
+                    end
+                else
+                    nameText = Text.key(tab0.name)
+                end
+                if nameText ~= nil and nameText ~= "" then
+                    SpeechPipeline.speakQueued(nameText)
+                end
             end
             if items[startIndex] ~= nil then
                 SpeechPipeline.speakQueued(items[startIndex]:announce(self))
