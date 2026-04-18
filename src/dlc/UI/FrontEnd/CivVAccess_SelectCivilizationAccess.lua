@@ -23,6 +23,63 @@ local function currentIndex()
     end
 end
 
+-- Each civ announce is: leader, civ short name, then for each non-empty
+-- piece a prefix-labeled clause -- "Unique ability: <name>, <description>",
+-- "Unique unit: <name>", "Unique building: <name>", "Unique improvement:
+-- <name>". Civ name has no prefix (it's obvious from context); everything
+-- else does, because a flat run of nouns otherwise sounds like one big
+-- list the player has to parse.
+
+local uniqueUnitsQuery = DB.CreateQuery([[SELECT Description FROM Units
+    INNER JOIN Civilization_UnitClassOverrides
+    ON Units.Type = Civilization_UnitClassOverrides.UnitType
+    WHERE Civilization_UnitClassOverrides.CivilizationType = ? AND
+    Civilization_UnitClassOverrides.UnitType IS NOT NULL]])
+
+local uniqueBuildingsQuery = DB.CreateQuery([[SELECT Description FROM Buildings
+    INNER JOIN Civilization_BuildingClassOverrides
+    ON Buildings.Type = Civilization_BuildingClassOverrides.BuildingType
+    WHERE Civilization_BuildingClassOverrides.CivilizationType = ? AND
+    Civilization_BuildingClassOverrides.BuildingType IS NOT NULL]])
+
+local uniqueImprovementsQuery = DB.CreateQuery(
+    [[SELECT Description FROM Improvements WHERE CivilizationType = ?]])
+
+local function appendLabeled(parts, labelKey, value)
+    if value == nil or value == "" then return end
+    parts[#parts + 1] = Text.key(labelKey) .. ": " .. value
+end
+
+-- Appends the shared suffix (ability + uniques) to `parts` for a civ row
+-- that has row.Type (civ type) and row.LeaderType. traitsQuery yields
+-- {Description, ShortDescription} rows for a leader.
+local function appendCivDetails(parts, row, traitsQuery)
+    for t in traitsQuery(row.LeaderType) do
+        local name = Text.key(t.ShortDescription)
+        local desc = Text.key(t.Description)
+        if name ~= nil and name ~= "" then
+            local value = name
+            if desc ~= nil and desc ~= "" then
+                value = value .. ", " .. desc
+            end
+            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIQUE_ABILITY")
+                .. ": " .. value
+        end
+    end
+    for urow in uniqueUnitsQuery(row.Type) do
+        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_UNIT",
+            Text.key(urow.Description))
+    end
+    for urow in uniqueBuildingsQuery(row.Type) do
+        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_BUILDING",
+            Text.key(urow.Description))
+    end
+    for urow in uniqueImprovementsQuery(row.Type) do
+        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT",
+            Text.key(urow.Description))
+    end
+end
+
 local function buildRegularItems(traitsQuery)
     civIds = { -1 }
     local items = {
@@ -36,7 +93,7 @@ local function buildRegularItems(traitsQuery)
     local entries = {}
     local sql = [[SELECT
         Civilizations.ID,
-        Civilizations.Description,
+        Civilizations.Type,
         Civilizations.ShortDescription,
         Leaders.Type AS LeaderType,
         Leaders.Description AS LeaderDescription
@@ -51,23 +108,15 @@ local function buildRegularItems(traitsQuery)
     for _, entry in ipairs(entries) do
         local row = entry[2]
         local civID = row.ID
-        local traitShort, traitLong
-        for t in traitsQuery(row.LeaderType) do
-            traitShort = Text.key(t.ShortDescription)
-            traitLong  = Text.key(t.Description)
-        end
         local parts = {
             Text.key(row.LeaderDescription),
             Text.key(row.ShortDescription),
         }
-        if traitShort ~= nil and traitShort ~= "" then
-            parts[#parts + 1] = traitShort
-        end
+        appendCivDetails(parts, row, traitsQuery)
         civIds[#civIds + 1] = civID
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText   = table.concat(parts, ", "),
-            tooltipText = traitLong,
-            activate    = function() CivilizationSelected(civID) end,
+            labelText = table.concat(parts, ", "),
+            activate  = function() CivilizationSelected(civID) end,
         })
     end
     return items
@@ -80,6 +129,7 @@ local function buildScenarioItems(traitsQuery)
     if civList == nil then return items end
     local query = DB.CreateQuery([[SELECT
         Civilizations.ID,
+        Civilizations.Type,
         Civilizations.ShortDescription,
         Leaders.Type AS LeaderType,
         Leaders.Description AS LeaderDescription
@@ -102,23 +152,15 @@ local function buildScenarioItems(traitsQuery)
         local row = entry[2]
         local scenarioCivID = entry[3]
         local civID = row.ID
-        local traitShort, traitLong
-        for t in traitsQuery(row.LeaderType) do
-            traitShort = Text.key(t.ShortDescription)
-            traitLong  = Text.key(t.Description)
-        end
         local parts = {
             Text.key(row.LeaderDescription),
             Text.key(row.ShortDescription),
         }
-        if traitShort ~= nil and traitShort ~= "" then
-            parts[#parts + 1] = traitShort
-        end
+        appendCivDetails(parts, row, traitsQuery)
         civIds[#civIds + 1] = civID
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText   = table.concat(parts, ", "),
-            tooltipText = traitLong,
-            activate    = function()
+            labelText = table.concat(parts, ", "),
+            activate  = function()
                 CivilizationSelected(civID, scenarioCivID)
             end,
         })

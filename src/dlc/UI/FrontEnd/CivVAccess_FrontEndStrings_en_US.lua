@@ -28,6 +28,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DIFFICULTY"]         = "Difficulty
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GAME_SPEED"]         = "Game speed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CIVILIZATION"]       = "Civilization"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SET_CIV_NAMES"]      = "Name civilization"
+-- Civ-picker entry prefixes: colons are read by screen readers as a brief
+-- pause, so "Unique ability: Glory of Rome, +25% Wonder production" parses
+-- as prefix then value without needing extra connective words.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_ABILITY"]            = "Unique ability"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"]               = "Unique unit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"]           = "Unique building"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"]        = "Unique improvement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_READY"]                = "Enter to begin"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"]                  = "on"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"]                 = "off"
