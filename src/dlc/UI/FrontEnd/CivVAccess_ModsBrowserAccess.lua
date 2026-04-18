@@ -20,6 +20,27 @@ include("CivVAccess_FrontendCommon")
 
 local priorInput = InputHandler
 
+-- Cross-Context signal for InstalledPanelAccess: the child LuaContext's own
+-- ShowHide only fires at Context init (Hidden="0" in ModsBrowser.xml), not
+-- when the parent popup becomes visible, so InstalledPanel's handler cannot
+-- key off its own ShowHide to stack above ModsBrowser. We fire from our
+-- priorShowHide here; InstalledPanelAccess listens and defer-pushes its
+-- handler so it lands above this one.
+local function onShowHide(bIsHide, bIsInit)
+    LuaEvents.CivVAccessModsBrowserVisibilityChanged(not bIsHide)
+end
+
+-- Cross-Context activation for shell buttons exposed as picker-tail items
+-- in InstalledPanelAccess. Next and Workshop's bodies reference
+-- Controls.ModsMenu / the Steam URL string that lives in this Context;
+-- forwarding through a LuaEvent keeps the call in the owning sandbox.
+LuaEvents.CivVAccessModsBrowserNext.Add(function()
+    OnNextButtonClicked()
+end)
+LuaEvents.CivVAccessModsBrowserWorkshop.Add(function()
+    OnWorkshopButtonClicked()
+end)
+
 local function deleteButtonLabel()
     local l = Controls.SmallButton1Label
     if l ~= nil then
@@ -40,7 +61,8 @@ end
 BaseMenu.install(ContextPtr, {
     name        = "ModsBrowser",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MODS_BROWSER"),
-    priorInput  = priorInput,
+    priorInput    = priorInput,
+    priorShowHide = onShowHide,
     onShow      = function(h)
         -- Replicates the anonymous ShowHide (ModsBrowser.lua line 36).
         if Controls.SmallButton2 ~= nil then

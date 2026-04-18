@@ -606,6 +606,24 @@ function InstalledPanel.buildPickerItems(entryFactory, mainHandlerRef)
         },
     })
 
+    -- Shell buttons from the parent ModsBrowser Context. The parent's
+    -- Next / Workshop live in a different sandbox; we fire cross-Context
+    -- LuaEvents that ModsBrowserAccess handles in its own sandbox. Back is
+    -- already reachable via Esc at picker level 1 (falls through to the
+    -- parent's NavigateBack and closes the browser). Workshop is gated
+    -- on Steam overlay availability, matching base's SmallButton2:SetHide
+    -- (ModsBrowser.lua line 38).
+    items[#items + 1] = BaseMenuItems.Choice({
+        textKey  = "TXT_KEY_MODDING_NEXT",
+        activate = function() LuaEvents.CivVAccessModsBrowserNext() end,
+    })
+    if Steam.IsOverlayEnabled() then
+        items[#items + 1] = BaseMenuItems.Choice({
+            textKey  = "TXT_KEY_MODDING_WORKSHOP",
+            activate = function() LuaEvents.CivVAccessModsBrowserWorkshop() end,
+        })
+    end
+
     return items
 end
 

@@ -30,12 +30,20 @@ Log.info("InstalledPanelAccess: wiring PickerReader over base InstalledPanel")
 
 -- Base InstalledPanel registers its SetShowHideHandler with an anonymous
 -- closure (InstalledPanel.lua line 875), so there is no named reference we
--- can chain as priorShowHide. BaseMenu.install replaces the handler wholesale
--- when we pass it nothing to chain. We replicate the base body inside our
--- onShow / the install wrapper's hide branch: on show the base calls
--- RefreshMods; on hide it calls SetListingsState("results") to reset the
--- visual panels. Both are side-effects on the sighted UI; the picker's
--- rebuild also happens through our monkey-patched RefreshMods wrapper.
+-- can chain as priorShowHide. More importantly, the child LuaContext's own
+-- ShowHide only fires once at Context init (Hidden="0" in ModsBrowser.xml
+-- line 41 makes it "visible" at engine boot, regardless of parent popup
+-- state) and does not re-fire when the parent ModsBrowser popup actually
+-- opens. If we let BaseMenu.install push the handler on that first ShowHide,
+-- it lands at the bottom of the stack forever while ModsBrowser's handler
+-- stacks on top whenever the browser opens -- the user only hears the
+-- shell (Next / Back / Workshop / Delete), never the installed mods list.
+--
+-- Fix: skip the automatic push via shouldActivate, and listen for our
+-- own LuaEvents.CivVAccessModsBrowserVisibilityChanged signal fired by
+-- ModsBrowserAccess's priorShowHide. On show we defer the push one tick so
+-- ModsBrowser's own push completes first and our handler ends up on top.
+-- On hide we remove immediately.
 
 local session = PickerReader.create()
 
@@ -67,17 +75,33 @@ mainHandler = session.install(ContextPtr, {
     displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_INSTALLED_PANEL"),
     pickerTabName    = "TXT_KEY_CIVVACCESS_MODS_LIST_TAB",
     readerTabName    = "TXT_KEY_CIVVACCESS_MODS_DETAILS_TAB",
-    -- InstalledPanel has no top-level back button of its own; the parent
-    -- ModsBrowser owns BackButton. Park on the scroll panel so any engine-
-    -- held EditBox focus is released.
-    focusParkControl = "ListingScrollPanel",
+    -- OptionsButton is a SmallButton at the top-right of InstalledPanel.
+    -- ListingScrollPanel (ScrollPanel) does not implement TakeFocus and
+    -- fails parkFocus with a "method TakeFocus nil" warning.
+    focusParkControl = "OptionsButton",
     pickerItems      = pickerItems,
-    -- Replaces the base's anonymous SetShowHideHandler body on the show
-    -- branch. RefreshMods re-reads g_SortedMods from Modding.* and our
-    -- wrapper then rebuilds the picker. BaseMenu.install runs this after
-    -- priorShowHide (nil here) and before the handler push, so our setItems
-    -- lands before onActivate reads the items for first-announcement.
-    onShow = function(handler)
-        RefreshMods()
-    end,
+    -- Skip the Context-init push. The LuaEvent listener below drives push /
+    -- pop based on the parent ModsBrowser's real visibility transitions.
+    shouldActivate   = function() return false end,
 })
+
+-- Push / pop in response to ModsBrowser visibility signal. Defer the push
+-- one tick on show so ModsBrowser's own push (which fires in its ShowHide
+-- wrapper, called by the engine on the same popup event) completes before
+-- ours. Without the defer, we push first and ModsBrowser lands on top,
+-- leaving the user on the shell again.
+LuaEvents.CivVAccessModsBrowserVisibilityChanged.Add(function(visible)
+    if visible then
+        TickPump.runOnce(function()
+            -- Refresh first so picker items reflect the current mod list,
+            -- then re-stack above ModsBrowser. Remove-before-push handles
+            -- the pathological case where our handler is somehow already
+            -- on the stack (reinstall, double-event).
+            RefreshMods()
+            HandlerStack.removeByName(mainHandler.name, false)
+            HandlerStack.push(mainHandler)
+        end)
+    else
+        HandlerStack.removeByName(mainHandler.name, true)
+    end
+end)
