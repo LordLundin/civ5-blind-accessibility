@@ -24,6 +24,18 @@ BaseMenuItems = {}
 local STEP_SMALL = 0.01
 local STEP_BIG   = 0.10
 
+-- Spec-validation guard. Logs the failure through the mod's log wrapper
+-- before erroring so the message reaches Lua.log uniformly (a bare assert()
+-- throws through the engine's own reporting which is not guaranteed to log).
+-- error level 2 reports from the caller's frame so traces point at the
+-- offending factory call, not this helper.
+local function check(cond, msg)
+    if not cond then
+        Log.error(msg)
+        error(msg, 2)
+    end
+end
+
 -- Label / tooltip resolution ----------------------------------------------
 
 local function resolveLabel(item)
@@ -117,7 +129,7 @@ end
 
 local function resolveControl(spec, kind)
     if spec.control ~= nil then return spec.control end
-    assert(type(spec.controlName) == "string",
+    check(type(spec.controlName) == "string",
         kind .. " needs controlName or control")
     local c = Controls[spec.controlName]
     if c == nil then
@@ -128,14 +140,14 @@ local function resolveControl(spec, kind)
 end
 
 local function assertLabel(spec, kind)
-    assert(type(spec.textKey) == "string"
+    check(type(spec.textKey) == "string"
         or type(spec.labelText) == "string"
         or type(spec.labelFn) == "function",
         kind .. " needs textKey, labelText, or labelFn")
 end
 
 local function assertTooltip(spec, kind)
-    assert(spec.tooltipFn == nil or type(spec.tooltipFn) == "function",
+    check(spec.tooltipFn == nil or type(spec.tooltipFn) == "function",
         kind .. ".tooltipFn must be a function if provided")
 end
 
@@ -154,7 +166,7 @@ end
 function BaseMenuItems.Button(spec)
     assertLabel(spec, "Button")
     assertTooltip(spec, "Button")
-    assert(type(spec.activate) == "function",
+    check(type(spec.activate) == "function",
         "Button '" .. tostring(spec.controlName) .. "' needs activate fn")
     local item = {
         kind      = "button",
@@ -217,7 +229,7 @@ end
 function BaseMenuItems.Checkbox(spec)
     assertLabel(spec, "Checkbox")
     assertTooltip(spec, "Checkbox")
-    assert(spec.activateCallback == nil or type(spec.activateCallback) == "function",
+    check(spec.activateCallback == nil or type(spec.activateCallback) == "function",
         "Checkbox.activateCallback must be a function if provided")
     local item = {
         kind              = "checkbox",
@@ -299,9 +311,9 @@ end
 function BaseMenuItems.Choice(spec)
     assertLabel(spec, "Choice")
     assertTooltip(spec, "Choice")
-    assert(type(spec.activate) == "function",
+    check(type(spec.activate) == "function",
         "Choice needs activate fn")
-    assert(spec.selectedFn == nil or type(spec.selectedFn) == "function",
+    check(spec.selectedFn == nil or type(spec.selectedFn) == "function",
         "Choice.selectedFn must be a function if provided")
     local item = {
         kind               = "choice",
@@ -398,7 +410,7 @@ end
 function BaseMenuItems.Slider(spec)
     assertLabel(spec, "Slider")
     assertTooltip(spec, "Slider")
-    assert(type(spec.labelControlName) == "string",
+    check(type(spec.labelControlName) == "string",
         "Slider '" .. tostring(spec.controlName) .. "' needs labelControlName")
     local labelCtrl = Controls[spec.labelControlName]
     if labelCtrl == nil then
@@ -550,9 +562,9 @@ end
 function BaseMenuItems.Pulldown(spec)
     assertLabel(spec, "Pulldown")
     assertTooltip(spec, "Pulldown")
-    assert(spec.valueFn == nil or type(spec.valueFn) == "function",
+    check(spec.valueFn == nil or type(spec.valueFn) == "function",
         "Pulldown.valueFn must be a function if provided")
-    assert(spec.entryAnnounceFn == nil or type(spec.entryAnnounceFn) == "function",
+    check(spec.entryAnnounceFn == nil or type(spec.entryAnnounceFn) == "function",
         "Pulldown.entryAnnounceFn must be a function if provided")
     local item = {
         kind              = "pulldown",
@@ -712,7 +724,7 @@ end
 function BaseMenuItems.Group(spec)
     assertLabel(spec, "Group")
     assertTooltip(spec, "Group")
-    assert(type(spec.items) == "table" or type(spec.itemsFn) == "function",
+    check(type(spec.items) == "table" or type(spec.itemsFn) == "function",
         "Group needs items or itemsFn")
     local item = {
         kind     = "group",
@@ -783,13 +795,13 @@ local function textfieldCurrentValue(item)
     return tostring(text)
 end
 
--- Shared with EditMode in BaseMenu.lua for commit-value announcement.
+-- Shared with BaseMenuEditMode for commit-value announcement.
 BaseMenuItems._textfieldCurrentValue = textfieldCurrentValue
 
 function BaseMenuItems.Textfield(spec)
     assertLabel(spec, "Textfield")
     assertTooltip(spec, "Textfield")
-    assert(spec.priorCallback == nil or type(spec.priorCallback) == "function",
+    check(spec.priorCallback == nil or type(spec.priorCallback) == "function",
         "Textfield '" .. tostring(spec.controlName)
         .. "' priorCallback must be a function")
     local item = {
@@ -817,7 +829,7 @@ function BaseMenuItems.Textfield(spec)
         })
     end
     function item:activate(menu)
-        BaseMenu._pushEdit(menu, self)
+        BaseMenuEditMode.push(menu, self)
     end
     function item:adjust(menu, dir, big) end
     return item

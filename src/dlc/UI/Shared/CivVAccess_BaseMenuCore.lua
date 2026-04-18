@@ -66,6 +66,18 @@ BaseMenu = {}
 local MOD_SHIFT = 1
 local MOD_CTRL  = 2
 
+-- Spec-validation guard. Logs the failure through the mod's log wrapper
+-- before erroring so the message reaches Lua.log uniformly (a bare assert()
+-- throws through the engine's own reporting which is not guaranteed to log).
+-- error level 2 reports from the caller's frame so traces point at the
+-- offending factory call, not this helper.
+local function check(cond, msg)
+    if not cond then
+        Log.error(msg)
+        error(msg, 2)
+    end
+end
+
 -- Walk helpers ------------------------------------------------------------
 
 local function nextValidIndex(items, start, step)
@@ -452,75 +464,6 @@ local function buildSearchable(self)
     }
 end
 
--- Help entry templates ----------------------------------------------------
---
--- Authored keyLabel / description TXT_KEYs describing every binding that
--- BaseMenu.create wires up. Concrete screens compose these via
--- buildHelpEntries; the factory populates self.helpEntries automatically
--- from its own spec (tabs? escapePops?). Direction-paired bindings collapse
--- into a single human label ("Up/Down") so the dedupe in collectHelpEntries
--- can drop equivalent entries from stacked handlers.
-
-BaseMenu.MenuHelpEntries = {
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_AZ09",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_SEARCH" },
-}
-
-BaseMenu.ListNavHelpEntries = {
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_FIRST_LAST" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ENTER_SPACE",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_ACTIVATE" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_LEFT_RIGHT",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_LEFT_RIGHT",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST_BIG" },
-}
-
-BaseMenu.NestedNavHelpEntries = {
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_UP_DOWN",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_GROUP" },
-}
-
-BaseMenu.TabbedHelpEntries = {
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_TAB",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_PREV_TAB" },
-}
-
-BaseMenu.ReadHeaderHelpEntry = {
-    keyLabel    = "TXT_KEY_CIVVACCESS_HELP_KEY_F1",
-    description = "TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER",
-}
-
-BaseMenu.EscapePopsHelpEntry = {
-    keyLabel    = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
-    description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL",
-}
-
-local function appendAll(dst, src)
-    if type(src) ~= "table" then return end
-    for _, e in ipairs(src) do dst[#dst + 1] = e end
-end
-
--- Compose the authored help list for a BaseMenu-backed handler, reading the
--- spec to decide which templates apply. spec.helpExtras appends handler-
--- specific extras at the tail (for the rare screen with a custom binding).
-function BaseMenu.buildHelpEntries(spec)
-    local list = {}
-    appendAll(list, BaseMenu.MenuHelpEntries)
-    appendAll(list, BaseMenu.ListNavHelpEntries)
-    appendAll(list, BaseMenu.NestedNavHelpEntries)
-    if spec.tabs then appendAll(list, BaseMenu.TabbedHelpEntries) end
-    list[#list + 1] = BaseMenu.ReadHeaderHelpEntry
-    if spec.escapePops then list[#list + 1] = BaseMenu.EscapePopsHelpEntry end
-    appendAll(list, spec.helpExtras)
-    return list
-end
-
 -- Map a VK code / modifier mask to the character input layer. Returns true
 -- if the search consumed the event. Letters (A-Z) are lower-cased; digits
 -- (0-9) pass through as their char. Ctrl / Alt combinations do not feed
@@ -552,14 +495,14 @@ end
 -- Factory ------------------------------------------------------------------
 
 function BaseMenu.create(spec)
-    assert(type(spec) == "table", "BaseMenu.create requires a spec table")
-    assert(type(spec.name) == "string" and spec.name ~= "",
+    check(type(spec) == "table", "BaseMenu.create requires a spec table")
+    check(type(spec.name) == "string" and spec.name ~= "",
         "spec.name required")
-    assert(type(spec.displayName) == "string" and spec.displayName ~= "",
+    check(type(spec.displayName) == "string" and spec.displayName ~= "",
         "spec.displayName required")
-    assert(spec.tabs == nil or spec.items == nil,
+    check(spec.tabs == nil or spec.items == nil,
         "spec must have EITHER tabs OR items, not both")
-    assert(spec.preamble == nil
+    check(spec.preamble == nil
         or (type(spec.preamble) == "string" and spec.preamble ~= "")
         or type(spec.preamble) == "function",
         "spec.preamble must be a non-empty string or a function if provided")
@@ -586,13 +529,13 @@ function BaseMenu.create(spec)
     }
 
     if spec.tabs then
-        assert(type(spec.tabs) == "table" and #spec.tabs > 0,
+        check(type(spec.tabs) == "table" and #spec.tabs > 0,
             "spec.tabs must be a non-empty array")
         local tabs = {}
         for i, tab in ipairs(spec.tabs) do
-            assert(type(tab.name) == "string",
+            check(type(tab.name) == "string",
                 "tab " .. i .. ".name (TXT_KEY) required")
-            assert(type(tab.items) == "table",
+            check(type(tab.items) == "table",
                 "tab " .. i .. ".items required")
             tabs[i] = {
                 name      = tab.name,
@@ -602,7 +545,7 @@ function BaseMenu.create(spec)
         end
         self.tabs = tabs
     else
-        assert(type(spec.items) == "table", "spec.items or spec.tabs required")
+        check(type(spec.items) == "table", "spec.items or spec.tabs required")
         self._items = spec.items
     end
 
@@ -648,7 +591,7 @@ function BaseMenu.create(spec)
     -- Authored help list covering every binding the factory wired above.
     -- Spec-driven: tabs/escapePops toggle their own entries, and
     -- spec.helpExtras appends at the tail for screens with a custom binding.
-    self.helpEntries = BaseMenu.buildHelpEntries(spec)
+    self.helpEntries = BaseMenuHelp.buildHelpEntries(spec)
 
     -- Search-input hook surfaced on the handler so InputRouter can route
     -- printable keys / Backspace / Space to type-ahead without needing a
@@ -736,10 +679,10 @@ function BaseMenu.create(spec)
     -- that want an announcement after a rebuild should call refresh()
     -- (for dynamic preambles) or drive their own speakInterrupt.
     function self.setItems(items, tabIndex)
-        assert(type(items) == "table", "setItems: items must be a table")
+        check(type(items) == "table", "setItems: items must be a table")
         if self.tabs then
             tabIndex = tabIndex or self._tabIndex
-            assert(self.tabs[tabIndex] ~= nil,
+            check(self.tabs[tabIndex] ~= nil,
                 "setItems: tab " .. tostring(tabIndex) .. " out of range")
             self.tabs[tabIndex]._items = items
         else
@@ -937,128 +880,9 @@ function BaseMenu.escOnlyInput(backFn)
     end
 end
 
--- EditMode sub-handler ----------------------------------------------------
---
--- Pushed above the menu when Textfield.activate fires. capturesAllInput is
--- false so every printable character / Backspace / caret arrow falls
--- through the mod's InputRouter to the engine-focused EditBox.
---
--- Enter commits: reads the current text, invokes priorCallback with
--- bIsEnter=true so non-CallOnChar EditBoxes (OptionsMenu's email, SMTP
--- host, MaxTurns / TurnTimer fields) still persist to OptionsManager /
--- PreGame, then parks focus + pops. Esc restores the snapshot.
---
--- The pop triggers BaseMenu.onActivate which re-announces the current item
--- (with its updated value). We then speakInterrupt the committed value or
--- "<label> restored" so the user hears explicit confirmation.
-
-function BaseMenu._pushEdit(menu, textfieldItem)
-    local editBox       = textfieldItem._control
-    local priorCallback = textfieldItem.priorCallback
-    local errCtx        = "BaseMenu '" .. menu.name .. "' textfield '"
-        .. tostring(textfieldItem.controlName) .. "'"
-
-    local function safe(op, fn)
-        local ok, result = pcall(fn)
-        if not ok then
-            Log.error(errCtx .. " " .. op .. " failed: " .. tostring(result))
-        end
-        return ok, result
-    end
-
-    local okGet, text = safe("GetText", function() return editBox:GetText() end)
-    local originalText = (okGet and text) or ""
-
-    safe("clear SetText", function() editBox:SetText("") end)
-
-    -- Wrapping callback chains every character to the screen's validator so
-    -- typing keeps driving the screen's own state (e.g. SetMaxTurns). Does
-    -- not own the Enter-pop: that is the edit-mode Esc/Enter bindings.
-    local function wrappingCallback(t, control, bIsEnter)
-        if priorCallback then
-            safe("prior callback",
-                function() priorCallback(t, control, bIsEnter) end)
-        end
-    end
-
-    safe("RegisterCallback",
-        function() editBox:RegisterCallback(wrappingCallback) end)
-
-    local subName = menu.name .. "/" .. tostring(textfieldItem.controlName) .. "_Edit"
-    local sub = {
-        name             = subName,
-        capturesAllInput = false,
-        _editMode        = true,
-    }
-
-    local function exit(restore)
-        if restore then
-            safe("restore SetText",
-                function() editBox:SetText(originalText) end)
-        elseif priorCallback ~= nil then
-            -- Non-CallOnChar EditBoxes only fire priorCallback on Enter, and
-            -- our Enter binding just intercepted that Enter. Invoke prior
-            -- manually with bIsEnter=true so the screen commits the value
-            -- the same way a native Enter would. Safe for CallOnChar boxes
-            -- too (the setter/validator is idempotent).
-            local okG, typed = safe("commit GetText",
-                function() return editBox:GetText() end)
-            local committed = (okG and typed) or ""
-            safe("commit callback",
-                function() priorCallback(committed, editBox, true) end)
-        end
-        safe("restore RegisterCallback",
-            function() editBox:RegisterCallback(priorCallback) end)
-        parkFocus(menu)
-        HandlerStack.removeByName(subName, true)
-        if restore then
-            SpeechPipeline.speakInterrupt(
-                Text.format("TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED",
-                    BaseMenuItems.labelOf(textfieldItem)))
-        else
-            -- Speak committed value (blank sentinel if empty) so the user
-            -- hears explicit confirmation of what was saved.
-            SpeechPipeline.speakInterrupt(
-                BaseMenuItems._textfieldCurrentValue(textfieldItem))
-        end
-    end
-
-    sub.bindings = {
-        { key = Keys.VK_ESCAPE, mods = 0, description = "Cancel edit",
-          fn  = function() exit(true)  end },
-        { key = Keys.VK_RETURN, mods = 0, description = "Commit edit",
-          fn  = function() exit(false) end },
-    }
-    -- Edit-mode overrides the menu's Esc binding with "Cancel edit" semantics.
-    -- Authoring these explicitly means ? help shows the edit-mode meaning
-    -- (not the menu's "Cancel") while edit mode is on top -- the keyLabel
-    -- dedupe in collectHelpEntries drops the menu's entry in favor of ours.
-    sub.helpEntries = {
-        { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
-          description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL_EDIT" },
-        { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ENTER",
-          description = "TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT" },
-    }
-
-    SpeechPipeline.speakInterrupt(
-        Text.format("TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING",
-            BaseMenuItems.labelOf(textfieldItem)))
-
-    HandlerStack.push(sub)
-
-    -- Defer TakeFocus: calling it synchronously from inside a KEYDOWN
-    -- handler leaves focus in a state the engine revokes when the matching
-    -- KEYUP runs ~1 frame later, and subsequent WM_CHARs arrive with no
-    -- focused widget. Letting the Enter pair complete before we steal focus
-    -- sidesteps that.
-    TickPump.runOnce(function()
-        if HandlerStack.active() ~= sub then
-            -- User exited edit mode before the tick fired (Esc before the
-            -- first frame). Don't steal focus.
-            return
-        end
-        safe("TakeFocus", function() editBox:TakeFocus() end)
-    end)
-end
+-- Exposed so BaseMenuEditMode can release focus on commit / cancel. The
+-- parkFocus logic reads _focusParkControl / _parkDisabled off the handler,
+-- so it must be invoked with the menu handler (not the edit sub).
+BaseMenu._parkFocus = parkFocus
 
 return BaseMenu

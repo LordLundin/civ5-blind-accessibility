@@ -16,8 +16,9 @@
 --                      subs) should set this to an empty {} to opt in explicitly.
 --                      keyLabel is a TXT_KEY for a merged, human-readable chord
 --                      label ("Up/Down", "Ctrl+Shift+Left/Right"); description
---                      is a TXT_KEY. See CivVAccess_Help.lua and BaseMenu's
---                      MenuHelpEntries / ListNavHelpEntries templates.
+--                      is a TXT_KEY. See CivVAccess_Help.lua and
+--                      BaseMenuHelp's MenuHelpEntries / ListNavHelpEntries
+--                      templates.
 --   onActivate         (fn(self), optional) fired on push / re-exposure.
 --   onDeactivate       (fn(self), optional) fired on removal.
 --   tick               (fn(self), optional) called every frame by TickPump on

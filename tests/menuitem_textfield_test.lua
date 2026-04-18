@@ -35,7 +35,9 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuHelp.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuCore.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuEditMode.lua")
     HandlerStack._reset()
 
     civvaccess_shared.pullDownProbeInstalled = false
