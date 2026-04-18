@@ -49,7 +49,10 @@ function InputRouter.dispatch(keyCode, modMask, msg)
         local top = HandlerStack.active()
         if top == nil or top.name ~= "Help" then
             if Help ~= nil and type(Help.open) == "function" then
-                Help.open()
+                local ok, err = pcall(Help.open)
+                if not ok then
+                    Log.error("InputRouter: Help.open failed: " .. tostring(err))
+                end
             else
                 Log.warn("InputRouter: Shift+? pressed but Help module not loaded")
             end

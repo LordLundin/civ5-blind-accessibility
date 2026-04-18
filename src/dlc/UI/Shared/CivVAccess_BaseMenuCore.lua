@@ -509,7 +509,7 @@ end
 -- Compose the authored help list for a BaseMenu-backed handler, reading the
 -- spec to decide which templates apply. spec.helpExtras appends handler-
 -- specific extras at the tail (for the rare screen with a custom binding).
-function BaseMenu.buildHelpEntries(spec, extras)
+function BaseMenu.buildHelpEntries(spec)
     local list = {}
     appendAll(list, BaseMenu.MenuHelpEntries)
     appendAll(list, BaseMenu.ListNavHelpEntries)
@@ -517,7 +517,7 @@ function BaseMenu.buildHelpEntries(spec, extras)
     if spec.tabs then appendAll(list, BaseMenu.TabbedHelpEntries) end
     list[#list + 1] = BaseMenu.ReadHeaderHelpEntry
     if spec.escapePops then list[#list + 1] = BaseMenu.EscapePopsHelpEntry end
-    appendAll(list, extras)
+    appendAll(list, spec.helpExtras)
     return list
 end
 
@@ -646,9 +646,9 @@ function BaseMenu.create(spec)
     end
 
     -- Authored help list covering every binding the factory wired above.
-    -- Spec-driven: tabs/escapePops toggle their own entries. Extras append
-    -- at the tail for screens with a custom binding.
-    self.helpEntries = BaseMenu.buildHelpEntries(spec, spec.helpExtras)
+    -- Spec-driven: tabs/escapePops toggle their own entries, and
+    -- spec.helpExtras appends at the tail for screens with a custom binding.
+    self.helpEntries = BaseMenu.buildHelpEntries(spec)
 
     -- Search-input hook surfaced on the handler so InputRouter can route
     -- printable keys / Backspace / Space to type-ahead without needing a

@@ -1,6 +1,5 @@
--- TypeAheadSearch tests. Mirrors oni-access's TypeAheadSearch suite
--- (OniAccess.Tests/Program.cs) so the two implementations stay in sync on
--- tier semantics, sort rules, and single-letter cycling.
+-- TypeAheadSearch tests. Cover tier semantics, sort rules, and
+-- single-letter cycling against the shared TypeAheadSearch module.
 
 local T = require("support")
 local M = {}

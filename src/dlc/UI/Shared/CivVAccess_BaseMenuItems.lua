@@ -62,7 +62,6 @@ end
 
 -- Drop any tooltip sentence that duplicates an existing ", "-separated
 -- segment in `base`. Sentences separated by ". " in localized tooltip text.
--- Adapted from oni-access's WidgetOps.AppendTooltip.
 local function appendTooltip(base, tooltip)
     if tooltip == nil or tooltip == "" then return base end
     if base == nil or base == "" then return tooltip end

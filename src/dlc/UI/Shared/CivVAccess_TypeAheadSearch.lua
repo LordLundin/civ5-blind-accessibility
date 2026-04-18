@@ -1,5 +1,4 @@
--- Type-ahead search helper used by BaseMenu. Ported from oni-access's
--- OniAccess/Handlers/TypeAheadSearch.cs; the matching rules are identical.
+-- Type-ahead search helper used by BaseMenu.
 --
 -- Tiers (lower wins):
 --   0  start-of-string whole word ("wood" in "wood club")

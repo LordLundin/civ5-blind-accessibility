@@ -1,9 +1,8 @@
--- Help overlay. Ported from ONI Access OniAccess/Handlers/HelpHandler.cs.
--- Opens a navigable list of bindings reachable from the current handler
--- stack, built from each handler's authored helpEntries via
--- HandlerStack.collectHelpEntries. Dedupe by keyLabel means stacked handlers
--- with overlapping chords surface only the topmost handler's meaning --
--- which matches what the chord actually does in that context.
+-- Help overlay. Opens a navigable list of bindings reachable from the
+-- current handler stack, built from each handler's authored helpEntries
+-- via HandlerStack.collectHelpEntries. Dedupe by keyLabel means stacked
+-- handlers with overlapping chords surface only the topmost handler's
+-- meaning -- which matches what the chord actually does in that context.
 --
 -- The help handler is itself a BaseMenu-created handler: Up/Down navigate,
 -- Home/End jump, type-ahead search works, ?/Esc close. Each entry is a
