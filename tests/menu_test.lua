@@ -193,7 +193,7 @@ function M.test_down_moves_to_next_item()
         items = buttonSpec({"A","B","C"}) })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    T.eq(h._index, 2)
+    T.eq(h._indices[1], 2)
 end
 
 function M.test_up_wraps_from_top_to_bottom()
@@ -203,7 +203,7 @@ function M.test_up_wraps_from_top_to_bottom()
         items = buttonSpec({"A","B","C"}) })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_UP, 0, WM_KEYDOWN)
-    T.eq(h._index, 3)
+    T.eq(h._indices[1], 3)
 end
 
 function M.test_down_wraps_from_bottom_to_top()
@@ -212,10 +212,10 @@ function M.test_down_wraps_from_bottom_to_top()
     local h = BaseMenu.create({ name = "T", displayName = "Test",
         items = buttonSpec({"A","B","C"}) })
     HandlerStack.push(h)
-    h._index = 3
+    h._indices[1] = 3
     speaks = {}
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    T.eq(h._index, 1)
+    T.eq(h._indices[1], 1)
 end
 
 function M.test_hidden_items_are_skipped()
@@ -226,7 +226,7 @@ function M.test_hidden_items_are_skipped()
         items = buttonSpec({"A","B","C"}) })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    T.eq(h._index, 3, "hidden B skipped")
+    T.eq(h._indices[1], 3, "hidden B skipped")
 end
 
 function M.test_all_hidden_navigation_is_noop()
@@ -238,10 +238,10 @@ function M.test_all_hidden_navigation_is_noop()
     local h = BaseMenu.create({ name = "T", displayName = "Test",
         items = buttonSpec({"A","B","C"}) })
     HandlerStack.push(h)
-    local before = h._index
+    local before = h._indices[1]
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     InputRouter.dispatch(Keys.VK_UP, 0, WM_KEYDOWN)
-    T.eq(h._index, before, "no movement, no infinite loop")
+    T.eq(h._indices[1], before, "no movement, no infinite loop")
 end
 
 function M.test_home_jumps_to_first_navigable()
@@ -251,9 +251,9 @@ function M.test_home_jumps_to_first_navigable()
     local h = BaseMenu.create({ name = "T", displayName = "Test",
         items = buttonSpec({"A","B","C"}) })
     HandlerStack.push(h)
-    h._index = 3
+    h._indices[1] = 3
     InputRouter.dispatch(Keys.VK_HOME, 0, WM_KEYDOWN)
-    T.eq(h._index, 2, "A hidden, first navigable is B")
+    T.eq(h._indices[1], 2, "A hidden, first navigable is B")
 end
 
 function M.test_end_jumps_to_last_navigable()
@@ -264,7 +264,7 @@ function M.test_end_jumps_to_last_navigable()
         items = buttonSpec({"A","B","C"}) })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_END, 0, WM_KEYDOWN)
-    T.eq(h._index, 2, "C hidden, last navigable is B")
+    T.eq(h._indices[1], 2, "C hidden, last navigable is B")
 end
 
 function M.test_enter_fires_activate()
@@ -350,7 +350,7 @@ function M.test_post_activate_revalidation_advances_on_hidden_flip()
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    T.eq(h._index, 2, "cursor advanced to next valid")
+    T.eq(h._indices[1], 2, "cursor advanced to next valid")
     T.truthy(#speaks >= 1)
     T.eq(speaks[#speaks].text, "LABEL_B")
     T.falsy(speaks[#speaks].interrupt, "next-valid speak is queued")
@@ -367,7 +367,7 @@ function M.test_navigation_walks_disabled_items()
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    T.eq(h._index, 2, "disabled B is still navigable")
+    T.eq(h._indices[1], 2, "disabled B is still navigable")
     T.eq(speaks[1].text, "LABEL_B, disabled", "disabled suffix appended")
 end
 
@@ -574,9 +574,9 @@ function M.test_home_with_slider_at_position_one_goes_to_first_item()
                 textKey = "LBL_SLD" }),
         } })
     HandlerStack.push(h)
-    h._index = 2  -- on slider
+    h._indices[1] = 2  -- on slider
     InputRouter.dispatch(Keys.VK_HOME, 0, WM_KEYDOWN)
-    T.eq(h._index, 1, "Home navigated to first item, did not snap slider")
+    T.eq(h._indices[1], 1, "Home navigated to first item, did not snap slider")
     T.eq(slider:GetValue(), 0.5, "slider unchanged")
 end
 
@@ -652,12 +652,12 @@ function M.test_pulldown_sub_pop_preserves_cursor_position()
         } })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    T.eq(h._index, 2)
+    T.eq(h._indices[1], 2)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(HandlerStack.count(), 2)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(HandlerStack.count(), 1)
-    T.eq(h._index, 2, "cursor stayed on the pulldown after sub pop")
+    T.eq(h._indices[1], 2, "cursor stayed on the pulldown after sub pop")
 end
 
 function M.test_sub_pop_advances_cursor_off_hidden_item()
@@ -676,11 +676,11 @@ function M.test_sub_pop_advances_cursor_off_hidden_item()
             BaseMenuItems.Checkbox({ controlName = "After", textKey = "LBL_AFTER" }),
         } })
     HandlerStack.push(h)
-    T.eq(h._index, 1, "starts on pulldown")
+    T.eq(h._indices[1], 1, "starts on pulldown")
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    T.eq(h._index, 2, "cursor advanced off the now-hidden pulldown")
+    T.eq(h._indices[1], 2, "cursor advanced off the now-hidden pulldown")
     T.truthy(#speaks >= 1, "re-activation announced the new current item")
 end
 
@@ -785,7 +785,7 @@ function M.test_tabs_tab_key_cycles_and_resets_cursor()
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     T.eq(shown, 2)
     T.eq(h._tabIndex, 2)
-    T.eq(h._index, 1)
+    T.eq(h._indices[1], 1)
     T.eq(speaks[1].text, "TAB_B")
 end
 
@@ -826,11 +826,11 @@ function M.test_tab_position_preserved_across_pulldown_sub()
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     T.eq(h._tabIndex, 2)
-    T.eq(h._index, 1)
+    T.eq(h._indices[1], 1)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(h._tabIndex, 2, "tab preserved")
-    T.eq(h._index, 1, "item index preserved")
+    T.eq(h._indices[1], 1, "item index preserved")
 end
 
 -- Install --------------------------------------------------------------
@@ -988,10 +988,10 @@ function M.test_close_reopen_resets_cursor()
     ctx._sh(false, false)
     local h = HandlerStack.active()
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    T.eq(h._index, 2)
+    T.eq(h._indices[1], 2)
     ctx._sh(true, false)
     ctx._sh(false, false)
-    T.eq(HandlerStack.active()._index, 1, "cursor reset on reopen")
+    T.eq(HandlerStack.active()._indices[1], 1, "cursor reset on reopen")
 end
 
 function M.test_tab_switch_reparks_focus_on_configured_control()
@@ -1250,9 +1250,9 @@ function M.test_setItems_clamps_cursor_when_out_of_range()
             BaseMenuItems.Checkbox({ controlName = "C", textKey = "LC" }),
         } })
     HandlerStack.push(h)
-    h._index = 3
+    h._indices[1] = 3
     h.setItems({ BaseMenuItems.Checkbox({ control = a, labelText = "A" }) })
-    T.eq(h._index, 1, "cursor clamped to first valid item after shrink")
+    T.eq(h._indices[1], 1, "cursor clamped to first valid item after shrink")
 end
 
 -- Dynamic-item features --------------------------------------------------
@@ -1497,6 +1497,367 @@ function M.test_edit_mode_enter_keyup_is_claimed()
     -- engine's Enter-release doesn't revoke focus.
     local consumed = ctx._in(257, Keys.VK_RETURN, 0)
     T.truthy(consumed, "KEYUP claimed during edit mode")
+end
+
+-- Nested menus ---------------------------------------------------------
+--
+-- Groups drill via Right / Enter; Left / Esc at level > 1 go back up a level.
+-- Up/Down at level > 1 cross into sibling groups on past-end. Ctrl+Up/Down
+-- jumps to prev/next group at the current level's parent.
+
+local MOD_CTRL = 2
+
+local function buttonItem(name, label)
+    return BaseMenuItems.Button({
+        controlName = name,
+        textKey     = label or ("LBL_" .. name),
+        activate    = function() end,
+    })
+end
+
+local function groupItem(label, children)
+    return BaseMenuItems.Group({
+        labelText = label,
+        items     = children,
+    })
+end
+
+function M.test_group_drill_on_enter_enters_first_child()
+    setup()
+    setCtrls({ "A", "GCHILD1", "GCHILD2" })
+    local child1 = buttonItem("GCHILD1", "Child One")
+    local child2 = buttonItem("GCHILD2", "Child Two")
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = {
+            buttonItem("A", "Leaf A"),
+            groupItem("Group One", { child1, child2 }),
+        } })
+    HandlerStack.push(h)
+    -- Move to the group and Enter.
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(h._level, 2, "drilled to level 2")
+    T.eq(h._indices[2], 1, "cursor on first child")
+    T.eq(speaks[1].text, "Child One")
+end
+
+function M.test_group_drill_on_right()
+    setup()
+    setCtrls({ "GCHILD1" })
+    local child = buttonItem("GCHILD1", "Only Child")
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { groupItem("Group", { child }) } })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(h._level, 2)
+    T.eq(speaks[1].text, "Only Child")
+end
+
+function M.test_left_at_level_2_goes_back()
+    setup()
+    setCtrls({ "CHILD" })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { groupItem("Parent", { buttonItem("CHILD", "Child") }) } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- drill
+    T.eq(h._level, 2)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
+    T.eq(h._level, 1, "left at level 2 returns to 1")
+    T.eq(speaks[1].text, "Parent", "re-announces the group on back")
+end
+
+function M.test_esc_at_level_2_goes_back_via_install_handler()
+    setup()
+    setCtrls({ "CHILD" })
+    local ctx = {
+        SetShowHideHandler = function(self, fn) self._sh = fn end,
+        SetInputHandler    = function(self, fn) self._in = fn end,
+        _hidden            = false,
+        IsHidden           = function(self) return self._hidden end,
+        SetUpdate          = function(self, fn) self._update = fn end,
+    }
+    local handler = BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+        items = { groupItem("Parent", { buttonItem("CHILD", "Child") }) } })
+    ctx._sh(false, false)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(handler._level, 2)
+    speaks = {}
+    local consumed = ctx._in(256, Keys.VK_ESCAPE, 0)
+    T.truthy(consumed, "Esc consumed at level > 1")
+    T.eq(handler._level, 1, "Esc went up a level")
+end
+
+function M.test_esc_at_level_1_bypasses_to_priorInput()
+    setup()
+    setCtrls({ "A" })
+    local bypassed = false
+    local ctx = {
+        SetShowHideHandler = function(self, fn) self._sh = fn end,
+        SetInputHandler    = function(self, fn) self._in = fn end,
+        _hidden            = false,
+        IsHidden           = function(self) return self._hidden end,
+        SetUpdate          = function(self, fn) self._update = fn end,
+    }
+    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+        priorInput = function() bypassed = true; return true end,
+        items = { buttonItem("A", "Leaf") } })
+    ctx._sh(false, false)
+    ctx._in(256, Keys.VK_ESCAPE, 0)
+    T.truthy(bypassed, "Esc at level 1 delegated to priorInput")
+end
+
+function M.test_down_at_level_2_past_last_wraps_to_next_group_first_child()
+    setup()
+    setCtrls({ "A", "B", "C", "D" })
+    local groupA = groupItem("Group A", { buttonItem("A", "A1"), buttonItem("B", "A2") })
+    local groupB = groupItem("Group B", { buttonItem("C", "B1"), buttonItem("D", "B2") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { groupA, groupB } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)      -- drill into A
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- step within A
+    T.eq(h._indices[2], 2)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- past last -> cross to B
+    T.eq(h._indices[1], 2, "parent advanced to Group B")
+    T.eq(h._indices[2], 1, "cursor on first child of B")
+    T.eq(speaks[1].text, "Group B", "parent context announced")
+    T.eq(speaks[2].text, "B1", "first child queued after parent")
+end
+
+function M.test_up_at_level_2_past_first_wraps_to_prev_group_last_child()
+    setup()
+    setCtrls({ "A", "B", "C", "D" })
+    local groupA = groupItem("Group A", { buttonItem("A", "A1"), buttonItem("B", "A2") })
+    local groupB = groupItem("Group B", { buttonItem("C", "B1"), buttonItem("D", "B2") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { groupA, groupB } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- on Group B
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)      -- drill into B
+    T.eq(h._indices[2], 1)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_UP, 0, WM_KEYDOWN)         -- past first -> cross to A
+    T.eq(h._indices[1], 1, "parent moved back to Group A")
+    T.eq(h._indices[2], 2, "cursor on last child of A")
+    T.eq(speaks[1].text, "Group A")
+    T.eq(speaks[2].text, "A2")
+end
+
+function M.test_cross_parent_skips_leaves_at_parent_level()
+    setup()
+    setCtrls({ "LEAF1", "A1", "A2", "LEAF2", "B1" })
+    local groupA = groupItem("A", { buttonItem("A1"), buttonItem("A2") })
+    local groupB = groupItem("B", { buttonItem("B1") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = {
+            buttonItem("LEAF1", "Leaf1"),
+            groupA,
+            buttonItem("LEAF2", "Leaf2"),
+            groupB,
+        } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)   -- on Group A
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)  -- drill
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)   -- A2
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)   -- past end -> skip Leaf2 -> B
+    T.eq(h._indices[1], 4, "jumped across Leaf2 to Group B")
+    T.eq(h._indices[2], 1)
+    T.eq(speaks[1].text, "B")
+end
+
+function M.test_home_at_level_2_stays_within_group()
+    setup()
+    setCtrls({ "A1", "A2", "B1" })
+    local groupA = groupItem("A", { buttonItem("A1"), buttonItem("A2") })
+    local groupB = groupItem("B", { buttonItem("B1") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { groupA, groupB } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- drill into A
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)    -- A2
+    InputRouter.dispatch(Keys.VK_HOME, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 1, "still in group A")
+    T.eq(h._indices[2], 1, "on first child of A")
+end
+
+function M.test_ctrl_down_at_level_1_jumps_across_leaves_to_next_group()
+    setup()
+    setCtrls({ "LEAF", "G1C", "G2C" })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = {
+            buttonItem("LEAF", "Leaf"),
+            groupItem("Group 1", { buttonItem("G1C", "C1") }),
+            groupItem("Group 2", { buttonItem("G2C", "C2") }),
+        } })
+    HandlerStack.push(h)
+    UI.CtrlKeyDown = function() return true end
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_CTRL, WM_KEYDOWN)
+    T.eq(h._indices[1], 2, "skipped Leaf, landed on Group 1")
+    T.eq(speaks[1].text, "Group 1")
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_CTRL, WM_KEYDOWN)
+    T.eq(h._indices[1], 3, "advanced to Group 2")
+end
+
+function M.test_ctrl_up_at_level_2_jumps_to_prev_group_first_child()
+    setup()
+    setCtrls({ "A1", "B1", "B2" })
+    local groupA = groupItem("A", { buttonItem("A1") })
+    local groupB = groupItem("B", { buttonItem("B1"), buttonItem("B2") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { groupA, groupB } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- on Group B
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)      -- drill B
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- B2
+    UI.CtrlKeyDown = function() return true end
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_UP, MOD_CTRL, WM_KEYDOWN)
+    T.eq(h._indices[1], 1, "parent moved to Group A")
+    T.eq(h._indices[2], 1, "landed on first child of A")
+    T.eq(speaks[1].text, "A")
+end
+
+function M.test_empty_group_drill_is_noop_and_reannounces_label()
+    setup()
+    setCtrls({})
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { BaseMenuItems.Group({ labelText = "Empty", items = {} }) } })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(h._level, 1, "drill into empty group does not change level")
+    T.eq(speaks[1].text, "Empty")
+end
+
+function M.test_group_itemsFn_is_called_lazily_and_cached()
+    setup()
+    setCtrls({ "C" })
+    local calls = 0
+    local group = BaseMenuItems.Group({
+        labelText = "Lazy",
+        itemsFn   = function()
+            calls = calls + 1
+            return { buttonItem("C", "Child") }
+        end,
+    })
+    T.eq(calls, 0, "not called at spec time")
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { group } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)  -- drill
+    T.eq(calls, 1)
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)   -- back
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)  -- drill again
+    T.eq(calls, 1, "children cached after first drill")
+end
+
+function M.test_group_cached_false_rebuilds_on_every_drill()
+    setup()
+    setCtrls({ "C" })
+    local calls = 0
+    local group = BaseMenuItems.Group({
+        labelText = "Dynamic",
+        cached    = false,
+        itemsFn   = function()
+            calls = calls + 1
+            return { buttonItem("C", "Child") }
+        end,
+    })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { group } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.truthy(calls >= 2, "itemsFn re-runs on second drill with cached=false")
+end
+
+function M.test_hidden_group_is_skipped_in_navigation()
+    setup()
+    setCtrls({ "HIDE_BOX", "A", "C" })
+    ctrlState.HIDE_BOX.hidden = true
+    local hiddenGroup = BaseMenuItems.Group({
+        labelText           = "HiddenGroup",
+        visibilityControlName = "HIDE_BOX",
+        items               = { buttonItem("A") },
+    })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = {
+            buttonItem("C", "Leaf"),
+            hiddenGroup,
+        } })
+    HandlerStack.push(h)
+    -- Only one navigable item at top level: Leaf.
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 1, "hidden group skipped in wrap")
+end
+
+function M.test_single_sibling_group_wraps_circularly_within_itself()
+    setup()
+    setCtrls({ "A1", "A2" })
+    local only = groupItem("Solo", { buttonItem("A1", "A1"), buttonItem("A2", "A2") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { only } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- drill
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)    -- A2
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)    -- past end, only 1 group -> wrap self
+    T.eq(h._indices[1], 1, "still same parent")
+    T.eq(h._indices[2], 1, "wrapped to first child")
+    T.eq(speaks[1].text, "A1")
+end
+
+function M.test_slider_at_level_2_left_right_adjusts_not_back()
+    setup()
+    local slider = Polyfill.makeSlider({ value = 0.5 })
+    local label  = Polyfill.makeLabel("50")
+    populateControls({ Sld = slider, Lbl = label })
+    slider:RegisterSliderCallback(function(v)
+        label:SetText(tostring(math.floor(v * 100 + 0.5)))
+    end)
+    local group = groupItem("Options", {
+        BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl",
+            textKey = "LBL_S" }),
+    })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { group } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- drill
+    T.eq(h._level, 2)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- slider adjust, NOT back
+    T.eq(h._level, 2, "still at level 2: right adjusted the slider")
+    T.eq(slider:GetValue(), 0.51)
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)    -- slider decrement
+    T.eq(h._level, 2, "still at level 2: left adjusted the slider")
+    T.eq(slider:GetValue(), 0.50)
+end
+
+function M.test_level_reset_on_hide_then_reopen()
+    setup()
+    setCtrls({ "CHILD" })
+    local ctx = {
+        SetShowHideHandler = function(self, fn) self._sh = fn end,
+        SetInputHandler    = function(self, fn) self._in = fn end,
+        _hidden            = false,
+        IsHidden           = function(self) return self._hidden end,
+        SetUpdate          = function(self, fn) self._update = fn end,
+    }
+    local handler = BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+        items = { groupItem("P", { buttonItem("CHILD", "C") }) } })
+    ctx._sh(false, false)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(handler._level, 2)
+    ctx._sh(true, false)
+    ctx._sh(false, false)
+    T.eq(handler._level, 1, "level reset to 1 on reopen")
 end
 
 return M

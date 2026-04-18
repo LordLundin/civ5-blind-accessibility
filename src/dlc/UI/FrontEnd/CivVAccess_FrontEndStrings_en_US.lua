@@ -59,3 +59,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_TURN_TIMER"]           = "Timer sec
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_INTRO"]     = "{1_Message}. Reverting in 20 seconds."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_EXPIRED"]   = "Time expired, reverted."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_RECONNECTING"]             = "Reconnecting"
+-- Advanced Setup + MP Setup (nested menus).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_ADVANCED_SETUP"]       = "Advanced setup"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MP_GAME_SETUP"]        = "Multiplayer game setup"
+-- {1} 1-based slot number, {2} civ description from the slot's pulldown,
+-- {3} team text from the slot's team pulldown (already includes "Team N").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_AI_SLOT"]                     = "AI {1_Num}, {2_Civ}, {3_Team}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_AI_PLAYERS"]            = "AI players"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_VICTORY_CONDITIONS"]    = "Victory conditions"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_GAME_OPTIONS"]          = "Game options"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_DLC_ALLOWED"]           = "DLC allowed"
+-- Status announced in place of the AI player listing while random world
+-- size is on: slot count is determined by the chosen map size at launch.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNKNOWN_PLAYERS_STATUS"]      = "Number of AI players is determined by the random map size."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_GAME_NAME"]             = "Game name"

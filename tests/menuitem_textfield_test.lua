@@ -137,7 +137,7 @@ function M.test_visibilityControlName_hidden_wrapper_skips_item()
             BaseMenuItems.Checkbox({ controlName = "After", textKey = "LBL_A" }),
         } })
     HandlerStack.push(h)
-    T.eq(h._index, 2,
+    T.eq(h._indices[1], 2,
         "first-navigable skipped the textfield because its wrapper is hidden")
 end
 
@@ -151,7 +151,7 @@ function M.test_visibilityControlName_visible_wrapper_allows_item()
         items = { BaseMenuItems.Textfield({ controlName = "E",
             visibilityControlName = "Wrapper", textKey = "LBL" }) } })
     HandlerStack.push(h)
-    T.eq(h._index, 1)
+    T.eq(h._indices[1], 1)
     T.eq(speaks[2].text, "LBL, edit, hi")
 end
 

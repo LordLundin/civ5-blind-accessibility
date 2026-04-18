@@ -443,6 +443,15 @@ function BaseMenuItems.Pulldown(spec)
         kind     = "pulldown",
         _control = resolveControl(spec, "Pulldown"),
     }
+    if spec.visibilityControlName ~= nil then
+        item.visibilityControlName = spec.visibilityControlName
+        item._visibilityControl    = Controls[spec.visibilityControlName]
+        if item._visibilityControl == nil then
+            Log.warn("BaseMenuItems Pulldown '" .. tostring(spec.controlName)
+                .. "': missing visibility control '"
+                .. spec.visibilityControlName .. "'")
+        end
+    end
     copyCommonFields(spec, item)
     item.isNavigable   = isNavigable
     item.isActivatable = isActivatable
@@ -490,6 +499,103 @@ function BaseMenuItems.Pulldown(spec)
             escapePops   = true,
         })
         HandlerStack.push(child)
+    end
+    function item:adjust(menu, dir, big) end
+    return item
+end
+
+-- Group -------------------------------------------------------------------
+--
+-- Nested drill-in item. Announces its label like a button; on Right / Enter
+-- the menu switches to the group's children list (one level deeper). The
+-- children list can be provided statically as `items`, or lazily as
+-- `itemsFn` returning the child list on first access. The result is cached
+-- on the instance: subsequent drills into the same Group object reuse the
+-- same child objects so indices stay stable and child state (Textfield
+-- originalText, cached closures) is preserved across navigation. To force
+-- a rebuild (e.g. after Add AI / Remove / Defaults), rebuild the parent
+-- list with fresh Group instances rather than mutating an existing one.
+--
+-- Spec:
+--   textKey / labelText / labelFn    label source (one required)
+--   tooltipKey / tooltipText / tooltipFn  optional tooltip
+--   items                            static array of child items; OR
+--   itemsFn                          fn() -> array
+--   cached                           default true; when false the itemsFn
+--                                    rebuilds on every drill. Use for
+--                                    dynamic lists whose contents can
+--                                    change between drills without an
+--                                    explicit rebuild hook (e.g. game-
+--                                    option checkboxes reshaped by a
+--                                    map-script pulldown selection).
+--                                    Ignored when `items` is provided.
+--   visibilityControlName / visibilityControl  gates isNavigable on the
+--                                    parent's list (screen-wide conditions
+--                                    like random-world-size hiding the
+--                                    slots group)
+--
+-- Groups are not leaves: activate drills; adjust is a no-op (Right drilling
+-- is handled by the menu container via kind checks).
+
+function BaseMenuItems.Group(spec)
+    assertLabel(spec, "Group")
+    assertTooltip(spec, "Group")
+    assert(type(spec.items) == "table" or type(spec.itemsFn) == "function",
+        "Group needs items or itemsFn")
+    local item = {
+        kind     = "group",
+        _items   = spec.items,
+        _itemsFn = spec.itemsFn,
+        _cached  = spec.cached ~= false,
+        _cache   = nil,
+    }
+    if spec.visibilityControl ~= nil then
+        item._visibilityControl = spec.visibilityControl
+    elseif spec.visibilityControlName ~= nil then
+        item.visibilityControlName = spec.visibilityControlName
+        item._visibilityControl    = Controls[spec.visibilityControlName]
+        if item._visibilityControl == nil then
+            Log.warn("BaseMenuItems Group: missing visibility control '"
+                .. spec.visibilityControlName .. "'")
+        end
+    end
+    copyCommonFields(spec, item)
+    function item:isNavigable()
+        if self._visibilityControl ~= nil and self._visibilityControl:IsHidden() then
+            return false
+        end
+        return true
+    end
+    function item:isActivatable() return self:isNavigable() end
+    function item:children()
+        if self._cached and self._cache ~= nil then return self._cache end
+        local built
+        if self._itemsFn ~= nil then
+            local ok, result = pcall(self._itemsFn)
+            if not ok then
+                Log.error("BaseMenuItems Group '"
+                    .. tostring(self.textKey or self.labelText or "?")
+                    .. "' itemsFn failed: " .. tostring(result))
+                built = {}
+            else
+                built = result or {}
+            end
+        else
+            built = self._items or {}
+        end
+        if self._cached then self._cache = built end
+        return built
+    end
+    function item:announce(menu)
+        return composeSpeech(self, { resolveLabel(self) })
+    end
+    -- The menu container handles drill semantics (kind == "group" branch in
+    -- onEnter / onRight); activate is here for symmetry so any caller that
+    -- uses item:activate gets the same drill effect via the container.
+    function item:activate(menu)
+        -- No-op here: drilling is handled by the container. We could
+        -- forward to the container, but doing so would duplicate the kind
+        -- check already present in onEnter.
     end
     function item:adjust(menu, dir, big) end
     return item
