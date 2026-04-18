@@ -147,6 +147,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DETAILS_TAB"]            = "Save det
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_NO_SAVES"]               = "No saves in this list."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DELETE_CONFIRM"]         = "Delete {1_Name}?"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DELETED"]                = "Save deleted."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_MOD_VERSION"]            = "{1_Name} version {2_Version}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"]         = "No content for this entry."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"]  = "No save selected. Switch to the saves tab to pick one."
 -- Spoken replacements for [ICON_*] markup. Registered into TextFilter by

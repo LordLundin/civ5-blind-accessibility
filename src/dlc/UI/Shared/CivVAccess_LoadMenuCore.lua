@@ -95,14 +95,12 @@ end
 -- sub-menu. Visual state is kept in sync for sighted observers: the
 -- pulldown's button text changes and SortChildren reorders the hidden
 -- Stack, same as a mouse-driven sort pick.
-local function applySort(mainHandler, entryFactory, handlerRefThunk,
-                        sortFn, labelKey)
+local function applySort(entryFactory, handlerRefThunk, sortFn, labelKey)
     g_CurrentSort = sortFn
-    Controls.SortByPullDown:GetButton():LocalizeAndSetText(
-        Locale.ConvertTextKey(labelKey))
+    Controls.SortByPullDown:GetButton():LocalizeAndSetText(labelKey)
     Controls.LoadFileButtonStack:SortChildren(sortFn)
     local newItems = LoadMenu.buildPickerItems(entryFactory, handlerRefThunk)
-    mainHandler.setItems(newItems, 1)
+    handlerRefThunk().setItems(newItems, 1)
 end
 
 -- Decode an entry id from buildPickerItems back into (kind, numeric index).
@@ -117,17 +115,17 @@ end
 -- GameInfo.Civilizations[...] / Civilization_Leaders when the header doesn't
 -- carry an override. Mirrors LoadMenu.SetSelected lines 292-331.
 local function resolveLeaderCiv(header)
-    local civName        = Locale.ConvertTextKey("TXT_KEY_MISC_UNKNOWN")
-    local leaderDescText = Locale.ConvertTextKey("TXT_KEY_MISC_UNKNOWN")
+    local civName        = Text.key("TXT_KEY_MISC_UNKNOWN")
+    local leaderDescText = Text.key("TXT_KEY_MISC_UNKNOWN")
     local civ = GameInfo.Civilizations[header.PlayerCivilization]
     if civ ~= nil then
-        civName = Locale.ConvertTextKey(civ.Description)
+        civName = Text.key(civ.Description)
         local row = GameInfo.Civilization_Leaders(
             "CivilizationType = '" .. civ.Type .. "'")()
         if row ~= nil then
             local leader = GameInfo.Leaders[row.LeaderheadType]
             if leader ~= nil then
-                leaderDescText = Locale.ConvertTextKey(leader.Description)
+                leaderDescText = Text.key(leader.Description)
             end
         end
     end
@@ -142,11 +140,11 @@ end
 
 local function gameTypeLabel(header)
     if header.GameType == GameTypes.GAME_HOTSEAT_MULTIPLAYER then
-        return Locale.ConvertTextKey("TXT_KEY_MULTIPLAYER_HOTSEAT_GAME")
+        return Text.key("TXT_KEY_MULTIPLAYER_HOTSEAT_GAME")
     elseif header.GameType == GameTypes.GAME_NETWORK_MULTIPLAYER then
-        return Locale.ConvertTextKey("TXT_KEY_MULTIPLAYER_STRING")
+        return Text.key("TXT_KEY_MULTIPLAYER_STRING")
     elseif header.GameType == GameTypes.GAME_SINGLE_PLAYER then
-        return Locale.ConvertTextKey("TXT_KEY_SINGLE_PLAYER")
+        return Text.key("TXT_KEY_SINGLE_PLAYER")
     end
     return nil
 end
@@ -156,16 +154,16 @@ end
 -- map size / difficulty / game speed (all follow the same schema).
 local function descOf(row)
     if row == nil or row.Description == nil then
-        return Locale.ConvertTextKey("TXT_KEY_MISC_UNKNOWN")
+        return Text.key("TXT_KEY_MISC_UNKNOWN")
     end
-    return Locale.ConvertTextKey(row.Description)
+    return Text.key(row.Description)
 end
 
 local function addField(leaves, headerKey, value)
     if value == nil or value == "" then return end
     local prefix = ""
     if headerKey ~= nil and headerKey ~= "" then
-        prefix = Locale.ConvertTextKey(headerKey) .. ": "
+        prefix = Text.key(headerKey) .. ": "
     end
     leaves[#leaves + 1] = BaseMenuItems.Text({
         labelText = prefix .. value,
@@ -192,21 +190,22 @@ local function pushRequirementsSub(mainHandler, kind)
         local name
         if kind == "dlc" and v.DescriptionKey ~= nil
                 and Locale.HasTextKey(v.DescriptionKey) then
-            name = Locale.ConvertTextKey(v.DescriptionKey)
+            name = Text.key(v.DescriptionKey)
         else
             name = v.Title or ""
             if Locale.HasTextKey(name) then
-                name = Locale.ConvertTextKey(name)
+                name = Text.key(name)
             end
         end
         if kind == "mods" and v.Version ~= nil then
-            name = name .. " version " .. tostring(v.Version)
+            name = Text.format("TXT_KEY_CIVVACCESS_LOAD_MOD_VERSION",
+                name, v.Version)
         end
         items[#items + 1] = BaseMenuItems.Text({ labelText = name })
     end
     local sub = BaseMenu.create({
         name        = mainHandler.name .. "/Requirements",
-        displayName = Locale.ConvertTextKey(displayKey),
+        displayName = Text.key(displayKey),
         items       = items,
         escapePops  = true,
     })
@@ -282,9 +281,7 @@ function LoadMenu.buildReader(mainHandler, id)
         header = g_CloudSaves[idx]
     else
         filename = g_FileList[idx]
-        if filename ~= nil then
-            header = PreGame.GetFileHeader(filename)
-        end
+        header = PreGame.GetFileHeader(filename)
     end
     if header == nil then
         Log.warn("LoadMenu: no header for id '" .. id .. "'")
@@ -298,7 +295,7 @@ function LoadMenu.buildReader(mainHandler, id)
     -- equivalent to LoadMenu.xml's Title label.
     local leaderDescText, civName = resolveLeaderCiv(header)
     leaves[#leaves + 1] = BaseMenuItems.Text({
-        labelText = Locale.ConvertTextKey(
+        labelText = Text.format(
             "TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName),
     })
 
@@ -318,7 +315,7 @@ function LoadMenu.buildReader(mainHandler, id)
         local eraDesc = (era ~= nil and era.Description)
             or "TXT_KEY_MISC_UNKNOWN"
         leaves[#leaves + 1] = BaseMenuItems.Text({
-            labelText = Locale.ConvertTextKey(
+            labelText = Text.format(
                 "TXT_KEY_CUR_ERA_TURNS_FORMAT", eraDesc, header.TurnNumber),
         })
     end
@@ -329,8 +326,7 @@ function LoadMenu.buildReader(mainHandler, id)
         local startEraDesc = (startEra ~= nil and startEra.Description)
             or "TXT_KEY_MISC_UNKNOWN"
         leaves[#leaves + 1] = BaseMenuItems.Text({
-            labelText = Locale.ConvertTextKey(
-                "TXT_KEY_START_ERA", startEraDesc),
+            labelText = Text.format("TXT_KEY_START_ERA", startEraDesc),
         })
     end
 
@@ -367,7 +363,12 @@ function LoadMenu.buildReader(mainHandler, id)
             local ok, tip = pcall(function()
                 return control:GetToolTipString()
             end)
-            if ok and tip ~= nil and tip ~= "" then return tip end
+            if not ok then
+                Log.warn("LoadMenu: StartButton GetToolTipString failed: "
+                    .. tostring(tip))
+                return nil
+            end
+            if tip ~= nil and tip ~= "" then return tip end
             return nil
         end,
         activate = function() OnStartButton() end,
@@ -434,9 +435,9 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
                 -- UI shows; TXT_KEY_STEAMCLOUD_SAVE is the engine's format
                 -- key for that.
                 local leaderDescText, civName = resolveLeaderCiv(slotHeader)
-                local name = Locale.ConvertTextKey(
+                local name = Text.format(
                     "TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName)
-                local label = Locale.ConvertTextKey(
+                local label = Text.format(
                     "TXT_KEY_STEAMCLOUD_SAVE", i, name)
                 items[#items + 1] = entryFactory({
                     id          = "cloud:" .. tostring(i),
@@ -484,7 +485,7 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
                     return g_CurrentSort == SortByLastModified
                 end,
                 activate = function()
-                    applySort(mainHandlerRef(), entryFactory, mainHandlerRef,
+                    applySort(entryFactory, mainHandlerRef,
                         SortByLastModified, "TXT_KEY_SORTBY_LASTMODIFIED")
                 end,
             }),
@@ -494,7 +495,7 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
                     return g_CurrentSort == SortByName
                 end,
                 activate = function()
-                    applySort(mainHandlerRef(), entryFactory, mainHandlerRef,
+                    applySort(entryFactory, mainHandlerRef,
                         SortByName, "TXT_KEY_SORTBY_NAME")
                 end,
             }),
