@@ -32,6 +32,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SCENARIOS"]          = "Scenarios"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CUSTOM_MOD_GAME"]    = "Custom mod game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_TUTORIAL"]           = "Tutorial"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MODS_BROWSER"]       = "Browse mods"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_PREMIUM_CONTENT"]    = "DLC"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WORLD_PICKER"]       = "World size"
 -- Appended to a tutorial entry when the mod-tracked completion flag for
 -- that slot is set. LoadTutorial reads from g_TutorialEntries[i].

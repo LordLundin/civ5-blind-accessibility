@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Context ColorSet="Beige_Black_Alpha" Font="TwCenMT22" FontStyle="Shadow" Name="PremiumContent" >
+
+	<Instance Name="ListingButtonInstance">
+		<Container Size="405,52" ID="Base" >
+			<Label ID="PackageName" Anchor="L,C" Offset="10,0" Font="TwCenMT18" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="Genghis Khan's Mongolia" />
+
+			<Stack StackGrowth="Left" Anchor="R,C" Offset="5,0" Size="32,32">
+				<Button ID="EnableDLC" Anchor="L,C" Size="32,32"  Texture="assets/UI/Art/Icons/IconFrame32CheckOff.DDS"        ToolTip="TXT_KEY_MODDING_ENABLEMOD" ConsumeMouse="1"   />
+				<Button ID="DisableDLC" Anchor="L,C" Size="32,32"  Texture="assets/UI/Art/Icons/IconFrame32Check.DDS"           ToolTip="TXT_KEY_MODDING_DISABLEMOD" Hidden="1" ConsumeMouse="1"   />
+			</Stack>
+
+			<Image Anchor="C,B" Offset="0,0" TextureOffset="0.0" Texture="bar340x2.dds" Size="340.1" />
+		</Container>
+	</Instance>
+
+
+	<!-- Overall Screen Container -->
+	<Grid Size="460,650" Anchor="C,C" Offset="0,39" Padding="0,0" Style="Grid9DetailFive140" >
+
+		<!-- Panel Header Text -->
+		<Label Style="MenuTitleCaption" ID="TitleLabel" String="TXT_KEY_LOAD_MENU_DLC"/>
+
+		<!-- Side treatments -->
+		<Box Style="MenuLeftSideTreatment"/>
+		<Box Style="MenuRightSideTreatment"/>
+		<Box Style="MenuTopTreatment"/>
+		<Box Style="MenuBottomTreatment"/>
+
+		<Image Anchor="C,B" Offset="0,100" Texture="HorizontalTrim.dds" Size="423.5" />
+
+		<!-- Listings Box -->
+		<ScrollPanel Anchor="L,T" ID="ListingScrollPanel" Vertical="1" Size="405,500" Offset="19,44" AutoScrollBar="1">
+
+			<!-- Scroll Controls -->
+			<ScrollBar  Anchor="R,T" AnchorSide="O,I" Offset="0,18" Length="464" Style="VertSlider"/>
+			<UpButton   Anchor="R,T" AnchorSide="O,I" Offset="0,0" Style="ScrollBarUp"/>
+			<DownButton Anchor="R,B" AnchorSide="O,I" Offset="0,0" Style="ScrollBarDown"/>
+
+			<!-- Listing Stack (Dynamic) -->
+			<Stack ID="ListingStack" StackGrowth="B" Offset="4,0" Padding="0">
+        <!-- Expansion1 Panel -->
+        <Box Anchor="C,T" Size="421,120" Offset="0,0" Color="0.0.0.128" ID="Expansion1Panel" >
+
+          <Label ID="Expansion1Title" Anchor="L,C" Offset="10,0" Font="TwCenMT20" String="Expansion Title"/>
+
+          <Button ID="EnableExpansion1" Anchor="R,C" Size="32,32" Offset="22,0"  Texture="assets/UI/Art/Icons/IconFrame32CheckOff.DDS"        ToolTip="TXT_KEY_MODDING_ENABLEMOD" ConsumeMouse="1" Hidden="1"   />
+          <Button ID="DisableExpansion1" Anchor="R,C" Size="32,32" Offset="22,0"  Texture="assets/UI/Art/Icons/IconFrame32Check.DDS"           ToolTip="TXT_KEY_MODDING_DISABLEMOD" Hidden="0" ConsumeMouse="1"   />
+
+          <Image Anchor="L,B" Offset="0,0" Texture="HorizontalTrim.dds" Size="417.5" />
+        </Box>
+        <!-- Expansion2 Panel -->
+        <Box Anchor="C,T" Size="421,120" Offset="0,0" Color="0.0.0.128" ID="Expansion2Panel" >
+
+          <Label ID="Expansion2Title" Anchor="L,C" Offset="10,0" Font="TwCenMT20" String="Expansion Title"/>
+
+          <Button ID="EnableExpansion2" Anchor="R,C" Size="32,32" Offset="22,0"  Texture="assets/UI/Art/Icons/IconFrame32CheckOff.DDS"        ToolTip="TXT_KEY_MODDING_ENABLEMOD" ConsumeMouse="1" Hidden="1"   />
+          <Button ID="DisableExpansion2" Anchor="R,C" Size="32,32" Offset="22,0"  Texture="assets/UI/Art/Icons/IconFrame32Check.DDS"           ToolTip="TXT_KEY_MODDING_DISABLEMOD" Hidden="0" ConsumeMouse="1"   />
+
+          <Image Anchor="L,B" Offset="0,0" Texture="HorizontalTrim.dds" Size="417.5" />
+        </Box>
+      </Stack>
+		</ScrollPanel>
+
+		<!-- Bottom Panel -->
+		<Box Anchor="C,B" AnchorSide="I.I" Offset="0,54"   Size="460,56" Color="255,255,255,0" >
+
+			<!-- Back Button -->
+			<GridButton Anchor="L,B"  Style="SmallButton" Size="130,32"  Offset="24,0" StateOffsetIncrement="0,0" ID="BackButton"  >
+				<Label Anchor="C,C"  Offset="0,0"  String="TXT_KEY_MODDING_BACK" Font="TwCenMT18" ColorSet="Beige_Black_Alpha" FontStyle="Shadow"  />
+			</GridButton>
+
+			<!-- OK Button  -->
+			<GridButton Anchor="R,B" ID="LargeButton"     Offset="24,0"     Size="130,32"    Style="BaseButton" String="TXT_KEY_OK_BUTTON" Hidden="0" />
+		</Box>
+	</Grid>
+</Context>
