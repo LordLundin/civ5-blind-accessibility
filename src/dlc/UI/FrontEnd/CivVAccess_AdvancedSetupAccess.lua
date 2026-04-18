@@ -51,128 +51,6 @@ local function civEntryAnnounce(inst, index)
     return labels[index]
 end
 
--- Map-type entries: supported-size suffix --------------------------------
---
--- Three shapes contribute entries to the Map Type pulldown:
---   * Pure map scripts (Lua generators) -- work at every world size; the
---     size is an input to the generator rather than a constraint.
---   * Maps() rows -- may be constrained to a subset of world sizes by the
---     Map_Sizes rows keyed to the row's MapType.
---   * Loose WB map files not referenced by any Map_Sizes row -- pinned to
---     the single world size embedded in their map preview (wb.MapSize).
---
--- We replicate base's MapTypes.FullSync build order (scripts + Maps rows +
--- loose WB files, sorted by name) to pair each entry with a size summary
--- by sorted index. The summary is "<size> only" for single-size, a comma
--- list for few-size sets, and nil for all-sizes (skipped so the common
--- case stays concise).
-
-local function worldNameById(worldID)
-    local w = GameInfo.Worlds[worldID]
-    if w == nil then return nil end
-    return Text.key(w.Description)
-end
-
-local function worldNameByType(typeKey)
-    local w = GameInfo.Worlds[typeKey]
-    if w == nil then return nil end
-    return Text.key(w.Description)
-end
-
-local _mapSizeLabelsCache
-local function mapTypeSizeLabels()
-    if _mapSizeLabelsCache ~= nil then return _mapSizeLabelsCache end
-
-    -- Build mapScripts mirroring base AdvancedSetup MapTypes.FullSync.
-    local mapScripts = {
-        [0] = { name = Locale.ConvertTextKey("TXT_KEY_RANDOM_MAP_SCRIPT"),
-                allSizes = true },
-    }
-    for row in GameInfo.MapScripts{SupportsSinglePlayer = 1, Hidden = 0} do
-        mapScripts[#mapScripts + 1] = {
-            name     = Locale.ConvertTextKey(row.Name),
-            allSizes = true,  -- pure script: size is input, not constraint
-        }
-    end
-    for row in GameInfo.Maps() do
-        local sizes = {}
-        for srow in GameInfo.Map_Sizes{MapType = row.Type} do
-            sizes[#sizes + 1] = worldNameByType(srow.WorldSizeType)
-        end
-        mapScripts[#mapScripts + 1] = {
-            name  = Locale.Lookup(row.Name),
-            sizes = sizes,
-        }
-    end
-    -- Loose WB files (not in Map_Sizes): pinned to wb.MapSize.
-    local filter = {}
-    for row in GameInfo.Map_Sizes() do filter[row.FileName] = true end
-    for _, map in ipairs(Modding.GetMapFiles()) do
-        if not filter[map.File] then
-            local wb = UI.GetMapPreview(map.File)
-            local name
-            if map.Name and not Locale.IsNilOrWhitespace(map.Name) then
-                name = map.Name
-            elseif wb ~= nil and not Locale.IsNilOrWhitespace(wb.Name) then
-                name = Locale.Lookup(wb.Name)
-            else
-                name = Path.GetFileNameWithoutExtension(map.File)
-            end
-            local sizes = {}
-            if wb ~= nil and wb.MapSize ~= nil then
-                local s = worldNameById(wb.MapSize)
-                if s ~= nil then sizes[#sizes + 1] = s end
-            end
-            mapScripts[#mapScripts + 1] = { name = name, sizes = sizes }
-        end
-    end
-
-    table.sort(mapScripts,
-        function(a, b) return Locale.Compare(a.name, b.name) == -1 end)
-
-    local total
-    do
-        local n = 0
-        for _ in GameInfo.Worlds("ID >= 0") do n = n + 1 end
-        total = n
-    end
-
-    local labels = {}
-    for i, s in ipairs(mapScripts) do
-        if s.allSizes or s.sizes == nil or #s.sizes == 0 then
-            labels[i] = nil
-        elseif #s.sizes == total then
-            -- Constrained set covers every size the game ships; no signal.
-            labels[i] = nil
-        elseif #s.sizes == 1 then
-            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY",
-                s.sizes[1])
-        else
-            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED",
-                table.concat(s.sizes, ", "))
-        end
-    end
-    _mapSizeLabelsCache = labels
-    return labels
-end
-
-local function mapTypeEntryAnnounce(inst, index)
-    local text  = safeText(function() return inst.Button:GetText() end,
-        "MapType entry GetText")
-    local parts = { text }
-    local sizeInfo = mapTypeSizeLabels()[index]
-    if sizeInfo ~= nil and sizeInfo ~= "" then
-        parts[#parts + 1] = sizeInfo
-    end
-    local combined = table.concat(parts, ", ")
-    local tip      = safeText(function() return inst.Button:GetToolTipString() end,
-        "MapType entry GetToolTipString")
-    if tip ~= "" then
-        return BaseMenuItems.appendTooltip(combined, tip)
-    end
-    return combined
-end
-
 -- Helpers -----------------------------------------------------------------
 
 -- Read a widget string (label / tooltip / button text) and surface any
@@ -480,8 +358,7 @@ buildItems = function()
     return {
         -- Global settings.
         BaseMenuItems.Pulldown({ controlName = "MapTypePullDown",
-            textKey         = "TXT_KEY_AD_SETUP_MAP_TYPE",
-            entryAnnounceFn = mapTypeEntryAnnounce }),
+            textKey = "TXT_KEY_AD_SETUP_MAP_TYPE" }),
         BaseMenuItems.Pulldown({ controlName = "MapSizePullDown",
             textKey = "TXT_KEY_AD_SETUP_MAP_SIZE" }),
         BaseMenuItems.Pulldown({ controlName = "HandicapPullDown",
@@ -542,13 +419,12 @@ handler = BaseMenu.install(ContextPtr, {
     end,
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
-    -- onShow invalidates the two label caches so DLC / mod toggles that
-    -- happened since the prior show don't leave stale civ-detail or
-    -- map-size-constraint announcements. Dynamic groups are already
-    -- cached=false so they pick up widget-state changes on every drill.
+    -- onShow invalidates the civ-labels cache so DLC / mod toggles that
+    -- happened since the prior show don't leave stale announcements.
+    -- Dynamic groups are already cached=false so they pick up widget-
+    -- state changes on every drill.
     onShow        = function()
-        _civLabelsCache     = nil
-        _mapSizeLabelsCache = nil
+        _civLabelsCache = nil
     end,
     items         = buildItems(),
 })
