@@ -478,6 +478,17 @@ local function harvestTextSections(leaves)
     end
 end
 
+-- Drop the header when it just repeats the article title (e.g. the
+-- per-category DisplayHomePage writes "Technologies" into both ArticleID
+-- and the BBText block's header, so without this guard every Intro speaks
+-- its category name twice: once from the picker selection, once as the
+-- first block header).
+local function dropTitleEchoHeader(header, title)
+    if header == nil or header == "" then return "" end
+    if title ~= nil and title ~= "" and header == title then return "" end
+    return header
+end
+
 -- FFTextStack: free-form per-instance {header, body} pairs used for
 -- Civilizations (unique ability write-up) and richer profile pages. Each
 -- instance has FFTextHeader + FFTextLabel. Skip when stack is hidden:
@@ -486,8 +497,9 @@ local function harvestFreeFormText(leaves)
     if safeIsHidden(Controls.FFTextStack) then return end
     local mgr = g_FreeFormTextManager
     if mgr == nil or mgr.m_AllocatedInstances == nil then return end
+    local title = safeGetText(Controls.ArticleID)
     for _, instance in ipairs(mgr.m_AllocatedInstances) do
-        local header = safeGetText(instance.FFTextHeader)
+        local header = dropTitleEchoHeader(safeGetText(instance.FFTextHeader), title)
         local body   = safeGetText(instance.FFTextLabel)
         addLeaf(leaves, header, body)
     end
@@ -499,8 +511,9 @@ local function harvestBBText(leaves)
     if safeIsHidden(Controls.BBTextStack) then return end
     local mgr = g_BBTextManager
     if mgr == nil or mgr.m_AllocatedInstances == nil then return end
+    local title = safeGetText(Controls.ArticleID)
     for _, instance in ipairs(mgr.m_AllocatedInstances) do
-        local header = safeGetText(instance.BBTextHeader)
+        local header = dropTitleEchoHeader(safeGetText(instance.BBTextHeader), title)
         local body   = safeGetText(instance.BBTextLabel)
         addLeaf(leaves, header, body)
     end
