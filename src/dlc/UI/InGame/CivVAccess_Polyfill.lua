@@ -41,6 +41,7 @@ Keys = Keys or {
     VK_UP     = 38,
     VK_RIGHT  = 39,
     VK_DOWN   = 40,
+    VK_F1     = 112,
 }
 
 -- Widget factories for BaseMenu + BaseMenuItems unit tests. The engine backs these with

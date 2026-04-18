@@ -22,6 +22,8 @@
 --   Shift+Left / Right    slider big-step adjust
 --   Ctrl+Up / Ctrl+Down   prev / next sibling group at the parent level
 --   Tab / Shift+Tab       cycle tabs (when spec has tabs)
+--   F1                    re-speak displayName + preamble (re-reads the
+--                         live value of a function preamble)
 --   Esc                   at level > 1 go back a level; at level 1 bypass
 --                         to screen's priorInput
 --
@@ -480,6 +482,8 @@ function BaseMenu.create(spec)
           fn = function() onTab(self) end },
         { key = Keys.VK_TAB,    mods = MOD_SHIFT, description = "Previous tab",
           fn = function() onShiftTab(self) end },
+        { key = Keys.VK_F1,     mods = 0,         description = "Read screen header",
+          fn = function() self.readHeader() end },
     }
     if spec.escapePops then
         self.bindings[#self.bindings + 1] = {
@@ -604,6 +608,18 @@ function BaseMenu.create(spec)
         if idx == nil then return end
         self._level = 1
         self._indices = { idx }
+    end
+
+    -- Re-speak the displayName + current preamble. Resolves a function
+    -- preamble fresh so F1 reads live state, and syncs lastPreambleText so
+    -- a later refresh() against an unchanged value stays a no-op.
+    function self.readHeader()
+        SpeechPipeline.speakInterrupt(self.displayName)
+        local preambleText = resolvePreamble(self)
+        if preambleText ~= nil and preambleText ~= "" then
+            SpeechPipeline.speakQueued(preambleText)
+            lastPreambleText = preambleText
+        end
     end
 
     -- Re-evaluate a function preamble; speakInterrupt if the result changed

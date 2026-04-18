@@ -1108,6 +1108,66 @@ function M.test_refresh_fn_error_logged_no_crash()
     T.eq(#speaks, 0)
 end
 
+-- F1 / readHeader ------------------------------------------------------
+
+function M.test_f1_speaks_displayName_then_preamble()
+    setup()
+    setCtrls({"A"})
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        preamble = "intro body", items = buttonSpec({"A"}) })
+    HandlerStack.push(h)
+    speaks = {}
+    SpeechPipeline._reset()
+    InputRouter.dispatch(Keys.VK_F1, 0, WM_KEYDOWN)
+    T.eq(#speaks, 2)
+    T.eq(speaks[1].text, "Screen")
+    T.truthy(speaks[1].interrupt)
+    T.eq(speaks[2].text, "intro body")
+    T.falsy(speaks[2].interrupt)
+end
+
+function M.test_f1_with_no_preamble_speaks_displayName_only()
+    setup()
+    setCtrls({"A"})
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = buttonSpec({"A"}) })
+    HandlerStack.push(h)
+    speaks = {}
+    SpeechPipeline._reset()
+    InputRouter.dispatch(Keys.VK_F1, 0, WM_KEYDOWN)
+    T.eq(#speaks, 1)
+    T.eq(speaks[1].text, "Screen")
+end
+
+function M.test_f1_resolves_function_preamble_live()
+    setup()
+    setCtrls({"A"})
+    local body = "first"
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        preamble = function() return body end, items = buttonSpec({"A"}) })
+    HandlerStack.push(h)
+    body = "second"
+    speaks = {}
+    SpeechPipeline._reset()
+    InputRouter.dispatch(Keys.VK_F1, 0, WM_KEYDOWN)
+    T.eq(speaks[2].text, "second", "F1 re-resolves the function preamble")
+end
+
+function M.test_f1_syncs_lastPreambleText_so_refresh_is_noop()
+    setup()
+    setCtrls({"A"})
+    local body = "first"
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        preamble = function() return body end, items = buttonSpec({"A"}) })
+    HandlerStack.push(h)
+    body = "second"
+    SpeechPipeline._reset()
+    InputRouter.dispatch(Keys.VK_F1, 0, WM_KEYDOWN)
+    speaks = {}
+    h.refresh()
+    T.eq(#speaks, 0, "refresh after F1 sees no change vs last spoken value")
+end
+
 -- Empty items -----------------------------------------------------------
 
 function M.test_empty_items_onActivate_speaks_displayName_only()
