@@ -31,16 +31,18 @@ function BaselineHandler.create()
         name = "Baseline",
         capturesAllInput = false,
         bindings = {
-            bind(Keys.VK_Q, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHWEST), "Move cursor NW"),
-            bind(Keys.VK_E, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHEAST), "Move cursor NE"),
-            bind(Keys.VK_A, MOD_NONE, moveDir(DirectionTypes.DIRECTION_WEST),      "Move cursor W"),
-            bind(Keys.VK_D, MOD_NONE, moveDir(DirectionTypes.DIRECTION_EAST),      "Move cursor E"),
-            bind(Keys.VK_Z, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHWEST), "Move cursor SW"),
-            bind(Keys.VK_C, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHEAST), "Move cursor SE"),
-            bind(Keys.VK_S, MOD_NONE,  function() speak(Cursor.orient())   end, "Orient from capital"),
-            bind(Keys.VK_S, MOD_SHIFT, function() speak(Cursor.recenter()) end, "Recenter on selected unit"),
-            bind(Keys.VK_W, MOD_NONE,  function() speak(Cursor.economy())  end, "Economy details"),
-            bind(Keys.VK_X, MOD_NONE,  function() speak(Cursor.combat())   end, "Combat details"),
+            -- Letter keys in Civ V's Keys enum are `Keys.<letter>` (no VK_
+            -- prefix); only special keys use VK_ (VK_LEFT, VK_ESCAPE, etc.).
+            bind(Keys.Q, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHWEST), "Move cursor NW"),
+            bind(Keys.E, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHEAST), "Move cursor NE"),
+            bind(Keys.A, MOD_NONE, moveDir(DirectionTypes.DIRECTION_WEST),      "Move cursor W"),
+            bind(Keys.D, MOD_NONE, moveDir(DirectionTypes.DIRECTION_EAST),      "Move cursor E"),
+            bind(Keys.Z, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHWEST), "Move cursor SW"),
+            bind(Keys.C, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHEAST), "Move cursor SE"),
+            bind(Keys.S, MOD_NONE,  function() speak(Cursor.orient())   end, "Orient from capital"),
+            bind(Keys.S, MOD_SHIFT, function() speak(Cursor.recenter()) end, "Recenter on selected unit"),
+            bind(Keys.W, MOD_NONE,  function() speak(Cursor.economy())  end, "Economy details"),
+            bind(Keys.X, MOD_NONE,  function() speak(Cursor.combat())   end, "Combat details"),
         },
         helpEntries = {
             { keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE",

@@ -102,8 +102,8 @@ Mouse = Mouse or {
     eMClick  = 3,
 }
 
--- Windows virtual-key codes. Subset that the mod's bindings actually name by
--- Keys.* rather than numeric literal; grow this list as new bindings appear.
+-- Civ V's Keys enum: letter keys are `Keys.<letter>` (no VK_ prefix),
+-- special keys use VK_. Grow this list as new bindings appear.
 Keys = Keys or {
     VK_BACK   =  8,
     VK_TAB    =  9,
@@ -116,16 +116,19 @@ Keys = Keys or {
     VK_UP     = 38,
     VK_RIGHT  = 39,
     VK_DOWN   = 40,
-    VK_A      = 65,
-    VK_C      = 67,
-    VK_D      = 68,
-    VK_E      = 69,
-    VK_Q      = 81,
-    VK_S      = 83,
-    VK_W      = 87,
-    VK_X      = 88,
-    VK_Z      = 90,
+    A         = 65,
+    C         = 67,
+    D         = 68,
+    E         = 69,
+    N         = 78,
+    Q         = 81,
+    S         = 83,
+    W         = 87,
+    X         = 88,
+    Y         = 89,
+    Z         = 90,
     VK_F1     = 112,
+    VK_F2     = 113,
 }
 
 -- Widget factories for BaseMenu + BaseMenuItems unit tests. The engine backs these with

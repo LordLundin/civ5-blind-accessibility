@@ -41,8 +41,8 @@ end
 function M.test_movement_bindings_dispatch_to_cursor_with_correct_direction()
     setup()
     local h = BaselineHandler.create()
-    findBinding(h, Keys.VK_Q, 0).fn()
-    findBinding(h, Keys.VK_E, 0).fn()
+    findBinding(h, Keys.Q, 0).fn()
+    findBinding(h, Keys.E, 0).fn()
     T.eq(Cursor._calls[1], "move:" .. tostring(DirectionTypes.DIRECTION_NORTHWEST))
     T.eq(Cursor._calls[2], "move:" .. tostring(DirectionTypes.DIRECTION_NORTHEAST))
 end
@@ -50,8 +50,8 @@ end
 function M.test_shift_s_recenters_plain_s_orients()
     setup()
     local h = BaselineHandler.create()
-    findBinding(h, Keys.VK_S, 0).fn()  -- plain
-    findBinding(h, Keys.VK_S, 1).fn()  -- shift
+    findBinding(h, Keys.S, 0).fn()  -- plain
+    findBinding(h, Keys.S, 1).fn()  -- shift
     T.eq(Cursor._calls[1], "orient")
     T.eq(Cursor._calls[2], "recenter")
 end
