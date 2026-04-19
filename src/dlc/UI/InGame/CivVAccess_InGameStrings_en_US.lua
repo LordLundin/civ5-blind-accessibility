@@ -37,6 +37,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL"]            = "Cancel"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE"]             = "Close"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL_EDIT"]       = "Cancel edit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT"]       = "Commit edit"
+-- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
+-- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
+-- Contexts are sandboxed: an in-game screen that uses these item kinds
+-- needs them present in the InGame Context's string table.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"]             = "selected"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"]                    = "on"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"]                   = "off"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"]              = "edit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"]             = "blank"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"]           = "editing {1_Label}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"]          = "{1_Label} restored"
 -- GameMenu (Esc pause menu) strings. Details tab reuses the base game's
 -- TXT_KEY_POPUP_GAME_DETAILS, so no mod-authored tab label here.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GAME_MENU"]            = "Pause Menu"
