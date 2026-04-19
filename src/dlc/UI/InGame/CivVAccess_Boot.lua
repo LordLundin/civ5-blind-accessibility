@@ -10,6 +10,11 @@ include("CivVAccess_HandlerStack")
 include("CivVAccess_InputRouter")
 include("CivVAccess_TickPump")
 include("CivVAccess_Nav")
+include("CivVAccess_PlotSections")
+include("CivVAccess_PlotSectionUnits")
+include("CivVAccess_PlotSectionRiver")
+include("CivVAccess_PlotComposers")
+include("CivVAccess_Cursor")
 include("CivVAccess_BaselineHandler")
 
 -- Boot fires any time a new in-game Context loads, which may include the
@@ -22,6 +27,7 @@ local function onInGameBoot()
     HandlerStack.removeByName("Baseline")
     HandlerStack.push(BaselineHandler.create())
     TickPump.install(ContextPtr)
+    Cursor.init()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
 end
 

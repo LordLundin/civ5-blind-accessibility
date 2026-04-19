@@ -5,6 +5,47 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"]     = "Civilization V accessibility loaded in-game."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
+-- Cursor / hex-grid handler. Direction tokens are short forms (e, ne, ...)
+-- because experienced screen-reader users prefer shorter speech and these
+-- appear in tight contexts (per-move river edges, capital orientation).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E"]               = "e"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE"]              = "ne"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"]              = "se"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"]              = "sw"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"]               = "w"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"]              = "nw"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"]         = "edge of map"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNCLAIMED"]           = "unclaimed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNEXPLORED"]          = "unexplored"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"]          = "capital"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_UNIT_SELECTED"]    = "no unit selected"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_PREFIX"]        = "river"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES"]     = "river all sides"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"]         = "fresh water"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE"]         = "trade route"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PILLAGED_SUFFIX"]     = "pillaged"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HILLS"]               = "hills"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOUNTAIN"]            = "mountain"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAKE"]                = "lake"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HP_FORMAT"]           = "{1_Num} hp"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_PROGRESS"]      = "{1_Build} {2_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WORKED_BY"]           = "worked by {1_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"]         = "{1_Pct} percent defense"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"]     = "in enemy zone of control"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEEDS_TECH_TO_USE"]   = "requires {1_Tech}"
+-- Cursor help-overlay key labels: chord forms shared with the main letter
+-- cluster. One TXT_KEY per chord because Help dedupes by keyLabel string and
+-- the chords don't merge cleanly into a single label (Q is its own meaning).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"]      = "Q, W, E, A, S, D, Z, X, C cluster"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"]     = "Move cursor by hex (Q nw, E ne, A w, D e, Z sw, C se)"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ORIENT"]    = "S"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ORIENT"]   = "Distance and direction from capital"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_RECENTER"]  = "Shift plus S"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_RECENTER"] = "Recenter cursor on selected unit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"]   = "W"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"]  = "Economy details for current tile"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"]    = "X"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT"]   = "Combat details for current tile"
 -- Help overlay strings (see FrontEnd strings for the authoring rationale).
 -- Duplicated here because Contexts are sandboxed: in-game Contexts that
 -- eventually wire SetInputHandler through InputRouter need their own copy.

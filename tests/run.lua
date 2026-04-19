@@ -12,6 +12,24 @@ dofile("src/dlc/UI/InGame/CivVAccess_InGameStrings_en_US.lua")
 -- HandlerStack and others read it as a module-level reference.
 civvaccess_shared = civvaccess_shared or {}
 
+-- Override Locale.ConvertTextKey so it runs the engine's {N_Tag} positional
+-- substitution. The polyfill's passthrough is enough to avoid load-time
+-- crashes but loses the substitution behavior the cursor / city sections
+-- rely on for game-side keys (TXT_KEY_CITY_OF, TXT_KEY_PLOTROLL_*) -- mod-
+-- authored CivVAccess keys go through CivVAccess_Strings and don't need
+-- this. Existing suites pass single-arg keys, which short-circuit through
+-- the no-args branch unchanged.
+Locale = Locale or {}
+Locale.ConvertTextKey = function(key, ...)
+    local args = { ... }
+    if #args == 0 then return key end
+    return (key:gsub("{(%d+)_[^}]*}", function(n)
+        local v = args[tonumber(n)]
+        if v == nil then return "" end
+        return tostring(v)
+    end))
+end
+
 -- Log and SpeechEngine stay as test-owned capturing stubs so suites can
 -- monkey-patch them (warn-capture, stop() observation). They're deliberately
 -- not in the polyfill: production code owns the real implementations and
@@ -39,5 +57,6 @@ T.register("type_ahead", require("type_ahead_test"))
 T.register("help", require("help_test"))
 T.register("picker_reader", require("picker_reader_test"))
 T.register("icons", require("icons_test"))
+T.register("cursor", require("cursor_test"))
 
 os.exit(T.run() and 0 or 1)

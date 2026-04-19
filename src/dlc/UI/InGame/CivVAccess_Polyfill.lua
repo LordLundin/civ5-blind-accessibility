@@ -11,14 +11,88 @@ Locale = Locale or {
 }
 
 UI = UI or {
-    ShiftKeyDown = function() return false end,
-    CtrlKeyDown  = function() return false end,
-    AltKeyDown   = function() return false end,
+    ShiftKeyDown      = function() return false end,
+    CtrlKeyDown       = function() return false end,
+    AltKeyDown        = function() return false end,
+    LookAt            = function(_plot, _flag) end,
+    GetHeadSelectedUnit = function() return nil end,
 }
 
 Events = Events or {
     AudioPlay2DSound = function(_scriptID) end,
 }
+
+-- Map / Game / Players / Teams / GameInfo are populated by the engine in-game.
+-- Offline tests overwrite these tables per-suite to drive the cursor; the
+-- polyfill's job is just to ensure the names resolve so the Cursor / sections
+-- modules dofile without indexing nil at top level. Stub functions return
+-- engine-equivalent "nothing here" sentinels so a section that runs against
+-- the bare polyfill (no test setup) silently produces no output rather than
+-- crashing.
+Map = Map or {
+    GetPlot       = function(_x, _y) return nil end,
+    GetPlotXY     = function(_x, _y, _dx, _dy) return nil end,
+    PlotDirection = function(_x, _y, _dir) return nil end,
+    PlotDistance  = function(_x1, _y1, _x2, _y2) return 0 end,
+    GetGridSize   = function() return 0, 0 end,
+    GetNumPlots   = function() return 0 end,
+    IsWrapX       = function() return false end,
+    IsWrapY       = function() return false end,
+}
+
+Game = Game or {
+    GetActivePlayer = function() return 0 end,
+    GetActiveTeam   = function() return 0 end,
+    IsDebugMode     = function() return false end,
+}
+
+Players  = Players  or {}
+Teams    = Teams    or {}
+GameInfo = GameInfo or {}
+
+DirectionTypes = DirectionTypes or {
+    NO_DIRECTION         = -1,
+    DIRECTION_NORTHEAST  = 0,
+    DIRECTION_EAST       = 1,
+    DIRECTION_SOUTHEAST  = 2,
+    DIRECTION_SOUTHWEST  = 3,
+    DIRECTION_WEST       = 4,
+    DIRECTION_NORTHWEST  = 5,
+}
+
+-- Engine values are PLOT_MOUNTAIN=0, PLOT_HILLS=1, PLOT_LAND=2, PLOT_OCEAN=3.
+-- Tests can assert against these names regardless of the underlying number.
+PlotTypes = PlotTypes or {
+    NO_PLOT       = -1,
+    PLOT_MOUNTAIN = 0,
+    PLOT_HILLS    = 1,
+    PLOT_LAND     = 2,
+    PLOT_OCEAN    = 3,
+}
+
+FeatureTypes = FeatureTypes or { NO_FEATURE = -1 }
+TerrainTypes = TerrainTypes or { NO_TERRAIN = -1 }
+ResourceTypes = ResourceTypes or { NO_RESOURCE = -1 }
+ImprovementTypes = ImprovementTypes or { NO_IMPROVEMENT = -1 }
+RouteTypes = RouteTypes or { NO_ROUTE = -1 }
+
+YieldTypes = YieldTypes or {
+    YIELD_FOOD       = 0,
+    YIELD_PRODUCTION = 1,
+    YIELD_GOLD       = 2,
+    YIELD_SCIENCE    = 3,
+    YIELD_CULTURE    = 4,
+    YIELD_FAITH      = 5,
+}
+
+DomainTypes = DomainTypes or {
+    DOMAIN_LAND  = 0,
+    DOMAIN_SEA   = 1,
+    DOMAIN_AIR   = 2,
+    DOMAIN_HOVER = 3,
+}
+
+GameDefines = GameDefines or { MAX_HIT_POINTS = 100 }
 
 -- Mouse event constants. Engine exposes these; offline we just need a few
 -- distinct numbers for tests that register per-button click callbacks.
@@ -42,6 +116,15 @@ Keys = Keys or {
     VK_UP     = 38,
     VK_RIGHT  = 39,
     VK_DOWN   = 40,
+    VK_A      = 65,
+    VK_C      = 67,
+    VK_D      = 68,
+    VK_E      = 69,
+    VK_Q      = 81,
+    VK_S      = 83,
+    VK_W      = 87,
+    VK_X      = 88,
+    VK_Z      = 90,
     VK_F1     = 112,
 }
 
