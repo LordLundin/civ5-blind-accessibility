@@ -37,6 +37,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL"]            = "Cancel"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE"]             = "Close"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL_EDIT"]       = "Cancel edit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT"]       = "Commit edit"
+-- GameMenu (Esc pause menu) strings.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GAME_MENU"]            = "Pause Menu"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB"]        = "Actions"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_DETAILS_TAB"]        = "Game Details"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_MODS_TAB"]           = "Mods"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_NO_MODS"]            = "No mods activated."
 -- Civilopedia (picker/reader two-tab) strings.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_CATEGORIES_TAB"]        = "Categories"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_CONTENT_TAB"]           = "Content"
