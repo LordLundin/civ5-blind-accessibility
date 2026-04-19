@@ -1,24 +1,19 @@
--- GameMenu accessibility wiring. Three-tab BaseMenu:
---   Actions tab: Resume / QuickSave / Save / Load / Options / Restart /
---     Retire / Main Menu / Exit. Each Button reuses the same Controls.X the
---     base OnShowHide hides per multiplayer / scenario / tutorial / mod
---     flags, so our isNavigable / isActivatable propagate the engine's
---     visibility and disabled state without re-deriving them.
---   Details tab: synthesized Text items re-queried at announce time from
---     PreGame / GameInfo (leader, civ, era, map script, world size,
---     handicap, speed, each enabled victory, each enabled GameOption).
---     Mirrors what PopulateGameData / PopulateGameOptions feed the visual
---     panel; labelFn runs fresh on every navigate so hotseat hand-offs
---     between active players show the new player's handicap.
---   Mods tab: one Text item per Modding.GetActivatedMods() entry, sorted
---     and built on tab entry. Activated mods are fixed for the session.
--- Each tab's showPanel swaps the base screen's visual panels so a sighted
--- observer's view matches the active tab.
+-- GameMenu (Esc pause menu) accessibility. Three-tab BaseMenu.
 --
--- ExitConfirm yes/no is an overlay inside this Context (not a separate
--- LuaContext). The Main Menu item pushes a modal sub-handler with
--- capturesAllInput; bindings fire OnYes / OnNo, and a tick watches
--- ExitConfirm visibility so externally-driven dismissal pops us too.
+-- ExitConfirm yes/no is an overlay inside this Context, not a separate
+-- LuaContext -- clicking Main Menu toggles Controls.ExitConfirm visible
+-- rather than queuing a new popup. So we push a modal sub-handler with
+-- capturesAllInput on the same Context, and its tick watches
+-- ExitConfirm:IsHidden() to pop itself when any other path (debug
+-- hot-reload, a future base-code edit we haven't traced) dismisses it.
+--
+-- Details labelFns re-query on every navigate so hotseat hand-offs show
+-- the new active player's handicap without rebuilding the list. Victory
+-- and game-option entries are session-fixed and use labelText.
+--
+-- showPanel drives MainContainer / DetailsPanel / ModsPanel to absolute
+-- state (the base's OnGameDetails / OnGameMods are toggles rather than
+-- setters) so the sighted view follows our tab.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -44,56 +39,38 @@ include("CivVAccess_Help")
 local priorShowHide = OnShowHide
 local priorInput    = InputHandler
 
-local ACTIONS_TAB = 1
 local DETAILS_TAB = 2
 local MODS_TAB    = 3
 
 -- Panel visibility ------------------------------------------------------
 
--- The base game toggles MainContainer vs DetailsPanel vs ModsPanel through
--- OnGameDetails / OnGameMods, but those are toggles rather than setters.
--- We drive absolute state per tab so tab switches always land on the
--- correct panel for a sighted observer.
-local function showMainContainer()
-    if Controls.DetailsPanel  then Controls.DetailsPanel:SetHide(true) end
-    if Controls.ModsPanel     then Controls.ModsPanel:SetHide(true) end
-    if Controls.MainContainer then Controls.MainContainer:SetHide(false) end
+local function showPanel(active)
+    Controls.MainContainer:SetHide(active ~= Controls.MainContainer)
+    Controls.DetailsPanel :SetHide(active ~= Controls.DetailsPanel)
+    Controls.ModsPanel    :SetHide(active ~= Controls.ModsPanel)
 end
 
-local function showDetailsPanel()
-    if Controls.ModsPanel     then Controls.ModsPanel:SetHide(true) end
-    if Controls.MainContainer then Controls.MainContainer:SetHide(true) end
-    if Controls.DetailsPanel  then Controls.DetailsPanel:SetHide(false) end
-end
-
-local function showModsPanel()
-    if Controls.DetailsPanel  then Controls.DetailsPanel:SetHide(true) end
-    if Controls.MainContainer then Controls.MainContainer:SetHide(true) end
-    if Controls.ModsPanel     then Controls.ModsPanel:SetHide(false) end
-end
+local function showMainContainer() showPanel(Controls.MainContainer) end
+local function showDetailsPanel()  showPanel(Controls.DetailsPanel)  end
+local function showModsPanel()     showPanel(Controls.ModsPanel)     end
 
 -- ExitConfirm modal ----------------------------------------------------
 
 local function makeExitConfirmHandler()
-    local function closeSub()
-        HandlerStack.removeByName("GameMenuExitConfirm", true)
+    local function closeSub(reactivate)
+        HandlerStack.removeByName("GameMenuExitConfirm", reactivate ~= false)
     end
     local function pressYes()
-        if type(OnYes) == "function" then
-            local ok, err = pcall(OnYes)
-            if not ok then
-                Log.error("GameMenuAccess: OnYes failed: " .. tostring(err))
-            end
-        end
-        closeSub()
+        local ok, err = pcall(OnYes)
+        if not ok then Log.error("GameMenuAccess: OnYes failed: " .. tostring(err)) end
+        -- reactivate=false: OnYes fires Events.ExitToMainMenu which tears
+        -- down the session; re-announcing the parent GameMenu handler's
+        -- focused item mid-teardown is garbage speech.
+        closeSub(false)
     end
     local function pressNo()
-        if type(OnNo) == "function" then
-            local ok, err = pcall(OnNo)
-            if not ok then
-                Log.error("GameMenuAccess: OnNo failed: " .. tostring(err))
-            end
-        end
+        local ok, err = pcall(OnNo)
+        if not ok then Log.error("GameMenuAccess: OnNo failed: " .. tostring(err)) end
         closeSub()
     end
     return {
@@ -109,6 +86,9 @@ local function makeExitConfirmHandler()
             { key = Keys.VK_ESCAPE, mods = 0, description = "Cancel",
               fn  = pressNo },
         },
+        -- Empty by deliberate decision: Y/N/Enter/Esc on a yes/no prompt is
+        -- the screen-reader-idiomatic chord set; listing it in the help
+        -- overlay is noise.
         helpEntries = {},
         onActivate = function(self)
             local text
@@ -117,17 +97,11 @@ local function makeExitConfirmHandler()
                 if ok and t ~= nil and t ~= "" then text = t end
             end
             if text == nil then
-                text = Locale.ConvertTextKey("TXT_KEY_MENU_RETURN_MM_WARN")
+                text = Text.key("TXT_KEY_MENU_RETURN_MM_WARN")
             end
             SpeechPipeline.speakInterrupt(text)
         end,
-        -- Covers externally-driven dismissal: OnYes hides ExitConfirm before
-        -- firing ExitToMainMenu, and the ShowHide for the transition will
-        -- unwind our parent handler anyway -- but if any other path closes
-        -- the confirm (base code we haven't traced, debug hot-reload),
-        -- the tick keeps the stack coherent.
         tick = function(self)
-            if Controls.ExitConfirm == nil then return end
             if Controls.ExitConfirm:IsHidden() then closeSub() end
         end,
     }
@@ -136,12 +110,10 @@ end
 -- Actions tab ----------------------------------------------------------
 
 local function mainMenuActivate()
-    if type(OnMainMenu) == "function" then
-        local ok, err = pcall(OnMainMenu)
-        if not ok then
-            Log.error("GameMenuAccess: OnMainMenu failed: " .. tostring(err))
-            return
-        end
+    local ok, err = pcall(OnMainMenu)
+    if not ok then
+        Log.error("GameMenuAccess: OnMainMenu failed: " .. tostring(err))
+        return
     end
     HandlerStack.push(makeExitConfirmHandler())
 end
@@ -149,115 +121,87 @@ end
 local function buildActionsItems()
     return {
         BaseMenuItems.Button({ controlName = "ReturnButton",
-            textKey  = "TXT_KEY_MENU_RETURN_TO_GAME",
-            activate = function() OnReturn() end }),
+            textKey = "TXT_KEY_MENU_RETURN_TO_GAME",      activate = OnReturn }),
         BaseMenuItems.Button({ controlName = "QuickSaveButton",
-            textKey  = "TXT_KEY_MENU_QUICK_SAVE_BUTTON",
-            activate = function() OnQuickSave() end }),
+            textKey = "TXT_KEY_MENU_QUICK_SAVE_BUTTON",   activate = OnQuickSave }),
         BaseMenuItems.Button({ controlName = "SaveGameButton",
-            textKey  = "TXT_KEY_MENU_SAVE_BUTTON",
-            activate = function() OnSave() end }),
+            textKey = "TXT_KEY_MENU_SAVE_BUTTON",         activate = OnSave }),
         BaseMenuItems.Button({ controlName = "LoadGameButton",
-            textKey  = "TXT_KEY_MENU_LOAD_GAME_BUTTON",
-            activate = function() OnLoad() end }),
+            textKey = "TXT_KEY_MENU_LOAD_GAME_BUTTON",    activate = OnLoad }),
         BaseMenuItems.Button({ controlName = "OptionsButton",
-            textKey  = "TXT_KEY_MENU_OPTIONS_BUTTON",
-            activate = function() OnOptions() end }),
+            textKey = "TXT_KEY_MENU_OPTIONS_BUTTON",      activate = OnOptions }),
         BaseMenuItems.Button({ controlName = "RestartGameButton",
-            textKey  = "TXT_KEY_MENU_RESTART_GAME_BUTTON",
-            activate = function() OnRestartGame() end }),
+            textKey = "TXT_KEY_MENU_RESTART_GAME_BUTTON", activate = OnRestartGame }),
         BaseMenuItems.Button({ controlName = "RetireButton",
-            textKey  = "TXT_KEY_RETIRE",
-            activate = function() OnRetire() end }),
+            textKey = "TXT_KEY_RETIRE",                   activate = OnRetire }),
         BaseMenuItems.Button({ controlName = "MainMenuButton",
-            textKey  = "TXT_KEY_MENU_EXIT_TO_MAIN",
-            activate = mainMenuActivate }),
+            textKey = "TXT_KEY_MENU_EXIT_TO_MAIN",        activate = mainMenuActivate }),
         BaseMenuItems.Button({ controlName = "ExitGameButton",
-            textKey  = "TXT_KEY_MENU_EXIT_TO_WINDOWS",
-            activate = function() OnExitGame() end }),
+            textKey = "TXT_KEY_MENU_EXIT_TO_WINDOWS",     activate = OnExitGame }),
     }
 end
 
 -- Details tab ----------------------------------------------------------
 
+-- leaderLabel honors PopulateGameData's three-branch precedence: nickname
+-- in network MP, PreGame slot-0 custom leader name, GameInfo fallback.
 local function leaderLabel()
-    local iPlayer = Game.GetActivePlayer()
-    local pPlayer = Players[iPlayer]
+    local pPlayer = Players[Game.GetActivePlayer()]
     local nick    = pPlayer:GetNickName()
     if Game:IsNetworkMultiPlayer() and nick ~= "" then return nick end
-    if iPlayer == Game.GetActivePlayer() and PreGame.GetLeaderName(0) ~= "" then
-        return PreGame.GetLeaderName(0)
-    end
-    local leader = GameInfo.Leaders[pPlayer:GetLeaderType()]
-    return Locale.ConvertTextKey(leader.Description)
-end
-
-local function civLabel()
-    local iPlayer = Game.GetActivePlayer()
-    local pPlayer = Players[iPlayer]
-    if iPlayer == Game.GetActivePlayer()
-            and PreGame.GetCivilizationShortDescription(0) ~= "" then
-        return PreGame.GetCivilizationShortDescription(0)
-    end
-    local info = GameInfo.Civilizations[pPlayer:GetCivilizationType()]
-    return Locale.ConvertTextKey(info.ShortDescription)
-end
-
-local function eraLabel()
-    local era = PreGame.GetEra()
-    if era == nil then return "" end
-    local row = GameInfo.Eras[era]
-    if row == nil then return "" end
-    return Locale.ConvertTextKey("TXT_KEY_START_ERA",
-        Locale.ConvertTextKey(row.Description))
-end
-
-local function mapTypeLabel()
-    local fileName = PreGame.GetMapScript()
-    for row in GameInfo.MapScripts() do
-        if row.FileName == fileName then
-            return Locale.ConvertTextKey("TXT_KEY_AD_MAP_TYPE_SETTING",
-                Locale.ConvertTextKey(row.Name))
-        end
-    end
-    return ""
-end
-
-local function mapSizeLabel()
-    local info = GameInfo.Worlds[PreGame.GetWorldSize()]
-    if info == nil then return "" end
-    return Locale.ConvertTextKey("TXT_KEY_AD_MAP_SIZE_SETTING",
-        Locale.ConvertTextKey(info.Description))
-end
-
-local function handicapLabel()
-    local info = GameInfo.HandicapInfos[PreGame.GetHandicap(Game.GetActivePlayer())]
-    if info == nil then return "" end
-    return Locale.ConvertTextKey("TXT_KEY_AD_HANDICAP_SETTING",
-        Locale.ConvertTextKey(info.Description))
-end
-
-local function speedLabel()
-    local info = GameInfo.GameSpeeds[PreGame.GetGameSpeed()]
-    if info == nil then return "" end
-    return Locale.ConvertTextKey("TXT_KEY_AD_GAME_SPEED_SETTING",
-        Locale.ConvertTextKey(info.Description))
+    if PreGame.GetLeaderName(0) ~= "" then return PreGame.GetLeaderName(0) end
+    return Locale.ConvertTextKey(GameInfo.Leaders[pPlayer:GetLeaderType()].Description)
 end
 
 local function buildDetailsItems()
     local items = {}
     items[#items + 1] = BaseMenuItems.Text({ labelFn = leaderLabel })
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = civLabel })
+    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
+        if PreGame.GetCivilizationShortDescription(0) ~= "" then
+            return PreGame.GetCivilizationShortDescription(0)
+        end
+        local t = Players[Game.GetActivePlayer()]:GetCivilizationType()
+        return Locale.ConvertTextKey(GameInfo.Civilizations[t].ShortDescription)
+    end })
     if PreGame.GetEra() ~= nil then
-        items[#items + 1] = BaseMenuItems.Text({ labelFn = eraLabel })
+        items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
+            local row = GameInfo.Eras[PreGame.GetEra()]
+            if row == nil then return "" end
+            return Locale.ConvertTextKey("TXT_KEY_START_ERA",
+                Locale.ConvertTextKey(row.Description))
+        end })
     end
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = mapTypeLabel })
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = mapSizeLabel })
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = handicapLabel })
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = speedLabel })
+    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
+        local fileName = PreGame.GetMapScript()
+        for row in GameInfo.MapScripts() do
+            if row.FileName == fileName then
+                return Locale.ConvertTextKey("TXT_KEY_AD_MAP_TYPE_SETTING",
+                    Locale.ConvertTextKey(row.Name))
+            end
+        end
+        return ""
+    end })
+    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
+        local info = GameInfo.Worlds[PreGame.GetWorldSize()]
+        if info == nil then return "" end
+        return Locale.ConvertTextKey("TXT_KEY_AD_MAP_SIZE_SETTING",
+            Locale.ConvertTextKey(info.Description))
+    end })
+    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
+        local info = GameInfo.HandicapInfos[PreGame.GetHandicap(Game.GetActivePlayer())]
+        if info == nil then return "" end
+        return Locale.ConvertTextKey("TXT_KEY_AD_HANDICAP_SETTING",
+            Locale.ConvertTextKey(info.Description))
+    end })
+    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
+        local info = GameInfo.GameSpeeds[PreGame.GetGameSpeed()]
+        if info == nil then return "" end
+        return Locale.ConvertTextKey("TXT_KEY_AD_GAME_SPEED_SETTING",
+            Locale.ConvertTextKey(info.Description))
+    end })
 
-    -- Victories: header line + one per enabled condition. Filter at build
-    -- time so disabled victories don't become navigable empty entries.
+    -- Filter disabled rows at build time: BaseMenuItems.Text is always
+    -- navigable, so an empty labelFn would leave a silent reachable item.
     items[#items + 1] = BaseMenuItems.Text({
         labelText = Locale.ConvertTextKey("TXT_KEY_VICTORYS_FORMAT"),
     })
@@ -269,7 +213,6 @@ local function buildDetailsItems()
         end
     end
 
-    -- Enabled GameOptions, matching PopulateGameOptions' filter.
     local conditions = { Visible = 1 }
     if Game:IsNetworkMultiPlayer() then
         conditions.SupportsMultiplayer = 1
@@ -310,7 +253,8 @@ local function buildModsItems()
     local items = {}
     for _, m in ipairs(sorted) do
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = string.format("%s (v. %d)", m.title, m.version),
+            labelText = Text.format("TXT_KEY_CIVVACCESS_GAMEMENU_MOD_ENTRY",
+                m.title, m.version),
         })
     end
     return items
@@ -318,57 +262,38 @@ end
 
 -- Install --------------------------------------------------------------
 
-local handler
-
 local function wrappedShowHide(bIsHide, bIsInit)
     local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
     if not ok then
         Log.error("GameMenuAccess: priorShowHide failed: " .. tostring(err))
     end
     if bIsHide then
-        -- If the confirm sub-handler is still around (rare: shown at the
-        -- moment the whole menu dequeues), drop it so the stack doesn't
-        -- outlive its Context.
         HandlerStack.removeByName("GameMenuExitConfirm", false)
     end
 end
 
-handler = BaseMenu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name          = "GameMenu",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_GAME_MENU"),
     priorShowHide = wrappedShowHide,
     priorInput    = priorInput,
-    onShow        = function(h)
-        showMainContainer()
-        h.setItems(buildActionsItems(), ACTIONS_TAB)
-        h.setItems(buildDetailsItems(), DETAILS_TAB)
-        h.setItems(buildModsItems(),    MODS_TAB)
-    end,
     tabs = {
         {
             name      = "TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB",
             showPanel = showMainContainer,
-            items     = {
-                BaseMenuItems.Button({ controlName = "ReturnButton",
-                    textKey  = "TXT_KEY_MENU_RETURN_TO_GAME",
-                    activate = function() OnReturn() end }),
-            },
+            items     = buildActionsItems(),
         },
         {
-            name      = "TXT_KEY_CIVVACCESS_GAMEMENU_DETAILS_TAB",
-            showPanel = showDetailsPanel,
-            items     = { BaseMenuItems.Text({ labelText = "" }) },
-            onActivate = function(h)
-                h.setItems(buildDetailsItems(), DETAILS_TAB)
-            end,
+            name       = "TXT_KEY_POPUP_GAME_DETAILS",
+            showPanel  = showDetailsPanel,
+            items      = { BaseMenuItems.Text({ labelText = "" }) },
+            onActivate = function(h) h.setItems(buildDetailsItems(), DETAILS_TAB) end,
         },
         {
-            name      = "TXT_KEY_CIVVACCESS_GAMEMENU_MODS_TAB",
-            showPanel = showModsPanel,
-            items     = { BaseMenuItems.Text({ labelText = "" }) },
-            onActivate = function(h)
-                h.setItems(buildModsItems(), MODS_TAB)
-            end,
+            name       = "TXT_KEY_CIVVACCESS_GAMEMENU_MODS_TAB",
+            showPanel  = showModsPanel,
+            items      = { BaseMenuItems.Text({ labelText = "" }) },
+            onActivate = function(h) h.setItems(buildModsItems(), MODS_TAB) end,
         },
     },
 })
