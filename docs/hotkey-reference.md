@@ -213,6 +213,7 @@ Hotkeys this mod binds on top of the engine defaults. Each must be a conscious c
 | Key | Context | Action | Rationale |
 |---|---|---|---|
 | `Ctrl+Up` / `Ctrl+Down` | Accessible Civilopedia, reader tab | Move to the previous / next article in the picker's flat display order (no wrap) | No engine binding on either combo (confirmed against all Controls / Commands / Missions / Automates / Builds / InterfaceModes XML). Lets the user flip through articles without round-tripping back to the picker. |
+| `F2` | Multiplayer Staging Room | Toggle the accessible chat panel (Messages + Compose tabs) | Engine binds `F2` to Domestic Advisor in-game only; no front-end screen claims it and StagingRoom's own InputHandler doesn't either. Chat is essential to MP coordination but the engine's chat UI is visual scrolling only, so a dedicated panel with history + compose mode is the minimum viable access path. Panel auto-closes on screen hide. |
 
 ---
 

@@ -3,7 +3,18 @@
 --     (wraps the fixed Host-grid Controls), then one Group per populated
 --     non-local slot from civvaccess_shared._stagingSlotInstances, then
 --     LaunchButton (rarely visible -- host + loading-save only) and Back.
---   Game Options tab: placeholder; next round copies the MPGameSetup shape.
+--   Game Options tab: map / size / speed / era / turn-mode pulldowns,
+--     minor-civs slider, max-turns + turn-timer checkbox-edit pairs,
+--     scenario check, and Groups for Victory Conditions / Game Options /
+--     DLC Allowed built off the same InstanceManager m_AllocatedInstances
+--     tables MPGameSetup uses (identical because both include MPGameOptions).
+--
+-- Tab showPanel calls base's OnPlayersPageTab / OnOptionsPageTab so the
+-- visual panels flip with our tab. OnOptionsPageTab also triggers
+-- UpdateGameOptionsDisplay which populates the manager instances; our tab
+-- onActivate then rebuilds items so the Options list reflects the fresh
+-- allocation. Before first Options flip the manager tables are empty, so
+-- rebuild must be lazy.
 --
 -- Slot instance access: StagingRoom.lua's m_SlotInstances is a local table.
 -- Our StagingRoom.lua override appends one line that stashes the table ref
@@ -15,11 +26,19 @@
 -- and speak the deltas against the previous snapshot. Skip the local player
 -- on civ / team / handicap changes (they just heard themselves do it). Chat
 -- messages come through Events.GameMessageChat directly; the inline announce
--- fires regardless of which tab has focus (per user instruction: auto-speak
--- remote deltas, revisit if it turns out to be too chatty).
+-- is suppressed only while the F2 chat panel is the active handler (so the
+-- user's focus there isn't stepped on).
 --
--- The F2 chat panel, full Game Options tab content, and countdown
--- announcements land in a follow-up pass.
+-- Countdown: base's StartCountdown / StopCountdown are wrapped so the access
+-- layer can announce "launching in ten" at start, a per-second count for the
+-- last five seconds, and "countdown cancelled" on early stop. The threshold
+-- and format match g_fCountdownTimer's base-game constants.
+--
+-- F2 chat panel: separate pushed BaseMenu with Messages (history) and
+-- Compose (ChatEntry Textfield) tabs. History buffer lives on
+-- civvaccess_shared so late-opened panels show messages received while
+-- closed. Inline chat speech backs off when the panel is the active
+-- handler so the user's context isn't stepped on.
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_CivDetails")
@@ -275,6 +294,254 @@ local function localSeatChildren()
     }
 end
 
+-- Map-type entries: supported-size suffix -------------------------------
+--
+-- Copied from MPGameSetupAccess because StagingRoom reuses MPGameOptions'
+-- RefreshMapScripts verbatim: same three shapes, same sort order (raw
+-- string compare, no Random seed, no t[0]). Index i in our ipairs matches
+-- pulldown entry index i one-to-one.
+
+local _mpMapSizeLabelsCache
+
+local function worldNameById(worldID)
+    local w = GameInfo.Worlds[worldID]
+    if w == nil then return nil end
+    return Text.key(w.Description)
+end
+
+local function worldNameByType(typeKey)
+    local w = GameInfo.Worlds[typeKey]
+    if w == nil then return nil end
+    return Text.key(w.Description)
+end
+
+local function mpMapTypeSizeLabels()
+    if _mpMapSizeLabelsCache ~= nil then return _mpMapSizeLabelsCache end
+
+    local mapScripts = {}
+    for row in GameInfo.MapScripts{SupportsMultiplayer = 1} do
+        mapScripts[#mapScripts + 1] = {
+            name     = Locale.ConvertTextKey(row.Name),
+            allSizes = true,
+        }
+    end
+    for row in GameInfo.Maps() do
+        local sizes = {}
+        for srow in GameInfo.Map_Sizes{MapType = row.Type} do
+            local s = worldNameByType(srow.WorldSizeType)
+            if s ~= nil then sizes[#sizes + 1] = s end
+        end
+        mapScripts[#mapScripts + 1] = {
+            name  = Locale.Lookup(row.Name),
+            sizes = sizes,
+        }
+    end
+    local filter = {}
+    for row in GameInfo.Map_Sizes() do filter[row.FileName] = true end
+    for _, map in ipairs(Modding.GetMapFiles()) do
+        if not filter[map.File] then
+            local wb = UI.GetMapPreview(map.File)
+            local name
+            if map.Name and not Locale.IsNilOrWhitespace(map.Name) then
+                name = map.Name
+            elseif wb ~= nil and not Locale.IsNilOrWhitespace(wb.Name) then
+                name = Locale.Lookup(wb.Name)
+            else
+                name = Path.GetFileNameWithoutExtension(map.File)
+            end
+            local sizes = {}
+            if wb ~= nil and wb.MapSize ~= nil then
+                local s = worldNameById(wb.MapSize)
+                if s ~= nil then sizes[#sizes + 1] = s end
+            end
+            mapScripts[#mapScripts + 1] = { name = name, sizes = sizes }
+        end
+    end
+
+    table.sort(mapScripts, function(a, b) return a.name < b.name end)
+
+    local total
+    do
+        local n = 0
+        for _ in GameInfo.Worlds("ID >= 0") do n = n + 1 end
+        total = n
+    end
+
+    local labels = {}
+    for i, s in ipairs(mapScripts) do
+        if s.allSizes or s.sizes == nil or #s.sizes == 0 then
+            labels[i] = nil
+        elseif #s.sizes == total then
+            labels[i] = nil
+        elseif #s.sizes == 1 then
+            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY",
+                s.sizes[1])
+        else
+            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED",
+                table.concat(s.sizes, ", "))
+        end
+    end
+    _mpMapSizeLabelsCache = labels
+    return labels
+end
+
+local function mapTypeEntryAnnounce(inst, index)
+    local text = safeText(function() return inst.Button:GetText() end,
+        "MapType entry GetText")
+    local sizeInfo = mpMapTypeSizeLabels()[index]
+    local parts = { text }
+    if sizeInfo ~= nil and sizeInfo ~= "" then
+        parts[#parts + 1] = sizeInfo
+    end
+    local combined = table.concat(parts, ", ")
+    local tip = safeText(function() return inst.Button:GetToolTipString() end,
+        "MapType entry GetToolTipString")
+    if tip ~= "" then
+        return BaseMenuItems.appendTooltip(combined, tip)
+    end
+    return combined
+end
+
+-- Options-tab dynamic children ----------------------------------------
+--
+-- Same SQL + sort order MPGameOptions uses so i-th row here lines up with
+-- the i-th m_AllocatedInstances entry. The managers are reset + rebuilt
+-- every time UpdateGameOptionsDisplay runs (on every Options-tab flip via
+-- OnOptionsPageTab); rebuilding our items in tab.onActivate keeps the
+-- two aligned.
+
+local EXCLUDED_GAME_OPTION_TYPES = {
+    GAMEOPTION_END_TURN_TIMER_ENABLED = true,
+    GAMEOPTION_SIMULTANEOUS_TURNS     = true,
+    GAMEOPTION_DYNAMIC_TURNS          = true,
+}
+
+local function mpSortOptions(options)
+    table.sort(options, function(a, b)
+        if a.SortPriority == b.SortPriority then
+            return a.Name < b.Name
+        end
+        return a.SortPriority < b.SortPriority
+    end)
+end
+
+local function victoryChildren()
+    local items = {}
+    local instances = (g_VictoryCondtionsManager
+        and g_VictoryCondtionsManager.m_AllocatedInstances) or {}
+    local i = 1
+    for row in GameInfo.Victories() do
+        local inst = instances[i]
+        if inst == nil then break end
+        items[#items + 1] = BaseMenuItems.Checkbox({
+            control = inst.GameOptionRoot,
+            textKey = row.Description,
+        })
+        i = i + 1
+    end
+    return items
+end
+
+local function gameOptionDropdownRows()
+    local rows = {}
+    for option in DB.Query(
+            [[select * from MapScriptOptions where exists (select 1 from
+              MapScriptOptionPossibleValues where FileName = MapScriptOptions.FileName
+              and OptionID = MapScriptOptions.OptionID) and Hidden = 0 and
+              FileName = ?]], PreGame.GetMapScript()) do
+        rows[#rows + 1] = {
+            Name         = Locale.ConvertTextKey(option.Name),
+            Help         = option.Description and Locale.ConvertTextKey(option.Description) or nil,
+            SortPriority = option.SortPriority,
+        }
+    end
+    return rows
+end
+
+local function gameOptionCheckboxRows()
+    local rows = {}
+    local hotseat = PreGame.IsHotSeatGame()
+    for option in GameInfo.GameOptions{Visible = 1} do
+        if not EXCLUDED_GAME_OPTION_TYPES[option.Type] then
+            local supported = hotseat and option.SupportsSinglePlayer
+                                       or option.SupportsMultiplayer
+            if supported then
+                rows[#rows + 1] = {
+                    Name         = Locale.ConvertTextKey(option.Description),
+                    Help         = option.Help and Locale.ConvertTextKey(option.Help) or nil,
+                    SortPriority = 0,
+                }
+            end
+        end
+    end
+    for option in DB.Query(
+            [[select * from MapScriptOptions where not exists (select 1 from
+              MapScriptOptionPossibleValues where FileName = MapScriptOptions.FileName
+              and OptionID = MapScriptOptions.OptionID) and Hidden = 0 and
+              FileName = ?]], PreGame.GetMapScript()) do
+        rows[#rows + 1] = {
+            Name         = Locale.ConvertTextKey(option.Name),
+            Help         = option.Description and Locale.ConvertTextKey(option.Description) or nil,
+            SortPriority = option.SortPriority,
+        }
+    end
+    return rows
+end
+
+local function gameOptionsChildren()
+    local items = {}
+    if g_DropDownOptionsManager ~= nil then
+        local instances = g_DropDownOptionsManager.m_AllocatedInstances
+        local rows      = gameOptionDropdownRows()
+        mpSortOptions(rows)
+        for i, opt in ipairs(rows) do
+            local inst = instances[i]
+            if inst == nil then break end
+            items[#items + 1] = BaseMenuItems.Pulldown({
+                control     = inst.OptionDropDown,
+                labelText   = opt.Name,
+                tooltipText = opt.Help,
+            })
+        end
+    end
+    if g_GameOptionsManager ~= nil then
+        local instances = g_GameOptionsManager.m_AllocatedInstances
+        local rows      = gameOptionCheckboxRows()
+        mpSortOptions(rows)
+        for i, opt in ipairs(rows) do
+            local inst = instances[i]
+            if inst == nil then break end
+            items[#items + 1] = BaseMenuItems.Checkbox({
+                control     = inst.GameOptionRoot,
+                labelText   = opt.Name,
+                tooltipText = opt.Help,
+            })
+        end
+    end
+    return items
+end
+
+local function dlcChildren()
+    local items = {}
+    local instances = (g_DLCAllowedManager
+        and g_DLCAllowedManager.m_AllocatedInstances) or {}
+    -- Base skips IsBaseContentUpgrade == 1 rows (force-allowed, not
+    -- user-editable); mirror that filter so indices line up.
+    local i = 1
+    for row in GameInfo.DownloadableContent() do
+        if row.IsBaseContentUpgrade == 0 then
+            local inst = instances[i]
+            if inst == nil then break end
+            items[#items + 1] = BaseMenuItems.Checkbox({
+                control = inst.GameOptionRoot,
+                textKey = row.FriendlyNameKey,
+            })
+            i = i + 1
+        end
+    end
+    return items
+end
+
 -- Top-level items -----------------------------------------------------
 
 local function playersItems()
@@ -319,15 +586,68 @@ local function playersItems()
 end
 
 local function optionsItems()
-    -- Placeholder; next pass mirrors MPGameSetup's map/speed/era/victory/
-    -- game-options/DLC tree. Leaving just Back so the tab is never empty.
-    return {
-        BaseMenuItems.Button({ controlName = "BackButton",
-            textKey  = "TXT_KEY_BACK_BUTTON",
-            activate = function()
-                if type(HandleExitRequest) == "function" then HandleExitRequest() end
-            end }),
+    local items = {
+        BaseMenuItems.Pulldown({ controlName = "MapTypePullDown",
+            textKey         = "TXT_KEY_AD_SETUP_MAP_TYPE",
+            entryAnnounceFn = mapTypeEntryAnnounce }),
+        BaseMenuItems.Pulldown({ controlName = "MapSizePullDown",
+            textKey = "TXT_KEY_AD_SETUP_MAP_SIZE" }),
+        BaseMenuItems.Pulldown({ controlName = "GameSpeedPullDown",
+            textKey = "TXT_KEY_AD_SETUP_GAME_SPEED" }),
+        BaseMenuItems.Pulldown({ controlName = "EraPull",
+            textKey = "TXT_KEY_AD_SETUP_GAME_ERA" }),
+        -- TurnModeRoot hides the wrapper container in hotseat; the Pulldown
+        -- item checks the wrapper via visibilityControlName so isNavigable
+        -- skips it when appropriate.
+        BaseMenuItems.Pulldown({ controlName = "TurnModePull",
+            textKey = "TXT_KEY_AD_SETUP_GAME_TURN_MODE",
+            visibilityControlName = "TurnModeRoot" }),
+        BaseMenuItems.Slider({ controlName = "MinorCivsSlider",
+            labelControlName = "MinorCivsLabel",
+            textKey = "TXT_KEY_AD_SETUP_CITY_STATES" }),
+        BaseMenuItems.Checkbox({ controlName = "MaxTurnsCheck",
+            textKey    = "TXT_KEY_AD_SETUP_MAX_TURNS",
+            tooltipKey = "TXT_KEY_AD_SETUP_MAX_TURNS_TT",
+            activateCallback = function() OnMaxTurnsChecked() end }),
+        BaseMenuItems.Textfield({ controlName = "MaxTurnsEdit",
+            visibilityControlName = "MaxTurnsEditbox",
+            textKey       = "TXT_KEY_CIVVACCESS_FIELD_MAX_TURNS",
+            priorCallback = OnMaxTurnsEditBoxChange }),
+        BaseMenuItems.Checkbox({ controlName = "TurnTimerCheck",
+            textKey    = "TXT_KEY_GAME_OPTION_END_TURN_TIMER_ENABLED",
+            tooltipKey = "TXT_KEY_GAME_OPTION_END_TURN_TIMER_ENABLED_HELP",
+            activateCallback = function() OnTurnTimerChecked() end }),
+        BaseMenuItems.Textfield({ controlName = "TurnTimerEdit",
+            visibilityControlName = "TurnTimerEditbox",
+            textKey       = "TXT_KEY_CIVVACCESS_FIELD_TURN_TIMER",
+            priorCallback = OnTurnTimerEditBoxChange }),
+        -- ModMultiplayerSelectScreen-only; LoadScenarioBox gates visibility.
+        BaseMenuItems.Checkbox({ controlName = "ScenarioCheck",
+            visibilityControlName = "LoadScenarioBox",
+            textKey          = "TXT_KEY_LOAD_SCENARIO",
+            activateCallback = function() OnSenarioCheck() end }),
     }
+    items[#items + 1] = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_GROUP_VICTORY_CONDITIONS",
+        itemsFn = victoryChildren,
+        cached  = false,
+    })
+    items[#items + 1] = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_GROUP_GAME_OPTIONS",
+        itemsFn = gameOptionsChildren,
+        cached  = false,
+    })
+    items[#items + 1] = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_GROUP_DLC_ALLOWED",
+        itemsFn = dlcChildren,
+        cached  = false,
+    })
+    items[#items + 1] = BaseMenuItems.Button({ controlName = "BackButton",
+        textKey  = "TXT_KEY_BACK_BUTTON",
+        activate = function()
+            if type(HandleExitRequest) == "function" then HandleExitRequest() end
+        end })
+    return items
 end
 
 -- Delta tracking ------------------------------------------------------
@@ -421,6 +741,233 @@ local function announceDeltas(newSnap, oldSnap)
     end
 end
 
+-- Countdown announcements ---------------------------------------------
+--
+-- Base StartCountdown sets g_fCountdownTimer=10 and ContextPtr:SetUpdate(OnUpdate),
+-- base OnUpdate ticks and calls StopCountdown at zero, base StopCountdown sets
+-- timer=-1 and ClearUpdate. We wrap all three globals so the SetUpdate call
+-- inside StartCountdown picks up our wrapped OnUpdate (SetUpdate reads the
+-- OnUpdate global by name at call time).
+--
+-- Floor-based per-second speech: at each tick we floor g_fCountdownTimer and
+-- speak once per new integer in [1..5]. `countdownExpired` distinguishes a
+-- natural tick-to-zero stop (no cancel announce) from a mid-countdown
+-- cancellation (speak "countdown cancelled"). Set pre-baseOnUpdate so the
+-- flag is already true when baseOnUpdate's expiring branch calls StopCountdown.
+
+local _lastSpokenCountdownInt
+local _countdownExpired = false
+
+local function wrapCountdown()
+    if civvaccess_shared._stagingCountdownWrapped then return end
+    civvaccess_shared._stagingCountdownWrapped = true
+
+    local baseStartCountdown = StartCountdown
+    local baseStopCountdown  = StopCountdown
+    local baseOnUpdate       = OnUpdate
+
+    if type(baseStartCountdown) ~= "function"
+            or type(baseStopCountdown) ~= "function"
+            or type(baseOnUpdate) ~= "function" then
+        Log.warn("StagingRoomAccess: countdown globals missing; skipping wrap")
+        civvaccess_shared._stagingCountdownWrapped = nil
+        return
+    end
+
+    StartCountdown = function(...)
+        _lastSpokenCountdownInt = nil
+        _countdownExpired = false
+        baseStartCountdown(...)
+        SpeechPipeline.speakInterrupt(
+            Text.key("TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"))
+    end
+
+    StopCountdown = function(...)
+        local wasActive = (g_fCountdownTimer or -1) > 0
+        baseStopCountdown(...)
+        if wasActive and not _countdownExpired then
+            SpeechPipeline.speakInterrupt(
+                Text.key("TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"))
+        end
+        _lastSpokenCountdownInt = nil
+        _countdownExpired = false
+    end
+
+    OnUpdate = function(fDTime)
+        local before = g_fCountdownTimer or -1
+        if before > 0 and (before - fDTime) <= 0 then
+            _countdownExpired = true
+        end
+        baseOnUpdate(fDTime)
+        local after = g_fCountdownTimer or -1
+        if after > 0 then
+            local cur = math.floor(after)
+            if cur >= 1 and cur <= 5 and cur ~= _lastSpokenCountdownInt then
+                SpeechPipeline.speakInterrupt(tostring(cur))
+                _lastSpokenCountdownInt = cur
+            end
+        end
+    end
+end
+
+-- F2 chat panel -------------------------------------------------------
+--
+-- Pushed (not installed) BaseMenu. Messages tab lists the cross-Context
+-- history on civvaccess_shared._stagingChatLog in newest-first order so
+-- the user lands on the latest line; Compose tab wraps Controls.ChatEntry
+-- in a Textfield pointing at base's SendChat as the commit callback.
+-- Esc and F2 both pop the panel.
+--
+-- History buffer is separate from base's g_ChatInstances because the base
+-- drops old boxes from the Stack when it rotates them; we need a stable
+-- record. Fed by onChat (below) regardless of whether the panel is open,
+-- so opening the panel later shows messages received earlier in the
+-- session. Capped at 100 to match the base's visual rotation.
+
+local CHAT_LOG_CAP  = 100
+local CHAT_HANDLER  = "StagingChat"
+
+local function appendChatEntry(name, text)
+    local log = civvaccess_shared._stagingChatLog or {}
+    log[#log + 1] = { name = name, text = text }
+    while #log > CHAT_LOG_CAP do table.remove(log, 1) end
+    civvaccess_shared._stagingChatLog = log
+end
+
+-- True while the F2 panel OR its edit-mode sub is the active handler, so
+-- onChat's inline announce can back off while the user is focused there.
+local function chatPanelActive()
+    for i = HandlerStack.count(), 1, -1 do
+        local h = HandlerStack.at(i)
+        if h and h.name and string.sub(h.name, 1, #CHAT_HANDLER) == CHAT_HANDLER then
+            return true
+        end
+    end
+    return false
+end
+
+local function chatMessagesItems()
+    local log = civvaccess_shared._stagingChatLog or {}
+    if #log == 0 then
+        return {
+            BaseMenuItems.Text({
+                labelText = Text.key("TXT_KEY_CIVVACCESS_STAGING_CHAT_EMPTY"),
+            }),
+        }
+    end
+    local items = {}
+    -- Reverse iterate so the newest entry is index 1 (cursor lands there
+    -- on open). User can arrow down through older history.
+    for i = #log, 1, -1 do
+        local e = log[i]
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.format("TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG",
+                e.name, e.text),
+        })
+    end
+    return items
+end
+
+local function chatComposeItems()
+    return {
+        BaseMenuItems.Textfield({
+            controlName   = "ChatEntry",
+            textKey       = "TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE",
+            priorCallback = function(text, control, bIsEnter)
+                if bIsEnter and type(SendChat) == "function" then
+                    SendChat(text)
+                end
+            end,
+        }),
+    }
+end
+
+-- Close the chat handler plus any sub above it (edit mode, type-ahead etc.)
+-- so F2 while composing doesn't orphan the edit sub mid-stack. reactivate
+-- controls whether the handler underneath (StagingRoom) gets onActivate
+-- after the pop; caller passes false when StagingRoom itself is hiding, so
+-- we don't announce a screen that's about to disappear.
+--
+-- popAbove drops any sub without running its normal exit path (BaseMenuEditMode
+-- only restores ChatEntry's original callback via its own Esc/Enter bindings).
+-- To stay safe we ask the Compose edit sub to commit-cancel via a synthetic
+-- Esc if it's the top: that runs the sub's exit(true) and restores state.
+local function closeChatPanel(reactivate)
+    if reactivate == nil then reactivate = true end
+    for i = HandlerStack.count(), 1, -1 do
+        local h = HandlerStack.at(i)
+        if h and h.name == CHAT_HANDLER then
+            -- Drain any sub pushed above the chat handler by invoking its
+            -- Esc binding (edit sub's cancel path restores ChatEntry state)
+            -- until nothing is left on top.
+            while HandlerStack.count() > i do
+                local top = HandlerStack.active()
+                local escBinding
+                if type(top.bindings) == "table" then
+                    for _, b in ipairs(top.bindings) do
+                        if b.key == Keys.VK_ESCAPE and (b.mods or 0) == 0 then
+                            escBinding = b
+                            break
+                        end
+                    end
+                end
+                if escBinding ~= nil then
+                    local ok, err = pcall(escBinding.fn)
+                    if not ok then
+                        Log.error("StagingRoomAccess: chat sub Esc failed: "
+                            .. tostring(err))
+                        -- Fall back to a hard pop so we don't loop forever.
+                        HandlerStack.pop()
+                    end
+                else
+                    HandlerStack.pop()
+                end
+            end
+            HandlerStack.removeByName(CHAT_HANDLER, reactivate)
+            return true
+        end
+    end
+    return false
+end
+
+local function toggleChatPanel()
+    if closeChatPanel() then return end
+    local chatHandler = BaseMenu.create({
+        name             = CHAT_HANDLER,
+        displayName      = Text.key("TXT_KEY_CIVVACCESS_STAGING_CHAT_PANEL"),
+        capturesAllInput = true,
+        escapePops       = true,
+        tabs = {
+            {
+                name       = "TXT_KEY_CIVVACCESS_STAGING_CHAT_MESSAGES_TAB",
+                items      = chatMessagesItems(),
+                onActivate = function(self)
+                    -- Rebuild on every tab activation so a just-arrived
+                    -- message is visible when the user tabs back in.
+                    self.setItems(chatMessagesItems(), self._tabIndex)
+                end,
+            },
+            {
+                name  = "TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE_TAB",
+                items = chatComposeItems(),
+            },
+        },
+    })
+    -- F2 closes the panel (same key that opened it). VK_F2 = 113 per the
+    -- Windows VK table; Keys.VK_F2 is populated by the engine but falls
+    -- back to the literal for the polyfilled test harness.
+    chatHandler.bindings[#chatHandler.bindings + 1] = {
+        key         = Keys.VK_F2 or 113, mods = 0,
+        description = "Close chat",
+        fn          = closeChatPanel,
+    }
+    chatHandler.helpEntries[#chatHandler.helpEntries + 1] = {
+        keyLabel    = "TXT_KEY_CIVVACCESS_HELP_KEY_F2",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE",
+    }
+    HandlerStack.push(chatHandler)
+end
+
 -- Event listeners -----------------------------------------------------
 
 local handler
@@ -446,6 +993,8 @@ local function onChat(fromPlayer, toPlayer, text, eTargetType)
     if text == nil or text == "" then return end
     local n = PreGame.GetNickName(fromPlayer)
     if n == nil or n == "" then n = Locale.ConvertTextKey("TXT_KEY_PLAYER_TYPE_HUMAN") end
+    appendChatEntry(n, text)
+    if chatPanelActive() then return end
     SpeechPipeline.speakQueued(
         Text.format("TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG", n, text))
 end
@@ -471,13 +1020,31 @@ end
 -- Listener installation is idempotent across Context resets via a shared
 -- flag. Engine .Add() chains rather than replaces, so repeated includes
 -- would stack listeners without this guard.
+--
+-- Each listener is pcall-wrapped because the engine dispatches Events.X
+-- listeners from C and a raw Lua error surfaces as a bare "Runtime Error:
+-- ..." line with no Context prefix and no stack trace. The wrapper gives
+-- us a breadcrumb identifying which listener threw so the error becomes
+-- traceable.
+local function safeListener(name, fn)
+    return function(...)
+        local ok, err = pcall(fn, ...)
+        if not ok then
+            Log.error("StagingRoomAccess listener '" .. name
+                .. "' failed: " .. tostring(err))
+        end
+    end
+end
+
 local function installListeners()
     if civvaccess_shared._stagingListenersInstalled then return end
     civvaccess_shared._stagingListenersInstalled = true
-    Events.PreGameDirty.Add(onPreGameDirty)
-    Events.GameMessageChat.Add(onChat)
-    Events.MultiplayerGameHostMigration.Add(onHostMigration)
-    Events.MultiplayerGamePlayerDisconnected.Add(onDisconnect)
+    Events.PreGameDirty.Add(safeListener("PreGameDirty", onPreGameDirty))
+    Events.GameMessageChat.Add(safeListener("GameMessageChat", onChat))
+    Events.MultiplayerGameHostMigration.Add(
+        safeListener("MultiplayerGameHostMigration", onHostMigration))
+    Events.MultiplayerGamePlayerDisconnected.Add(
+        safeListener("MultiplayerGamePlayerDisconnected", onDisconnect))
 end
 
 -- Install -------------------------------------------------------------
@@ -487,12 +1054,30 @@ local function wrappedShowHide(bIsHide, bIsInit)
     if not ok then
         Log.error("StagingRoomAccess: priorShowHide failed: " .. tostring(err))
     end
-    if bIsHide then return end
+    if bIsHide then
+        -- Auto-close the chat panel (+ any edit sub) so nothing orphans on
+        -- the stack when the user leaves StagingRoom with F2 still open.
+        closeChatPanel(false)
+        return
+    end
     installListeners()
+    wrapCountdown()
     -- Base ShowHideHandler ran CreateSlots on first init and RefreshPlayerList
     -- every show, so the shared slot table is populated by the time we build
     -- items here.
     takeSnapshot()
+end
+
+-- Placeholder items for each tab. tab.onActivate rebuilds the real list on
+-- every open / switch: the Players list depends on live slot instances,
+-- and the Options list depends on g_*Manager.m_AllocatedInstances which
+-- only populates after OnOptionsPageTab runs UpdateGameOptionsDisplay.
+local function tabPlaceholder()
+    return {
+        BaseMenuItems.Button({ controlName = "BackButton",
+            textKey  = "TXT_KEY_BACK_BUTTON",
+            activate = function() end }),
+    }
 end
 
 handler = BaseMenu.install(ContextPtr, {
@@ -500,21 +1085,45 @@ handler = BaseMenu.install(ContextPtr, {
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"),
     priorShowHide = wrappedShowHide,
     priorInput    = priorInput,
-    onShow        = function(h) h.setItems(playersItems(), 1) end,
     tabs = {
         {
-            name  = "TXT_KEY_CIVVACCESS_STAGING_PLAYERS_TAB",
-            items = {
-                -- Placeholder; onShow replaces with the real list before
-                -- the first announce.
-                BaseMenuItems.Button({ controlName = "BackButton",
-                    textKey  = "TXT_KEY_BACK_BUTTON",
-                    activate = function() end }),
-            },
+            name      = "TXT_KEY_CIVVACCESS_STAGING_PLAYERS_TAB",
+            showPanel = function()
+                if type(OnPlayersPageTab) == "function" then OnPlayersPageTab() end
+            end,
+            onActivate = function(self)
+                self.setItems(playersItems(), self._tabIndex)
+            end,
+            items = tabPlaceholder(),
         },
         {
-            name  = "TXT_KEY_CIVVACCESS_STAGING_OPTIONS_TAB",
-            items = optionsItems(),
+            name      = "TXT_KEY_CIVVACCESS_STAGING_OPTIONS_TAB",
+            showPanel = function()
+                -- Force the base to populate the Options panel Controls
+                -- (PopulateMapSizePulldown / RefreshMapScripts /
+                -- UpdateGameOptionsDisplay) before we read their state.
+                _mpMapSizeLabelsCache = nil
+                if type(OnOptionsPageTab) == "function" then OnOptionsPageTab() end
+            end,
+            onActivate = function(self)
+                self.setItems(optionsItems(), self._tabIndex)
+            end,
+            items = tabPlaceholder(),
         },
     },
 })
+
+-- F2 opens the chat panel. Engine binds F2 to Domestic Advisor in-game,
+-- but no front-end screen binds F2; StagingRoom.InputHandler doesn't
+-- claim it either, so layering on top of the engine default is safe here.
+-- Documented in docs/hotkey-reference.md under CivVAccess additions.
+handler.bindings[#handler.bindings + 1] = {
+    key         = Keys.VK_F2 or 113, mods = 0,
+    description = "Open chat",
+    fn          = toggleChatPanel,
+}
+handler.helpEntries[#handler.helpEntries + 1] = {
+    keyLabel    = "TXT_KEY_CIVVACCESS_HELP_KEY_F2",
+    description = "TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_OPEN",
+}
+
