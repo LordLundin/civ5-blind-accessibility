@@ -22,6 +22,7 @@
 -- announcements land in a follow-up pass.
 
 include("CivVAccess_FrontendCommon")
+include("CivVAccess_CivDetails")
 
 local priorShowHide = ShowHideHandler
 -- Base StagingRoom InputHandler grabs focus to Controls.ChatEntry on every
@@ -65,6 +66,49 @@ local function labelText(labelControl)
     local ok, t = pcall(function() return labelControl:GetText() end)
     if not ok or t == nil or t == "" then return nil end
     return tostring(t)
+end
+
+-- Rich civ labels for the civ pulldown's sub-menu entries, identifying each
+-- entry by its civilization ID (SetVoids places civID at Void2; Random uses
+-- civID == -1). Cached at first access because DB.Query results don't change
+-- across a session (DLC / mods toggles rebuild the Context, which reloads
+-- this chunk and clears the cache).
+local _civRichByID
+local function civRichLabelForID(civID)
+    if civID == nil or civID == -1 then
+        return Text.key("TXT_KEY_RANDOM_LEADER") .. ", "
+            .. Text.key("TXT_KEY_RANDOM_CIV")
+    end
+    if _civRichByID == nil then
+        _civRichByID = {}
+        local sql = [[SELECT
+            Civilizations.ID,
+            Civilizations.Type,
+            Civilizations.ShortDescription,
+            Leaders.Type AS LeaderType,
+            Leaders.Description AS LeaderDescription
+            FROM Civilizations, Leaders, Civilization_Leaders WHERE
+            Civilizations.Type = Civilization_Leaders.CivilizationType AND
+            Leaders.Type = Civilization_Leaders.LeaderheadType AND
+            Civilizations.Playable = 1]]
+        for row in DB.Query(sql) do
+            _civRichByID[row.ID] = CivDetails.richLabel(row)
+        end
+    end
+    return _civRichByID[civID]
+end
+
+-- entryAnnounceFn contract: (inst, index) -> string. inst.Button carries
+-- the civID as Void2 (set by PopulateCivPulldown in base), so the rich
+-- label is keyed by that, not by pulldown position. Position differs
+-- between AdvancedSetup and StagingRoom sort orders (Leader-only vs
+-- Leader+Civ), so keying by civID keeps us aligned with the actual
+-- selected civ regardless of sort.
+local function civEntryAnnounce(inst)
+    if inst == nil or inst.Button == nil then return nil end
+    local ok, civID = pcall(function() return inst.Button:GetVoid2() end)
+    if not ok then return nil end
+    return civRichLabelForID(civID)
 end
 
 local function civText(playerID)
@@ -166,7 +210,8 @@ local function slotChildren(instance)
     return {
         BaseMenuItems.Pulldown({ control = instance.CivPulldown,
             textKey = "TXT_KEY_CIVVACCESS_CIVILIZATION",
-            valueFn = function() return labelText(instance.CivLabel) end }),
+            valueFn = function() return labelText(instance.CivLabel) end,
+            entryAnnounceFn = civEntryAnnounce }),
         BaseMenuItems.Pulldown({ control = instance.TeamPulldown,
             textKey = "TXT_KEY_CIVVACCESS_TEAM",
             valueFn = function() return labelText(instance.TeamLabel) end }),
@@ -211,7 +256,8 @@ local function localSeatChildren()
     return {
         BaseMenuItems.Pulldown({ controlName = "CivPulldown",
             textKey = "TXT_KEY_CIVVACCESS_CIVILIZATION",
-            valueFn = function() return labelText(Controls.CivLabel) end }),
+            valueFn = function() return labelText(Controls.CivLabel) end,
+            entryAnnounceFn = civEntryAnnounce }),
         BaseMenuItems.Pulldown({ controlName = "TeamPulldown",
             textKey = "TXT_KEY_CIVVACCESS_TEAM",
             valueFn = function() return labelText(Controls.TeamLabel) end }),
@@ -379,25 +425,20 @@ end
 
 local handler
 
-local function refreshMenu()
-    if handler == nil then return end
-    if ContextPtr:IsHidden() then return end
-    -- Regenerate the Players tab so the slot Group list reflects the latest
-    -- occupied-slot set. Group labels are labelFn-based and re-resolve on
-    -- every navigate, so options already visible also pick up changes.
-    handler.setItems(playersItems(), 1)
-end
-
+-- Don't rebuild items on PreGameDirty. setItems resets _level to 1 and
+-- drops deeper indices, so any rebuild while the user was drilled into a
+-- slot bounces the cursor back up to the Group header. Group labels are
+-- labelFn-based and re-resolve on each navigate, and isNavigable reads
+-- the slot Root's live IsHidden, so in-place state changes are already
+-- reflected without a structural rebuild. Deltas still announce via
+-- announceDeltas.
 local function onPreGameDirty()
     if ContextPtr:IsHidden() then return end
-    Log.info("StagingRoomAccess: onPreGameDirty fired")
     local old = civvaccess_shared._stagingSnapshot
     local new = {}
     for pid = 0, MAX_SLOTS - 1 do new[pid] = snapshotFor(pid) end
     announceDeltas(new, old)
     civvaccess_shared._stagingSnapshot = new
-    refreshMenu()
-    Log.info("StagingRoomAccess: onPreGameDirty done")
 end
 
 local function onChat(fromPlayer, toPlayer, text, eTargetType)
@@ -442,21 +483,16 @@ end
 -- Install -------------------------------------------------------------
 
 local function wrappedShowHide(bIsHide, bIsInit)
-    Log.info("StagingRoomAccess: wrappedShowHide hide=" .. tostring(bIsHide)
-        .. " init=" .. tostring(bIsInit))
     local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
     if not ok then
         Log.error("StagingRoomAccess: priorShowHide failed: " .. tostring(err))
     end
-    Log.info("StagingRoomAccess: priorShowHide returned")
     if bIsHide then return end
     installListeners()
-    Log.info("StagingRoomAccess: installListeners returned")
     -- Base ShowHideHandler ran CreateSlots on first init and RefreshPlayerList
     -- every show, so the shared slot table is populated by the time we build
     -- items here.
     takeSnapshot()
-    Log.info("StagingRoomAccess: takeSnapshot returned")
 end
 
 handler = BaseMenu.install(ContextPtr, {
@@ -464,13 +500,7 @@ handler = BaseMenu.install(ContextPtr, {
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"),
     priorShowHide = wrappedShowHide,
     priorInput    = priorInput,
-    onShow        = function(h)
-        Log.info("StagingRoomAccess: onShow entered")
-        local items = playersItems()
-        Log.info("StagingRoomAccess: playersItems built " .. #items .. " entries")
-        h.setItems(items, 1)
-        Log.info("StagingRoomAccess: setItems returned")
-    end,
+    onShow        = function(h) h.setItems(playersItems(), 1) end,
     tabs = {
         {
             name  = "TXT_KEY_CIVVACCESS_STAGING_PLAYERS_TAB",
