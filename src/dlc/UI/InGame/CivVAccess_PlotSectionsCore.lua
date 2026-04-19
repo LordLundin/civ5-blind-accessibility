@@ -19,10 +19,6 @@
 
 PlotSections = {}
 
-local function activeTeamAndDebug()
-    return Game.GetActiveTeam(), Game.IsDebugMode()
-end
-
 local function lookupName(table, id)
     local row = GameInfo[table][id]
     if row == nil then return nil end
@@ -34,7 +30,7 @@ end
 -- "unclaimed.") and an opaque identity token used only for diffing across
 -- moves. Two plots with the same identity token never re-trigger the prefix.
 function PlotSections.ownerIdentity(plot)
-    local team, debug = activeTeamAndDebug()
+    local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
     if not plot:IsRevealed(team, debug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED"), "unexplored"
     end
@@ -180,7 +176,7 @@ PlotSections.resource = {
 
 PlotSections.improvement = {
     Read = function(plot)
-        local team, debug = activeTeamAndDebug()
+        local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
         local id = plot:GetRevealedImprovementType(team, debug)
         if id == nil or id < 0 then return {} end
         local name = lookupName("Improvements", id)
@@ -194,7 +190,7 @@ PlotSections.improvement = {
 
 PlotSections.route = {
     Read = function(plot)
-        local team, debug = activeTeamAndDebug()
+        local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
         local id = plot:GetRevealedRouteType(team, debug)
         if id == nil or id < 0 then return {} end
         local name = lookupName("Routes", id)

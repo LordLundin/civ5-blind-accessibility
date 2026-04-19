@@ -7,15 +7,13 @@
 local T = require("support")
 local M = {}
 
-local function loadModules()
-    dofile("src/dlc/UI/InGame/CivVAccess_PlotSections.lua")
+local function setup()
+    dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionUnits.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionRiver.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotComposers.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_Cursor.lua")
-end
 
-local function setupGame()
     Game.GetActivePlayer = function() return 0 end
     Game.GetActiveTeam   = function() return 0 end
     Game.IsDebugMode     = function() return false end
@@ -42,11 +40,6 @@ local function setupGame()
     UI.GetHeadSelectedUnit = function() return nil end
 
     Cursor._reset()
-end
-
-local function setup()
-    loadModules()
-    setupGame()
 end
 
 -- ===== Owner identity =====
@@ -192,7 +185,7 @@ function M.test_units_invisible_filter()
     local visible = T.fakeUnit({ owner = 0, nameKey = "Warrior" })
     local cloaked = T.fakeUnit({ owner = 0, nameKey = "Submarine", invisible = true })
     local p = T.fakePlot({ units = { visible, cloaked } })
-    local out = PlotSectionUnits.section.Read(p, {})
+    local out = PlotSectionUnits.Read(p, {})
     T.eq(#out, 1, "invisible unit must be filtered out")
 end
 
@@ -203,7 +196,7 @@ function M.test_units_layer_skips_cargo_and_air()
     local cargo   = T.fakeUnit({ owner = 0, nameKey = "Settler", cargo = true })
     local fighter = T.fakeUnit({ owner = 0, nameKey = "Fighter", domain = DomainTypes.DOMAIN_AIR })
     local p = T.fakePlot({ layerUnits = { trade, cargo, fighter } })
-    local out = PlotSectionUnits.section.Read(p, {})
+    local out = PlotSectionUnits.Read(p, {})
     T.eq(#out, 1, "only the non-cargo non-air layer unit should announce")
 end
 
@@ -212,7 +205,7 @@ function M.test_units_hp_suffix_when_damaged()
     Players[0] = T.fakePlayer({ adj = "Roman" })
     local damaged = T.fakeUnit({ owner = 0, nameKey = "Warrior", damage = 40 })
     local p = T.fakePlot({ units = { damaged } })
-    local s = PlotSectionUnits.section.Read(p, {})[1]
+    local s = PlotSectionUnits.Read(p, {})[1]
     T.truthy(s:find("60 hp", 1, true), "expected '60 hp' in: " .. tostring(s))
 end
 
@@ -222,7 +215,7 @@ function M.test_river_self_edge_only()
     setup()
     Map.PlotDirection = function() return nil end  -- no neighbors
     local p = T.fakePlot({ neOfRiver = true })
-    T.eq(PlotSectionRiver.section.Read(p, {})[1], "river ne")
+    T.eq(PlotSectionRiver.Read(p, {})[1], "river ne")
 end
 
 function M.test_river_neighbor_sourced_edge()
@@ -234,7 +227,7 @@ function M.test_river_neighbor_sourced_edge()
         return nil
     end
     local p = T.fakePlot({})
-    T.eq(PlotSectionRiver.section.Read(p, {})[1], "river e")
+    T.eq(PlotSectionRiver.Read(p, {})[1], "river e")
 end
 
 function M.test_river_all_six_collapses()
@@ -254,7 +247,7 @@ function M.test_river_all_six_collapses()
         return nil
     end
     local p = T.fakePlot({ wOfRiver = true, nwOfRiver = true, neOfRiver = true })
-    T.eq(PlotSectionRiver.section.Read(p, {})[1], "river all sides")
+    T.eq(PlotSectionRiver.Read(p, {})[1], "river all sides")
 end
 
 function M.test_river_edges_in_clockwise_order_from_ne()
@@ -267,7 +260,7 @@ function M.test_river_edges_in_clockwise_order_from_ne()
     end
     local p = T.fakePlot({ neOfRiver = true, wOfRiver = true })
     -- Output order is fixed: ne, e, se, sw, w, nw -- skipping absent edges.
-    T.eq(PlotSectionRiver.section.Read(p, {})[1], "river ne e sw w")
+    T.eq(PlotSectionRiver.Read(p, {})[1], "river ne e sw w")
 end
 
 -- ===== Composer integration =====

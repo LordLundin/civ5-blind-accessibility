@@ -7,8 +7,6 @@
 -- token so the user doesn't sit through six direction tokens for what is
 -- effectively "you are on a river island."
 
-PlotSectionRiver = {}
-
 local SELF_EDGES = {
     { dir = "TXT_KEY_CIVVACCESS_DIR_NE", method = "IsNEOfRiver" },
     { dir = "TXT_KEY_CIVVACCESS_DIR_W",  method = "IsWOfRiver"  },
@@ -39,7 +37,7 @@ local SPOKEN_ORDER = {
     "TXT_KEY_CIVVACCESS_DIR_NW",
 }
 
-PlotSectionRiver.section = {
+PlotSectionRiver = {
     Read = function(plot)
         local edges = {}
         for _, e in ipairs(SELF_EDGES) do

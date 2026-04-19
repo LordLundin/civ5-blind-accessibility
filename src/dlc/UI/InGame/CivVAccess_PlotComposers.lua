@@ -10,18 +10,6 @@
 
 PlotComposers = {}
 
-local function teamAndDebug()
-    return Game.GetActiveTeam(), Game.IsDebugMode()
-end
-
-local function joinTokens(tokens)
-    -- table.concat with a separator works on a flat list of strings; the
-    -- composer treats each section's return as already-flat and appends
-    -- elementwise. Sections that need internal commas just emit one string
-    -- per token; the river section's "river ne e sw" is a single token.
-    return table.concat(tokens, ", ")
-end
-
 local function readSection(section, plot, ctx, out)
     local tokens = section.Read(plot, ctx)
     for _, t in ipairs(tokens) do
@@ -33,7 +21,7 @@ end
 -- neighbors, in distinguishing-fact-first order. Units and city come first
 -- because those are the most commonly important; geography sandwiches them.
 function PlotComposers.glance(plot)
-    local team, debug = teamAndDebug()
+    local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
     if not plot:IsRevealed(team, debug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
     end
@@ -41,7 +29,7 @@ function PlotComposers.glance(plot)
     local ctx = {}
     local tokens = {}
     if visible then
-        readSection(PlotSectionUnits.section, plot, ctx, tokens)
+        readSection(PlotSectionUnits, plot, ctx, tokens)
     end
     readSection(PlotSections.city,        plot, ctx, tokens)
     readSection(PlotSections.route,       plot, ctx, tokens)
@@ -55,8 +43,8 @@ function PlotComposers.glance(plot)
     readSection(PlotSections.terrain,     plot, ctx, tokens)
     readSection(PlotSections.resource,    plot, ctx, tokens)
     readSection(PlotSections.improvement, plot, ctx, tokens)
-    readSection(PlotSectionRiver.section, plot, ctx, tokens)
-    return joinTokens(tokens)
+    readSection(PlotSectionRiver, plot, ctx, tokens)
+    return table.concat(tokens, ", ")
 end
 
 -- W: economy details. Yields are nonzero-only; the rest are simple flags.
@@ -93,7 +81,7 @@ local function readBuildProgress(plot, out)
 end
 
 function PlotComposers.economy(plot)
-    local team, debug = teamAndDebug()
+    local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
     if not plot:IsRevealed(team, debug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
     end
@@ -116,7 +104,7 @@ function PlotComposers.economy(plot)
     if visible then
         readBuildProgress(plot, out)
     end
-    return joinTokens(out)
+    return table.concat(out, ", ")
 end
 
 -- Civ V has no plot-level "is in ZoC" API; ZoC is a unit-side concept
@@ -154,7 +142,7 @@ local function inEnemyZoC(plot, activeTeam, isDebug)
 end
 
 function PlotComposers.combat(plot)
-    local team, debug = teamAndDebug()
+    local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
     if not plot:IsRevealed(team, debug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
     end
@@ -171,5 +159,5 @@ function PlotComposers.combat(plot)
     if def ~= 0 then
         out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DEFENSE_MOD", def)
     end
-    return joinTokens(out)
+    return table.concat(out, ", ")
 end

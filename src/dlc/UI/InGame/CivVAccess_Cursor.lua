@@ -10,10 +10,6 @@ Cursor = {}
 local _x, _y = nil, nil
 local _lastOwnerIdentity = nil
 
-local function activeTeamAndDebug()
-    return Game.GetActiveTeam(), Game.IsDebugMode()
-end
-
 local function plotHere()
     if _x == nil then return nil end
     return Map.GetPlot(_x, _y)
@@ -63,7 +59,7 @@ end
 
 -- ===== Movement =====
 local function announceForMove(plot)
-    local team, debug = activeTeamAndDebug()
+    local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
     -- Unexplored tiles get a single "unexplored" token; the owner-identity
     -- machinery would otherwise double up the same word from the prefix
     -- and the composer (both speak "unexplored" for a never-revealed tile).

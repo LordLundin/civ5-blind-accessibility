@@ -9,8 +9,6 @@
 -- caravans / cargo ships are layer units that ARE on the map and get
 -- announced.
 
-PlotSectionUnits = {}
-
 local function unitDescription(unit)
     local owner = Players[unit:GetOwner()]
     -- Multiplayer nickname path mirrors PlotMouseoverInclude.GetUnitsString.
@@ -41,7 +39,7 @@ local function describeUnit(unit, activeTeam, isDebug)
     return s
 end
 
-PlotSectionUnits.section = {
+PlotSectionUnits = {
     Read = function(plot)
         local team    = Game.GetActiveTeam()
         local isDebug = Game.IsDebugMode()
