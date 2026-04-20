@@ -161,14 +161,6 @@ local function sectionedReader(id)
     }
 end
 
-local function textsSpoken()
-    local out = {}
-    for _, s in ipairs(speaks) do
-        out[#out + 1] = s.text
-    end
-    return out
-end
-
 local function spokeText(needle)
     for _, s in ipairs(speaks) do
         if tostring(s.text):find(needle, 1, true) then

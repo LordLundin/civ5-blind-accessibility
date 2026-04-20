@@ -11,8 +11,6 @@
 
 ScannerInput = {}
 
-local WM_SHIFT_MASK = 1
-
 local function charForLetter(vk)
     if vk >= 0x41 and vk <= 0x5A then
         return string.char(vk + 32)
@@ -49,10 +47,10 @@ function ScannerInput.create()
         HandlerStack.removeByName("ScannerInput")
     end
 
-    function self:handleSearchInput(vk, mods)
+    function self.handleSearchInput(me, vk, mods)
         -- Commit query.
         if vk == Keys.VK_RETURN then
-            local query = self._buffer
+            local query = me._buffer
             pop()
             speak(ScannerNav.applySearch(query))
             return true
@@ -62,31 +60,31 @@ function ScannerInput.create()
             return true
         end
         if vk == Keys.VK_BACK then
-            if #self._buffer == 0 then
+            if #me._buffer == 0 then
                 return true
             end
-            self._buffer = string.sub(self._buffer, 1, -2)
-            if #self._buffer == 0 then
+            me._buffer = string.sub(me._buffer, 1, -2)
+            if #me._buffer == 0 then
                 speak(Text.key("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_CLEARED"))
             else
-                speak(self._buffer)
+                speak(me._buffer)
             end
             return true
         end
         if vk == Keys.VK_SPACE then
-            if #self._buffer == 0 then
+            if #me._buffer == 0 then
                 return true
             end
-            self._buffer = self._buffer .. " "
-            speak(self._buffer)
+            me._buffer = me._buffer .. " "
+            speak(me._buffer)
             return true
         end
         -- Letters: case-insensitive match; lowercase in buffer for
         -- consistent TypeAheadSearch behaviour at commit time.
         local ch = charForLetter(vk) or charForDigit(vk)
         if ch ~= nil then
-            self._buffer = self._buffer .. ch
-            speak(self._buffer)
+            me._buffer = me._buffer .. ch
+            speak(me._buffer)
             return true
         end
         return false

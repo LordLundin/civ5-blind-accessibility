@@ -123,6 +123,10 @@ local function currentSelectionName()
         return Text.key("TXT_KEY_RANDOM_MAP_SCRIPT")
     end
     local file = PreGame.GetMapScript()
+    -- luacheck: ignore 512
+    -- FileName is effectively a unique key on MapScripts / Map_Sizes, so the
+    -- iterator yields at most one row; returning on the first hit is the
+    -- base-game idiom for "get the row matching this filter".
     for row in GameInfo.MapScripts({ FileName = file }) do
         return Text.key(row.Name)
     end

@@ -10,7 +10,7 @@ local function build()
         return nil
     end
     local parts = {}
-    for i, v in ipairs(mods) do
+    for _, v in ipairs(mods) do
         local name = Modding.GetModProperty(v.ModID, v.Version, "Name") or v.ModID
         parts[#parts + 1] = name
     end

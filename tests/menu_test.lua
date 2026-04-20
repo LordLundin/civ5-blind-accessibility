@@ -139,19 +139,16 @@ end
 -- Stub Controls matching the shape button-list tests expect.
 local ctrlState
 local function makeCtrl(name)
-    return setmetatable(
-        { _name = name },
-        {
-            __index = {
-                IsHidden = function(self)
-                    return ctrlState[self._name].hidden
-                end,
-                IsDisabled = function(self)
-                    return ctrlState[self._name].disabled
-                end,
-            },
-        }
-    )
+    return setmetatable({ _name = name }, {
+        __index = {
+            IsHidden = function(self)
+                return ctrlState[self._name].hidden
+            end,
+            IsDisabled = function(self)
+                return ctrlState[self._name].disabled
+            end,
+        },
+    })
 end
 local function setCtrls(names)
     Controls = {}
@@ -200,7 +197,7 @@ end
 function M.test_missing_control_logs_warn_and_keeps_item()
     setup()
     populateControls({})
-    local h = BaseMenu.create({
+    BaseMenu.create({
         name = "T",
         displayName = "Test",
         items = {
@@ -1233,17 +1230,14 @@ function M.test_close_reopen_resets_cursor()
     local cbB = Polyfill.makeCheckBox()
     populateControls({ A = cbA, B = cbB })
     local ctx = makeContextPtr()
-    BaseMenu.install(
-        ctx,
-        {
-            name = "T",
-            displayName = "Screen",
-            items = {
-                BaseMenuItems.Checkbox({ controlName = "A", textKey = "LA" }),
-                BaseMenuItems.Checkbox({ controlName = "B", textKey = "LB" }),
-            },
-        }
-    )
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Checkbox({ controlName = "A", textKey = "LA" }),
+            BaseMenuItems.Checkbox({ controlName = "B", textKey = "LB" }),
+        },
+    })
     ctx._sh(false, false)
     local h = HandlerStack.active()
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
@@ -1704,13 +1698,15 @@ function M.test_capturesAllInput_blocks_lower_handlers()
     HandlerStack.push({
         name = "lower",
         capturesAllInput = false,
-        bindings = { {
-            key = 65,
-            mods = 0,
-            fn = function()
-                lowerFired = lowerFired + 1
-            end,
-        } },
+        bindings = {
+            {
+                key = 65,
+                mods = 0,
+                fn = function()
+                    lowerFired = lowerFired + 1
+                end,
+            },
+        },
     })
     local h = BaseMenu.create({ name = "T", displayName = "Screen", items = buttonSpec({ "A" }) })
     HandlerStack.push(h)
@@ -1946,14 +1942,11 @@ function M.test_edit_mode_enter_keyup_is_claimed()
     local eb = Polyfill.makeEditBox({ text = "x" })
     populateControls({ E = eb })
     local ctx = makeContextPtr()
-    BaseMenu.install(
-        ctx,
-        {
-            name = "T",
-            displayName = "Screen",
-            items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
-        }
-    )
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
+    })
     ctx._sh(false, false)
     ctx._in(WM_KEYDOWN, Keys.VK_RETURN, 0) -- enter edit
     -- Enter KEYUP (msg 257) while in edit mode should be claimed so the
@@ -2627,27 +2620,24 @@ function M.test_search_enter_activates_current_result()
     local ctx = makeContextPtr()
     setCtrls({ "A", "B" })
     local fired = 0
-    BaseMenu.install(
-        ctx,
-        {
-            name = "T",
-            displayName = "Screen",
-            items = {
-                BaseMenuItems.Button({
-                    controlName = "A",
-                    labelText = "Apple",
-                    activate = function() end,
-                }),
-                BaseMenuItems.Button({
-                    controlName = "B",
-                    labelText = "Banana",
-                    activate = function()
-                        fired = fired + 1
-                    end,
-                }),
-            },
-        }
-    )
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                labelText = "Apple",
+                activate = function() end,
+            }),
+            BaseMenuItems.Button({
+                controlName = "B",
+                labelText = "Banana",
+                activate = function()
+                    fired = fired + 1
+                end,
+            }),
+        },
+    })
     ctx._sh(false, false)
     keydown(ctx, vkLetter("b"))
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
@@ -2658,22 +2648,19 @@ function M.test_search_clears_on_drill()
     setup()
     setCtrls({ "CHILD" })
     local ctx = makeContextPtr()
-    local handler = BaseMenu.install(
-        ctx,
-        {
-            name = "T",
-            displayName = "Screen",
-            items = {
-                groupItem("PARENT", {
-                    BaseMenuItems.Button({
-                        controlName = "CHILD",
-                        labelText = "Apple",
-                        activate = function() end,
-                    }),
+    local handler = BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        items = {
+            groupItem("PARENT", {
+                BaseMenuItems.Button({
+                    controlName = "CHILD",
+                    labelText = "Apple",
+                    activate = function() end,
                 }),
-            },
-        }
-    )
+            }),
+        },
+    })
     ctx._sh(false, false)
     keydown(ctx, vkLetter("p"))
     T.truthy(handler._search:isSearchActive())

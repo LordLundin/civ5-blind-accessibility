@@ -218,15 +218,12 @@ function M.test_collectHelpEntries_dedups_by_keyLabel_top_wins()
             { keyLabel = "Escape", description = "Back to previous screen" },
         } }
     )
-    local b = makeHandler(
-        "b",
-        {
-            helpEntries = {
-                { keyLabel = "Escape", description = "Close" },
-                { keyLabel = "Enter", description = "Activate" },
-            },
-        }
-    )
+    local b = makeHandler("b", {
+        helpEntries = {
+            { keyLabel = "Escape", description = "Close" },
+            { keyLabel = "Enter", description = "Activate" },
+        },
+    })
     HandlerStack.push(a)
     HandlerStack.push(b)
     local entries = HandlerStack.collectHelpEntries()

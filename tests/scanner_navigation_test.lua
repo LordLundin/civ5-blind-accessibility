@@ -274,7 +274,7 @@ function M.test_turn_start_rebuild_resets_item_and_instance()
     ScannerNav.cycleCategory(0)
     ScannerNav.cycleSubcategory(1)
     ScannerNav.cycleItem(1) -- advance to item 2
-    local cat, sub, item, inst = ScannerNav._indices()
+    local cat, sub, item, _ = ScannerNav._indices()
     T.eq(item, 2, "precondition: landed on item 2 before turn-start")
     fireTurnStart()
     ScannerNav.cycleItem(0) -- first read after turn-start triggers rebuild

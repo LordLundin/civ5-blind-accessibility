@@ -35,13 +35,15 @@ function M.test_dispatch_invokes_matching_binding()
     local fired = 0
     HandlerStack.push({
         name = "a",
-        bindings = { {
-            key = 65,
-            mods = 0,
-            fn = function()
-                fired = fired + 1
-            end,
-        } },
+        bindings = {
+            {
+                key = 65,
+                mods = 0,
+                fn = function()
+                    fired = fired + 1
+                end,
+            },
+        },
     })
     T.truthy(InputRouter.dispatch(65, 0, WM_KEYDOWN))
     T.eq(fired, 1)
@@ -281,13 +283,15 @@ function M.test_search_hook_falls_through_when_not_consumed()
         name = "menu",
         capturesAllInput = true,
         helpEntries = {},
-        bindings = { {
-            key = 65,
-            mods = 0,
-            fn = function()
-                bindingFired = bindingFired + 1
-            end,
-        } },
+        bindings = {
+            {
+                key = 65,
+                mods = 0,
+                fn = function()
+                    bindingFired = bindingFired + 1
+                end,
+            },
+        },
         handleSearchInput = function()
             return false
         end,
@@ -343,13 +347,15 @@ function M.test_search_hook_error_logged_and_falls_through()
         name = "menu",
         capturesAllInput = true,
         helpEntries = {},
-        bindings = { {
-            key = 65,
-            mods = 0,
-            fn = function()
-                bindingFired = bindingFired + 1
-            end,
-        } },
+        bindings = {
+            {
+                key = 65,
+                mods = 0,
+                fn = function()
+                    bindingFired = bindingFired + 1
+                end,
+            },
+        },
         handleSearchInput = function()
             error("boom")
         end,

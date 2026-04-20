@@ -735,8 +735,8 @@ function BaseMenu.create(spec)
     -- ContextPtr-level SetInputHandler to own the menu. Used by HelpHandler
     -- (pushed above an installed screen) and by every BaseMenu.install
     -- screen equivalently.
-    function self:handleSearchInput(vk, mods)
-        return BaseMenu._handleSearchInput(self, vk, mods)
+    function self.handleSearchInput(me, vk, mods)
+        return BaseMenu._handleSearchInput(me, vk, mods)
     end
 
     -- Upvalue: refresh() and onActivate both touch this; meaningless for

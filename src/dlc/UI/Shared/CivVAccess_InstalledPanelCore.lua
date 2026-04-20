@@ -124,18 +124,6 @@ local function yesNoLabel(value)
     return Text.key("TXT_KEY_MODDING_LABELNO")
 end
 
--- Strip the engine's "[ICON_BULLET] " prefix from a dependency message.
--- The TextFilter substitutes bullet tokens with spoken text, but a leading
--- bullet carries no information in speech and just adds "bullet" noise
--- before every dependency item.
-local function stripBullet(text)
-    if text == nil then
-        return ""
-    end
-    local stripped = string.gsub(text, "^%s*%[ICON_BULLET%]%s*", "")
-    return stripped
-end
-
 -- Build dependency / reference / blocker bullets for a mod. Mirrors the
 -- body of base ShowInstalledModDetails (lines 623-733) but emits Text
 -- leaves instead of writing to the hidden g_DetailsDependentMods stack.
