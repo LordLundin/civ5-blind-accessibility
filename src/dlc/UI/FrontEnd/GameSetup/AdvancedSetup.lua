@@ -1,8 +1,7 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/GameSetup/AdvancedSetup.{lua,xml}. Contents
 -- below (between ProbeBoot and the bootstrap marker at the bottom) are a
--- verbatim copy of the base-game file. Re-diff against the base after any
--- Civ V patch.
+-- verbatim copy of the base-game file.
 include("CivVAccess_ProbeBoot")
 -------------------------------------------------
 -- Advanced Settings Screen
@@ -1311,9 +1310,9 @@ Controls.RemoveButton:RegisterCallback( Mouse.eLClick, OnCancelEditPlayerDetails
 
 
    
----------------------------------------------------------------- 
+----------------------------------------------------------------
 -- Add AI Button Handler
----------------------------------------------------------------- 
+----------------------------------------------------------------
 function OnAdAIClicked()
     -- skip player 0 
     for i = 1, GameDefines.MAX_MAJOR_CIVS-1, 1 do
@@ -1330,17 +1329,17 @@ end
 Controls.AddAIButton:RegisterCallback(Mouse.eLClick, OnAdAIClicked);
 
 
----------------------------------------------------------------- 
+----------------------------------------------------------------
 -- Back Button Handler
----------------------------------------------------------------- 
+----------------------------------------------------------------
 function OnBackClicked()
     UIManager:DequeuePopup( ContextPtr );
 end
 Controls.BackButton:RegisterCallback(Mouse.eLClick, OnBackClicked);
 
----------------------------------------------------------------- 
+----------------------------------------------------------------
 -- Start Button Handler
----------------------------------------------------------------- 
+----------------------------------------------------------------
 function OnStartClicked()
 	PreGame.SetPersistSettings(true);
 	
@@ -1350,9 +1349,9 @@ end
 Controls.StartButton:RegisterCallback(Mouse.eLClick, OnStartClicked);
 
 
----------------------------------------------------------------- 
+----------------------------------------------------------------
 -- Defaults Button Handler
----------------------------------------------------------------- 
+----------------------------------------------------------------
 function OnDefaultsClicked()
 	Controls.RemoveButton:SetHide(true);
 
@@ -1424,7 +1423,7 @@ function OnDefaultsClicked()
 	PerformValidation();
 end
 Controls.DefaultButton:RegisterCallback( Mouse.eLClick, OnDefaultsClicked );
----------------------------------------------------------------- 
+----------------------------------------------------------------
 
 ----------------------------------------------------------------
 -- Input Handler
@@ -1439,11 +1438,11 @@ function InputHandler( uiMsg, wParam, lParam )
 	
 end
 ContextPtr:SetInputHandler( InputHandler );
-----------------------------------------------------------------     
+----------------------------------------------------------------
 
 ----------------------------------------------------------------
 -- Visibility Handler
----------------------------------------------------------------- 
+----------------------------------------------------------------
 function ShowHideHandler( bIsHide, bInit )
 	if (not bIsHide) then
 		PerformPartialSync();
@@ -1451,7 +1450,7 @@ function ShowHideHandler( bIsHide, bInit )
 	end
 end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
----------------------------------------------------------------- 
+----------------------------------------------------------------
 
 -----------------------------------------------------------------
 -- Adjust for resolution

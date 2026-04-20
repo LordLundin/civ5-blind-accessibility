@@ -1,7 +1,6 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/ExitConfirm.{lua,xml}. Contents above the
--- bootstrap marker are a verbatim copy of the base-game file. Re-diff
--- against the base after any Civ V patch.
+-- bootstrap marker are a verbatim copy of the base-game file.
 -------------------------------------------------
 -- Main Menu
 -------------------------------------------------
@@ -15,7 +14,7 @@ function OnExitGame()
 end
 Events.UserRequestClose.Add( OnExitGame );
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 ----------------------------------------------------------------
 function OnYes( )
 	--UIManager:DequeuePopup( ContextPtr );
@@ -25,15 +24,15 @@ end
 Controls.Yes:RegisterCallback( Mouse.eLClick, OnYes );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 ----------------------------------------------------------------
 function OnNo( )
 	UIManager:PopModal( ContextPtr );
 end
 Controls.No:RegisterCallback( Mouse.eLClick, OnNo );
 
-----------------------------------------------------------------  
-----------------------------------------------------------------        
+----------------------------------------------------------------
+----------------------------------------------------------------
 function OnShowHide( isHide, isInit )
 	
 	if(not isHide) then
@@ -48,8 +47,8 @@ end
 ContextPtr:SetShowHideHandler( OnShowHide );
 
 
-----------------------------------------------------------------        
-----------------------------------------------------------------        
+----------------------------------------------------------------
+----------------------------------------------------------------
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then

@@ -2,7 +2,7 @@
 -- Target: Assets/UI/FrontEnd/Modding/EULA.{lua,xml}.
 -- Flattened to UI/FrontEnd/ because include() resolves by bare filename
 -- stem. Contents above the bootstrap marker are a verbatim copy of the
--- base-game file. Re-diff against the base after any Civ V patch.
+-- base-game file.
 -------------------------------------------------
 -- EULA Screen
 -------------------------------------------------

@@ -1,7 +1,6 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/MainMenu.{lua,xml}. Contents above the bootstrap
--- marker are a verbatim copy of the base-game file. Re-diff against the base
--- after any Civ V patch.
+-- marker are a verbatim copy of the base-game file.
 -------------------------------------------------
 -- Main Menu
 -------------------------------------------------
@@ -113,7 +112,7 @@ end
 Controls.ExitButton:RegisterCallback( Mouse.eLClick, OnExitGame );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 ----------------------------------------------------------------
 Steam.SetOverlayNotificationPosition( "bottom_left" );
 
@@ -253,7 +252,7 @@ end
 
 DisplayDLCButtons();
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 function OnExpansionRulesSwitch()
 	UIManager:QueuePopup( Controls.PremiumContentScreen, PopupPriority.OtherMenu );
 end		

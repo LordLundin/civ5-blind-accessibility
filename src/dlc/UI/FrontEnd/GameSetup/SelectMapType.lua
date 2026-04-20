@@ -1,7 +1,7 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/GameSetup/SelectMapType.{lua,xml}. Contents
 -- above the bootstrap marker are a verbatim copy of the base-game file.
--- Re-diff against the base after any Civ V patch.
+--
 -------------------------------------------------
 -- Select Map Type
 -------------------------------------------------
@@ -10,7 +10,7 @@ include("InstanceManager");
 
 g_InstanceManager = InstanceManager:new( "ItemInstance", "Root", Controls.Stack );
 
----------------------------------------------------------------- 
+----------------------------------------------------------------
 function IsWBMap(file)
 	return Path.UsesExtension(file,".Civ5Map"); 
 end
@@ -24,9 +24,9 @@ end
 Controls.CloseButton:RegisterCallback( Mouse.eLClick, OnBack );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- Input processing
-----------------------------------------------------------------        
+----------------------------------------------------------------
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then

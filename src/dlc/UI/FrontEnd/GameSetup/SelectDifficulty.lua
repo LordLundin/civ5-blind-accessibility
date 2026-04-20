@@ -1,7 +1,7 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/GameSetup/SelectDifficulty.{lua,xml}. Contents
 -- above the bootstrap marker are a verbatim copy of the base-game file.
--- Re-diff against the base after any Civ V patch.
+--
 -------------------------------------------------
 -- Select Difficulty
 -------------------------------------------------
@@ -17,9 +17,9 @@ end
 Controls.BackButton:RegisterCallback( Mouse.eLClick, OnBack );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- Input processing
-----------------------------------------------------------------        
+----------------------------------------------------------------
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then
@@ -31,17 +31,17 @@ end
 ContextPtr:SetInputHandler( InputHandler );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- set the Difficulty
-----------------------------------------------------------------        
+----------------------------------------------------------------
 function DifficultySelected( id )
     PreGame.SetHandicap( 0, id );
     OnBack();
 end
 
 
-----------------------------------------------------------------        
-----------------------------------------------------------------        
+----------------------------------------------------------------
+----------------------------------------------------------------
 function ShowHideHandler( bIsHide )
     if( not bIsHide ) then
         Controls.ScrollPanel:SetScrollValue( 0 );
@@ -50,9 +50,9 @@ end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- build the buttons
-----------------------------------------------------------------        
+----------------------------------------------------------------
 for info in GameInfo.HandicapInfos() do
 	if ( info.Type ~= "HANDICAP_AI_DEFAULT" ) then
 		local controlTable = {};

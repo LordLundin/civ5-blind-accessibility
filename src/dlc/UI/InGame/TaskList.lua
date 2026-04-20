@@ -1,10 +1,10 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/InGame/TaskList.{lua,xml} (base game; not overridden by
 -- Expansion/Expansion2). Contents above the bootstrap marker are a verbatim
--- copy of the base-game file. Re-diff against the base file after any Civ V
--- patch. Rationale for this target: small (~50 lines), leaf file with no
--- gameplay coupling, always instantiated in-game (Events.TaskListUpdate is
--- fired by the engine), and unmodified by G&K / BNW.
+-- copy of the base-game file. Rationale for this target: small (~50
+-- lines), leaf file with no gameplay coupling, always instantiated
+-- in-game (Events.TaskListUpdate is fired by the engine), and unmodified
+-- by G&K / BNW.
 include( "InstanceManager" );
 
 -- the instance managers

@@ -83,8 +83,7 @@ local projectsToIgnore = {
 -- CivVAccess: `local` stripped from these InstanceManager declarations so the
 -- accessibility include at the bottom of this file can iterate their
 -- m_AllocatedInstances to scrape the rendered article's relationship links,
--- free-form text, and BB text. Re-add `local` on re-diff against a fresh
--- base-game copy, then re-strip.
+-- free-form text, and BB text.
 g_ListItemManager = InstanceManager:new( "ListItemInstance", "ListItemButton", Controls.ListOfArticles );
 g_ListHeadingManager = InstanceManager:new( "ListHeadingInstance", "ListHeadingButton", Controls.ListOfArticles );
 g_PrereqTechManager = InstanceManager:new( "PrereqTechInstance", "PrereqTechButton", Controls.PrereqTechInnerFrame );

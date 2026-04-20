@@ -1,11 +1,11 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/InGame/Popups/GenericPopup.{lua,xml} (base game; not
 -- overridden by Expansion/Expansion2). Contents above the bootstrap marker
--- are a verbatim copy of the base-game file. Re-diff against the base file
--- after any Civ V patch. Rationale for this target: this single Context
--- dispatches 16 PopupsGeneric/*Popup.lua layouts through the PopupLayouts
--- table, so one accessibility wiring covers every Annex / Puppet / Liberate /
--- ConfirmCommand / DeclareWar / etc. confirm-choice popup the engine raises.
+-- are a verbatim copy of the base-game file. Rationale for this target:
+-- this single Context dispatches 16 PopupsGeneric/*Popup.lua layouts
+-- through the PopupLayouts table, so one accessibility wiring covers
+-- every Annex / Puppet / Liberate / ConfirmCommand / DeclareWar / etc.
+-- confirm-choice popup the engine raises.
 -------------------------------------------------
 -- Generic Popups
 -------------------------------------------------

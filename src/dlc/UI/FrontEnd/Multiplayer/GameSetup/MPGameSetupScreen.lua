@@ -1,8 +1,7 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.{lua,xml}.
 -- Contents below (between ProbeBoot and the bootstrap marker at the bottom)
--- are a verbatim copy of the base-game file. Re-diff against the base
--- after any Civ V patch.
+-- are a verbatim copy of the base-game file.
 include("CivVAccess_ProbeBoot")
 -------------------------------------------------
 -- Multiplayer Game Setup Screen
@@ -150,8 +149,8 @@ function UpdateDisplay()
 	end	
 end
 
-----------------------------------------------------------------        
-----------------------------------------------------------------        
+----------------------------------------------------------------
+----------------------------------------------------------------
 function ShowHideHandler( isHide, bInit )
 	-- Check to make sure we are not launching, this menu can briefly get unhidden as the game launches
 	if not Matchmaking.IsLaunchingGame() and not isHide then 
@@ -185,9 +184,9 @@ end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- Input processing
-----------------------------------------------------------------        
+----------------------------------------------------------------
 function InputHandler( uiMsg, wParam, lParam )
 	if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then

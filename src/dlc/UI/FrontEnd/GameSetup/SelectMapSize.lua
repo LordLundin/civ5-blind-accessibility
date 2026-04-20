@@ -1,7 +1,7 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/GameSetup/SelectMapSize.{lua,xml}. Contents
 -- above the bootstrap marker are a verbatim copy of the base-game file.
--- Re-diff against the base after any Civ V patch.
+--
 -------------------------------------------------
 -- Select Map Size
 -------------------------------------------------
@@ -20,9 +20,9 @@ end
 Controls.BackButton:RegisterCallback( Mouse.eLClick, OnBack );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- Input processing
-----------------------------------------------------------------        
+----------------------------------------------------------------
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then
@@ -34,9 +34,9 @@ end
 ContextPtr:SetInputHandler( InputHandler );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- set the size
-----------------------------------------------------------------        
+----------------------------------------------------------------
 function SizeSelected( id )
 
     if( id == -1 ) then
@@ -102,8 +102,8 @@ function SizeSelected( id )
 end
 
 
-----------------------------------------------------------------        
-----------------------------------------------------------------        
+----------------------------------------------------------------
+----------------------------------------------------------------
 function ShowHideHandler( bIsHide )
     if( not bIsHide ) then
         Controls.ScrollPanel:SetScrollValue( 0 );
@@ -142,9 +142,9 @@ end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- build the buttons
-----------------------------------------------------------------        
+----------------------------------------------------------------
 ContextPtr:BuildInstanceForControl( "ItemInstance", g_RandomSizeControl, Controls.Stack );
 IconHookup( 6, 64, "WORLDSIZE_ATLAS", g_RandomSizeControl.Icon );
 if(not PreGame.IsMultiplayerGame()) then

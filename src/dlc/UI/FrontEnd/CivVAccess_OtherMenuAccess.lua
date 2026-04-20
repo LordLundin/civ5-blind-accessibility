@@ -2,7 +2,7 @@
 -- handlers are anonymous closures registered inline; we duplicate their
 -- one-line bodies here rather than trying to reach into local scope.
 -- If the base game changes those URLs / targets the duplicate needs a
--- matching update (re-diff OtherMenu.lua after any Civ V patch).
+-- matching update.
 
 include("CivVAccess_FrontendCommon")
 

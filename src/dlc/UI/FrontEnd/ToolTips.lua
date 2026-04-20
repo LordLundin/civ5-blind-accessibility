@@ -1,8 +1,7 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/ToolTips.{lua,xml} (base game; not overridden by
 -- Expansion/Expansion2). Contents above the bootstrap marker are a verbatim
--- copy of the base-game file. Re-diff against the base file after any Civ V
--- patch. Rationale for this target: 15 lines, leaf, always loaded at
+-- copy of the base-game file. Rationale for this target: 15 lines, leaf, always loaded at
 -- front-end init (before MainMenu), and very unlikely to be patched.
 -------------------------------------------------
 -------------------------------------------------

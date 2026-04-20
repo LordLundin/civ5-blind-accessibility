@@ -1,18 +1,17 @@
--- Civ V Access: base-game override.
--- Target: Assets/UI/InGame/WorldView/WorldView.{lua,xml} (base game; also
--- shadowed across Expansion1/Expansion2 UISkins by stem). Contents above
--- the bootstrap marker are a verbatim copy of the base-game file. Re-diff
--- against the base file after any Civ V patch. Rationale for this target:
--- WorldView is a child Lua Context of InGame and its InputHandler runs
--- before InGame's on every keydown. Its DefaultMessageHandler consumes
--- VK_PRIOR / VK_NEXT (and arrow / OEM_PLUS / OEM_MINUS) by returning
--- true, so the scanner's PageUp/PageDown bindings never bubble to
--- InGame's InputHandler where our HandlerStack dispatch lives. Appending
--- our WorldView-Context input hook here lets HandlerStack intercept
--- first and, on a miss, fall through to the base handler so camera pan
--- and zoom still work for sighted testers.
+-- Civ V Access: BNW override.
+-- Target: Assets/DLC/Expansion2/UI/InGame/WorldView/WorldView.{lua,xml}.
+-- Contents above the bootstrap marker are a verbatim copy of BNW's file.
+-- Rationale for this target: WorldView is a child Lua Context of InGame
+-- and its InputHandler runs before InGame's on every keydown. Its
+-- DefaultMessageHandler consumes VK_PRIOR / VK_NEXT (and arrow /
+-- OEM_PLUS / OEM_MINUS) by returning true, so the scanner's PageUp /
+-- PageDown bindings never bubble to InGame's InputHandler where our
+-- HandlerStack dispatch lives. Appending our WorldView-Context input
+-- hook here lets HandlerStack intercept first and, on a miss, fall
+-- through to the base handler so camera pan and zoom still work for
+-- sighted testers.
 -------------------------------------------------
--- World View
+-- World View 
 -------------------------------------------------
 include( "FLuaVector" );
 
@@ -22,10 +21,10 @@ local turn2Color = Vector4( 1, 1, 0, 0.25 );
 local turn3PlusColor = Vector4( 0.25, 0, 1, 0.25 );
 local maxRangeColor = Vector4( 1, 1, 1, 0.25 );
 local rButtonDown = false;
+local bEatNextUp = false;
 
 local pathBorderStyle = "MovementRangeBorder";
 local attackPathBorderStyle = "AMRBorder"; -- attack move
-local bEatNextUp = false;
          
 function UpdatePathFromSelectedUnitToMouse()
 	local interfaceMode = UI.GetInterfaceMode();
@@ -174,7 +173,16 @@ g_UnitPlopper =
 		if (g_PlopperSettings.Player ~= -1 and g_UnitPlopper.UnitType ~= -1) then
 			local player = Players[g_PlopperSettings.Player];
 			if (player ~= nil) then
-				local unit = player:InitUnit(g_UnitPlopper.UnitType, plot:GetX(), plot:GetY());
+				local unit;
+				
+				print(g_UnitPlopper.UnitNameOffset);
+				print(player.InitUnitWithNameOffset);
+				if(g_UnitPlopper.UnitNameOffset ~= nil and player.InitUnitWithNameOffset ~= nil) then
+					unit = player:InitUnitWithNameOffset(g_UnitPlopper.UnitType, g_UnitPlopper.UnitNameOffset, plot:GetX(), plot:GetY());
+				else
+					unit = player:InitUnit(g_UnitPlopper.UnitType, plot:GetX(), plot:GetY());
+				end 
+						
 				if (g_UnitPlopper.Embarked) then
 					unit:Embark();
 				end
@@ -396,7 +404,7 @@ InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE][MouseEve
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_AIR_SWEEP][MouseEvents.LButtonUp] = missionTypeLButtonUpHandler;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_REBASE][MouseEvents.LButtonUp] = missionTypeLButtonUpHandler;
 
-
+if (UI.IsTouchScreenEnabled()) then
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_MOVE_TO][MouseEvents.PointerUp] = missionTypeLButtonUpHandler;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_MOVE_TO_TYPE][MouseEvents.PointerUp] = missionTypeLButtonUpHandler;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_MOVE_TO_ALL][MouseEvents.PointerUp] = missionTypeLButtonUpHandler;
@@ -407,6 +415,9 @@ InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_PARADROP][MouseEven
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE][MouseEvents.PointerUp] = missionTypeLButtonUpHandler;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_AIR_SWEEP][MouseEvents.PointerUp] = missionTypeLButtonUpHandler;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_REBASE][MouseEvents.PointerUp] = missionTypeLButtonUpHandler;
+end
+
+
 function AirStrike( wParam, lParam )
 	local plot = Map.GetPlot( UI.GetMouseOverHex() );
 	local plotX = plot:GetX();
@@ -431,9 +442,9 @@ function AirStrike( wParam, lParam )
 	elseif pHeadSelectedUnit and pHeadSelectedUnit:CanRangeStrikeAt(plotX, plotY, false, true) then
 		-- Is there someone here that we COULD bombard, perhaps?
 		local eRivalTeam = pHeadSelectedUnit:GetDeclareWarRangeStrike(plot);
-		if (eRivalTeam ~= -1) then
+		if (eRivalTeam ~= -1) then							
 			UIManager:SetUICursor(0);
-										
+			
 			local popupInfo = 
 			{
 				Type  = ButtonPopupTypes.BUTTONPOPUP_DECLAREWARRANGESTRIKE,
@@ -449,12 +460,10 @@ function AirStrike( wParam, lParam )
 						
 	return true;
 end
-
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE][MouseEvents.LButtonUp] = AirStrike;
 if (UI.IsTouchScreenEnabled()) then
 	InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE][MouseEvents.PointerUp] = AirStrike;
 end
-
 
 
 function RangeAttack( wParam, lParam )
@@ -479,9 +488,9 @@ function RangeAttack( wParam, lParam )
 	elseif pHeadSelectedUnit and pHeadSelectedUnit:CanRangeStrikeAt(plotX, plotY, false, true) then
 		-- Is there someone here that we COULD bombard, perhaps?
 		local eRivalTeam = pHeadSelectedUnit:GetDeclareWarRangeStrike(plot);
-		if (eRivalTeam ~= -1) then							
+		if (eRivalTeam ~= -1) then		
 			UIManager:SetUICursor(0);
-			
+							
 			local popupInfo = 
 			{
 				Type  = ButtonPopupTypes.BUTTONPOPUP_DECLAREWARRANGESTRIKE,
@@ -502,7 +511,6 @@ InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK][Mouse
 if (UI.IsTouchScreenEnabled()) then
 	InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK][MouseEvents.PointerUp] = RangeAttack;
 end
-
 function CityBombard( wParam, lParam )
 	local plot = Map.GetPlot( UI.GetMouseOverHex() );
 	local plotX = plot:GetX();
@@ -563,6 +571,7 @@ end
 -- Have either right or left click trigger this
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_EMBARK][MouseEvents.LButtonUp] = EmbarkInputHandler;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_EMBARK][MouseEvents.RButtonUp] = EmbarkInputHandler;
+
 if (UI.IsTouchScreenEnabled()) then
 	InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_EMBARK][MouseEvents.PointerUp] = EmbarkInputHandler;
 end
@@ -585,6 +594,7 @@ end
 -- Have either right or left click trigger this
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_DISEMBARK][MouseEvents.LButtonUp] = DisembarkInputHandler;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_DISEMBARK][MouseEvents.RButtonUp] = DisembarkInputHandler;
+
 if (UI.IsTouchScreenEnabled()) then
 	InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_DISEMBARK][MouseEvents.PointerUp] = DisembarkInputHandler;
 end
@@ -619,7 +629,6 @@ function( wParam, lParam )
 	UpdatePathFromSelectedUnitToMouse();
 end
 
-
 if (UI.IsTouchScreenEnabled()) then
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_SELECTION][MouseEvents.LButtonDoubleClick] = 
 function( wParam, lParam )
@@ -629,14 +638,27 @@ function( wParam, lParam )
     end
 end
 end
+
+function ClearAllHighlights()
+	--Events.ClearHexHighlights(); other systems might be using these!
+	Events.ClearHexHighlightStyle("");
+	Events.ClearHexHighlightStyle(pathBorderStyle);
+	Events.ClearHexHighlightStyle(attackPathBorderStyle);
+	Events.ClearHexHighlightStyle(genericUnitHexBorder);  
+	Events.ClearHexHighlightStyle("FireRangeBorder");
+	Events.ClearHexHighlightStyle("GroupBorder");
+	Events.ClearHexHighlightStyle("ValidFireTargetBorder");
+end
+
+
 function MovementRButtonUp( wParam, lParam )
     if( bEatNextUp == true ) then
         bEatNextUp = false;
         return;
     end
-	if (UI.IsTouchScreenEnabled()) then
-        	UI.SetInterfaceMode( InterfaceModeTypes.INTERFACEMODE_SELECTION );
-	end
+    if (UI.IsTouchScreenEnabled()) then
+    	UI.SetInterfaceMode( InterfaceModeTypes.INTERFACEMODE_SELECTION );
+    end
 	local bShift = UIManager:GetShift();
 	local bAlt = UIManager:GetAlt();
 	local bCtrl = UIManager:GetControl();
@@ -653,7 +675,8 @@ function MovementRButtonUp( wParam, lParam )
 	if pHeadSelectedUnit then
 		if (UI.IsCameraMoving() and not Game.GetAllowRClickMovementWhileScrolling()) then
 			print("Blocked by moving camera");
-			Events.ClearHexHighlights();
+			--Events.ClearHexHighlights();
+			ClearAllHighlights();
 			return;
 		end
 	
@@ -663,7 +686,9 @@ function MovementRButtonUp( wParam, lParam )
 
 		-- Is there someone here that we COULD bombard perhaps?
 		local eRivalTeam = pHeadSelectedUnit:GetDeclareWarRangeStrike(plot);
-		if (eRivalTeam ~= -1) then							
+		if (eRivalTeam ~= -1) then
+			UIManager:SetUICursor(0);
+										
 			local popupInfo = 
 			{
 				Type  = ButtonPopupTypes.BUTTONPOPUP_DECLAREWARRANGESTRIKE,
@@ -695,21 +720,9 @@ function MovementRButtonUp( wParam, lParam )
 				
 				Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, iMission, plotX, plotY, 0, false, bShift);
 				UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION);
-				Events.ClearHexHighlights();
+				--Events.ClearHexHighlights();
+				ClearAllHighlights();
 				return true;
-			end
-		end
-
-		-- Garrison in a city
-		local city = plot:GetPlotCity();
-		if (city and city:GetOwner() == pHeadSelectedUnit:GetOwner() and pHeadSelectedUnit:IsCanAttack()) then
-			local cityOwner = Players[city:GetOwner()];			
-			if (not cityOwner:IsMinorCiv() and city:GetGarrisonedUnit() == nil and pHeadSelectedUnit:GetDomainType() == DomainTypes.DOMAIN_LAND) then
-				--print("Garrison attempt");
-				Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, MissionTypes.MISSION_GARRISON, plotX, plotY, 0, false, bShift);
-				UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION);
-				Events.ClearHexHighlights();
-				return true;				
 			end
 		end
 
@@ -724,7 +737,8 @@ function MovementRButtonUp( wParam, lParam )
 				Game.SelectionListMove(plot,  bAlt, bShift, bCtrl);
 				--UI.SetGotoPlot(nil);
 			end
-			Events.ClearHexHighlights();
+			--Events.ClearHexHighlights();
+			ClearAllHighlights();
 			return true;
 		end
 	end
@@ -732,6 +746,7 @@ end
 
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_SELECTION][MouseEvents.RButtonUp] = MovementRButtonUp;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_MOVE_TO][MouseEvents.RButtonUp] = MovementRButtonUp;
+
 if (UI.IsTouchScreenEnabled()) then
 	InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_MOVE_TO][MouseEvents.PointerUp] = MovementRButtonUp;
 end
@@ -763,6 +778,7 @@ function EjectHandler( wParam, lParam )
 end
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_PLACE_UNIT][MouseEvents.LButtonUp] = EjectHandler;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_PLACE_UNIT][MouseEvents.RButtonUp] = EjectHandler;
+
 if (UI.IsTouchScreenEnabled()) then
 	InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_PLACE_UNIT][MouseEvents.PointerUp] = EjectHandler;
 end
@@ -775,12 +791,8 @@ DefaultMessageHandler[MouseEvents.RButtonUp] = SelectHandler;
 if (UI.IsTouchScreenEnabled()) then
 	DefaultMessageHandler[MouseEvents.PointerUp] = SelectHandler;
 end
-
-
-
     
-
-
+    
 ----------------------------------------------------------------
 -- Input handling 
 ----------------------------------------------------------------
@@ -793,7 +805,7 @@ function InputHandler( uiMsg, wParam, lParam )
 	if( UI.IsTouchScreenEnabled() and uiMsg == MouseEvents.PointerDown ) then
 	    if( UIManager:GetNumPointers() > 1 ) then
 			UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION);
-		end
+	   end
 	end
 	
 	local interfaceMode = UI.GetInterfaceMode();
@@ -807,7 +819,7 @@ function InputHandler( uiMsg, wParam, lParam )
 end
 ContextPtr:SetInputHandler( InputHandler );
 
----------------------------------------------------------------- 
+----------------------------------------------------------------
 -- Deal with a new path from the path finder 
 -- this is a place holder implementation to give an example of how to handle it       
 ----------------------------------------------------------------
@@ -872,10 +884,23 @@ end
 Events.GameplaySetActivePlayer.Add(OnActivePlayerChanged);
 
 -------------------------------------------------
+function OnMultiplayerGameAbandoned(eReason)
+	local popupInfo = 
+	{
+		Type  = ButtonPopupTypes.BUTTONPOPUP_KICKED,
+		Data1 = eReason
+	};
+
+	Events.SerialEventGameMessagePopup(popupInfo);
+    UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION);
+end
+Events.MultiplayerGameAbandoned.Add( OnMultiplayerGameAbandoned );
+
+-------------------------------------------------
 function OnMultiplayerGameLastPlayer()
 	UI.AddPopup( { Type = ButtonPopupTypes.BUTTONPOPUP_TEXT, 
-	Data1 = 800,
-	Option1 = true,
+	Data1 = 800, 
+	Option1 = true, 
 	Text = "TXT_KEY_MP_LAST_PLAYER" } );
 end
 Events.MultiplayerGameLastPlayer.Add( OnMultiplayerGameLastPlayer );

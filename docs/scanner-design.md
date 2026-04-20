@@ -290,7 +290,7 @@ All new files under `src/dlc/UI/InGame/`. Civ V's VFS indexes Lua files by bare 
 ### Bootstrap and manifest updates
 
 - `src/dlc/UI/InGame/CivVAccess_Boot.lua`: add `include` lines for each scanner file. Include order is not strictly ordered at load time — every scanner module defines globals that other scanner modules only touch at call time through closures, so any order Boot already uses is fine. The Strings file should be included before any module whose load-time code calls `Text.key` on a scanner key (none of the modules above do so at load time). Push the ScannerHandler onto the HandlerStack in `onInGameBoot` after the Baseline push.
-- All three manifest files (`CivVAccess_0/1/2.Civ5Pkg`): add entries for each new Lua file under the appropriate `<GameData>` / `<LuaFile>` section. Strings file is per-Context but only needed in-game here.
+- `CivVAccess_2.Civ5Pkg` (the sole manifest): add entries for each new Lua file under the appropriate `<GameData>` / `<LuaFile>` section. Strings file is per-Context but only needed in-game here.
 
 ### Shared helper refactor
 

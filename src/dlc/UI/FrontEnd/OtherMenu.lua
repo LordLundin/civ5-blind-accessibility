@@ -1,7 +1,6 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/OtherMenu.{lua,xml}. Contents above the bootstrap
--- marker are a verbatim copy of the base-game file. Re-diff against the base
--- after any Civ V patch.
+-- marker are a verbatim copy of the base-game file.
 -------------------------------------------------
 -- Main Menu
 -------------------------------------------------

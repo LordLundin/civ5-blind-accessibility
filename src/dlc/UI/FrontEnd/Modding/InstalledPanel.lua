@@ -2,7 +2,7 @@
 -- Target: Assets/UI/FrontEnd/Modding/InstalledPanel.{lua,xml}. This Context
 -- is a child LuaContext of ModsBrowser (hidden=0, always visible with the
 -- parent). Contents between the bootstrap markers are a verbatim copy of
--- the base-game file. Re-diff against the base after any Civ V patch.
+-- the base-game file.
 ----------------------------------------------------
 -- ProbeBoot runs BEFORE the base file so the checkbox metatable patch is
 -- in place before Controls.ShowDLCMods registers its CheckHandler. Without
@@ -768,7 +768,7 @@ function ShowInstalledModDetails(modId, modVersion)
 	SetListingsState("details");
 end
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 ----------------------------------------------------------------
 function OnDeleteMod(modinfo)
 	--
@@ -804,7 +804,7 @@ function OnDeleteMod(modinfo)
 	end);
 end
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 ----------------------------------------------------------------
 function OnUnsubscribeMod(modinfo)
 	--
@@ -829,8 +829,8 @@ function OnUnsubscribeMod(modinfo)
 	end);
 end
 
-----------------------------------------------------------------  
----------------------------------------------------------------- 
+----------------------------------------------------------------
+----------------------------------------------------------------
 -- BoxButtons currently do not support highlight colors via XML.
 -- In these mouse events, we fake the highlight colors.
 function OnListingMouseEnter(_, _, listing)

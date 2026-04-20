@@ -1,7 +1,7 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/Multiplayer/Lobby.{lua,xml}.
 -- Contents below (up to the bootstrap marker at the bottom) are a verbatim
--- copy of the base-game file. Re-diff against the base after any Civ V patch.
+-- copy of the base-game file.
 -------------------------------------------------
 -- Internet Lobby Screen
 -------------------------------------------------
@@ -199,9 +199,9 @@ end
 Controls.BackButton:RegisterCallback( Mouse.eLClick, BackButtonClick );
 
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- Input Handler
-----------------------------------------------------------------        
+----------------------------------------------------------------
 function InputHandler( uiMsg, wParam, lParam )
 	if uiMsg == KeyEvents.KeyDown then
 		if wParam == Keys.VK_ESCAPE then

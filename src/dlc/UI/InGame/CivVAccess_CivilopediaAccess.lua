@@ -11,16 +11,6 @@
 -- before anything touches Text / BaseMenu / etc. These same include stems
 -- are already loaded into other InGame Contexts; the engine's VFS indexes
 -- by bare stem and re-runs the file per Context.
---
--- UISkin caveat: this access file ships under all three skin directories
--- (BaseGame / Expansion1 / Expansion2). The pedia.lua we copied next to
--- it is the BNW (Expansion2) version -- base-only and G&K-only sessions
--- will run that file against a GameInfo that lacks Beliefs / Resolutions
--- tables. Our buildPickerItems() probes GameInfo for those tables before
--- adding them, so our picker is safe on every skin; the underlying base-
--- game pedia code is what may misbehave there. Add per-skin copies of
--- CivilopediaScreen.{lua,xml} under per-skin directories in the
--- manifests when base/G&K support becomes a requirement.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")

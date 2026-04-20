@@ -1,9 +1,8 @@
 -- Civ V Access: base-game override.
 -- Target: Assets/UI/FrontEnd/LegalScreen.{lua,xml}. Contents above the
--- bootstrap marker are a verbatim copy of the base-game file. Re-diff
--- against the base after any Civ V patch. Expansion1/2 ship a cosmetic
--- XML variant (different textures/offsets); the functional controls
--- (ContinueButton, EULAText, text keys) match ours.
+-- bootstrap marker are a verbatim copy of the base-game file. BNW does
+-- not override this file; our base copy is what loads under the
+-- Expansion2 UISkin.
 -------------------------------------------------
 -------------------------------------------------
 Controls.ContinueButton:RegisterCallback(Mouse.eLClick, function()

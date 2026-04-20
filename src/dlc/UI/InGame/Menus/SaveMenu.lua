@@ -3,7 +3,7 @@
 -- (no front-end save flow); opened as a popup from GameMenu via
 -- UIManager:QueuePopup( Controls.SaveMenu ). Our include at the tail runs in
 -- the SaveMenu sandbox. Contents between the bootstrap markers are a verbatim
--- copy of the base-game file. Re-diff against the base after any Civ V patch.
+-- copy of the base-game file.
 ----------------------------------------------------
 -- Probe install runs BEFORE the base file so the checkbox metatable is
 -- patched before Controls.CloudCheck registers its CheckHandler. Without the
