@@ -1,5 +1,6 @@
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
+include("CivVAccess_UserPrefs")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
 include("CivVAccess_Text")

@@ -8,6 +8,7 @@
 -- each sandbox.
 
 include("CivVAccess_Log")
+include("CivVAccess_UserPrefs")
 include("CivVAccess_TextFilter")
 include("CivVAccess_FrontEndStrings_en_US")
 include("CivVAccess_Text")

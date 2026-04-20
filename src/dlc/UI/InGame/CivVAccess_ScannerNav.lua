@@ -50,12 +50,13 @@ end
 
 installTurnStartListener()
 
--- Initialise the auto-move toggle on the shared table the first time we
+-- Hydrate the auto-move toggle on the shared table the first time we
 -- boot into a session. Default is off: auto-move yanks the cursor away
 -- from the user's working cell on every scan step, which is disruptive
--- enough to warrant opt-in. Users who want it flip it with Shift+End.
+-- enough to warrant opt-in. Users who want it flip it with Shift+End and
+-- the new value persists across sessions via Prefs.
 if civvaccess_shared.scannerAutoMove == nil then
-    civvaccess_shared.scannerAutoMove = false
+    civvaccess_shared.scannerAutoMove = Prefs.getBool("ScannerAutoMove", false)
 end
 
 -- ===== Snapshot plumbing =====
@@ -481,14 +482,13 @@ function ScannerNav.distanceFromCursor()
     return HexGeom.directionString(cx, cy, inst.plotX, inst.plotY)
 end
 
--- Shift+End: flip the session-scoped auto-move preference on the shared
--- table. The design calls out that this is the first persistent user
--- setting and stays session-only until a settings layer lands; the
--- table already survives Context re-instantiation, which is the scope
--- we need until then.
+-- Shift+End: flip the auto-move preference. The shared table holds the
+-- live value so every cycle reads it cheaply; Prefs.setBool persists the
+-- flip so the choice survives a restart.
 function ScannerNav.toggleAutoMove()
     local now = not civvaccess_shared.scannerAutoMove
     civvaccess_shared.scannerAutoMove = now
+    Prefs.setBool("ScannerAutoMove", now)
     if now then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_AUTO_MOVE_ON")
     else

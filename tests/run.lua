@@ -7,6 +7,12 @@ local T = require("support")
 -- The polyfill's sentinel check keeps it a no-op in-game; here it fires.
 dofile("src/dlc/UI/InGame/CivVAccess_Polyfill.lua")
 dofile("src/dlc/UI/InGame/CivVAccess_InGameStrings_en_US.lua")
+-- UserPrefs must load before any ScannerNav-touching suite so the
+-- Prefs.getBool / setBool calls ScannerNav makes at dofile time and
+-- inside toggleAutoMove resolve to the real production module. The
+-- module self-degrades to returning defaults when Modding is absent
+-- (as it is here), so no test stub is needed.
+dofile("src/dlc/UI/Shared/CivVAccess_UserPrefs.lua")
 -- HexGeom is a pure-math helper used by Cursor.orient (and, later, the
 -- scanner's End key). Loading it here ensures the cursor suite's setup()
 -- dofile chain can call HexGeom.directionString without each test having
