@@ -81,6 +81,7 @@ Handler table shape and push/pop rules are documented in the header of `src/dlc/
 - **`Alt+Left/Right` sends `WM_SYSKEYDOWN` (msg 260)**, not `WM_KEYDOWN`. Input handlers must check both to catch Alt-chorded keys.
 - **Bootstrap piggy-backs on overriding `TaskList.{lua,xml}` (in-game boot), `InGame.{lua,xml}` (in-game keyboard dispatch), and `ToolTips.{lua,xml}` (front-end).** A pure `.Civ5Pkg` cannot declare a net-new Context. Our copies are verbatim base-game files with one `include()` appended. Re-diff against the patched base after any Civ V update. The split is deliberate: TaskList is the boot surface (module loads + LoadScreenClose wiring), InGame is the root Context whose InputHandler receives global keys and is therefore the only in-game seat from which `return true` can suppress an engine binding -- TaskList is a hidden child of WorldView and never sees global keydowns.
 - **Three sibling `Civ5Pkg` manifests share one GUID**, one per UISkin (BaseGame / Expansion1 / Expansion2); only one activates per session. `<TextData>` is omitted — fake-DLC text ingestion is broken in the engine, so mod strings are served from Lua via `Text.key` / `Text.format`.
+- **luacheck W113 (undefined variable) is silenced for `*Access.lua` / `*Core.lua` / `*Shared.lua` wrappers** since they reach into dozens of base-game globals that aren't worth whitelisting. A typo like `OnBakc` in a wrapper won't be flagged — rely on manual review. W113 stays active in pure-mod modules (ScannerCore, SpeechPipeline, etc.) where it's still useful.
 
 ## Game Log
 
