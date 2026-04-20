@@ -41,3 +41,9 @@ third_party/tolk/src/*.lib
 # Local-only config (game install path, personal overrides)
 local.config
 local.*.ini
+
+# Locally-installed developer tools (luacheck, etc.)
+tools/bin/
+
+# luacheck cache
+.luacheckcache

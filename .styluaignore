@@ -1,0 +1,51 @@
+# StyLua reads this like .gitignore. It does NOT read .gitignore itself,
+# so the exclusions below must mirror the relevant parts of that file.
+#
+# Rule of thumb: any .lua under src/dlc/UI/ whose name does NOT start
+# with CivVAccess_ is a base-game file we ship verbatim. Reformatting it
+# would diverge from upstream and make re-diffing after a Civ V patch
+# painful. Don't touch them.
+
+# Base-game frontend screens (paired with our CivVAccess_*Access wrappers)
+src/dlc/UI/FrontEnd/MainMenu.lua
+src/dlc/UI/FrontEnd/ModsMenu.lua
+src/dlc/UI/FrontEnd/ModsSinglePlayer.lua
+src/dlc/UI/FrontEnd/ModsMultiplayer.lua
+src/dlc/UI/FrontEnd/ModsError.lua
+src/dlc/UI/FrontEnd/OtherMenu.lua
+src/dlc/UI/FrontEnd/SinglePlayer.lua
+src/dlc/UI/FrontEnd/MultiplayerSelect.lua
+src/dlc/UI/FrontEnd/ScenariosMenu.lua
+src/dlc/UI/FrontEnd/OptionsMenu.lua
+src/dlc/UI/FrontEnd/PremiumContentMenu.lua
+src/dlc/UI/FrontEnd/LoadMenu.lua
+src/dlc/UI/FrontEnd/LoadReplayMenu.lua
+src/dlc/UI/FrontEnd/LoadScreen.lua
+src/dlc/UI/FrontEnd/LoadTutorial.lua
+src/dlc/UI/FrontEnd/Credits.lua
+src/dlc/UI/FrontEnd/EULA.lua
+src/dlc/UI/FrontEnd/ExitConfirm.lua
+src/dlc/UI/FrontEnd/FrontEndPopup.lua
+src/dlc/UI/FrontEnd/JoiningRoom.lua
+src/dlc/UI/FrontEnd/LegalScreen.lua
+src/dlc/UI/FrontEnd/ContentSwitch.lua
+src/dlc/UI/FrontEnd/WaitingForPlayers.lua
+src/dlc/UI/FrontEnd/WorldPicker.lua
+src/dlc/UI/FrontEnd/ToolTips.lua
+
+# Base-game subdirectories
+src/dlc/UI/FrontEnd/GameSetup/
+src/dlc/UI/FrontEnd/Modding/
+src/dlc/UI/FrontEnd/Multiplayer/
+
+# Base-game in-game screens and their bootstrap copies
+src/dlc/UI/InGame/TaskList.lua
+src/dlc/UI/InGame/InGame.lua
+src/dlc/UI/InGame/CivilopediaScreen.lua
+src/dlc/UI/InGame/Menus/GameMenu.lua
+src/dlc/UI/InGame/Menus/SaveMenu.lua
+src/dlc/UI/InGame/Popups/
+
+# Vendored + generated
+third_party/
+tools/bin/

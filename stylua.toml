@@ -1,0 +1,44 @@
+# StyLua configuration for Civ-V-Access.
+# Formatter only; semantic checks live in .luacheckrc.
+# Run with: ./format.ps1           rewrite files in place
+#           ./format.ps1 --check   verify only, nonzero exit on drift (CI mode)
+
+# Width at which StyLua breaks long calls / tables onto multiple lines.
+# 120 is the modern norm; 80 is aggressive for UI code with localized-key
+# arguments, 160 hides real readability problems. Keep 120.
+column_width = 120
+
+# LF line endings even on Windows. Git normalizes via core.autocrlf, and
+# Civ V's Lua loader handles both, so picking LF at the source keeps diffs
+# clean when the repo is checked out on a different machine.
+line_endings = "Unix"
+
+# Spaces over tabs. Lua has no canonical choice, but spaces render
+# consistently in every editor / web diff view / screen reader and avoid
+# the "tab appears as 8 columns in GitHub" surprise. Four-space indent
+# matches the Lua reference manual's own examples.
+indent_type  = "Spaces"
+indent_width = 4
+
+# Prefer double quotes; fall back to single only when the string itself
+# contains a double quote (avoids escape noise). Civ V's own UI Lua uses
+# double quotes, so this keeps our code visually consistent with the base
+# files we sit next to.
+quote_style = "AutoPreferDouble"
+
+# Always use parentheses on calls. Lua lets you omit them for a single
+# string or table literal (f"x" / f{...}); that syntax is terser but
+# inconsistent and harder to grep. Uniform parentheses make call sites
+# scan the same way everywhere.
+call_parentheses = "Always"
+
+# Never collapse `if cond then stmt end` onto one line. Keeping the
+# block form makes every branch visible in diffs and in screen-reader
+# navigation by line.
+collapse_simple_statement = "Never"
+
+# StyLua defaults to "All" sort order for requires, which isn't relevant
+# here (we use `include`, not `require`, in the game Lua), but keeping
+# the default costs nothing.
+[sort_requires]
+enabled = false
