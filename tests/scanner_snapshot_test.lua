@@ -13,29 +13,8 @@ local function setup()
     Log.error = function() end
 end
 
--- Install a Map that resolves plotIndex 1-based against `plots`.
-local function installMap(plots)
-    Map.GetNumPlots    = function() return #plots end
-    Map.GetPlotByIndex = function(i) return plots[i + 1] end
-    Map.PlotDistance   = function(x1, y1, x2, y2)
-        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
-    end
-end
-
 local function mkPlot(x, y, idx)
     return T.fakePlot({ x = x, y = y, plotIndex = idx })
-end
-
-local function mkEntry(cat, sub, name, plotIndex, sortKey)
-    return {
-        plotIndex   = plotIndex,
-        backend     = { name = "test" },
-        data        = {},
-        category    = cat,
-        subcategory = sub,
-        itemName    = name,
-        sortKey     = sortKey or 0,
-    }
 end
 
 -- Look up a snapshot category by key (the snapshot keeps cats in
@@ -56,7 +35,7 @@ end
 
 function M.test_build_produces_all_taxonomy_categories()
     setup()
-    installMap({})
+    T.installMap({})
     local snap = ScannerSnap.build({}, 0, 0)
     T.eq(#snap.categories, #ScannerCore.CATEGORIES,
         "every taxonomy category must show up in the snapshot, even when empty")
@@ -64,7 +43,7 @@ end
 
 function M.test_all_sub_at_index_1_every_category()
     setup()
-    installMap({})
+    T.installMap({})
     local snap = ScannerSnap.build({}, 0, 0)
     for _, c in ipairs(snap.categories) do
         T.eq(c.subcategories[1].key, "all",
@@ -76,10 +55,10 @@ function M.test_items_within_sub_sort_by_nearest_instance_distance()
     setup()
     local p1 = mkPlot(0, 0, 0)  -- close
     local p2 = mkPlot(5, 0, 1)  -- far
-    installMap({ p1, p2 })
+    T.installMap({ p1, p2 })
     local entries = {
-        mkEntry("cities", "my", "Far",   1),
-        mkEntry("cities", "my", "Close", 0),
+        T.mkEntry("cities", "my", "Far",   1),
+        T.mkEntry("cities", "my", "Close", 0),
     }
     local snap = ScannerSnap.build(entries, 0, 0)
     local sub = findSub(findCat(snap, "cities"), "my")
@@ -93,11 +72,11 @@ function M.test_instances_within_item_sort_by_distance_then_plotindex()
     local a = mkPlot(1, 0, 0)  -- d=1
     local b = mkPlot(2, 0, 1)  -- d=2
     local c = mkPlot(1, 0, 2)  -- d=1, same distance as a, higher plotIndex
-    installMap({ a, b, c })
+    T.installMap({ a, b, c })
     local entries = {
-        mkEntry("cities", "my", "Rome", 1),
-        mkEntry("cities", "my", "Rome", 2),
-        mkEntry("cities", "my", "Rome", 0),
+        T.mkEntry("cities", "my", "Rome", 1),
+        T.mkEntry("cities", "my", "Rome", 2),
+        T.mkEntry("cities", "my", "Rome", 0),
     }
     local snap = ScannerSnap.build(entries, 0, 0)
     local item = findSub(findCat(snap, "cities"), "my").items[1]
@@ -112,8 +91,8 @@ function M.test_all_sub_shares_item_ref_with_named_sub()
     -- the other because they're the same table.
     setup()
     local p = mkPlot(0, 0, 0)
-    installMap({ p })
-    local snap = ScannerSnap.build({ mkEntry("cities", "my", "Rome", 0) }, 0, 0)
+    T.installMap({ p })
+    local snap = ScannerSnap.build({ T.mkEntry("cities", "my", "Rome", 0) }, 0, 0)
     local cat = findCat(snap, "cities")
     local namedItem = findSub(cat, "my").items[1]
     local allItem   = cat.subcategories[1].items[1]
@@ -124,8 +103,8 @@ end
 function M.test_prune_instance_removes_item_from_both_subs_when_empty()
     setup()
     local p = mkPlot(0, 0, 0)
-    installMap({ p })
-    local snap = ScannerSnap.build({ mkEntry("cities", "my", "Rome", 0) }, 0, 0)
+    T.installMap({ p })
+    local snap = ScannerSnap.build({ T.mkEntry("cities", "my", "Rome", 0) }, 0, 0)
     local cat = findCat(snap, "cities")
     local myIdx, allIdx = 0, 1
     for i, s in ipairs(cat.subcategories) do
@@ -149,10 +128,10 @@ function M.test_prune_instance_keeps_item_when_other_instances_remain()
     setup()
     local p1 = mkPlot(0, 0, 0)
     local p2 = mkPlot(1, 0, 1)
-    installMap({ p1, p2 })
+    T.installMap({ p1, p2 })
     local entries = {
-        mkEntry("cities", "my", "Rome", 0),
-        mkEntry("cities", "my", "Rome", 1),
+        T.mkEntry("cities", "my", "Rome", 0),
+        T.mkEntry("cities", "my", "Rome", 1),
     }
     local snap = ScannerSnap.build(entries, 0, 0)
     local cat = findCat(snap, "cities")
@@ -170,8 +149,8 @@ function M.test_unknown_category_logged_and_dropped()
     setup()
     local warned = 0
     Log.warn = function() warned = warned + 1 end
-    installMap({ mkPlot(0, 0, 0) })
-    local snap = ScannerSnap.build({ mkEntry("not_a_real_cat", "my", "X", 0) }, 0, 0)
+    T.installMap({ mkPlot(0, 0, 0) })
+    local snap = ScannerSnap.build({ T.mkEntry("not_a_real_cat", "my", "X", 0) }, 0, 0)
     T.eq(warned, 1, "bad category must produce a warn")
     -- Snapshot still built with empty items in every legitimate bucket.
     for _, c in ipairs(snap.categories) do
@@ -183,8 +162,8 @@ function M.test_unresolved_plotindex_logged_and_dropped()
     setup()
     local warned = 0
     Log.warn = function() warned = warned + 1 end
-    installMap({})  -- GetPlotByIndex returns nil for everything
-    ScannerSnap.build({ mkEntry("cities", "my", "X", 42) }, 0, 0)
+    T.installMap({})  -- GetPlotByIndex returns nil for everything
+    ScannerSnap.build({ T.mkEntry("cities", "my", "X", 42) }, 0, 0)
     T.eq(warned, 1, "unresolved plotIndex must produce a warn")
 end
 

@@ -187,6 +187,39 @@ function T.fakeTeam(opts)
     return team
 end
 
+-- Install a Map that resolves plotIndex 1-based against `plots`. Chebyshev
+-- distance for simplicity; GetPlot does a linear (x, y) lookup. Shared by
+-- every scanner test suite that exercises plot-backed entries.
+function T.installMap(plots)
+    Map.GetNumPlots    = function() return #plots end
+    Map.GetPlotByIndex = function(i) return plots[i + 1] end
+    Map.PlotDistance   = function(x1, y1, x2, y2)
+        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
+    end
+    Map.GetPlot = function(x, y)
+        for _, p in ipairs(plots) do
+            if p:GetX() == x and p:GetY() == y then return p end
+        end
+        return nil
+    end
+end
+
+-- Build a ScanEntry with test-friendly defaults. `opts.backend` overrides
+-- the placeholder `{ name = "test" }` for suites that exercise Nav's
+-- backend-dispatch paths (ValidateEntry / FormatName).
+function T.mkEntry(cat, sub, name, plotIndex, opts)
+    opts = opts or {}
+    return {
+        plotIndex   = plotIndex,
+        backend     = opts.backend or { name = "test" },
+        data        = {},
+        category    = cat,
+        subcategory = sub,
+        itemName    = name,
+        sortKey     = opts.sortKey or 0,
+    }
+end
+
 function T.run()
     local passed, failed = 0, {}
     for _, c in ipairs(T.cases) do

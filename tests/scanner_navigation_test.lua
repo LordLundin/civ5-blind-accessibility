@@ -7,20 +7,6 @@
 local T = require("support")
 local M = {}
 
-local function installMap(plots)
-    Map.GetNumPlots    = function() return #plots end
-    Map.GetPlotByIndex = function(i) return plots[i + 1] end
-    Map.PlotDistance   = function(x1, y1, x2, y2)
-        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
-    end
-    Map.GetPlot = function(x, y)
-        for _, p in ipairs(plots) do
-            if p:GetX() == x and p:GetY() == y then return p end
-        end
-        return nil
-    end
-end
-
 -- Stub backend that returns whatever entries its `nextBatch` is set to.
 local _entries = {}
 local _validator = function(_e) return true end
@@ -41,15 +27,8 @@ local function mkPlot(x, y, idx)
 end
 
 local function mkEntry(cat, sub, name, plotIndex)
-    return {
-        plotIndex   = plotIndex,
-        backend     = ScannerCore.BACKENDS[1],
-        data        = {},
-        category    = cat,
-        subcategory = sub,
-        itemName    = name,
-        sortKey     = 0,
-    }
+    return T.mkEntry(cat, sub, name, plotIndex,
+        { backend = ScannerCore.BACKENDS[1] })
 end
 
 local _turnStartHandlers
@@ -105,7 +84,7 @@ function M.test_cycle_item_wraps_forward_and_back()
     local p1 = mkPlot(0, 0, 0)
     local p2 = mkPlot(1, 0, 1)
     local p3 = mkPlot(2, 0, 2)
-    installMap({ p1, p2, p3 })
+    T.installMap({ p1, p2, p3 })
     _entries = {
         mkEntry("cities", "my", "A", 0),
         mkEntry("cities", "my", "B", 1),
@@ -129,7 +108,7 @@ end
 
 function M.test_cycle_instance_wraps()
     setup()
-    installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1) })
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1) })
     _entries = {
         mkEntry("cities", "my", "Rome", 0),
         mkEntry("cities", "my", "Rome", 1),
@@ -148,7 +127,7 @@ end
 
 function M.test_cycle_category_rebuilds_snapshot()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
+    T.installMap({ mkPlot(0, 0, 0) })
     local scans = 0
     ScannerCore.BACKENDS[1].Scan = function()
         scans = scans + 1
@@ -165,7 +144,7 @@ end
 
 function M.test_turn_start_invalidates_next_read()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
+    T.installMap({ mkPlot(0, 0, 0) })
     _entries = { mkEntry("cities", "my", "Rome", 0) }
     ScannerNav.cycleCategory(0)  -- build
     T.falsy(ScannerNav._isStale(), "fresh snapshot must not be stale after build")
@@ -177,14 +156,20 @@ end
 
 -- ===== Validation-driven pruning =====
 
-function M.test_validate_returning_false_prunes_current_instance()
-    -- Simulate a city falling between rebuilds: ValidateEntry on its entry
-    -- returns false. Nav's advance / announce path should skip past it.
-    -- We exercise this through ValidateEntry being called wherever the
-    -- current instance is read. For this test we invoke pruneInstance
-    -- directly on the snapshot to simulate what the navigator would do.
+-- Find the "my" sub index on the cities cat. Taxonomy is static but the
+-- index within cat.subcategories is an implementation detail, so tests
+-- look it up by key.
+local function findMySubIdx(snap)
+    for i, s in ipairs(snap.categories[1].subcategories) do
+        if s.key == "my" then return i end
+    end
+end
+
+function M.test_validate_returning_false_prunes_on_next_nav_read()
+    -- Simulates a city falling between rebuilds. Before this fix, Nav
+    -- never consulted ValidateEntry; the stale entry kept being announced.
     setup()
-    installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1) })
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1) })
     _entries = {
         mkEntry("cities", "my", "Rome", 0),
         mkEntry("cities", "my", "Rome", 1),
@@ -192,19 +177,79 @@ function M.test_validate_returning_false_prunes_current_instance()
     ScannerNav.cycleCategory(0)
     ScannerNav.cycleSubcategory(1)
     local snap = ScannerNav._snapshot()
-    local myIdx
-    for i, s in ipairs(snap.categories[1].subcategories) do
-        if s.key == "my" then myIdx = i; break end
-    end
+    local myIdx = findMySubIdx(snap)
     T.eq(#snap.categories[1].subcategories[myIdx].items[1].instances, 2)
-    ScannerSnap.pruneInstance(snap, 1, myIdx, 1, 1)
+    -- Mark plotIndex=0 entries dead. After this the current instance is
+    -- the surviving one at plotIndex=1; pruning must collapse it.
+    _validator = function(entry) return entry.plotIndex ~= 0 end
+    ScannerNav.cycleInstance(0)  -- any op that reads the current instance
     T.eq(#snap.categories[1].subcategories[myIdx].items[1].instances, 1,
-        "prune must remove one instance without collapsing the item")
+        "nav must prune the invalid current instance before announcement")
+end
+
+function M.test_validate_false_on_all_instances_wraps_up_to_empty()
+    -- Item empties out: prune walks through all instances and then the
+    -- "wraps up the hierarchy" path lands on EMPTY since nothing is left.
+    setup()
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1) })
+    _entries = {
+        mkEntry("cities", "my", "Rome", 0),
+        mkEntry("cities", "my", "Rome", 1),
+    }
+    ScannerNav.cycleCategory(0)
+    ScannerNav.cycleSubcategory(1)
+    _validator = function() return false end  -- every entry stale
+    local out = ScannerNav.cycleInstance(0)
+    T.truthy(out == "TXT_KEY_CIVVACCESS_SCANNER_EMPTY"
+            or out:find("empty", 1, true),
+        "all-invalid item must wrap up to EMPTY, got " .. tostring(out))
+    local snap = ScannerNav._snapshot()
+    local myIdx = findMySubIdx(snap)
+    T.eq(#snap.categories[1].subcategories[myIdx].items, 0,
+        "item with every instance invalid must be removed from the sub")
+end
+
+function M.test_format_name_dispatched_through_backend()
+    -- FormatName is the live-query seam per design section 4. Nav must
+    -- call it rather than reading the snapshot-captured item.name. Proved
+    -- here by having the backend return a different string from itemName.
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    _entries = { mkEntry("cities", "my", "Rome", 0) }
+    ScannerCore.BACKENDS[1].FormatName = function(_) return "LiveName" end
+    ScannerNav.cycleCategory(0)
+    ScannerNav.cycleSubcategory(1)
+    local out = ScannerNav.cycleInstance(0)
+    T.truthy(out:find("LiveName", 1, true),
+        "announcement must go through FormatName, got " .. tostring(out))
+end
+
+function M.test_turn_start_rebuild_resets_item_and_instance()
+    -- Design section 5: "Reset item and instance to 0" after turn-start
+    -- rebuild. Category / subcategory survive because the taxonomy is
+    -- static.
+    setup()
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1) })
+    _entries = {
+        mkEntry("cities", "my", "A", 0),
+        mkEntry("cities", "my", "B", 1),
+    }
+    ScannerNav.cycleCategory(0)
+    ScannerNav.cycleSubcategory(1)
+    ScannerNav.cycleItem(1)  -- advance to item 2
+    local cat, sub, item, inst = ScannerNav._indices()
+    T.eq(item, 2, "precondition: landed on item 2 before turn-start")
+    fireTurnStart()
+    ScannerNav.cycleItem(0)  -- first read after turn-start triggers rebuild
+    local cat2, sub2, item2, _ = ScannerNav._indices()
+    T.eq(cat2, cat, "category preserved across turn-start rebuild")
+    T.eq(sub2, sub,  "subcategory preserved across turn-start rebuild")
+    T.eq(item2, 1, "item reset to front of sub after turn-start rebuild")
 end
 
 function M.test_empty_snapshot_speaks_empty_token()
     setup()
-    installMap({})
+    T.installMap({})
     _entries = {}
     local out = ScannerNav.cycleItem(1)
     T.truthy(out == "TXT_KEY_CIVVACCESS_SCANNER_EMPTY"
@@ -216,7 +261,7 @@ end
 
 function M.test_apply_search_builds_search_snapshot()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
+    T.installMap({ mkPlot(0, 0, 0) })
     _entries = { mkEntry("cities", "my", "Rome", 0) }
     ScannerNav.cycleCategory(0)  -- initial normal snapshot
     local catBefore, _, _, _ = ScannerNav._indices()
@@ -229,7 +274,7 @@ end
 
 function M.test_apply_search_no_match_keeps_existing_snapshot()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
+    T.installMap({ mkPlot(0, 0, 0) })
     _entries = { mkEntry("cities", "my", "Rome", 0) }
     ScannerNav.cycleCategory(0)
     local before = ScannerNav._snapshot()
@@ -242,7 +287,7 @@ end
 
 function M.test_cycle_category_exits_search_snapshot()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
+    T.installMap({ mkPlot(0, 0, 0) })
     _entries = { mkEntry("cities", "my", "Rome", 0) }
     ScannerNav.cycleCategory(0)
     ScannerNav.openSearch()
@@ -257,7 +302,7 @@ end
 
 function M.test_open_search_during_search_preserves_pre_search_catidx()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
+    T.installMap({ mkPlot(0, 0, 0) })
     _entries = { mkEntry("resources", "strategic", "Iron", 0) }
     ScannerNav.cycleCategory(0)                 -- cities (idx 1)
     ScannerNav.cycleCategory(1); ScannerNav.cycleCategory(1); ScannerNav.cycleCategory(1); ScannerNav.cycleCategory(1)  -- advance to resources (idx 5)

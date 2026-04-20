@@ -8,21 +8,8 @@
 local T = require("support")
 local M = {}
 
-local function installMap(plots)
-    Map.GetNumPlots    = function() return #plots end
-    Map.GetPlotByIndex = function(i) return plots[i + 1] end
-    Map.PlotDistance   = function(x1, y1, x2, y2)
-        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
-    end
-    Map.GetPlot = function(x, y)
-        for _, p in ipairs(plots) do
-            if p:GetX() == x and p:GetY() == y then return p end
-        end
-        return nil
-    end
-end
-
 local _turnStartHandlers
+local _entries = {}
 local function setup()
     ScannerCore = nil
     dofile("src/dlc/UI/InGame/CivVAccess_ScannerCore.lua")
@@ -74,40 +61,33 @@ local function setup()
     Log.error = function() end
     Log.info  = function() end
 
-    ScannerNav._reset()
     ScannerCore.BACKENDS = {}
-end
-
-local function installStubBackend(entries)
     ScannerCore.registerBackend({
         name          = "stub",
-        Scan          = function() return entries end,
+        Scan          = function() return _entries end,
         ValidateEntry = function() return true end,
         FormatName    = function(e) return e.itemName end,
     })
+    _entries = {}
+    ScannerNav._reset()
 end
+
+local function installStubBackend(entries) _entries = entries end
 
 local function mkPlot(x, y, idx)
     return T.fakePlot({ x = x, y = y, plotIndex = idx })
 end
 
 local function mkEntry(cat, sub, name, plotIndex)
-    return {
-        plotIndex   = plotIndex,
-        backend     = ScannerCore.BACKENDS[1],
-        data        = {},
-        category    = cat,
-        subcategory = sub,
-        itemName    = name,
-        sortKey     = 0,
-    }
+    return T.mkEntry(cat, sub, name, plotIndex,
+        { backend = ScannerCore.BACKENDS[1] })
 end
 
 function M.test_cycle_item_announces_name_distance_and_count()
     setup()
     local p1 = mkPlot(3, 0, 0)
     local p2 = mkPlot(5, 0, 1)
-    installMap({ p1, p2 })
+    T.installMap({ p1, p2 })
     local entries = {
         mkEntry("cities", "my", "Rome",   0),
         mkEntry("cities", "my", "Athens", 1),
@@ -127,7 +107,7 @@ function M.test_instance_count_reflects_total_in_item()
     local p1 = mkPlot(1, 0, 0)
     local p2 = mkPlot(2, 0, 1)
     local p3 = mkPlot(3, 0, 2)
-    installMap({ p1, p2, p3 })
+    T.installMap({ p1, p2, p3 })
     installStubBackend({
         mkEntry("cities", "my", "Rome", 0),
         mkEntry("cities", "my", "Rome", 1),
@@ -143,7 +123,7 @@ end
 function M.test_zero_distance_speaks_here_token()
     setup()
     local p = mkPlot(0, 0, 0)  -- same coords as cursor (0,0)
-    installMap({ p })
+    T.installMap({ p })
     installStubBackend({ mkEntry("cities", "my", "Rome", 0) })
     ScannerNav.cycleCategory(0)
     ScannerNav.cycleSubcategory(1)
@@ -154,7 +134,7 @@ end
 
 function M.test_empty_item_falls_through_to_empty_token()
     setup()
-    installMap({})
+    T.installMap({})
     installStubBackend({})
     local out = ScannerNav.cycleItem(1)
     T.truthy(out:find("empty", 1, true),
@@ -165,7 +145,7 @@ function M.test_distance_from_cursor_separately_produces_bare_direction()
     -- The End key reports only the distance/direction string (no name, no
     -- N-of-M tail). That's what scanners users press End for.
     setup()
-    installMap({ mkPlot(4, 0, 0) })
+    T.installMap({ mkPlot(4, 0, 0) })
     installStubBackend({ mkEntry("cities", "my", "Rome", 0) })
     ScannerNav.cycleCategory(0)
     ScannerNav.cycleSubcategory(1)

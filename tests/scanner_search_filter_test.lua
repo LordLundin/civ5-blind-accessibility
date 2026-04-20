@@ -19,28 +19,8 @@ local function setup()
     Log.error = function() end
 end
 
-local function installMap(plots)
-    Map.GetNumPlots    = function() return #plots end
-    Map.GetPlotByIndex = function(i) return plots[i + 1] end
-    Map.PlotDistance   = function(x1, y1, x2, y2)
-        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
-    end
-end
-
 local function mkPlot(x, y, idx)
     return T.fakePlot({ x = x, y = y, plotIndex = idx })
-end
-
-local function mkEntry(cat, sub, name, plotIndex)
-    return {
-        plotIndex   = plotIndex,
-        backend     = { name = "test" },
-        data        = {},
-        category    = cat,
-        subcategory = sub,
-        itemName    = name,
-        sortKey     = 0,
-    }
 end
 
 local function firstSearchCat(snap)
@@ -56,7 +36,7 @@ end
 
 function M.test_empty_query_returns_nil()
     setup()
-    installMap({})
+    T.installMap({})
     T.eq(ScannerSearch.build({}, "",    0, 0), nil)
     T.eq(ScannerSearch.build({}, "   ", 0, 0), nil, "whitespace-only query must return nil")
     T.eq(ScannerSearch.build({}, nil,   0, 0), nil)
@@ -64,17 +44,17 @@ end
 
 function M.test_no_match_returns_nil()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
-    local entries = { mkEntry("cities", "my", "Rome", 0) }
+    T.installMap({ mkPlot(0, 0, 0) })
+    local entries = { T.mkEntry("cities", "my", "Rome", 0) }
     T.eq(ScannerSearch.build(entries, "zzzz", 0, 0), nil,
         "no matching entry should produce no snapshot, not an empty one")
 end
 
 function M.test_single_match_produces_search_category()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
+    T.installMap({ mkPlot(0, 0, 0) })
     local snap = ScannerSearch.build(
-        { mkEntry("cities", "my", "Rome", 0) }, "rome", 0, 0)
+        { T.mkEntry("cities", "my", "Rome", 0) }, "rome", 0, 0)
     T.truthy(snap ~= nil)
     T.eq(snap.isSearch, true, "search snapshots carry the isSearch flag")
     T.eq(#snap.categories, 1, "search always produces one synthetic category")
@@ -87,10 +67,10 @@ function M.test_match_tier_orders_items_within_sub()
     -- and Iron" contains "iron" mid-word (tier 2). The scanner must show
     -- the tier-0 item first.
     setup()
-    installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
     local entries = {
-        mkEntry("cities", "my", "Stone and Iron", 1),  -- tier 2 (mid-word)
-        mkEntry("cities", "my", "Iron Fist",      0),  -- tier 0 (start whole word)
+        T.mkEntry("cities", "my", "Stone and Iron", 1),  -- tier 2 (mid-word)
+        T.mkEntry("cities", "my", "Iron Fist",      0),  -- tier 0 (start whole word)
     }
     local snap = ScannerSearch.build(entries, "iron", 0, 0)
     local subs = namedSubs(snap)
@@ -104,10 +84,10 @@ function M.test_subs_ordered_by_taxonomy_not_match_order()
     -- Matches in cities + resources; subs should appear in taxonomy
     -- order (cities before resources) regardless of input order.
     setup()
-    installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
     local entries = {
-        mkEntry("resources", "strategic", "Iron", 1),  -- input first
-        mkEntry("cities",    "my",        "Iron", 0),  -- input second
+        T.mkEntry("resources", "strategic", "Iron", 1),  -- input first
+        T.mkEntry("cities",    "my",        "Iron", 0),  -- input second
     }
     local snap = ScannerSearch.build(entries, "iron", 0, 0)
     local subs = namedSubs(snap)
@@ -117,10 +97,10 @@ end
 
 function M.test_all_sub_first_and_aggregates_everything()
     setup()
-    installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
     local entries = {
-        mkEntry("cities", "my", "Iron Fist", 0),
-        mkEntry("resources", "strategic", "Iron", 1),
+        T.mkEntry("cities", "my", "Iron Fist", 0),
+        T.mkEntry("resources", "strategic", "Iron", 1),
     }
     local snap = ScannerSearch.build(entries, "iron", 0, 0)
     local cat = firstSearchCat(snap)
@@ -136,9 +116,9 @@ end
 
 function M.test_all_sub_shares_item_refs_with_named_subs()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
+    T.installMap({ mkPlot(0, 0, 0) })
     local snap = ScannerSearch.build(
-        { mkEntry("cities", "my", "Rome", 0) }, "rome", 0, 0)
+        { T.mkEntry("cities", "my", "Rome", 0) }, "rome", 0, 0)
     local cat = firstSearchCat(snap)
     local allItem   = cat.subcategories[1].items[1]
     local namedItem = cat.subcategories[2].items[1]
@@ -148,8 +128,8 @@ end
 
 function M.test_entries_with_unknown_category_dropped()
     setup()
-    installMap({ mkPlot(0, 0, 0) })
-    local entries = { mkEntry("not_a_real_cat", "my", "Iron", 0) }
+    T.installMap({ mkPlot(0, 0, 0) })
+    local entries = { T.mkEntry("not_a_real_cat", "my", "Iron", 0) }
     local snap = ScannerSearch.build(entries, "iron", 0, 0)
     T.eq(snap, nil, "an entry with a bad category must be dropped; empty result collapses to nil")
 end
@@ -160,10 +140,10 @@ function M.test_same_name_shared_across_subs_produces_separate_items()
     -- the scanner shouldn't merge them because they represent different
     -- things.
     setup()
-    installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
     local entries = {
-        mkEntry("cities",    "my",        "Iron", 0),
-        mkEntry("resources", "strategic", "Iron", 1),
+        T.mkEntry("cities",    "my",        "Iron", 0),
+        T.mkEntry("resources", "strategic", "Iron", 1),
     }
     local snap = ScannerSearch.build(entries, "iron", 0, 0)
     local subs = namedSubs(snap)
@@ -173,11 +153,11 @@ end
 
 function M.test_multiple_instances_of_same_name_collapse_into_one_item()
     setup()
-    installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1), mkPlot(2, 0, 2) })
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1), mkPlot(2, 0, 2) })
     local entries = {
-        mkEntry("cities", "my", "Iron", 0),
-        mkEntry("cities", "my", "Iron", 1),
-        mkEntry("cities", "my", "Iron", 2),
+        T.mkEntry("cities", "my", "Iron", 0),
+        T.mkEntry("cities", "my", "Iron", 1),
+        T.mkEntry("cities", "my", "Iron", 2),
     }
     local snap = ScannerSearch.build(entries, "iron", 0, 0)
     local subs = namedSubs(snap)

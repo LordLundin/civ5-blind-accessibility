@@ -81,10 +81,10 @@ local function currentInstance()
     return item.instances[_instIdx]
 end
 
--- Reset sub/item/inst indices to the "front" of the current category.
--- Item and instance land at 1 when the sub has entries, otherwise 0.
-local function snapToCategoryFront()
-    _subIdx = 1
+-- Set _itemIdx / _instIdx to the front of the current sub. Called after
+-- any cursor move that changes which sub is current (category or sub
+-- cycle, post-search land).
+local function landOnCurrentSub()
     local sub = currentSub()
     if sub ~= nil and #sub.items > 0 then
         _itemIdx = 1
@@ -92,6 +92,12 @@ local function snapToCategoryFront()
     else
         _itemIdx, _instIdx = 0, 0
     end
+end
+
+-- Reset sub/item/inst indices to the "front" of the current category.
+local function snapToCategoryFront()
+    _subIdx = 1
+    landOnCurrentSub()
 end
 
 -- Gather entries from every backend. Shared between the normal rebuild
@@ -137,18 +143,61 @@ end
 -- Turn-start invalidation on a search snapshot drops the search and
 -- rebuilds the normal snapshot -- a search represents a question asked at
 -- a moment in time, and silently carrying it across turns would feed the
--- user stale match lists.
+-- user stale match lists. Item / instance reset to 0 on rebuild per design
+-- section 5 so the next cycle lands at the front of the preserved sub
+-- rather than wrapping from a stale index.
 local function ensureSnapshot()
     if _snapshot == nil or _snapshotStale then
         if _snapshot ~= nil and _snapshot.isSearch then
             _catIdx = _preSearchCatIdx or 1
         end
         rebuildSnapshot()
+        _itemIdx, _instIdx = 0, 0
     end
 end
 
 local function isSearchSnapshot()
     return _snapshot ~= nil and _snapshot.isSearch == true
+end
+
+-- Ask the backend whether the current instance is still live. If not,
+-- prune it and re-land on whatever the surviving neighbour is; loop
+-- because the next candidate might also be stale. Design section 5:
+-- "`ValidateEntry` is called on the current instance every time the user
+-- navigates to it. If it returns false, the entry is pruned ... and the
+-- navigator advances to the next valid instance within the same item
+-- (or wraps up the hierarchy if the item empties out)."
+local function ensureCurrentInstanceValid()
+    while true do
+        local inst = currentInstance()
+        if inst == nil then return end
+        local entry = inst.entry
+        local ok, valid = pcall(entry.backend.ValidateEntry, entry, nil)
+        if not ok then
+            Log.error("ScannerNav: backend '"
+                .. tostring(entry.backend.name)
+                .. "' ValidateEntry failed: " .. tostring(valid))
+            return
+        end
+        if valid then return end
+        ScannerSnap.pruneInstance(_snapshot, _catIdx, _subIdx, _itemIdx, _instIdx)
+        -- Re-land indices after prune. The surviving instance, if any,
+        -- now occupies _instIdx or a lower index; if the item emptied
+        -- out, pruneInstance also removed it from sub.items.
+        local item = currentItem()
+        if item == nil or #item.instances == 0 then
+            local sub = currentSub()
+            if sub == nil or #sub.items == 0 then
+                _itemIdx, _instIdx = 0, 0
+                return
+            end
+            if _itemIdx > #sub.items then _itemIdx = #sub.items end
+            if _itemIdx == 0 then _itemIdx = 1 end
+            _instIdx = (#sub.items[_itemIdx].instances > 0) and 1 or 0
+        elseif _instIdx > #item.instances then
+            _instIdx = #item.instances
+        end
+    end
 end
 
 -- ===== Speech assembly =====
@@ -158,7 +207,7 @@ end
 -- actionable here: "Swordsman, 1 of 8" tells the player there are eight
 -- swordsmen and this is the closest. The scanner carves out an exception
 -- to the rule for that reason.
-local function formatInstance(item, instance, instIdx, instCount)
+local function formatInstance(instance, instIdx, instCount)
     local cx, cy = Cursor.position()
     local dir = ""
     if cx ~= nil then
@@ -170,7 +219,11 @@ local function formatInstance(item, instance, instIdx, instCount)
     end
     local count = Text.format("TXT_KEY_CIVVACCESS_SCANNER_INSTANCE_COUNT",
         instIdx, instCount)
-    return item.name .. ". " .. dir .. ". " .. count
+    local entry = instance.entry
+    -- FormatName is the live-query seam per design section 4; item.name
+    -- is only the grouping key captured at build time.
+    local name = entry.backend.FormatName(entry)
+    return name .. ". " .. dir .. ". " .. count
 end
 
 local function announceCurrent()
@@ -180,11 +233,9 @@ local function announceCurrent()
     end
     local inst = currentInstance()
     if inst == nil then
-        -- Item existed but all instances pruned out; caller already tried
-        -- to advance. Fall back to empty.
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
-    return formatInstance(item, inst, _instIdx, #item.instances)
+    return formatInstance(inst, _instIdx, #item.instances)
 end
 
 -- Compose a "<label>. <current item announcement>" string for the
@@ -241,6 +292,7 @@ function ScannerNav.cycleCategory(dir)
     -- before resetting indices into the new category's subs.
     rebuildSnapshot()
     snapToCategoryFront()
+    ensureCurrentInstanceValid()
     autoMoveIfEnabled()
     return announceWithLabel(currentCategory().label)
 end
@@ -251,17 +303,11 @@ function ScannerNav.cycleSubcategory(dir)
     if cat == nil then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
-    local n = #cat.subcategories
-    _subIdx = wrapIndex(_subIdx, n, dir)
-    local sub = currentSub()
-    if sub ~= nil and #sub.items > 0 then
-        _itemIdx = 1
-        _instIdx = (#sub.items[1].instances > 0) and 1 or 0
-    else
-        _itemIdx, _instIdx = 0, 0
-    end
+    _subIdx = wrapIndex(_subIdx, #cat.subcategories, dir)
+    landOnCurrentSub()
+    ensureCurrentInstanceValid()
     autoMoveIfEnabled()
-    return announceWithLabel(sub.label)
+    return announceWithLabel(currentSub().label)
 end
 
 function ScannerNav.cycleItem(dir)
@@ -273,6 +319,7 @@ function ScannerNav.cycleItem(dir)
     _itemIdx = wrapIndex(_itemIdx == 0 and 1 or _itemIdx, #sub.items, dir)
     local item = currentItem()
     _instIdx = (item ~= nil and #item.instances > 0) and 1 or 0
+    ensureCurrentInstanceValid()
     autoMoveIfEnabled()
     return announceCurrent()
 end
@@ -284,6 +331,7 @@ function ScannerNav.cycleInstance(dir)
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
     _instIdx = wrapIndex(_instIdx == 0 and 1 or _instIdx, #item.instances, dir)
+    ensureCurrentInstanceValid()
     autoMoveIfEnabled()
     return announceCurrent()
 end
@@ -295,6 +343,7 @@ end
 -- it and already knows.
 function ScannerNav.jumpToEntry()
     ensureSnapshot()
+    ensureCurrentInstanceValid()
     local inst = currentInstance()
     if inst == nil then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
@@ -312,6 +361,7 @@ end
 -- short-circuit key (SCANNER_HERE here, AT_CAPITAL there).
 function ScannerNav.distanceFromCursor()
     ensureSnapshot()
+    ensureCurrentInstanceValid()
     local inst = currentInstance()
     if inst == nil then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
@@ -387,6 +437,7 @@ function ScannerNav.applySearch(query)
     _snapshotStale = false
     _catIdx = 1
     snapToCategoryFront()
+    ensureCurrentInstanceValid()
     autoMoveIfEnabled()
     return announceWithLabel(currentCategory().label)
 end
