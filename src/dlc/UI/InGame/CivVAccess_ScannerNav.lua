@@ -300,26 +300,73 @@ local function wrapIndex(i, n, dir)
     return i
 end
 
+-- A category is non-empty iff its `all` sub (index 1) has items. `all`
+-- shares item refs with every named sub, so this is both O(1) and the
+-- single source of truth for "does this category contain anything".
+local function categoryHasItems(cat)
+    local allSub = cat.subcategories[1]
+    return allSub ~= nil and #allSub.items > 0
+end
+
+local function subHasItems(sub)
+    return #sub.items > 0
+end
+
+-- Walk `list` from startIdx in direction `dir`, wrapping, until `pred`
+-- accepts an element. Returns 0 when nothing matches. dir=0 is the
+-- "stay put but validate" case: returns startIdx if it passes, else 0.
+-- Category / subcategory cycles use this to skip empty buckets so the
+-- user never lands on an empty slot and hears the EMPTY token when a
+-- neighbour has content. Item / instance cycles intentionally don't --
+-- those axes cycle within a sub and wrapping through empties is moot
+-- there (the sub either has items or it doesn't).
+local function nextIndexMatching(list, startIdx, dir, pred)
+    local n = #list
+    if n <= 0 then
+        return 0
+    end
+    if dir == 0 then
+        if pred(list[startIdx]) then
+            return startIdx
+        end
+        return 0
+    end
+    local i = startIdx
+    for _ = 1, n do
+        i = i + dir
+        if i < 1 then
+            i = n
+        end
+        if i > n then
+            i = 1
+        end
+        if pred(list[i]) then
+            return i
+        end
+    end
+    return 0
+end
+
 -- ===== Entry points =====
 
 function ScannerNav.cycleCategory(dir)
     -- Ctrl+PageUp/Down from inside a search snapshot is the "exit search"
     -- signal per design section 8. Drop the synthetic snapshot, restore
-    -- the pre-search category index, and let the normal rebuild + wrap
-    -- run from there so the user lands on the adjacent normal category.
+    -- the pre-search category index, and let the normal rebuild + skip
+    -- run from there so the user lands on the next non-empty category.
     if isSearchSnapshot() then
         _catIdx = _preSearchCatIdx or 1
         _snapshotStale = true
     end
-    ensureSnapshot()
-    local n = #_snapshot.categories
-    if n == 0 then
+    -- Category cycle is the rebuild signal per section 5. Rebuild first
+    -- so the empty-skip decision reads the current game state rather
+    -- than last turn's.
+    rebuildSnapshot()
+    local newIdx = nextIndexMatching(_snapshot.categories, _catIdx, dir, categoryHasItems)
+    if newIdx == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
-    _catIdx = wrapIndex(_catIdx, n, dir)
-    -- Category change is the rebuild signal per section 5: force one
-    -- before resetting indices into the new category's subs.
-    rebuildSnapshot()
+    _catIdx = newIdx
     snapToCategoryFront()
     ensureCurrentInstanceValid()
     autoMoveIfEnabled()
@@ -332,7 +379,11 @@ function ScannerNav.cycleSubcategory(dir)
     if cat == nil then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
-    _subIdx = wrapIndex(_subIdx, #cat.subcategories, dir)
+    local newIdx = nextIndexMatching(cat.subcategories, _subIdx, dir, subHasItems)
+    if newIdx == 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
+    end
+    _subIdx = newIdx
     landOnCurrentSub()
     ensureCurrentInstanceValid()
     autoMoveIfEnabled()

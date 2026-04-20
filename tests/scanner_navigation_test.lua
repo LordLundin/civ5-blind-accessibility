@@ -295,6 +295,80 @@ function M.test_empty_snapshot_speaks_empty_token()
     )
 end
 
+-- ===== Skip empty categories / subcategories =====
+
+-- Locate a category by its key in the taxonomy order, so tests don't
+-- have to hardcode the raw index (and break when taxonomy shifts).
+local function catIdxByKey(key)
+    for i, cat in ipairs(ScannerCore.CATEGORIES) do
+        if cat.key == key then
+            return i
+        end
+    end
+end
+
+function M.test_cycle_category_skips_empty_forward()
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    -- Only `resources` is populated; every other cat should be skipped.
+    _entries = { mkEntry("resources", "strategic", "Iron", 0) }
+    ScannerNav.cycleCategory(1)
+    local cat, _, _, _ = ScannerNav._indices()
+    T.eq(cat, catIdxByKey("resources"), "forward cycle must skip empty cats and land on resources")
+end
+
+function M.test_cycle_category_skips_empty_backward()
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    _entries = { mkEntry("resources", "strategic", "Iron", 0) }
+    ScannerNav.cycleCategory(-1)
+    local cat, _, _, _ = ScannerNav._indices()
+    T.eq(cat, catIdxByKey("resources"), "backward cycle must skip empty cats and land on resources")
+end
+
+function M.test_cycle_category_all_empty_speaks_empty()
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    _entries = {}
+    local out = ScannerNav.cycleCategory(1)
+    T.truthy(
+        out == "TXT_KEY_CIVVACCESS_SCANNER_EMPTY" or out:find("empty", 1, true) ~= nil,
+        "no-non-empty-cat case must speak EMPTY, got " .. tostring(out)
+    )
+end
+
+function M.test_cycle_subcategory_skips_empty()
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    -- cities taxonomy: all, my, neutral, enemy, barb. Only `barb` populated.
+    _entries = { mkEntry("cities", "barb", "BarbCamp", 0) }
+    ScannerNav.cycleCategory(1) -- lands on cities (only non-empty cat)
+    -- _subIdx is now 1 (all). Forward cycle from `all` must skip my,
+    -- neutral, enemy (all empty) and land on barb.
+    ScannerNav.cycleSubcategory(1)
+    local snap = ScannerNav._snapshot()
+    local _, subIdx, _, _ = ScannerNav._indices()
+    T.eq(snap.categories[1].subcategories[subIdx].key, "barb", "subcategory cycle must skip empty subs")
+end
+
+function M.test_cycle_subcategory_all_empty_in_cat_speaks_empty()
+    -- Entering a category-cycle lands on a non-empty cat, but if the
+    -- user's category somehow has all-empty subs (e.g. after a turn-
+    -- start rebuild clears everything) a sub cycle must speak EMPTY
+    -- rather than wrap forever.
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    _entries = {}
+    -- Force _catIdx to a valid position without going through cycleCategory
+    -- (which would short-circuit to EMPTY on an empty snapshot).
+    ScannerNav.cycleCategory(0) -- builds snapshot; returns EMPTY; _catIdx stays at 1
+    local out = ScannerNav.cycleSubcategory(1)
+    T.truthy(
+        out == "TXT_KEY_CIVVACCESS_SCANNER_EMPTY" or out:find("empty", 1, true) ~= nil,
+        "sub cycle with no non-empty subs must speak EMPTY, got " .. tostring(out)
+    )
+end
+
 -- ===== Search entry / exit =====
 
 function M.test_apply_search_builds_search_snapshot()
