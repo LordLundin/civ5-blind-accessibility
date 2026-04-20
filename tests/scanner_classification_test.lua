@@ -335,14 +335,31 @@ function M.test_resource_usage_to_subcategory()
 end
 
 function M.test_resource_neg_one_skipped()
-    -- -1 from GetResourceType means unrevealed OR tech-gated; both should
-    -- skip. This one call is the gate for both cases per design section 2.
+    -- -1 from GetResourceType is the tech gate (strategic present but
+    -- reveal tech not researched yet, e.g. Iron before BW). Must skip.
     setup()
     loadResourcesBackend()
     GameInfo.Resources = {}
     local p = makePlotAt(0, 0, 0, { resource = -1 })
     mapFromPlots({ p })
     T.eq(#ScannerBackendResources.Scan(0, 0), 0)
+end
+
+function M.test_resource_unrevealed_plot_skipped()
+    -- Fog-of-war gate is a separate plot:IsRevealed check, not folded
+    -- into GetResourceType. Without this, the scanner enumerates every
+    -- resource on the map regardless of exploration state.
+    setup()
+    loadResourcesBackend()
+    GameInfo.Resources = {
+        [1] = { Description = "TXT_KEY_RESOURCE_IRON", ResourceUsage = 1 },
+    }
+    local revealed = makePlotAt(0, 0, 0, { resource = 1, revealed = true })
+    local hidden = makePlotAt(1, 0, 1, { resource = 1, revealed = false })
+    mapFromPlots({ revealed, hidden })
+    local out = ScannerBackendResources.Scan(0, 0)
+    T.eq(#out, 1, "only the revealed plot should produce an entry")
+    T.eq(out[1].plotIndex, 0)
 end
 
 -- ===== Improvements backend =====
