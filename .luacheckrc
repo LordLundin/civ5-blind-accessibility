@@ -187,12 +187,13 @@ files["src/dlc/UI/InGame/CivVAccess_Polyfill.lua"] = {
     },
 }
 
--- The two bootstrap files (our verbatim copies of base-game TaskList.lua /
--- InGame.lua / ToolTips.lua with include() appended) contain base-game code
--- we don't control. Don't lint them; just check syntax.
-files["src/dlc/UI/InGame/TaskList.lua"]       = { ignore = { "1", "2", "3", "4", "5", "6" } }
-files["src/dlc/UI/InGame/InGame.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }
-files["src/dlc/UI/FrontEnd/ToolTips.lua"]     = { ignore = { "1", "2", "3", "4", "5", "6" } }
+-- The bootstrap files (our verbatim copies of base-game TaskList.lua /
+-- InGame.lua / WorldView.lua / ToolTips.lua with include() appended) contain
+-- base-game code we don't control. Don't lint them; just check syntax.
+files["src/dlc/UI/InGame/TaskList.lua"]           = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/InGame/InGame.lua"]             = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/InGame/WorldView/WorldView.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/FrontEnd/ToolTips.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }
 
 -- Skip the base-game Lua we ship verbatim. Our CivVAccess_* wrappers pair
 -- with each one and layer behavior over it via ContextPtr / LuaEvents; the

@@ -339,13 +339,26 @@ function ScannerNav.cycleSubcategory(dir)
     return announceWithLabel(currentSub().label)
 end
 
+-- _itemIdx / _instIdx sit at 0 in two cases: a fresh snapshot (ensureSnapshot
+-- resets them) and after a pruned item empties out. "0" is the "before
+-- item 1" sentinel -- the first cycle out of it must LAND on the endpoint,
+-- not step past it. wrapIndex adds dir unconditionally, so routing 0 through
+-- it would skip over index 1 on a forward step (and did, until this branch).
+local function stepFromZero(dir, n)
+    return (dir < 0) and n or 1
+end
+
 function ScannerNav.cycleItem(dir)
     ensureSnapshot()
     local sub = currentSub()
     if sub == nil or #sub.items == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
-    _itemIdx = wrapIndex(_itemIdx == 0 and 1 or _itemIdx, #sub.items, dir)
+    if _itemIdx == 0 then
+        _itemIdx = stepFromZero(dir, #sub.items)
+    else
+        _itemIdx = wrapIndex(_itemIdx, #sub.items, dir)
+    end
     local item = currentItem()
     _instIdx = (item ~= nil and #item.instances > 0) and 1 or 0
     ensureCurrentInstanceValid()
@@ -359,7 +372,11 @@ function ScannerNav.cycleInstance(dir)
     if item == nil or #item.instances == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
-    _instIdx = wrapIndex(_instIdx == 0 and 1 or _instIdx, #item.instances, dir)
+    if _instIdx == 0 then
+        _instIdx = stepFromZero(dir, #item.instances)
+    else
+        _instIdx = wrapIndex(_instIdx, #item.instances, dir)
+    end
     ensureCurrentInstanceValid()
     autoMoveIfEnabled()
     return announceCurrent()
