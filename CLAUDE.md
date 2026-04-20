@@ -37,10 +37,10 @@ Engine globals that tested modules touch are polyfilled in `src/dlc/UI/InGame/Ci
 ## Project Rules
 
 ### Reuse game data, avoid hardcoding
-Use the game's localized text (`Locale.ConvertTextKey("TXT_KEY_*")`), UI state from live `Controls`, and entity data wherever possible. Hardcoded text becomes stale across game updates and DLC combinations, and blocks localization for non-English players. Only hardcode when no game data source exists.
+Use the game's localized text (`Locale.ConvertTextKey("TXT_KEY_*")`), UI state from live `Controls`, and entity data wherever possible. Hardcoded text blocks localization for non-English players. Only hardcode when no game data source exists.
 
 ### Never cache game state
-Do not copy game data into mod-side tables, fields, or upvalues for later use. Always re-query the game when you need a value. A sighted player can see when the screen contradicts itself; a blind player trusts speech absolutely. Stale data is worse than no data. The only acceptable "cache" is holding a reference to a live `Controls.X` userdata or a plot/unit/city handle and reading its properties at speech time.
+Do not copy game data into mod-side tables, fields, or upvalues for later use. Always re-query the game when you need a value. A blind player trusts speech absolutely, so stale data is worse than no data. The only acceptable "cache" is holding a reference to a live `Controls.X` userdata or a plot/unit/city handle and reading its properties at speech time.
 
 ### No inline non-punctuation string literals
 All user-facing text must come from a `TXT_KEY_*` lookup. Never inline string literals for text that gets spoken. Prefer the game's existing keys — check `docs/llm-docs/txt-keys/ui-text-keys.md` before adding a mod-authored one. Common labels ("Close", "Cancel", "Next Turn", etc.) already exist. Only add mod-authored strings when no game equivalent exists.
@@ -58,7 +58,7 @@ All user-facing text must come from a `TXT_KEY_*` lookup. Never inline string li
 - Avoid emdash. Screen readers announce it as "dash" which breaks the flow of speech
 
 ### Conscious hotkey management
-Civ V has extensive hotkeys, many engine-bound and some reassignable via `Assets/DLC/.../ActionInfos.xml`-style data. Many are useless to blind players and can be overwritten. But every overwrite is a deliberate decision; document what the original hotkey did and why it's being replaced. Hotkey decisions are documented at `docs/hotkey-reference.md`.
+Civ V has many engine-bound hotkeys. Many are useless to blind players and can be overwritten. But every overwrite is a deliberate decision; document what the original hotkey did and why it's being replaced. Hotkey decisions are documented at `docs/hotkey-reference.md`.
 
 ### No silent failures
 This mod runs on a C-level proxy, Lua `pcall`-susceptible callbacks, and engine events whose error reporting is weak (`Lua.log` only exists with `LoggingEnabled=1`, and even then some errors never reach it). A swallowed error in an event handler means the feature silently stops working and the user has no idea why. **Every `pcall` / error branch must log through the mod's log wrapper with enough context to locate the failure.** Never drop an error on the floor, never catch-and-return-default without logging. If something fails, the player log must say what and where. A logged failure is actionable; a silent one is invisible.
@@ -79,9 +79,21 @@ Handler table shape and push/pop rules are documented in the header of `src/dlc/
 - **`.Add(fn)` chains on both `Events.X` and `LuaEvents.X`.** Prefer adding listeners over replacing — multiple listeners coexist and we don't evict the game's own handlers. `.Remove(fn)` is unverified in the wild; assume best-effort.
 - **Civ V's Lua `ipairs` yields `(0, t[0])` when `t[0]` exists.** Standard Lua 5.1 ipairs starts at index 1 and treats `[0]` as unreachable; the engine's does not. Base-game code relies on this: `AdvancedSetup.lua MapTypes.FullSync` seeds `mapScripts[0] = Random`, then iterates with `for i, script in ipairs(mapScripts)`, producing N+1 `BuildEntry` calls (Random first). When pairing our own labels / indices against a pulldown that base built with this pattern, iterate the same way — the pulldown entry index is 1-based and starts with whatever lives at `[0]`. Generalize: if you see `t[0] = ...` next to an `ipairs(t)` in base code, ipairs includes it; don't assume standard behavior.
 - **`Alt+Left/Right` sends `WM_SYSKEYDOWN` (msg 260)**, not `WM_KEYDOWN`. Input handlers must check both to catch Alt-chorded keys.
-- **Bootstrap piggy-backs on overriding `TaskList.{lua,xml}` (in-game boot), `InGame.{lua,xml}` (in-game keyboard dispatch), `WorldView/WorldView.{lua,xml}` (pre-InGame key interception), and `ToolTips.{lua,xml}` (front-end).** A pure `.Civ5Pkg` cannot declare a net-new Context. Our copies are verbatim copies of the game's file with one `include()` appended to the Lua. Source of each override depends on whether BNW overrides the file: `InGame.lua` and `WorldView.lua` come from `Assets/DLC/Expansion2/UI/...` (BNW overrides them, so shipping base would shadow BNW's behavior); `TaskList.lua` and `ToolTips.lua` come from `Assets/UI/...` (BNW leaves them untouched). We do not ship XML overrides we don't need — if our DLC doesn't provide a file, the engine loads whichever copy (base or BNW) the active UISkin resolves to naturally. The Context split is deliberate: TaskList is the boot surface (module loads + LoadScreenClose wiring), InGame is the root Context whose InputHandler receives global keys and is therefore the only in-game seat from which `return true` can suppress an engine binding -- TaskList is a hidden child of WorldView and never sees global keydowns. WorldView sits earlier than InGame in the dispatch chain and its DefaultMessageHandler swallows VK_PRIOR / VK_NEXT / arrows / OEM_PLUS / OEM_MINUS by returning true before InGame sees them; our WorldView hook dispatches through HandlerStack first so scanner PageUp/PageDown bindings (with any modifier) fire before the engine's camera pan / zoom does, falling through on a miss so sighted testers keep camera control.
 - **One `Civ5Pkg` manifest, BNW-only.** `<UISkin name="Expansion2Primary" set="Expansion2">`; the engine only activates a DLC manifest whose `set` matches the active UISkin, so base-game and G&K sessions load no accessibility. `<TextData>` is omitted — fake-DLC text ingestion is broken in the engine, so mod strings are served from Lua via `Text.key` / `Text.format`.
 - **luacheck W113 (undefined variable) is silenced for `*Access.lua` / `*Core.lua` / `*Shared.lua` wrappers** since they reach into dozens of base-game globals that aren't worth whitelisting. A typo like `OnBakc` in a wrapper won't be flagged — rely on manual review. W113 stays active in pure-mod modules (ScannerCore, SpeechPipeline, etc.) where it's still useful.
+
+### Bootstrap override surfaces
+
+A pure `.Civ5Pkg` cannot declare a net-new Context, so bootstrap piggy-backs on overriding four base files. Each override is a verbatim copy of the game's file with one `include()` appended to the Lua. We do not ship XML overrides we don't need — if our DLC doesn't provide a file, the engine loads whichever copy (base or BNW) the active UISkin resolves to naturally.
+
+Overridden files and the source we copy from:
+
+- `TaskList.{lua,xml}` — in-game boot surface (module loads, LoadScreenClose wiring). Sourced from `Assets/UI/...`; BNW leaves it untouched.
+- `InGame.{lua,xml}` — in-game keyboard dispatch. Sourced from `Assets/DLC/Expansion2/UI/...`; BNW overrides it, so shipping from base would shadow BNW's behavior.
+- `WorldView/WorldView.{lua,xml}` — pre-InGame key interception. Sourced from `Assets/DLC/Expansion2/UI/...`; BNW overrides.
+- `ToolTips.{lua,xml}` — front-end. Sourced from `Assets/UI/...`; BNW leaves it untouched.
+
+The Context split is deliberate. TaskList is a hidden child of WorldView and never sees global keydowns, so it only does boot work. InGame is the root Context whose InputHandler receives global keys, and is therefore the only in-game seat from which `return true` can suppress an engine binding. WorldView sits earlier than InGame in the dispatch chain and its DefaultMessageHandler swallows VK_PRIOR / VK_NEXT / arrows / OEM_PLUS / OEM_MINUS by returning true before InGame sees them; our WorldView hook dispatches through HandlerStack first so scanner PageUp/PageDown bindings (with any modifier) fire before the engine's camera pan / zoom does, falling through on a miss so sighted testers keep camera control.
 
 ## Game Log
 
