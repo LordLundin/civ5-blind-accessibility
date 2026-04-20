@@ -7,7 +7,6 @@
 BaselineHandler = {}
 
 local MOD_NONE = 0
-local MOD_SHIFT = 1
 
 local function speak(s)
     if s == nil or s == "" then

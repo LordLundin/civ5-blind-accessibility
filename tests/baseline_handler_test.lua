@@ -57,15 +57,33 @@ local function setup()
         end
         return {
             bindings = {
-                b(Keys.W, function() SurveyorCore.grow() end),
-                b(Keys.X, function() SurveyorCore.shrink() end),
-                b(Keys.Q, function() SurveyorCore.yields() end),
-                b(Keys.A, function() SurveyorCore.resources() end),
-                b(Keys.Z, function() SurveyorCore.terrain() end),
-                b(Keys.E, function() SurveyorCore.ownUnits() end),
-                b(Keys.D, function() SurveyorCore.enemyUnits() end),
-                b(Keys.C, function() SurveyorCore.hills() end),
-                b(Keys.S, function() SurveyorCore.cities() end),
+                b(Keys.W, function()
+                    SurveyorCore.grow()
+                end),
+                b(Keys.X, function()
+                    SurveyorCore.shrink()
+                end),
+                b(Keys.Q, function()
+                    SurveyorCore.yields()
+                end),
+                b(Keys.A, function()
+                    SurveyorCore.resources()
+                end),
+                b(Keys.Z, function()
+                    SurveyorCore.terrain()
+                end),
+                b(Keys.E, function()
+                    SurveyorCore.ownUnits()
+                end),
+                b(Keys.D, function()
+                    SurveyorCore.enemyUnits()
+                end),
+                b(Keys.C, function()
+                    SurveyorCore.hills()
+                end),
+                b(Keys.S, function()
+                    SurveyorCore.cities()
+                end),
             },
             helpEntries = {
                 { keyLabel = "SURV_KEY_1", description = "SURV_DESC_1" },

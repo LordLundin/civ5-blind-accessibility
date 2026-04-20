@@ -88,6 +88,10 @@ globals = {
     "ScannerSearch", "ScannerSnap",
     "ScannerBackendCities", "ScannerBackendImprovements",
     "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendUnits",
+    "SurveyorCore",
+
+    -- User-preference module (Shared/)
+    "Prefs",
 
     -- Test / polyfill surface
     "Polyfill",

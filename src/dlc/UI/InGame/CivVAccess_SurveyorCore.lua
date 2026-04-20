@@ -15,7 +15,6 @@
 
 SurveyorCore = {}
 
-local MOD_NONE = 0
 local MOD_SHIFT = 1
 
 local MIN_RADIUS = 1
@@ -322,8 +321,7 @@ function SurveyorCore.enemyUnits()
                     local ownerId = u:GetOwner()
                     local owner = Players[ownerId]
                     if owner ~= nil then
-                        local hostile = owner:IsBarbarian()
-                            or activeTeamObj:IsAtWar(owner:GetTeam())
+                        local hostile = owner:IsBarbarian() or activeTeamObj:IsAtWar(owner:GetTeam())
                         if hostile then
                             local adj = Text.key(owner:GetCivilizationAdjectiveKey())
                             instances[#instances + 1] = {
@@ -513,22 +511,38 @@ function SurveyorCore.getBindings()
         end, "Surveyor: cities"),
     }
     local helpEntries = {
-        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_RADIUS",
-          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_RADIUS" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_YIELDS",
-          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_YIELDS" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_RESOURCES",
-          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_RESOURCES" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_TERRAIN",
-          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_TERRAIN" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_OWN_UNITS",
-          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_OWN_UNITS" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_ENEMY_UNITS",
-          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_HILLS",
-          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_HILLS" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES",
-          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES" },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_RADIUS",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_RADIUS",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_YIELDS",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_YIELDS",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_RESOURCES",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_RESOURCES",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_TERRAIN",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_TERRAIN",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_OWN_UNITS",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_OWN_UNITS",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_ENEMY_UNITS",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_HILLS",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_HILLS",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES",
+        },
     }
     return { bindings = bindings, helpEntries = helpEntries }
 end

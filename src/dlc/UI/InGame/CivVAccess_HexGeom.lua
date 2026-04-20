@@ -118,7 +118,7 @@ end
 -- tail.
 function HexGeom.plotsInRange(cx, cy, r)
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
-    local ccx, _ccy, ccz = offsetToCube(cx, cy)
+    local ccx, _, ccz = offsetToCube(cx, cy)
     local plots = {}
     local unexplored = 0
     for dx = -r, r do
