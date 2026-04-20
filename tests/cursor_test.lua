@@ -104,55 +104,103 @@ function M.test_city_section_skips_non_city()
     T.eq(#PlotSections.city.Read(p, {}), 0)
 end
 
--- ===== Terrain / feature / plotType suppression =====
+-- ===== Terrain shape (combined feature / hills / terrain) =====
 
-function M.test_terrain_suppressed_by_natural_wonder_feature()
+function M.test_terrainShape_natural_wonder_overrides_hills_mountain_and_terrain()
+    -- Natural wonders describe the tile fully; placement rewrites the core
+    -- tile (most NWs set ChangeCoreTileToMountain) so hearing "mountain"
+    -- after the wonder name is noise. Same goes for any terrain or hills
+    -- token that would otherwise tag along.
     setup()
-    GameInfo.Terrains[1] = { Description = "Plains" }
+    GameInfo.Terrains[6] = { Description = "Snow" }
     GameInfo.Features[5] = { Description = "Mt. Fuji", Type = "FEATURE_FUJI", NaturalWonder = true }
-    local p = T.fakePlot({ terrain = 1, feature = 5 })
-    local ctx = {}
-    local feat = PlotSections.feature.Read(p, ctx)
-    T.eq(feat[1], "Mt. Fuji")
-    T.truthy(ctx.suppressTerrain, "natural wonder must set suppressTerrain")
-    T.eq(#PlotSections.terrain.Read(p, ctx), 0)
+    local p = T.fakePlot({ terrain = 6, feature = 5, hills = true, mountain = true })
+    local out = PlotSections.terrainShape.Read(p, {})
+    T.eq(#out, 1, "wonder must suppress every other token: got " .. table.concat(out, ", "))
+    T.eq(out[1], "Mt. Fuji")
 end
 
-function M.test_terrain_suppressed_by_special_feature_jungle()
+function M.test_terrainShape_mountain_without_wonder_speaks_alone()
+    -- Mountain plot not under a natural wonder: the underlying terrain
+    -- (often snow/tundra) isn't the distinguishing fact.
+    setup()
+    GameInfo.Terrains[6] = { Description = "Snow" }
+    local p = T.fakePlot({ terrain = 6, mountain = true })
+    local out = PlotSections.terrainShape.Read(p, {})
+    T.eq(#out, 1, "mountain suppresses terrain: got " .. table.concat(out, ", "))
+    T.eq(out[1], "mountain")
+end
+
+function M.test_terrainShape_single_terrain_feature_suppresses_terrain()
+    -- FEATURE_JUNGLE is gated to one terrain in Feature_TerrainBooleans
+    -- (grass in G&K/BNW, plains in base) so speaking the terrain is
+    -- redundant no matter which UISkin is active.
     setup()
     GameInfo.Terrains[1] = { Description = "Plains" }
     GameInfo.Features[2] = { Description = "Jungle", Type = "FEATURE_JUNGLE" }
     local p = T.fakePlot({ terrain = 1, feature = 2 })
-    local ctx = {}
-    local feat = PlotSections.feature.Read(p, ctx)
-    T.eq(feat[1], "Jungle")
-    T.truthy(ctx.suppressTerrain, "FEATURE_JUNGLE is special; terrain must be suppressed")
+    local out = PlotSections.terrainShape.Read(p, {})
+    T.eq(#out, 1, "single-terrain feature suppresses terrain: got " .. table.concat(out, ", "))
+    T.eq(out[1], "Jungle")
 end
 
-function M.test_plotType_mountain_suppresses_terrain_and_announces_self()
+function M.test_terrainShape_multi_terrain_feature_keeps_terrain()
+    -- FEATURE_FOREST spans grass / plains / tundra; the terrain word is the
+    -- distinguishing fact between "forest on tundra" (defensive, cold-
+    -- gameplay) and "forest on plains" (lumber-mill-ready).
     setup()
-    GameInfo.Terrains[6] = { Description = "Snow" }
-    local p = T.fakePlot({ terrain = 6, mountain = true })
-    local ctx = {}
-    local pt = PlotSections.plotType.Read(p, ctx)
-    T.eq(pt[1], "mountain")
-    T.truthy(ctx.suppressTerrain)
+    GameInfo.Terrains[3] = { Description = "Tundra" }
+    GameInfo.Features[6] = { Description = "Forest", Type = "FEATURE_FOREST" }
+    local p = T.fakePlot({ terrain = 3, feature = 6 })
+    local out = PlotSections.terrainShape.Read(p, {})
+    T.eq(table.concat(out, ", "), "Forest, Tundra")
 end
 
-function M.test_plotType_flat_emits_nothing()
+function M.test_terrainShape_ice_suppresses_terrain_despite_being_multi_terrain()
+    -- ICE is defined over coast + ocean, so by the data rule it'd read as
+    -- multi-terrain. Policy override suppresses anyway because both read
+    -- as impassable and the player can't act on the distinction.
     setup()
-    local p = T.fakePlot({}) -- not hills, not mountain
-    T.eq(#PlotSections.plotType.Read(p, {}), 0)
+    GameInfo.Terrains[4] = { Description = "Ocean" }
+    GameInfo.Features[1] = { Description = "Ice", Type = "FEATURE_ICE" }
+    local p = T.fakePlot({ terrain = 4, feature = 1 })
+    local out = PlotSections.terrainShape.Read(p, {})
+    T.eq(#out, 1, "ice must suppress terrain by policy: got " .. table.concat(out, ", "))
+    T.eq(out[1], "Ice")
 end
 
-function M.test_plotType_hills_does_not_suppress_terrain()
+function M.test_terrainShape_hills_keeps_terrain_and_adds_hills_token()
+    -- Hills are an overlay, not a replacement: terrain still speaks, and
+    -- hills announces because defense and move-cost effects are separate
+    -- from the feature-vs-terrain redundancy we're collapsing.
     setup()
     GameInfo.Terrains[1] = { Description = "Plains" }
     local p = T.fakePlot({ terrain = 1, hills = true })
-    local ctx = {}
-    PlotSections.plotType.Read(p, ctx)
-    -- Terrain still readable: hills are an overlay, not a replacement.
-    T.eq(PlotSections.terrain.Read(p, ctx)[1], "Plains")
+    local out = PlotSections.terrainShape.Read(p, {})
+    T.eq(table.concat(out, ", "), "hills, Plains")
+end
+
+function M.test_terrainShape_single_terrain_feature_on_hills_keeps_hills()
+    -- Jungle is the only single-terrain feature that can land on hills
+    -- (marsh / oasis / flood plains are RequiresFlatlands). Suppressing
+    -- terrain must not also drop hills -- defensive / movement effects
+    -- are independent of the feature name.
+    setup()
+    GameInfo.Features[2] = { Description = "Jungle", Type = "FEATURE_JUNGLE" }
+    local p = T.fakePlot({ feature = 2, hills = true })
+    local out = PlotSections.terrainShape.Read(p, {})
+    T.eq(table.concat(out, ", "), "Jungle, hills")
+end
+
+function M.test_terrainShape_lake_speaks_alone()
+    -- Lake is its own first branch: terrain underneath (coast) is never
+    -- useful info for a lake tile.
+    setup()
+    GameInfo.Terrains[5] = { Description = "Coast" }
+    local p = T.fakePlot({ lake = true, terrain = 5 })
+    local out = PlotSections.terrainShape.Read(p, {})
+    T.eq(#out, 1)
+    T.eq(out[1], "lake")
 end
 
 -- ===== Resource section =====

@@ -1,9 +1,8 @@
 -- Plot description sections. Each section is { Read = function(plot, ctx) }
 -- returning a list of zero or more localized tokens; composers join the
--- non-empty ones with ", ". Sections are stateless across calls; the ctx
--- table is a per-Compose scratch space so an earlier section can flag a
--- decision that affects a later section (currently: feature.NaturalWonder
--- suppresses terrain).
+-- non-empty ones with ", ". Sections are stateless across calls. The ctx
+-- table is a per-Compose scratch space reserved for future cross-section
+-- coordination; no current section reads or writes it.
 --
 -- The Owner section here is NOT in the per-move composer -- the cursor's
 -- owner-prefix diff already speaks owner identity, and on a city tile
@@ -12,7 +11,7 @@
 -- builder without reimplementing the city / civ / unclaimed branching.
 --
 -- Per-section visibility rules: revealed-but-fogged plots get terrain /
--- plotType / feature / improvement / route / owner via the GetRevealed*
+-- plot-shape / feature / improvement / route / owner via the GetRevealed*
 -- family; live-only data (yields, units, build progress) is gated by the
 -- composer at compose time, not in the section itself. PlotMouseoverInclude
 -- (Expansion2) is the canonical reference for which fields stale safely.
@@ -82,72 +81,60 @@ PlotSections.city = {
     end,
 }
 
-PlotSections.terrain = {
-    Read = function(plot, ctx)
-        if ctx.suppressTerrain then
-            return {}
-        end
-        if plot:IsLake() then
-            return { Text.key("TXT_KEY_CIVVACCESS_LAKE") }
-        end
-        local id = plot:GetTerrainType()
-        if id < 0 then
-            return {}
-        end
-        local name = lookupName("Terrains", id)
-        if name == nil then
-            return {}
-        end
-        return { name }
-    end,
-}
-
-PlotSections.plotType = {
-    Read = function(plot, ctx)
-        -- Plot type is suppressed for ocean (terrain already covers it) and
-        -- for flat (the default carries no information). Hills and mountain
-        -- are the only spoken cases.
-        if plot:IsMountain() then
-            -- Mountain suppresses terrain too: the underlying engine often
-            -- assigns mountain over snow/tundra, but "mountain" is the
-            -- distinguishing fact. Mirror PlotMouseoverInclude's bMountain
-            -- guard.
-            ctx.suppressTerrain = true
-            return { Text.key("TXT_KEY_CIVVACCESS_MOUNTAIN") }
-        end
-        if plot:IsHills() then
-            return { Text.key("TXT_KEY_CIVVACCESS_HILLS") }
-        end
-        return {}
-    end,
-}
-
--- "Special" features describe the tile fully on their own (jungle on plains
--- is just "jungle"). Mirrors IsFeatureSpecial in PlotMouseoverInclude. The
--- engine's check uses GameInfoTypes lookups; we use type strings against
--- GameInfo.Features rows, which works the same way without needing the
--- GameInfoTypes global polyfilled.
-local SPECIAL_FEATURE_TYPES = {
+-- Features that describe the tile fully on their own, so the underlying
+-- terrain name is redundant in speech. The single-terrain set comes from
+-- CIV5Features.xml Feature_TerrainBooleans: jungle / marsh / oasis / flood
+-- plains each appear on exactly one terrain (grass / grass / desert /
+-- desert in G&K and BNW; jungle shifts to plains in base). ICE is
+-- multi-terrain (coast + ocean) but is suppressed by policy: both read as
+-- impassable and the distinction isn't actionable at speech speed.
+--
+-- Natural wonders (NaturalWonder flag) are handled separately and suppress
+-- everything including hills / mountain -- Natural_Wonder_Placement
+-- rewrites the core tile (most to mountain via ChangeCoreTileToMountain),
+-- so the wonder name stands alone.
+--
+-- Shape chosen so a later sound-cue pass can extend values from bool to a
+-- table carrying per-feature sound keys alongside the suppress flag.
+local FEATURE_SUPPRESSES_TERRAIN = {
     FEATURE_JUNGLE = true,
     FEATURE_MARSH = true,
     FEATURE_OASIS = true,
+    FEATURE_FLOOD_PLAINS = true,
     FEATURE_ICE = true,
 }
 
-PlotSections.feature = {
-    Read = function(plot, ctx)
-        local id = plot:GetFeatureType()
-        if id == nil or id < 0 then
-            return {}
+-- Combined terrain-shape section: feature + hills + terrain with the
+-- right suppression rules in one place. Output order is feature, hills,
+-- terrain; the feature leads because it's the distinguishing-fact-first
+-- choice ("jungle, hills" reads faster than "hills, jungle").
+PlotSections.terrainShape = {
+    Read = function(plot)
+        if plot:IsLake() then
+            return { Text.key("TXT_KEY_CIVVACCESS_LAKE") }
         end
-        local row = GameInfo.Features[id]
-        if row == nil then
-            return {}
+        local fid = plot:GetFeatureType()
+        local fRow = fid ~= nil and fid >= 0 and GameInfo.Features[fid] or nil
+        if fRow and fRow.NaturalWonder then
+            return { Text.key(fRow.Description) }
         end
-        if row.NaturalWonder or SPECIAL_FEATURE_TYPES[row.Type] then
-            ctx.suppressTerrain = true
+        if plot:IsMountain() then
+            return { Text.key("TXT_KEY_CIVVACCESS_MOUNTAIN") }
         end
-        return { Text.key(row.Description) }
+        local tokens = {}
+        if fRow then
+            tokens[#tokens + 1] = Text.key(fRow.Description)
+        end
+        if plot:IsHills() then
+            tokens[#tokens + 1] = Text.key("TXT_KEY_CIVVACCESS_HILLS")
+        end
+        if not (fRow and FEATURE_SUPPRESSES_TERRAIN[fRow.Type]) then
+            local tName = lookupName("Terrains", plot:GetTerrainType())
+            if tName ~= nil then
+                tokens[#tokens + 1] = tName
+            end
+        end
+        return tokens
     end,
 }
 

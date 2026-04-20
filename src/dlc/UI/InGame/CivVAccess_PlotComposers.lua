@@ -38,14 +38,7 @@ function PlotComposers.glance(plot)
     end
     readSection(PlotSections.city, plot, ctx, tokens)
     readSection(PlotSections.route, plot, ctx, tokens)
-    -- Feature runs before terrain so it can set ctx.suppressTerrain when
-    -- it's a natural wonder or "special feature" (jungle / marsh / oasis /
-    -- ice). Terrain reads ctx.suppressTerrain; plotType (mountain) sets it
-    -- too. Feature runs before plotType so the "natural wonder over
-    -- mountain" case still produces just the wonder name.
-    readSection(PlotSections.feature, plot, ctx, tokens)
-    readSection(PlotSections.plotType, plot, ctx, tokens)
-    readSection(PlotSections.terrain, plot, ctx, tokens)
+    readSection(PlotSections.terrainShape, plot, ctx, tokens)
     readSection(PlotSections.resource, plot, ctx, tokens)
     readSection(PlotSections.improvement, plot, ctx, tokens)
     readSection(PlotSectionRiver, plot, ctx, tokens)
