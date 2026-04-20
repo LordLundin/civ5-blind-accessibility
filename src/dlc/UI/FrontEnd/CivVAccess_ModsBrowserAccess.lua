@@ -47,45 +47,71 @@ end)
 local function deleteButtonLabel()
     local l = Controls.SmallButton1Label
     if l ~= nil then
-        local ok, t = pcall(function() return l:GetText() end)
-        if ok and t ~= nil and t ~= "" then return tostring(t) end
+        local ok, t = pcall(function()
+            return l:GetText()
+        end)
+        if ok and t ~= nil and t ~= "" then
+            return tostring(t)
+        end
     end
     return Text.key("TXT_KEY_MODDING_DELETEMOD")
 end
 
 local function deleteButtonTooltip()
     local b = Controls.SmallButton1
-    if b == nil then return nil end
-    local ok, t = pcall(function() return b:GetToolTipString() end)
-    if ok and t ~= nil and t ~= "" then return tostring(t) end
+    if b == nil then
+        return nil
+    end
+    local ok, t = pcall(function()
+        return b:GetToolTipString()
+    end)
+    if ok and t ~= nil and t ~= "" then
+        return tostring(t)
+    end
     return nil
 end
 
 BaseMenu.install(ContextPtr, {
-    name        = "ModsBrowser",
+    name = "ModsBrowser",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MODS_BROWSER"),
-    priorInput    = priorInput,
+    priorInput = priorInput,
     priorShowHide = onShowHide,
-    onShow      = function(h)
+    onShow = function(h)
         -- Replicates the anonymous ShowHide (ModsBrowser.lua line 36).
         if Controls.SmallButton2 ~= nil then
             Controls.SmallButton2:SetHide(not Steam.IsOverlayEnabled())
         end
     end,
     items = {
-        BaseMenuItems.Button({ controlName = "SmallButton1",
-            labelFn    = deleteButtonLabel,
-            tooltipFn  = deleteButtonTooltip,
-            activate   = function() LuaEvents.OnModBrowserDeleteButtonClicked() end }),
-        BaseMenuItems.Button({ controlName = "SmallButton2",
-            textKey    = "TXT_KEY_MODDING_WORKSHOP",
+        BaseMenuItems.Button({
+            controlName = "SmallButton1",
+            labelFn = deleteButtonLabel,
+            tooltipFn = deleteButtonTooltip,
+            activate = function()
+                LuaEvents.OnModBrowserDeleteButtonClicked()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "SmallButton2",
+            textKey = "TXT_KEY_MODDING_WORKSHOP",
             tooltipKey = "TXT_KEY_MODDING_WORKSHOP_TT",
-            activate   = function() OnWorkshopButtonClicked() end }),
-        BaseMenuItems.Button({ controlName = "LargeButton",
-            textKey    = "TXT_KEY_MODDING_NEXT",
-            activate   = function() OnNextButtonClicked() end }),
-        BaseMenuItems.Button({ controlName = "BackButton",
-            textKey    = "TXT_KEY_MODDING_BACK",
-            activate   = function() NavigateBack() end }),
+            activate = function()
+                OnWorkshopButtonClicked()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "LargeButton",
+            textKey = "TXT_KEY_MODDING_NEXT",
+            activate = function()
+                OnNextButtonClicked()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "BackButton",
+            textKey = "TXT_KEY_MODDING_BACK",
+            activate = function()
+                NavigateBack()
+            end,
+        }),
     },
 })

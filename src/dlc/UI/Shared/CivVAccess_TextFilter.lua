@@ -31,13 +31,17 @@ end
 -- Match is case-insensitive and whitespace-tolerant, and the adjacent
 -- phrase must sit on word boundaries (no false hit on "gold"/"golden").
 local function _matchesAfter(after, phrase)
-    if phrase == "" then return false end
+    if phrase == "" then
+        return false
+    end
     local aligned = after:lower() .. "\0"
     return aligned:find("^%s*" .. escapePattern(phrase:lower()) .. "[^%w]") ~= nil
 end
 
 local function _matchesBefore(before, phrase)
-    if phrase == "" then return false end
+    if phrase == "" then
+        return false
+    end
     local aligned = "\0" .. before:lower()
     return aligned:find("[^%w]" .. escapePattern(phrase:lower()) .. "%s*$") ~= nil
 end
@@ -66,7 +70,7 @@ local function substituteIcons(s)
 
         if spoken ~= "" then
             local before = s:sub(1, startIdx - 1)
-            local after  = s:sub(endIdx + 1)
+            local after = s:sub(endIdx + 1)
             if _matchesAfter(after, spoken) or _matchesBefore(before, spoken) then
                 spoken = ""
             end
@@ -79,7 +83,9 @@ local function substituteIcons(s)
 end
 
 function TextFilter.filter(text)
-    if text == nil then return "" end
+    if text == nil then
+        return ""
+    end
     local s = tostring(text)
 
     -- Fast path: no brackets, no emdash, no control chars.

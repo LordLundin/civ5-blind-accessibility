@@ -77,8 +77,12 @@ local function patchIndex(mt, interceptors)
     local origIndex = mt.__index
     mt.__index = function(self, key)
         local fn = interceptors[key]
-        if fn ~= nil then return fn end
-        if type(origIndex) == "table" then return origIndex[key] end
+        if fn ~= nil then
+            return fn
+        end
+        if type(origIndex) == "table" then
+            return origIndex[key]
+        end
         return origIndex(self, key)
     end
 end
@@ -86,7 +90,9 @@ end
 -- ---------- PullDown ----------
 
 function PullDownProbe.ensureInstalled(samplePullDown)
-    if civvaccess_shared.pullDownProbeInstalled then return true end
+    if civvaccess_shared.pullDownProbeInstalled then
+        return true
+    end
     if samplePullDown == nil then
         Log.warn("PullDownProbe: ensureInstalled called without a sample pulldown")
         return false
@@ -97,7 +103,7 @@ function PullDownProbe.ensureInstalled(samplePullDown)
         return false
     end
 
-    local origReg   = resolveMethod(mt.__index, samplePullDown, "RegisterSelectionCallback")
+    local origReg = resolveMethod(mt.__index, samplePullDown, "RegisterSelectionCallback")
     local origBuild = resolveMethod(mt.__index, samplePullDown, "BuildEntry")
     local origClear = resolveMethod(mt.__index, samplePullDown, "ClearEntries")
     if type(origReg) ~= "function" then
@@ -106,9 +112,9 @@ function PullDownProbe.ensureInstalled(samplePullDown)
     end
 
     civvaccess_shared.pullDownCallbacks = civvaccess_shared.pullDownCallbacks or {}
-    civvaccess_shared.pullDownEntries   = civvaccess_shared.pullDownEntries   or {}
+    civvaccess_shared.pullDownEntries = civvaccess_shared.pullDownEntries or {}
     local callbacks = civvaccess_shared.pullDownCallbacks
-    local entries   = civvaccess_shared.pullDownEntries
+    local entries = civvaccess_shared.pullDownEntries
 
     local interceptors = {}
     interceptors.RegisterSelectionCallback = function(self, fn)
@@ -118,7 +124,10 @@ function PullDownProbe.ensureInstalled(samplePullDown)
     if type(origBuild) == "function" then
         interceptors.BuildEntry = function(self, stem, instance, ...)
             local list = entries[self]
-            if list == nil then list = {}; entries[self] = list end
+            if list == nil then
+                list = {}
+                entries[self] = list
+            end
             list[#list + 1] = instance
             return origBuild(self, stem, instance, ...)
         end
@@ -153,7 +162,9 @@ end
 -- ---------- Slider ----------
 
 function PullDownProbe.ensureSliderInstalled(sampleSlider)
-    if civvaccess_shared.sliderProbeInstalled then return true end
+    if civvaccess_shared.sliderProbeInstalled then
+        return true
+    end
     if sampleSlider == nil then
         Log.warn("PullDownProbe: ensureSliderInstalled called without a sample slider")
         return false
@@ -197,7 +208,9 @@ end
 -- ---------- CheckBox ----------
 
 function PullDownProbe.ensureCheckBoxInstalled(sampleCheckBox)
-    if civvaccess_shared.checkBoxProbeInstalled then return true end
+    if civvaccess_shared.checkBoxProbeInstalled then
+        return true
+    end
     if sampleCheckBox == nil then
         Log.warn("PullDownProbe: ensureCheckBoxInstalled called without a sample checkbox")
         return false
@@ -243,7 +256,9 @@ end
 -- mouse event; don't capture those).
 
 function PullDownProbe.ensureButtonInstalled(sampleButton)
-    if civvaccess_shared.buttonProbeInstalled then return true end
+    if civvaccess_shared.buttonProbeInstalled then
+        return true
+    end
     if sampleButton == nil then
         Log.warn("PullDownProbe: ensureButtonInstalled called without a sample button")
         return false
@@ -267,7 +282,10 @@ function PullDownProbe.ensureButtonInstalled(sampleButton)
         RegisterCallback = function(self, mouseEvent, fn)
             if type(mouseEvent) == "number" and type(fn) == "function" then
                 local perButton = callbacks[self]
-                if perButton == nil then perButton = {}; callbacks[self] = perButton end
+                if perButton == nil then
+                    perButton = {}
+                    callbacks[self] = perButton
+                end
                 perButton[mouseEvent] = fn
             end
             return origReg(self, mouseEvent, fn)
@@ -280,9 +298,13 @@ end
 
 function PullDownProbe.buttonCallbackFor(button, mouseEvent)
     local t = civvaccess_shared.buttonCallbacks
-    if t == nil then return nil end
+    if t == nil then
+        return nil
+    end
     local perButton = t[button]
-    if perButton == nil then return nil end
+    if perButton == nil then
+        return nil
+    end
     return perButton[mouseEvent]
 end
 
@@ -299,7 +321,9 @@ function PullDownProbe.installFromControls(pullDownNames, sliderNames, checkBoxN
         for _, name in ipairs(pullDownNames or {}) do
             local c = Controls[name]
             if c ~= nil then
-                if PullDownProbe.ensureInstalled(c) then break end
+                if PullDownProbe.ensureInstalled(c) then
+                    break
+                end
             end
         end
     end
@@ -307,7 +331,9 @@ function PullDownProbe.installFromControls(pullDownNames, sliderNames, checkBoxN
         for _, name in ipairs(sliderNames or {}) do
             local c = Controls[name]
             if c ~= nil then
-                if PullDownProbe.ensureSliderInstalled(c) then break end
+                if PullDownProbe.ensureSliderInstalled(c) then
+                    break
+                end
             end
         end
     end
@@ -315,7 +341,9 @@ function PullDownProbe.installFromControls(pullDownNames, sliderNames, checkBoxN
         for _, name in ipairs(checkBoxNames or {}) do
             local c = Controls[name]
             if c ~= nil then
-                if PullDownProbe.ensureCheckBoxInstalled(c) then break end
+                if PullDownProbe.ensureCheckBoxInstalled(c) then
+                    break
+                end
             end
         end
     end
@@ -323,7 +351,9 @@ function PullDownProbe.installFromControls(pullDownNames, sliderNames, checkBoxN
         for _, name in ipairs(buttonNames or {}) do
             local c = Controls[name]
             if c ~= nil then
-                if PullDownProbe.ensureButtonInstalled(c) then break end
+                if PullDownProbe.ensureButtonInstalled(c) then
+                    break
+                end
             end
         end
     end

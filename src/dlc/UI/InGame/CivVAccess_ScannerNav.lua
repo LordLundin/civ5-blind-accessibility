@@ -15,14 +15,14 @@
 
 ScannerNav = {}
 
-local _catIdx       = 1
-local _subIdx       = 1
-local _itemIdx      = 0
-local _instIdx      = 0
-local _snapshot     = nil
+local _catIdx = 1
+local _subIdx = 1
+local _itemIdx = 0
+local _instIdx = 0
+local _snapshot = nil
 local _snapshotStale = true
-local _preJumpX     = nil
-local _preJumpY     = nil
+local _preJumpX = nil
+local _preJumpY = nil
 -- Remembered _catIdx from the moment a search opened. A Ctrl+PageUp/Down
 -- from inside a search snapshot cycles relative to this, not relative to
 -- the synthetic search category (which is the only one in the search
@@ -34,10 +34,11 @@ local _preSearchCatIdx = nil
 -- their own subscription (same pattern CivVAccess_Boot uses for
 -- LoadScreenClose).
 local function installTurnStartListener()
-    if civvaccess_shared.scannerNavListenerInstalled then return end
+    if civvaccess_shared.scannerNavListenerInstalled then
+        return
+    end
     if Events == nil or Events.ActivePlayerTurnStart == nil then
-        Log.warn("ScannerNav: Events.ActivePlayerTurnStart missing; "
-            .. "turn-start invalidation disabled")
+        Log.warn("ScannerNav: Events.ActivePlayerTurnStart missing; " .. "turn-start invalidation disabled")
         return
     end
     civvaccess_shared.scannerNavListenerInstalled = true
@@ -59,25 +60,33 @@ end
 -- ===== Snapshot plumbing =====
 
 local function currentCategory()
-    if _snapshot == nil then return nil end
+    if _snapshot == nil then
+        return nil
+    end
     return _snapshot.categories[_catIdx]
 end
 
 local function currentSub()
     local cat = currentCategory()
-    if cat == nil then return nil end
+    if cat == nil then
+        return nil
+    end
     return cat.subcategories[_subIdx]
 end
 
 local function currentItem()
     local sub = currentSub()
-    if sub == nil or _itemIdx == 0 then return nil end
+    if sub == nil or _itemIdx == 0 then
+        return nil
+    end
     return sub.items[_itemIdx]
 end
 
 local function currentInstance()
     local item = currentItem()
-    if item == nil or _instIdx == 0 then return nil end
+    if item == nil or _instIdx == 0 then
+        return nil
+    end
     return item.instances[_instIdx]
 end
 
@@ -105,12 +114,11 @@ end
 local function gatherEntries()
     local entries = {}
     local activePlayer = Game.GetActivePlayer()
-    local activeTeam   = Game.GetActiveTeam()
+    local activeTeam = Game.GetActiveTeam()
     for _, backend in ipairs(ScannerCore.BACKENDS) do
         local ok, list = pcall(backend.Scan, activePlayer, activeTeam)
         if not ok then
-            Log.error("ScannerNav: backend '" .. tostring(backend.name)
-                .. "' Scan failed: " .. tostring(list))
+            Log.error("ScannerNav: backend '" .. tostring(backend.name) .. "' Scan failed: " .. tostring(list))
         elseif type(list) == "table" then
             for _, entry in ipairs(list) do
                 entries[#entries + 1] = entry
@@ -170,16 +178,20 @@ end
 local function ensureCurrentInstanceValid()
     while true do
         local inst = currentInstance()
-        if inst == nil then return end
+        if inst == nil then
+            return
+        end
         local entry = inst.entry
         local ok, valid = pcall(entry.backend.ValidateEntry, entry, nil)
         if not ok then
-            Log.error("ScannerNav: backend '"
-                .. tostring(entry.backend.name)
-                .. "' ValidateEntry failed: " .. tostring(valid))
+            Log.error(
+                "ScannerNav: backend '" .. tostring(entry.backend.name) .. "' ValidateEntry failed: " .. tostring(valid)
+            )
             return
         end
-        if valid then return end
+        if valid then
+            return
+        end
         ScannerSnap.pruneInstance(_snapshot, _catIdx, _subIdx, _itemIdx, _instIdx)
         -- Re-land indices after prune. The surviving instance, if any,
         -- now occupies _instIdx or a lower index; if the item emptied
@@ -191,8 +203,12 @@ local function ensureCurrentInstanceValid()
                 _itemIdx, _instIdx = 0, 0
                 return
             end
-            if _itemIdx > #sub.items then _itemIdx = #sub.items end
-            if _itemIdx == 0 then _itemIdx = 1 end
+            if _itemIdx > #sub.items then
+                _itemIdx = #sub.items
+            end
+            if _itemIdx == 0 then
+                _itemIdx = 1
+            end
             _instIdx = (#sub.items[_itemIdx].instances > 0) and 1 or 0
         elseif _instIdx > #item.instances then
             _instIdx = #item.instances
@@ -217,8 +233,7 @@ local function formatInstance(instance, instIdx, instCount)
             dir = HexGeom.directionString(cx, cy, instance.plotX, instance.plotY)
         end
     end
-    local count = Text.format("TXT_KEY_CIVVACCESS_SCANNER_INSTANCE_COUNT",
-        instIdx, instCount)
+    local count = Text.format("TXT_KEY_CIVVACCESS_SCANNER_INSTANCE_COUNT", instIdx, instCount)
     local entry = instance.entry
     -- FormatName is the live-query seam per design section 4; item.name
     -- is only the grouping key captured at build time.
@@ -251,12 +266,20 @@ end
 -- Home speaks the glance because it has no cycle announcement covering
 -- for it.
 local function autoMoveIfEnabled()
-    if not civvaccess_shared.scannerAutoMove then return end
+    if not civvaccess_shared.scannerAutoMove then
+        return
+    end
     local inst = currentInstance()
-    if inst == nil then return end
+    if inst == nil then
+        return
+    end
     local cx, cy = Cursor.position()
-    if cx == nil then return end
-    if cx == inst.plotX and cy == inst.plotY then return end
+    if cx == nil then
+        return
+    end
+    if cx == inst.plotX and cy == inst.plotY then
+        return
+    end
     _preJumpX, _preJumpY = cx, cy
     Cursor.jumpTo(inst.plotX, inst.plotY)
 end
@@ -264,10 +287,16 @@ end
 -- ===== Wrap helpers =====
 
 local function wrapIndex(i, n, dir)
-    if n <= 0 then return 0 end
+    if n <= 0 then
+        return 0
+    end
     i = i + dir
-    if i < 1 then i = n end
-    if i > n then i = 1 end
+    if i < 1 then
+        i = n
+    end
+    if i > n then
+        i = 1
+    end
     return i
 end
 
@@ -367,7 +396,9 @@ function ScannerNav.distanceFromCursor()
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
     local cx, cy = Cursor.position()
-    if cx == nil then return "" end
+    if cx == nil then
+        return ""
+    end
     if cx == inst.plotX and cy == inst.plotY then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
     end
@@ -417,8 +448,7 @@ end
 -- reply on empty result. The caller (ScannerInput) speaks it.
 function ScannerNav.applySearch(query)
     if query == nil or query == "" then
-        return Text.format("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_NO_MATCH",
-            query or "")
+        return Text.format("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_NO_MATCH", query or "")
     end
     local entries = gatherEntries()
     local cx, cy = cursorOriginOrDefault()
@@ -454,7 +484,15 @@ end
 function ScannerNav._indices()
     return _catIdx, _subIdx, _itemIdx, _instIdx
 end
-function ScannerNav._snapshot()       return _snapshot       end
-function ScannerNav._isStale()        return _snapshotStale  end
-function ScannerNav._preJump()        return _preJumpX, _preJumpY end
-function ScannerNav._preSearchCatIdx() return _preSearchCatIdx end
+function ScannerNav._snapshot()
+    return _snapshot
+end
+function ScannerNav._isStale()
+    return _snapshotStale
+end
+function ScannerNav._preJump()
+    return _preJumpX, _preJumpY
+end
+function ScannerNav._preSearchCatIdx()
+    return _preSearchCatIdx
+end

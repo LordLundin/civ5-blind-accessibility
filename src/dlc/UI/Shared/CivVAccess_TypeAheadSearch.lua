@@ -42,7 +42,9 @@ local TIER_COUNT = 6
 -- Lowercase inputs expected.
 local function matchTier(lowerName, lowerPrefix)
     local prefixLen = #lowerPrefix
-    if prefixLen == 0 or prefixLen > #lowerName then return -1, -1 end
+    if prefixLen == 0 or prefixLen > #lowerName then
+        return -1, -1
+    end
 
     -- Start of string.
     if string.sub(lowerName, 1, prefixLen) == lowerPrefix then
@@ -69,12 +71,16 @@ local function matchTier(lowerName, lowerPrefix)
 
     -- Substring anywhere.
     local idx = string.find(lowerName, lowerPrefix, 1, true)
-    if idx ~= nil then return 4, idx - 1 end
+    if idx ~= nil then
+        return 4, idx - 1
+    end
 
     -- Space-delimited word-prefix abbreviation ("ga pi" in "gas pipe").
     if string.find(lowerPrefix, " ", 1, true) ~= nil then
         local pos = TypeAheadSearch._matchWordPrefixTokens(lowerName, lowerPrefix)
-        if pos >= 0 then return 5, pos end
+        if pos >= 0 then
+            return 5, pos
+        end
     end
 
     return -1, -1
@@ -92,7 +98,9 @@ function TypeAheadSearch._matchWordPrefixTokens(lowerName, lowerPrefix)
         tokens[#tokens + 1] = tok
     end
     local tokenCount = #tokens
-    if tokenCount == 0 then return -1 end
+    if tokenCount == 0 then
+        return -1
+    end
 
     local n = #lowerName
     local tokenIdx = 1
@@ -111,18 +119,23 @@ function TypeAheadSearch._matchWordPrefixTokens(lowerName, lowerPrefix)
             if tokenIdx <= tokenCount then
                 local tok = tokens[tokenIdx]
                 local toklen = #tok
-                if i + toklen - 1 <= n
-                        and string.sub(lowerName, i, i + toklen - 1) == tok then
-                    if tokenIdx == 1 then firstPos = i - 1 end
+                if i + toklen - 1 <= n and string.sub(lowerName, i, i + toklen - 1) == tok then
+                    if tokenIdx == 1 then
+                        firstPos = i - 1
+                    end
                     tokenIdx = tokenIdx + 1
-                    if tokenIdx > tokenCount then return firstPos end
+                    if tokenIdx > tokenCount then
+                        return firstPos
+                    end
                     i = i + toklen
                 end
             end
             -- Advance past the rest of this word (to its space / comma).
             while i <= n do
                 local b = string.byte(lowerName, i)
-                if b == 32 or b == 44 then break end
+                if b == 32 or b == 44 then
+                    break
+                end
                 i = i + 1
             end
         end
@@ -139,25 +152,37 @@ Instance.__index = Instance
 
 function TypeAheadSearch.new()
     local self = setmetatable({
-        _buffer          = "",
-        _isSearchActive  = false,
-        _resultIndices   = {},
-        _resultNames     = {},
-        _resultCursor    = 1,
+        _buffer = "",
+        _isSearchActive = false,
+        _resultIndices = {},
+        _resultNames = {},
+        _resultCursor = 1,
     }, Instance)
     return self
 end
 
-function Instance:buffer()       return self._buffer end
-function Instance:hasBuffer()    return #self._buffer > 0 end
-function Instance:isSearchActive() return self._isSearchActive end
-function Instance:resultCount()  return #self._resultIndices end
+function Instance:buffer()
+    return self._buffer
+end
+function Instance:hasBuffer()
+    return #self._buffer > 0
+end
+function Instance:isSearchActive()
+    return self._isSearchActive
+end
+function Instance:resultCount()
+    return #self._resultIndices
+end
 
 -- 1-based original-list index of the currently selected result, or nil.
 function Instance:selectedOriginalIndex()
-    if not self._isSearchActive then return nil end
+    if not self._isSearchActive then
+        return nil
+    end
     local idx = self._resultCursor
-    if idx < 1 or idx > #self._resultIndices then return nil end
+    if idx < 1 or idx > #self._resultIndices then
+        return nil
+    end
     return self._resultIndices[idx]
 end
 
@@ -167,7 +192,9 @@ function Instance:addChar(c)
 end
 
 function Instance:removeChar()
-    if #self._buffer == 0 then return false end
+    if #self._buffer == 0 then
+        return false
+    end
     self._buffer = string.sub(self._buffer, 1, #self._buffer - 1)
     return true
 end
@@ -183,7 +210,9 @@ end
 local function isAllSameChar(s)
     local first = string.byte(s, 1)
     for i = 2, #s do
-        if string.byte(s, i) ~= first then return false end
+        if string.byte(s, i) ~= first then
+            return false
+        end
     end
     return true
 end
@@ -197,21 +226,19 @@ local function sortTier(indices, names, positions, sortLengths, inSegment)
         local len = sortLengths[i]
         local seg = inSegment[i]
         local j = i - 1
-        while j >= 1
-                and (sortLengths[j] > len
-                    or (sortLengths[j] == len and positions[j] > pos)) do
-            positions[j + 1]   = positions[j]
-            indices[j + 1]     = indices[j]
-            names[j + 1]       = names[j]
+        while j >= 1 and (sortLengths[j] > len or (sortLengths[j] == len and positions[j] > pos)) do
+            positions[j + 1] = positions[j]
+            indices[j + 1] = indices[j]
+            names[j + 1] = names[j]
             sortLengths[j + 1] = sortLengths[j]
-            inSegment[j + 1]   = inSegment[j]
+            inSegment[j + 1] = inSegment[j]
             j = j - 1
         end
-        positions[j + 1]   = pos
-        indices[j + 1]     = idx
-        names[j + 1]       = name
+        positions[j + 1] = pos
+        indices[j + 1] = idx
+        names[j + 1] = name
         sortLengths[j + 1] = len
-        inSegment[j + 1]   = seg
+        inSegment[j + 1] = seg
     end
 end
 
@@ -223,8 +250,7 @@ function Instance:search(itemCount, nameByIndex, moveTo)
     local buf = self._buffer
 
     -- Single-letter repeat: cycle within tiers 0-1 without re-running.
-    if self._isSearchActive and #self._resultIndices > 0
-            and #buf > 1 and isAllSameChar(buf) then
+    if self._isSearchActive and #self._resultIndices > 0 and #buf > 1 and isAllSameChar(buf) then
         self._buffer = string.sub(buf, 1, 1)
         self:_cycleStartsWithResults()
         return
@@ -235,8 +261,7 @@ function Instance:search(itemCount, nameByIndex, moveTo)
         self._resultNames = {}
         self._resultCursor = 1
         self._isSearchActive = true
-        SpeechPipeline.speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH", buf))
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH", buf))
         return
     end
 
@@ -246,8 +271,7 @@ function Instance:search(itemCount, nameByIndex, moveTo)
         self._resultNames = {}
         self._resultCursor = 1
         self._isSearchActive = true
-        SpeechPipeline.speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH", buf))
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH", buf))
         return
     end
     local lowerBuffer = string.lower(trimmed)
@@ -256,8 +280,11 @@ function Instance:search(itemCount, nameByIndex, moveTo)
     local tiers = {}
     for t = 0, TIER_COUNT - 1 do
         tiers[t] = {
-            indices = {}, names = {}, positions = {},
-            sortLengths = {}, inSegment = {},
+            indices = {},
+            names = {},
+            positions = {},
+            sortLengths = {},
+            inSegment = {},
         }
     end
 
@@ -267,8 +294,8 @@ function Instance:search(itemCount, nameByIndex, moveTo)
             local tier, pos = matchTier(string.lower(name), lowerBuffer)
             if tier >= 0 then
                 local bucket = tiers[tier]
-                bucket.indices[#bucket.indices + 1]   = i
-                bucket.names[#bucket.names + 1]       = name
+                bucket.indices[#bucket.indices + 1] = i
+                bucket.names[#bucket.names + 1] = name
                 bucket.positions[#bucket.positions + 1] = pos
                 local comma = string.find(name, ",", 1, true)
                 local nameLen = comma and (comma - 1) or #name
@@ -304,8 +331,7 @@ function Instance:search(itemCount, nameByIndex, moveTo)
         self._resultIndices = {}
         self._resultNames = {}
         self._resultCursor = 1
-        SpeechPipeline.speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH", buf))
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH", buf))
     else
         self._resultIndices = outIdx
         self._resultNames = outNames
@@ -315,43 +341,61 @@ function Instance:search(itemCount, nameByIndex, moveTo)
 end
 
 function Instance:_cycleStartsWithResults()
-    if #self._resultIndices == 0 then return end
+    if #self._resultIndices == 0 then
+        return
+    end
     local firstChar = string.byte(string.lower(self._buffer), 1)
     local count = 0
     for i = 1, #self._resultNames do
         local head = string.byte(string.lower(self._resultNames[i]), 1)
-        if head == firstChar then count = count + 1 else break end
+        if head == firstChar then
+            count = count + 1
+        else
+            break
+        end
     end
-    if count == 0 then return end
+    if count == 0 then
+        return
+    end
     self._resultCursor = (self._resultCursor % count) + 1
     self:_announceCurrentResult()
 end
 
 function Instance:navigateResults(direction)
     local n = #self._resultIndices
-    if n == 0 then return end
+    if n == 0 then
+        return
+    end
     local cursor = self._resultCursor - 1
     cursor = (cursor + direction) % n
-    if cursor < 0 then cursor = cursor + n end
+    if cursor < 0 then
+        cursor = cursor + n
+    end
     self._resultCursor = cursor + 1
     self:_announceCurrentResult()
 end
 
 function Instance:jumpToFirstResult()
-    if #self._resultIndices == 0 then return end
+    if #self._resultIndices == 0 then
+        return
+    end
     self._resultCursor = 1
     self:_announceCurrentResult()
 end
 
 function Instance:jumpToLastResult()
     local n = #self._resultIndices
-    if n == 0 then return end
+    if n == 0 then
+        return
+    end
     self._resultCursor = n
     self:_announceCurrentResult()
 end
 
 function Instance:_announceCurrentResult()
-    if #self._resultIndices == 0 then return end
+    if #self._resultIndices == 0 then
+        return
+    end
     local origIndex = self._resultIndices[self._resultCursor]
     if self._moveTo ~= nil then
         self._moveTo(origIndex)
@@ -370,30 +414,35 @@ function Instance:handleChar(c, searchable)
     return true
 end
 
-local KEY_UP    = 38
-local KEY_DOWN  = 40
-local KEY_HOME  = 36
-local KEY_END   = 35
-local KEY_BACK  = 8
+local KEY_UP = 38
+local KEY_DOWN = 40
+local KEY_HOME = 36
+local KEY_END = 35
+local KEY_BACK = 8
 local KEY_SPACE = 32
 
 -- Non-character keys. Returns true when consumed.
 function Instance:handleKey(vk, ctrl, alt, searchable)
     if self._isSearchActive then
         if vk == KEY_UP then
-            self:navigateResults(-1); return true
+            self:navigateResults(-1)
+            return true
         elseif vk == KEY_DOWN then
-            self:navigateResults(1); return true
+            self:navigateResults(1)
+            return true
         elseif vk == KEY_HOME then
-            self:jumpToFirstResult(); return true
+            self:jumpToFirstResult()
+            return true
         elseif vk == KEY_END then
-            self:jumpToLastResult(); return true
+            self:jumpToLastResult()
+            return true
         elseif vk == KEY_BACK then
-            if not self:removeChar() then return true end
+            if not self:removeChar() then
+                return true
+            end
             if not self:hasBuffer() then
                 self:clear()
-                SpeechPipeline.speakInterrupt(
-                    Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
                 return true
             end
             self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo)
@@ -408,11 +457,12 @@ function Instance:handleKey(vk, ctrl, alt, searchable)
 
     -- Inactive with leftover buffer: backspace still rewinds it.
     if vk == KEY_BACK and self:hasBuffer() then
-        if not self:removeChar() then return true end
+        if not self:removeChar() then
+            return true
+        end
         if not self:hasBuffer() then
             self:clear()
-            SpeechPipeline.speakInterrupt(
-                Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
             return true
         end
         self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo)

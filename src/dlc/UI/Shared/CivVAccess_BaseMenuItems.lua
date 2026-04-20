@@ -22,7 +22,7 @@
 BaseMenuItems = {}
 
 local STEP_SMALL = 0.01
-local STEP_BIG   = 0.10
+local STEP_BIG = 0.10
 
 -- Spec-validation guard. Logs the failure through the mod's log wrapper
 -- before erroring so the message reaches Lua.log uniformly (a bare assert()
@@ -39,12 +39,13 @@ end
 -- Label / tooltip resolution ----------------------------------------------
 
 local function resolveLabel(item)
-    if item.labelText ~= nil then return item.labelText end
+    if item.labelText ~= nil then
+        return item.labelText
+    end
     if item.labelFn ~= nil then
         local ok, result = pcall(item.labelFn, item._control)
         if not ok then
-            Log.error("BaseMenuItems labelFn '" .. tostring(item.controlName)
-                .. "' failed: " .. tostring(result))
+            Log.error("BaseMenuItems labelFn '" .. tostring(item.controlName) .. "' failed: " .. tostring(result))
             return ""
         end
         return result or ""
@@ -56,32 +57,43 @@ local function resolveTooltip(item)
     if item.tooltipFn ~= nil then
         local ok, result = pcall(item.tooltipFn, item._control)
         if not ok then
-            Log.error("BaseMenuItems tooltipFn '" .. tostring(item.controlName)
-                .. "' failed: " .. tostring(result))
+            Log.error("BaseMenuItems tooltipFn '" .. tostring(item.controlName) .. "' failed: " .. tostring(result))
             return nil
         end
-        if result == nil or result == "" then return nil end
+        if result == nil or result == "" then
+            return nil
+        end
         return tostring(result)
     end
     if item.tooltipText ~= nil and item.tooltipText ~= "" then
         return item.tooltipText
     end
-    if item.tooltipKey == nil then return nil end
+    if item.tooltipKey == nil then
+        return nil
+    end
     local t = Text.key(item.tooltipKey)
-    if t == nil or t == "" then return nil end
+    if t == nil or t == "" then
+        return nil
+    end
     return t
 end
 
 -- Drop any tooltip sentence that duplicates an existing ", "-separated
 -- segment in `base`. Sentences separated by ". " in localized tooltip text.
 local function appendTooltip(base, tooltip)
-    if tooltip == nil or tooltip == "" then return base end
-    if base == nil or base == "" then return tooltip end
+    if tooltip == nil or tooltip == "" then
+        return base
+    end
+    if base == nil or base == "" then
+        return tooltip
+    end
 
     local seen = {}
     for segment in string.gmatch(base, "([^,]+)") do
         local trimmed = segment:match("^%s*(.-)%s*$")
-        if trimmed ~= "" then seen[trimmed] = true end
+        if trimmed ~= "" then
+            seen[trimmed] = true
+        end
     end
 
     local novel = {}
@@ -92,18 +104,22 @@ local function appendTooltip(base, tooltip)
         end
     end
 
-    if #novel == 0 then return base end
+    if #novel == 0 then
+        return base
+    end
     return base .. ", " .. table.concat(novel, ", ")
 end
 
-BaseMenuItems.appendTooltip  = appendTooltip
-BaseMenuItems.labelOf        = resolveLabel
-BaseMenuItems.tooltipOf      = resolveTooltip
+BaseMenuItems.appendTooltip = appendTooltip
+BaseMenuItems.labelOf = resolveLabel
+BaseMenuItems.tooltipOf = resolveTooltip
 
 -- Shared navigability / activability --------------------------------------
 
 local function isNavigable(self)
-    if self._control == nil or self._control:IsHidden() then return false end
+    if self._control == nil or self._control:IsHidden() then
+        return false
+    end
     if self._visibilityControl ~= nil and self._visibilityControl:IsHidden() then
         return false
     end
@@ -111,7 +127,9 @@ local function isNavigable(self)
 end
 
 local function isActivatable(self)
-    if not isNavigable(self) then return false end
+    if not isNavigable(self) then
+        return false
+    end
     return not self._control:IsDisabled()
 end
 
@@ -129,37 +147,39 @@ end
 -- Resolution helpers ------------------------------------------------------
 
 local function resolveControl(spec, kind)
-    if spec.control ~= nil then return spec.control end
-    check(type(spec.controlName) == "string",
-        kind .. " needs controlName or control")
+    if spec.control ~= nil then
+        return spec.control
+    end
+    check(type(spec.controlName) == "string", kind .. " needs controlName or control")
     local c = Controls[spec.controlName]
     if c == nil then
-        Log.warn("BaseMenuItems " .. kind .. ": missing control '"
-            .. spec.controlName .. "'")
+        Log.warn("BaseMenuItems " .. kind .. ": missing control '" .. spec.controlName .. "'")
     end
     return c
 end
 
 local function assertLabel(spec, kind)
-    check(type(spec.textKey) == "string"
-        or type(spec.labelText) == "string"
-        or type(spec.labelFn) == "function",
-        kind .. " needs textKey, labelText, or labelFn")
+    check(
+        type(spec.textKey) == "string" or type(spec.labelText) == "string" or type(spec.labelFn) == "function",
+        kind .. " needs textKey, labelText, or labelFn"
+    )
 end
 
 local function assertTooltip(spec, kind)
-    check(spec.tooltipFn == nil or type(spec.tooltipFn) == "function",
-        kind .. ".tooltipFn must be a function if provided")
+    check(
+        spec.tooltipFn == nil or type(spec.tooltipFn) == "function",
+        kind .. ".tooltipFn must be a function if provided"
+    )
 end
 
 local function copyCommonFields(spec, item)
     item.controlName = spec.controlName
-    item.textKey     = spec.textKey
-    item.labelText   = spec.labelText
-    item.labelFn     = spec.labelFn
-    item.tooltipKey  = spec.tooltipKey
+    item.textKey = spec.textKey
+    item.labelText = spec.labelText
+    item.labelFn = spec.labelFn
+    item.tooltipKey = spec.tooltipKey
     item.tooltipText = spec.tooltipText
-    item.tooltipFn   = spec.tooltipFn
+    item.tooltipFn = spec.tooltipFn
 end
 
 -- Button ------------------------------------------------------------------
@@ -167,15 +187,14 @@ end
 function BaseMenuItems.Button(spec)
     assertLabel(spec, "Button")
     assertTooltip(spec, "Button")
-    check(type(spec.activate) == "function",
-        "Button '" .. tostring(spec.controlName) .. "' needs activate fn")
+    check(type(spec.activate) == "function", "Button '" .. tostring(spec.controlName) .. "' needs activate fn")
     local item = {
-        kind      = "button",
-        _control  = resolveControl(spec, "Button"),
+        kind = "button",
+        _control = resolveControl(spec, "Button"),
         _activate = spec.activate,
     }
     copyCommonFields(spec, item)
-    item.isNavigable   = isNavigable
+    item.isNavigable = isNavigable
     item.isActivatable = isActivatable
     function item:announce(menu)
         return composeSpeech(self, { resolveLabel(self) })
@@ -184,9 +203,14 @@ function BaseMenuItems.Button(spec)
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
         local ok, err = pcall(self._activate)
         if not ok then
-            Log.error("BaseMenu '" .. tostring(menu.name) .. "' button '"
-                .. tostring(self.controlName) .. "' activate failed: "
-                .. tostring(err))
+            Log.error(
+                "BaseMenu '"
+                    .. tostring(menu.name)
+                    .. "' button '"
+                    .. tostring(self.controlName)
+                    .. "' activate failed: "
+                    .. tostring(err)
+            )
         end
     end
     function item:adjust(menu, dir, big) end
@@ -207,8 +231,12 @@ function BaseMenuItems.Text(spec)
     assertTooltip(spec, "Text")
     local item = { kind = "text" }
     copyCommonFields(spec, item)
-    function item:isNavigable() return true end
-    function item:isActivatable() return true end
+    function item:isNavigable()
+        return true
+    end
+    function item:isActivatable()
+        return true
+    end
     function item:announce(menu)
         return appendTooltip(resolveLabel(self), resolveTooltip(self))
     end
@@ -223,31 +251,36 @@ end
 
 local function checkboxValue(item)
     local on = item._control:IsChecked()
-    return Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON"
-                       or "TXT_KEY_CIVVACCESS_CHECK_OFF")
+    return Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
 end
 
 function BaseMenuItems.Checkbox(spec)
     assertLabel(spec, "Checkbox")
     assertTooltip(spec, "Checkbox")
-    check(spec.activateCallback == nil or type(spec.activateCallback) == "function",
-        "Checkbox.activateCallback must be a function if provided")
+    check(
+        spec.activateCallback == nil or type(spec.activateCallback) == "function",
+        "Checkbox.activateCallback must be a function if provided"
+    )
     local item = {
-        kind              = "checkbox",
-        _control          = resolveControl(spec, "Checkbox"),
+        kind = "checkbox",
+        _control = resolveControl(spec, "Checkbox"),
         _activateCallback = spec.activateCallback,
     }
     if spec.visibilityControlName ~= nil then
         item.visibilityControlName = spec.visibilityControlName
-        item._visibilityControl    = Controls[spec.visibilityControlName]
+        item._visibilityControl = Controls[spec.visibilityControlName]
         if item._visibilityControl == nil then
-            Log.warn("BaseMenuItems Checkbox '" .. tostring(spec.controlName)
-                .. "': missing visibility control '"
-                .. spec.visibilityControlName .. "'")
+            Log.warn(
+                "BaseMenuItems Checkbox '"
+                    .. tostring(spec.controlName)
+                    .. "': missing visibility control '"
+                    .. spec.visibilityControlName
+                    .. "'"
+            )
         end
     end
     copyCommonFields(spec, item)
-    item.isNavigable   = isNavigable
+    item.isNavigable = isNavigable
     item.isActivatable = isActivatable
     function item:announce(menu)
         return composeSpeech(self, { resolveLabel(self), checkboxValue(self) })
@@ -261,13 +294,15 @@ function BaseMenuItems.Checkbox(spec)
         -- rather than RegisterCheckHandler are not captured by the probe.
         local cb = self._activateCallback or PullDownProbe.checkBoxCallbackFor(c)
         if cb == nil then
-            Log.warn("BaseMenu checkbox '" .. tostring(self.controlName)
-                .. "': callback not captured, game state will not update")
+            Log.warn(
+                "BaseMenu checkbox '"
+                    .. tostring(self.controlName)
+                    .. "': callback not captured, game state will not update"
+            )
         else
             local ok, err = pcall(cb, newValue)
             if not ok then
-                Log.error("BaseMenu checkbox '" .. tostring(self.controlName)
-                    .. "' callback failed: " .. tostring(err))
+                Log.error("BaseMenu checkbox '" .. tostring(self.controlName) .. "' callback failed: " .. tostring(err))
             end
         end
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
@@ -312,22 +347,22 @@ end
 function BaseMenuItems.Choice(spec)
     assertLabel(spec, "Choice")
     assertTooltip(spec, "Choice")
-    check(type(spec.activate) == "function",
-        "Choice needs activate fn")
-    check(spec.selectedFn == nil or type(spec.selectedFn) == "function",
-        "Choice.selectedFn must be a function if provided")
+    check(type(spec.activate) == "function", "Choice needs activate fn")
+    check(
+        spec.selectedFn == nil or type(spec.selectedFn) == "function",
+        "Choice.selectedFn must be a function if provided"
+    )
     local item = {
-        kind               = "choice",
-        _activate          = spec.activate,
-        _selectedFn        = spec.selectedFn,
+        kind = "choice",
+        _activate = spec.activate,
+        _selectedFn = spec.selectedFn,
         _visibilityControl = spec.visibilityControl,
     }
     if item._visibilityControl == nil and spec.visibilityControlName ~= nil then
         item.visibilityControlName = spec.visibilityControlName
-        item._visibilityControl    = Controls[spec.visibilityControlName]
+        item._visibilityControl = Controls[spec.visibilityControlName]
         if item._visibilityControl == nil then
-            Log.warn("BaseMenuItems Choice: missing visibility control '"
-                .. spec.visibilityControlName .. "'")
+            Log.warn("BaseMenuItems Choice: missing visibility control '" .. spec.visibilityControlName .. "'")
         end
     end
     copyCommonFields(spec, item)
@@ -337,14 +372,15 @@ function BaseMenuItems.Choice(spec)
         end
         return true
     end
-    function item:isActivatable() return self:isNavigable() end
+    function item:isActivatable()
+        return self:isNavigable()
+    end
     function item:announce(menu)
         local parts = {}
         if self._selectedFn ~= nil then
             local ok, sel = pcall(self._selectedFn)
             if not ok then
-                Log.error("BaseMenuItems Choice selectedFn failed: "
-                    .. tostring(sel))
+                Log.error("BaseMenuItems Choice selectedFn failed: " .. tostring(sel))
             elseif sel then
                 parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CHOICE_SELECTED")
             end
@@ -356,8 +392,7 @@ function BaseMenuItems.Choice(spec)
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
         local ok, err = pcall(self._activate)
         if not ok then
-            Log.error("BaseMenu '" .. tostring(menu.name) .. "' choice activate failed: "
-                .. tostring(err))
+            Log.error("BaseMenu '" .. tostring(menu.name) .. "' choice activate failed: " .. tostring(err))
         end
         -- Re-announce gives audio confirmation on browse-then-commit
         -- screens whose activate just flips a selection flag (the menu
@@ -379,55 +414,76 @@ end
 
 local function sliderCompositeLabel(item)
     local labelCtrl = item._labelControl
-    if labelCtrl == nil then return nil end
-    local ok, value = pcall(function() return labelCtrl:GetText() end)
-    if not ok or value == nil or value == "" then return nil end
+    if labelCtrl == nil then
+        return nil
+    end
+    local ok, value = pcall(function()
+        return labelCtrl:GetText()
+    end)
+    if not ok or value == nil or value == "" then
+        return nil
+    end
     return tostring(value)
 end
 
 local function clampUnit(v)
-    if v < 0 then return 0 end
-    if v > 1 then return 1 end
+    if v < 0 then
+        return 0
+    end
+    if v > 1 then
+        return 1
+    end
     return v
 end
 
 local function fireSliderCallback(item, newValue)
     local cb = PullDownProbe.sliderCallbackFor(item._control)
     if cb == nil then
-        Log.warn("BaseMenu slider '" .. tostring(item.controlName)
-            .. "': callback not captured, game state will not update")
+        Log.warn(
+            "BaseMenu slider '" .. tostring(item.controlName) .. "': callback not captured, game state will not update"
+        )
         return
     end
     local void1
-    local okV, v = pcall(function() return item._control:GetVoid1() end)
-    if okV then void1 = v end
+    local okV, v = pcall(function()
+        return item._control:GetVoid1()
+    end)
+    if okV then
+        void1 = v
+    end
     local ok, err = pcall(cb, newValue, void1)
     if not ok then
-        Log.error("BaseMenu slider '" .. tostring(item.controlName)
-            .. "' callback failed: " .. tostring(err))
+        Log.error("BaseMenu slider '" .. tostring(item.controlName) .. "' callback failed: " .. tostring(err))
     end
 end
 
 function BaseMenuItems.Slider(spec)
     assertLabel(spec, "Slider")
     assertTooltip(spec, "Slider")
-    check(type(spec.labelControlName) == "string",
-        "Slider '" .. tostring(spec.controlName) .. "' needs labelControlName")
+    check(
+        type(spec.labelControlName) == "string",
+        "Slider '" .. tostring(spec.controlName) .. "' needs labelControlName"
+    )
     local labelCtrl = Controls[spec.labelControlName]
     if labelCtrl == nil then
-        Log.warn("BaseMenuItems Slider '" .. tostring(spec.controlName)
-            .. "': missing label control '" .. spec.labelControlName .. "'")
+        Log.warn(
+            "BaseMenuItems Slider '"
+                .. tostring(spec.controlName)
+                .. "': missing label control '"
+                .. spec.labelControlName
+                .. "'"
+        )
     end
     local item = {
-        kind             = "slider",
-        _control         = resolveControl(spec, "Slider"),
-        _labelControl    = labelCtrl,
+        kind = "slider",
+        _control = resolveControl(spec, "Slider"),
+        _labelControl = labelCtrl,
         labelControlName = spec.labelControlName,
-        step             = spec.step    or STEP_SMALL,
-        bigStep          = spec.bigStep or STEP_BIG,
+        step = spec.step or STEP_SMALL,
+        bigStep = spec.bigStep or STEP_BIG,
     }
     copyCommonFields(spec, item)
-    item.isNavigable   = isNavigable
+    item.isNavigable = isNavigable
     item.isActivatable = isActivatable
     function item:announce(menu)
         -- Civ V's composite slider label is populated by the screen's
@@ -447,7 +503,9 @@ function BaseMenuItems.Slider(spec)
         SpeechPipeline.speakInterrupt(self:announce(menu))
     end
     function item:adjust(menu, dir, big)
-        if not isActivatable(self) then return end
+        if not isActivatable(self) then
+            return
+        end
         local delta = (big and self.bigStep or self.step) * dir
         local c = self._control
         local cur = c:GetValue()
@@ -467,10 +525,18 @@ end
 
 local function pulldownCurrentValue(item)
     local c = item._control
-    local ok, btn = pcall(function() return c:GetButton() end)
-    if not ok or btn == nil then return nil end
-    local ok2, text = pcall(function() return btn:GetText() end)
-    if not ok2 or text == nil or text == "" then return nil end
+    local ok, btn = pcall(function()
+        return c:GetButton()
+    end)
+    if not ok or btn == nil then
+        return nil
+    end
+    local ok2, text = pcall(function()
+        return btn:GetText()
+    end)
+    if not ok2 or text == nil or text == "" then
+        return nil
+    end
     return tostring(text)
 end
 
@@ -496,14 +562,18 @@ end
 -- pop already speaks the new value.
 local function buildChoice(button, callback, useVoids, parentControlName, announceOverride, isSelected)
     local choice = {
-        kind        = "choice",
-        _button     = button,
-        _callback   = callback,
-        _useVoids   = useVoids,
+        kind = "choice",
+        _button = button,
+        _callback = callback,
+        _useVoids = useVoids,
         _isSelected = isSelected,
     }
-    function choice:isNavigable()   return self._button ~= nil end
-    function choice:isActivatable() return self._button ~= nil end
+    function choice:isNavigable()
+        return self._button ~= nil
+    end
+    function choice:isActivatable()
+        return self._button ~= nil
+    end
     function choice:announce(menu)
         local text
         -- Pulldowns with a spec.entryAnnounceFn (civ pulldowns, etc.)
@@ -513,24 +583,28 @@ local function buildChoice(button, callback, useVoids, parentControlName, announ
         if announceOverride ~= nil then
             local ok, t = pcall(announceOverride)
             if not ok then
-                Log.warn("BaseMenu pulldown '" .. tostring(parentControlName)
-                    .. "' entryAnnounceFn failed: " .. tostring(t))
+                Log.warn(
+                    "BaseMenu pulldown '" .. tostring(parentControlName) .. "' entryAnnounceFn failed: " .. tostring(t)
+                )
             elseif t ~= nil and t ~= "" then
                 text = tostring(t)
             end
         end
         if text == nil then
-            local ok, t = pcall(function() return self._button:GetText() end)
+            local ok, t = pcall(function()
+                return self._button:GetText()
+            end)
             if not ok or t == nil or t == "" then
-                Log.warn("BaseMenu pulldown '" .. tostring(parentControlName)
-                    .. "' entry has no text")
+                Log.warn("BaseMenu pulldown '" .. tostring(parentControlName) .. "' entry has no text")
                 return ""
             end
             text = t
             -- Per-entry tooltip (info.Help for handicaps, civ.Description for
             -- civs, possibleValue.ToolTip for map-script options). Best-effort:
             -- some Button userdata may not expose GetToolTipString.
-            local tipOk, tip = pcall(function() return self._button:GetToolTipString() end)
+            local tipOk, tip = pcall(function()
+                return self._button:GetToolTipString()
+            end)
             if tipOk and tip ~= nil and tip ~= "" then
                 text = BaseMenuItems.appendTooltip(text, tostring(tip))
             end
@@ -545,14 +619,16 @@ local function buildChoice(button, callback, useVoids, parentControlName, announ
         local ok, err
         if self._useVoids then
             local v1, v2
-            pcall(function() v1 = self._button:GetVoid1(); v2 = self._button:GetVoid2() end)
+            pcall(function()
+                v1 = self._button:GetVoid1()
+                v2 = self._button:GetVoid2()
+            end)
             ok, err = pcall(self._callback, v1, v2)
         else
             ok, err = pcall(self._callback)
         end
         if not ok then
-            Log.error("BaseMenu pulldown '" .. tostring(parentControlName)
-                .. "' callback failed: " .. tostring(err))
+            Log.error("BaseMenu pulldown '" .. tostring(parentControlName) .. "' callback failed: " .. tostring(err))
         end
         HandlerStack.removeByName(menu.name, true)
     end
@@ -563,23 +639,28 @@ end
 function BaseMenuItems.Pulldown(spec)
     assertLabel(spec, "Pulldown")
     assertTooltip(spec, "Pulldown")
-    check(spec.valueFn == nil or type(spec.valueFn) == "function",
-        "Pulldown.valueFn must be a function if provided")
-    check(spec.entryAnnounceFn == nil or type(spec.entryAnnounceFn) == "function",
-        "Pulldown.entryAnnounceFn must be a function if provided")
+    check(spec.valueFn == nil or type(spec.valueFn) == "function", "Pulldown.valueFn must be a function if provided")
+    check(
+        spec.entryAnnounceFn == nil or type(spec.entryAnnounceFn) == "function",
+        "Pulldown.entryAnnounceFn must be a function if provided"
+    )
     local item = {
-        kind              = "pulldown",
-        _control          = resolveControl(spec, "Pulldown"),
-        _valueFn          = spec.valueFn,
-        _entryAnnounceFn  = spec.entryAnnounceFn,
+        kind = "pulldown",
+        _control = resolveControl(spec, "Pulldown"),
+        _valueFn = spec.valueFn,
+        _entryAnnounceFn = spec.entryAnnounceFn,
     }
     if spec.visibilityControlName ~= nil then
         item.visibilityControlName = spec.visibilityControlName
-        item._visibilityControl    = Controls[spec.visibilityControlName]
+        item._visibilityControl = Controls[spec.visibilityControlName]
         if item._visibilityControl == nil then
-            Log.warn("BaseMenuItems Pulldown '" .. tostring(spec.controlName)
-                .. "': missing visibility control '"
-                .. spec.visibilityControlName .. "'")
+            Log.warn(
+                "BaseMenuItems Pulldown '"
+                    .. tostring(spec.controlName)
+                    .. "': missing visibility control '"
+                    .. spec.visibilityControlName
+                    .. "'"
+            )
         end
     end
     copyCommonFields(spec, item)
@@ -592,12 +673,22 @@ function BaseMenuItems.Pulldown(spec)
     -- this both-sides check, the pulldown would still report activatable
     -- and let the user open a no-op sub-menu.
     function item:isActivatable()
-        if not isNavigable(self) then return false end
-        if self._control:IsDisabled() then return false end
-        local ok, btn = pcall(function() return self._control:GetButton() end)
+        if not isNavigable(self) then
+            return false
+        end
+        if self._control:IsDisabled() then
+            return false
+        end
+        local ok, btn = pcall(function()
+            return self._control:GetButton()
+        end)
         if ok and btn ~= nil then
-            local okD, disabled = pcall(function() return btn:IsDisabled() end)
-            if okD and disabled then return false end
+            local okD, disabled = pcall(function()
+                return btn:IsDisabled()
+            end)
+            if okD and disabled then
+                return false
+            end
         end
         return true
     end
@@ -608,9 +699,13 @@ function BaseMenuItems.Pulldown(spec)
         local v
         if self._valueFn ~= nil then
             local ok, result = pcall(self._valueFn, self._control)
-            if ok and result ~= nil then v = tostring(result) end
+            if ok and result ~= nil then
+                v = tostring(result)
+            end
         end
-        if v == nil then v = pulldownCurrentValue(self) end
+        if v == nil then
+            v = pulldownCurrentValue(self)
+        end
         local label = resolveLabel(self)
         local parts
         -- If labelFn was sourced from the button's own text (the civ /
@@ -626,10 +721,11 @@ function BaseMenuItems.Pulldown(spec)
     function item:activate(menu)
         local pulldown = self._control
         local topCallback = PullDownProbe.callbackFor(pulldown)
-        local entries     = PullDownProbe.entriesFor(pulldown)
+        local entries = PullDownProbe.entriesFor(pulldown)
         if entries == nil or #entries == 0 then
-            Log.warn("BaseMenu '" .. menu.name .. "' pulldown '"
-                .. tostring(self.controlName) .. "': no entries captured")
+            Log.warn(
+                "BaseMenu '" .. menu.name .. "' pulldown '" .. tostring(self.controlName) .. "': no entries captured"
+            )
             SpeechPipeline.speakInterrupt(self:announce(menu))
             return
         end
@@ -651,37 +747,48 @@ function BaseMenuItems.Pulldown(spec)
             local useVoids = topCallback ~= nil
             if cb == nil then
                 cb = PullDownProbe.buttonCallbackFor(inst.Button, Mouse.eLClick)
-                if cb ~= nil then fallbackUsed = fallbackUsed + 1 end
+                if cb ~= nil then
+                    fallbackUsed = fallbackUsed + 1
+                end
             end
             local announceOverride
             if entryAnnounceFn ~= nil then
                 local idx = i
-                announceOverride = function() return entryAnnounceFn(inst, idx) end
+                announceOverride = function()
+                    return entryAnnounceFn(inst, idx)
+                end
             end
             local isSelected = false
             if currentText ~= nil then
-                local ok, t = pcall(function() return inst.Button:GetText() end)
+                local ok, t = pcall(function()
+                    return inst.Button:GetText()
+                end)
                 if ok and t ~= nil and tostring(t) == currentText then
                     isSelected = true
-                    if initialIndex == nil then initialIndex = i end
+                    if initialIndex == nil then
+                        initialIndex = i
+                    end
                 end
             end
-            childItems[i] = buildChoice(inst.Button, cb, useVoids,
-                self.controlName, announceOverride, isSelected)
+            childItems[i] = buildChoice(inst.Button, cb, useVoids, self.controlName, announceOverride, isSelected)
         end
         if topCallback == nil and fallbackUsed == 0 then
-            Log.warn("BaseMenu '" .. menu.name .. "' pulldown '"
-                .. tostring(self.controlName)
-                .. "': no top-level callback and no per-entry fallbacks captured")
+            Log.warn(
+                "BaseMenu '"
+                    .. menu.name
+                    .. "' pulldown '"
+                    .. tostring(self.controlName)
+                    .. "': no top-level callback and no per-entry fallbacks captured"
+            )
             SpeechPipeline.speakInterrupt(self:announce(menu))
             return
         end
         local child = BaseMenu.create({
-            name         = subName,
-            displayName  = resolveLabel(self),
-            items        = childItems,
+            name = subName,
+            displayName = resolveLabel(self),
+            items = childItems,
             initialIndex = initialIndex,
-            escapePops   = true,
+            escapePops = true,
         })
         HandlerStack.push(child)
     end
@@ -725,23 +832,21 @@ end
 function BaseMenuItems.Group(spec)
     assertLabel(spec, "Group")
     assertTooltip(spec, "Group")
-    check(type(spec.items) == "table" or type(spec.itemsFn) == "function",
-        "Group needs items or itemsFn")
+    check(type(spec.items) == "table" or type(spec.itemsFn) == "function", "Group needs items or itemsFn")
     local item = {
-        kind     = "group",
-        _items   = spec.items,
+        kind = "group",
+        _items = spec.items,
         _itemsFn = spec.itemsFn,
-        _cached  = spec.cached ~= false,
-        _cache   = nil,
+        _cached = spec.cached ~= false,
+        _cache = nil,
     }
     if spec.visibilityControl ~= nil then
         item._visibilityControl = spec.visibilityControl
     elseif spec.visibilityControlName ~= nil then
         item.visibilityControlName = spec.visibilityControlName
-        item._visibilityControl    = Controls[spec.visibilityControlName]
+        item._visibilityControl = Controls[spec.visibilityControlName]
         if item._visibilityControl == nil then
-            Log.warn("BaseMenuItems Group: missing visibility control '"
-                .. spec.visibilityControlName .. "'")
+            Log.warn("BaseMenuItems Group: missing visibility control '" .. spec.visibilityControlName .. "'")
         end
     end
     copyCommonFields(spec, item)
@@ -751,16 +856,23 @@ function BaseMenuItems.Group(spec)
         end
         return true
     end
-    function item:isActivatable() return self:isNavigable() end
+    function item:isActivatable()
+        return self:isNavigable()
+    end
     function item:children()
-        if self._cached and self._cache ~= nil then return self._cache end
+        if self._cached and self._cache ~= nil then
+            return self._cache
+        end
         local built
         if self._itemsFn ~= nil then
             local ok, result = pcall(self._itemsFn)
             if not ok then
-                Log.error("BaseMenuItems Group '"
-                    .. tostring(self.textKey or self.labelText or "?")
-                    .. "' itemsFn failed: " .. tostring(result))
+                Log.error(
+                    "BaseMenuItems Group '"
+                        .. tostring(self.textKey or self.labelText or "?")
+                        .. "' itemsFn failed: "
+                        .. tostring(result)
+                )
                 built = {}
             else
                 built = result or {}
@@ -768,7 +880,9 @@ function BaseMenuItems.Group(spec)
         else
             built = self._items or {}
         end
-        if self._cached then self._cache = built end
+        if self._cached then
+            self._cache = built
+        end
         return built
     end
     function item:announce(menu)
@@ -789,7 +903,9 @@ end
 -- Textfield ---------------------------------------------------------------
 
 local function textfieldCurrentValue(item)
-    local ok, text = pcall(function() return item._control:GetText() end)
+    local ok, text = pcall(function()
+        return item._control:GetText()
+    end)
     if not ok or text == nil or text == "" then
         return Text.key("TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK")
     end
@@ -802,25 +918,30 @@ BaseMenuItems._textfieldCurrentValue = textfieldCurrentValue
 function BaseMenuItems.Textfield(spec)
     assertLabel(spec, "Textfield")
     assertTooltip(spec, "Textfield")
-    check(spec.priorCallback == nil or type(spec.priorCallback) == "function",
-        "Textfield '" .. tostring(spec.controlName)
-        .. "' priorCallback must be a function")
+    check(
+        spec.priorCallback == nil or type(spec.priorCallback) == "function",
+        "Textfield '" .. tostring(spec.controlName) .. "' priorCallback must be a function"
+    )
     local item = {
-        kind          = "textfield",
-        _control      = resolveControl(spec, "Textfield"),
+        kind = "textfield",
+        _control = resolveControl(spec, "Textfield"),
         priorCallback = spec.priorCallback,
     }
     copyCommonFields(spec, item)
     if spec.visibilityControlName ~= nil then
         item.visibilityControlName = spec.visibilityControlName
-        item._visibilityControl    = Controls[spec.visibilityControlName]
+        item._visibilityControl = Controls[spec.visibilityControlName]
         if item._visibilityControl == nil then
-            Log.warn("BaseMenuItems Textfield '" .. tostring(spec.controlName)
-                .. "': missing visibility control '"
-                .. spec.visibilityControlName .. "'")
+            Log.warn(
+                "BaseMenuItems Textfield '"
+                    .. tostring(spec.controlName)
+                    .. "': missing visibility control '"
+                    .. spec.visibilityControlName
+                    .. "'"
+            )
         end
     end
-    item.isNavigable   = isNavigable
+    item.isNavigable = isNavigable
     item.isActivatable = isActivatable
     function item:announce(menu)
         return composeSpeech(self, {

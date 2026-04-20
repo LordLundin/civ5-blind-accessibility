@@ -12,14 +12,18 @@
 include("CivVAccess_FrontendCommon")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 local function playNowSettingsSummary()
     local parts = {}
     local civIndex = PreGame.GetCivilization(0)
     if civIndex ~= -1 then
         local civ = GameInfo.Civilizations[civIndex]
-        local leaderRow = GameInfo.Leaders("Type = '" .. GameInfo.Civilization_Leaders("CivilizationType = '" .. civ.Type .. "'")().LeaderheadType .. "'")()
+        local leaderRow = GameInfo.Leaders(
+            "Type = '"
+                .. GameInfo.Civilization_Leaders("CivilizationType = '" .. civ.Type .. "'")().LeaderheadType
+                .. "'"
+        )()
         parts[#parts + 1] = Text.key(leaderRow.Description) .. ", " .. Text.key(civ.ShortDescription)
     else
         parts[#parts + 1] = Text.key("TXT_KEY_RANDOM_LEADER")
@@ -47,40 +51,72 @@ local function playNowSettingsSummary()
         parts[#parts + 1] = Text.key("TXT_KEY_RANDOM_MAP_SIZE")
     else
         local info = GameInfo.Worlds[PreGame.GetWorldSize()]
-        if info ~= nil then parts[#parts + 1] = Text.key(info.Description) end
+        if info ~= nil then
+            parts[#parts + 1] = Text.key(info.Description)
+        end
     end
     local handicap = GameInfo.HandicapInfos[PreGame.GetHandicap(0)]
-    if handicap ~= nil then parts[#parts + 1] = Text.key(handicap.Description) end
+    if handicap ~= nil then
+        parts[#parts + 1] = Text.key(handicap.Description)
+    end
     local speed = GameInfo.GameSpeeds[PreGame.GetGameSpeed()]
-    if speed ~= nil then parts[#parts + 1] = Text.key(speed.Description) end
-    if #parts == 0 then return nil end
+    if speed ~= nil then
+        parts[#parts + 1] = Text.key(speed.Description)
+    end
+    if #parts == 0 then
+        return nil
+    end
     return table.concat(parts, ", ")
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "SinglePlayer",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SINGLE_PLAYER"),
+    name = "SinglePlayer",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SINGLE_PLAYER"),
     priorShowHide = priorShowHide,
-    priorInput    = priorInput,
+    priorInput = priorInput,
     items = {
-        BaseMenuItems.Button({ controlName = "StartGameButton",
-            textKey   = "TXT_KEY_PLAY_NOW",
+        BaseMenuItems.Button({
+            controlName = "StartGameButton",
+            textKey = "TXT_KEY_PLAY_NOW",
             tooltipFn = playNowSettingsSummary,
-            activate  = function() StartGameClick() end }),
-        BaseMenuItems.Button({ controlName = "GameSetupButton",
-            textKey  = "TXT_KEY_SETUP_GAME",
-            activate = function() SetupGameClicked() end }),
-        BaseMenuItems.Button({ controlName = "LoadGameButton",
-            textKey  = "TXT_KEY_LOAD_GAME",
-            activate = function() LoadGameClick() end }),
-        BaseMenuItems.Button({ controlName = "ScenariosButton",
-            textKey  = "TXT_KEY_SCENARIOS",
-            activate = function() ScenariosClicked() end }),
-        BaseMenuItems.Button({ controlName = "LoadTutorialButton",
-            textKey  = "TXT_KEY_TUTORIAL",
-            activate = function() LoadTutorialClick() end }),
-        BaseMenuItems.Button({ controlName = "BackButton",
-            textKey  = "TXT_KEY_MODDING_MENU_BACK",
-            activate = function() BackButtonClick() end }),
+            activate = function()
+                StartGameClick()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "GameSetupButton",
+            textKey = "TXT_KEY_SETUP_GAME",
+            activate = function()
+                SetupGameClicked()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "LoadGameButton",
+            textKey = "TXT_KEY_LOAD_GAME",
+            activate = function()
+                LoadGameClick()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "ScenariosButton",
+            textKey = "TXT_KEY_SCENARIOS",
+            activate = function()
+                ScenariosClicked()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "LoadTutorialButton",
+            textKey = "TXT_KEY_TUTORIAL",
+            activate = function()
+                LoadTutorialClick()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "BackButton",
+            textKey = "TXT_KEY_MODDING_MENU_BACK",
+            activate = function()
+                BackButtonClick()
+            end,
+        }),
     },
 })

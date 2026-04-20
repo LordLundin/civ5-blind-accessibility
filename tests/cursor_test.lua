@@ -14,30 +14,48 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_PlotComposers.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_Cursor.lua")
 
-    Game.GetActivePlayer = function() return 0 end
-    Game.GetActiveTeam   = function() return 0 end
-    Game.IsDebugMode     = function() return false end
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.GetActiveTeam = function()
+        return 0
+    end
+    Game.IsDebugMode = function()
+        return false
+    end
 
     -- Wipe per-test scenario tables so fixtures from a prior test don't leak.
-    Players  = {}
-    Teams    = { [0] = T.fakeTeam() }
+    Players = {}
+    Teams = { [0] = T.fakeTeam() }
     GameInfo = {}
-    GameInfo.Terrains     = {}
-    GameInfo.Features     = {}
-    GameInfo.Resources    = {}
+    GameInfo.Terrains = {}
+    GameInfo.Features = {}
+    GameInfo.Resources = {}
     GameInfo.Improvements = {}
-    GameInfo.Routes       = {}
-    GameInfo.Builds       = function() return function() return nil end end
+    GameInfo.Routes = {}
+    GameInfo.Builds = function()
+        return function()
+            return nil
+        end
+    end
     GameInfo.Technologies = {}
 
     -- Default Map: tests that need neighbor lookups (river, ZoC) override
     -- PlotDirection per-test.
-    Map.PlotDirection = function() return nil end
-    Map.GetPlot       = function() return nil end
-    Map.IsWrapX       = function() return false end
+    Map.PlotDirection = function()
+        return nil
+    end
+    Map.GetPlot = function()
+        return nil
+    end
+    Map.IsWrapX = function()
+        return false
+    end
 
-    UI.LookAt            = function(_plot, _flag) end
-    UI.GetHeadSelectedUnit = function() return nil end
+    UI.LookAt = function(_plot, _flag) end
+    UI.GetHeadSelectedUnit = function()
+        return nil
+    end
 
     Cursor._reset()
 end
@@ -123,7 +141,7 @@ end
 
 function M.test_plotType_flat_emits_nothing()
     setup()
-    local p = T.fakePlot({})  -- not hills, not mountain
+    local p = T.fakePlot({}) -- not hills, not mountain
     T.eq(#PlotSections.plotType.Read(p, {}), 0)
 end
 
@@ -184,8 +202,8 @@ end
 function M.test_units_skips_cargo_and_air()
     setup()
     Players[0] = T.fakePlayer({ adj = "Roman" })
-    local land    = T.fakeUnit({ owner = 0, nameKey = "Warrior", domain = DomainTypes.DOMAIN_LAND })
-    local cargo   = T.fakeUnit({ owner = 0, nameKey = "Settler", cargo = true })
+    local land = T.fakeUnit({ owner = 0, nameKey = "Warrior", domain = DomainTypes.DOMAIN_LAND })
+    local cargo = T.fakeUnit({ owner = 0, nameKey = "Settler", cargo = true })
     local fighter = T.fakeUnit({ owner = 0, nameKey = "Fighter", domain = DomainTypes.DOMAIN_AIR })
     local p = T.fakePlot({ units = { land, cargo, fighter } })
     local out = PlotSectionUnits.Read(p, {})
@@ -202,8 +220,7 @@ function M.test_units_never_use_multiplayer_template()
     local warrior = T.fakeUnit({ owner = 0, nameKey = "Warrior" })
     local p = T.fakePlot({ units = { warrior } })
     local s = PlotSectionUnits.Read(p, {})[1]
-    T.truthy(not s:find("TXT_KEY_MULTIPLAYER", 1, true),
-        "must not use the multiplayer template: " .. s)
+    T.truthy(not s:find("TXT_KEY_MULTIPLAYER", 1, true), "must not use the multiplayer template: " .. s)
     -- fakePlayer has no GetNickName, so any production regression that
     -- reintroduces the multiplayer branch will crash here rather than
     -- silently leaking a profile name.
@@ -222,7 +239,9 @@ end
 
 function M.test_river_self_edge_only()
     setup()
-    Map.PlotDirection = function() return nil end  -- no neighbors
+    Map.PlotDirection = function()
+        return nil
+    end -- no neighbors
     local p = T.fakePlot({ neOfRiver = true })
     T.eq(PlotSectionRiver.Read(p, {})[1], "river ne")
 end
@@ -232,7 +251,9 @@ function M.test_river_neighbor_sourced_edge()
     -- E edge of self == W edge of east neighbor.
     local east = T.fakePlot({ wOfRiver = true })
     Map.PlotDirection = function(_, _, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then return east end
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return east
+        end
         return nil
     end
     local p = T.fakePlot({})
@@ -243,9 +264,15 @@ function M.test_river_all_six_collapses()
     setup()
     -- Force every neighbor to provide its share: E, SE, SW.
     Map.PlotDirection = function(_, _, dir)
-        if dir == DirectionTypes.DIRECTION_EAST      then return T.fakePlot({ wOfRiver  = true }) end
-        if dir == DirectionTypes.DIRECTION_SOUTHEAST then return T.fakePlot({ nwOfRiver = true }) end
-        if dir == DirectionTypes.DIRECTION_SOUTHWEST then return T.fakePlot({ neOfRiver = true }) end
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return T.fakePlot({ wOfRiver = true })
+        end
+        if dir == DirectionTypes.DIRECTION_SOUTHEAST then
+            return T.fakePlot({ nwOfRiver = true })
+        end
+        if dir == DirectionTypes.DIRECTION_SOUTHWEST then
+            return T.fakePlot({ neOfRiver = true })
+        end
         return nil
     end
     local p = T.fakePlot({ wOfRiver = true, nwOfRiver = true, neOfRiver = true })
@@ -256,8 +283,12 @@ function M.test_river_edges_in_clockwise_order_from_ne()
     setup()
     -- Edges: NE (self), E (neighbor), SW (neighbor), W (self), but not NW.
     Map.PlotDirection = function(_, _, dir)
-        if dir == DirectionTypes.DIRECTION_EAST      then return T.fakePlot({ wOfRiver  = true }) end
-        if dir == DirectionTypes.DIRECTION_SOUTHWEST then return T.fakePlot({ neOfRiver = true }) end
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return T.fakePlot({ wOfRiver = true })
+        end
+        if dir == DirectionTypes.DIRECTION_SOUTHWEST then
+            return T.fakePlot({ neOfRiver = true })
+        end
         return nil
     end
     local p = T.fakePlot({ neOfRiver = true, wOfRiver = true })
@@ -272,8 +303,7 @@ function M.test_glance_fog_marker_and_no_units_when_fogged()
     Players[0] = T.fakePlayer({ adj = "Roman" })
     GameInfo.Terrains[1] = { Description = "Plains" }
     local enemy = T.fakeUnit({ owner = 0, nameKey = "Warrior" })
-    local p = T.fakePlot({ revealed = true, visible = false, terrain = 1,
-                           units = { enemy } })
+    local p = T.fakePlot({ revealed = true, visible = false, terrain = 1, units = { enemy } })
     local out = PlotComposers.glance(p)
     T.truthy(not out:find("Warrior", 1, true), "fogged plot must not leak unit info: " .. out)
     T.truthy(out:find("Plains", 1, true), "fogged plot still reads stale terrain: " .. out)
@@ -292,8 +322,7 @@ end
 
 function M.test_economy_yields_skip_zeros()
     setup()
-    local yields = { [YieldTypes.YIELD_FOOD] = 2, [YieldTypes.YIELD_PRODUCTION] = 0,
-                     [YieldTypes.YIELD_GOLD] = 1 }
+    local yields = { [YieldTypes.YIELD_FOOD] = 2, [YieldTypes.YIELD_PRODUCTION] = 0, [YieldTypes.YIELD_GOLD] = 1 }
     local p = T.fakePlot({ yields = yields })
     local out = PlotComposers.economy(p)
     T.truthy(out:find("2 food", 1, true), "missing food yield in: " .. out)
@@ -312,16 +341,20 @@ function M.test_economy_reports_trade_route_on_fogged_revealed_tile()
     -- not IsVisible. Fogged-but-revealed plot still reports trade route.
     setup()
     local fogged = T.fakePlot({ revealed = true, visible = false, tradeRoute = true })
-    T.truthy(PlotComposers.economy(fogged):find("trade route", 1, true),
-        "trade route should be announced on fogged revealed tiles (matches base)")
+    T.truthy(
+        PlotComposers.economy(fogged):find("trade route", 1, true),
+        "trade route should be announced on fogged revealed tiles (matches base)"
+    )
 end
 
 function M.test_economy_reports_working_city_on_fogged_revealed_tile()
     setup()
     local city = T.fakeCity({ name = "Rome" })
     local fogged = T.fakePlot({ revealed = true, visible = false, workingCity = city })
-    T.truthy(PlotComposers.economy(fogged):find("Rome", 1, true),
-        "working city should be announced on fogged revealed tiles (matches base)")
+    T.truthy(
+        PlotComposers.economy(fogged):find("Rome", 1, true),
+        "working city should be announced on fogged revealed tiles (matches base)"
+    )
 end
 
 function M.test_combat_defense_modifier_announced()
@@ -336,8 +369,10 @@ function M.test_combat_defense_modifier_announced_on_fogged_revealed_tile()
     -- bonus using live state.
     setup()
     local fogged = T.fakePlot({ revealed = true, visible = false, defenseMod = 50 })
-    T.truthy(PlotComposers.combat(fogged):find("50 percent defense", 1, true),
-        "defense modifier should be announced on fogged revealed tiles (matches base)")
+    T.truthy(
+        PlotComposers.combat(fogged):find("50 percent defense", 1, true),
+        "defense modifier should be announced on fogged revealed tiles (matches base)"
+    )
 end
 
 function M.test_combat_zone_of_control_when_enemy_combat_unit_adjacent()
@@ -345,9 +380,11 @@ function M.test_combat_zone_of_control_when_enemy_combat_unit_adjacent()
     Players[1] = T.fakePlayer({ adj = "Mongolian", team = 1 })
     Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
     local enemy = T.fakeUnit({ owner = 1, team = 1, combat = true })
-    local east  = T.fakePlot({ units = { enemy } })
+    local east = T.fakePlot({ units = { enemy } })
     Map.PlotDirection = function(_, _, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then return east end
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return east
+        end
         return nil
     end
     local p = T.fakePlot({})
@@ -366,8 +403,7 @@ function M.test_combat_no_zoc_when_enemy_is_civilian()
         return nil
     end
     local p = T.fakePlot({})
-    T.truthy(not PlotComposers.combat(p):find("zone of control", 1, true),
-        "civilian unit must not project ZoC")
+    T.truthy(not PlotComposers.combat(p):find("zone of control", 1, true), "civilian unit must not project ZoC")
 end
 
 function M.test_combat_no_zoc_on_fogged_plot_even_with_adjacent_enemy()
@@ -379,14 +415,18 @@ function M.test_combat_no_zoc_on_fogged_plot_even_with_adjacent_enemy()
     Players[1] = T.fakePlayer({ adj = "Mongolian", team = 1 })
     Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
     local enemy = T.fakeUnit({ owner = 1, team = 1, combat = true })
-    local east  = T.fakePlot({ units = { enemy } })
+    local east = T.fakePlot({ units = { enemy } })
     Map.PlotDirection = function(_, _, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then return east end
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return east
+        end
         return nil
     end
     local fogged = T.fakePlot({ revealed = true, visible = false })
-    T.truthy(not PlotComposers.combat(fogged):find("zone of control", 1, true),
-        "ZoC must be suppressed on fogged plots even with an adjacent enemy")
+    T.truthy(
+        not PlotComposers.combat(fogged):find("zone of control", 1, true),
+        "ZoC must be suppressed on fogged plots even with an adjacent enemy"
+    )
 end
 
 -- ===== Cursor =====
@@ -394,14 +434,22 @@ end
 function M.test_cursor_init_uses_selected_unit_plot()
     setup()
     local p = T.fakePlot({ x = 5, y = 7 })
-    Map.GetPlot = function(x, y) if x == 5 and y == 7 then return p end end
+    Map.GetPlot = function(x, y)
+        if x == 5 and y == 7 then
+            return p
+        end
+    end
     local unit = T.fakeUnit({})
     unit._plot = p
-    UI.GetHeadSelectedUnit = function() return unit end
+    UI.GetHeadSelectedUnit = function()
+        return unit
+    end
     Cursor.init()
     -- Move a step that returns nil neighbor → "edge of map", proving we
     -- did initialize at p (otherwise move would fail with "before init").
-    Map.PlotDirection = function() return nil end
+    Map.PlotDirection = function()
+        return nil
+    end
     T.eq(Cursor.move(DirectionTypes.DIRECTION_EAST), "edge of map")
 end
 
@@ -410,10 +458,18 @@ function M.test_cursor_init_falls_back_to_capital_when_no_unit_selected()
     local capPlot = T.fakePlot({ x = 10, y = 10 })
     local capCity = T.fakeCity({ plot = capPlot })
     Players[0] = T.fakePlayer({ capital = capCity })
-    Map.GetPlot = function(x, y) if x == 10 and y == 10 then return capPlot end end
-    UI.GetHeadSelectedUnit = function() return nil end
+    Map.GetPlot = function(x, y)
+        if x == 10 and y == 10 then
+            return capPlot
+        end
+    end
+    UI.GetHeadSelectedUnit = function()
+        return nil
+    end
     Cursor.init()
-    Map.PlotDirection = function() return nil end
+    Map.PlotDirection = function()
+        return nil
+    end
     T.eq(Cursor.move(DirectionTypes.DIRECTION_EAST), "edge of map")
 end
 
@@ -425,17 +481,23 @@ function M.test_cursor_move_owner_prefix_fires_once_within_same_civ()
     local arab1 = T.fakePlot({ x = 1, y = 0, owner = 3, terrain = 1 })
     local arab2 = T.fakePlot({ x = 2, y = 0, owner = 3, terrain = 1 })
     local plotByXY = { ["0,0"] = start, ["1,0"] = arab1, ["2,0"] = arab2 }
-    Map.GetPlot = function(x, y) return plotByXY[x .. "," .. y] end
+    Map.GetPlot = function(x, y)
+        return plotByXY[x .. "," .. y]
+    end
     Map.PlotDirection = function(x, y, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then return plotByXY[(x + 1) .. "," .. y] end
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return plotByXY[(x + 1) .. "," .. y]
+        end
         return nil
     end
     UI.GetHeadSelectedUnit = function()
-        local u = T.fakeUnit({}); u._plot = start; return u
+        local u = T.fakeUnit({})
+        u._plot = start
+        return u
     end
-    Cursor.init()  -- on start (unclaimed)
-    local first  = Cursor.move(DirectionTypes.DIRECTION_EAST)  -- onto Arabia
-    local second = Cursor.move(DirectionTypes.DIRECTION_EAST)  -- still Arabia
+    Cursor.init() -- on start (unclaimed)
+    local first = Cursor.move(DirectionTypes.DIRECTION_EAST) -- onto Arabia
+    local second = Cursor.move(DirectionTypes.DIRECTION_EAST) -- still Arabia
     T.truthy(first:find("Arabia", 1, true), "first entry must speak owner: " .. first)
     T.truthy(not second:find("Arabia", 1, true), "second move within Arabia must suppress prefix: " .. second)
     T.truthy(second:find("Plains", 1, true), "second move still describes the tile: " .. second)
@@ -444,10 +506,19 @@ end
 function M.test_cursor_move_emits_edge_of_map_at_boundary()
     setup()
     local start = T.fakePlot({ x = 0, y = 0 })
-    Map.GetPlot = function(x, y) if x == 0 and y == 0 then return start end end
-    Map.PlotDirection = function() return nil end
-    local unit = T.fakeUnit({}); unit._plot = start
-    UI.GetHeadSelectedUnit = function() return unit end
+    Map.GetPlot = function(x, y)
+        if x == 0 and y == 0 then
+            return start
+        end
+    end
+    Map.PlotDirection = function()
+        return nil
+    end
+    local unit = T.fakeUnit({})
+    unit._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return unit
+    end
     Cursor.init()
     T.eq(Cursor.move(DirectionTypes.DIRECTION_WEST), "edge of map")
 end
@@ -456,24 +527,38 @@ function M.test_cursor_orient_at_capital()
     setup()
     local cap = T.fakePlot({ x = 4, y = 4 })
     Players[0] = T.fakePlayer({ capital = T.fakeCity({ plot = cap }) })
-    Map.GetPlot = function(x, y) if x == 4 and y == 4 then return cap end end
-    local unit = T.fakeUnit({}); unit._plot = cap
-    UI.GetHeadSelectedUnit = function() return unit end
+    Map.GetPlot = function(x, y)
+        if x == 4 and y == 4 then
+            return cap
+        end
+    end
+    local unit = T.fakeUnit({})
+    unit._plot = cap
+    UI.GetHeadSelectedUnit = function()
+        return unit
+    end
     Cursor.init()
     T.eq(Cursor.orient(), "capital")
 end
 
 function M.test_cursor_orient_pure_east_axis()
     setup()
-    local cap   = T.fakePlot({ x = 0, y = 0 })
+    local cap = T.fakePlot({ x = 0, y = 0 })
     local east3 = T.fakePlot({ x = 3, y = 0 })
     Players[0] = T.fakePlayer({ capital = T.fakeCity({ plot = cap }) })
     Map.GetPlot = function(x, y)
-        if x == 0 and y == 0 then return cap end
-        if x == 3 and y == 0 then return east3 end
+        if x == 0 and y == 0 then
+            return cap
+        end
+        if x == 3 and y == 0 then
+            return east3
+        end
     end
-    local unit = T.fakeUnit({}); unit._plot = east3
-    UI.GetHeadSelectedUnit = function() return unit end
+    local unit = T.fakeUnit({})
+    unit._plot = east3
+    UI.GetHeadSelectedUnit = function()
+        return unit
+    end
     Cursor.init()
     T.eq(Cursor.orient(), "3e")
 end
@@ -490,11 +575,18 @@ function M.test_cursor_orient_two_axis_decomposition_preserves_clockwise_from_e_
     local cur = T.fakePlot({ x = 6, y = 5 })
     Players[0] = T.fakePlayer({ capital = T.fakeCity({ plot = cap }) })
     Map.GetPlot = function(x, y)
-        if x == 0 and y == 0 then return cap end
-        if x == 6 and y == 5 then return cur end
+        if x == 0 and y == 0 then
+            return cap
+        end
+        if x == 6 and y == 5 then
+            return cur
+        end
     end
-    local unit = T.fakeUnit({}); unit._plot = cur
-    UI.GetHeadSelectedUnit = function() return unit end
+    local unit = T.fakeUnit({})
+    unit._plot = cur
+    UI.GetHeadSelectedUnit = function()
+        return unit
+    end
     Cursor.init()
     T.eq(Cursor.orient(), "4e, 5ne")
 end
@@ -502,53 +594,73 @@ end
 function M.test_cursor_recenter_no_unit_selected_speaks_message_and_does_not_move()
     setup()
     local start = T.fakePlot({ x = 0, y = 0 })
-    Map.GetPlot = function(x, y) if x == 0 and y == 0 then return start end end
+    Map.GetPlot = function(x, y)
+        if x == 0 and y == 0 then
+            return start
+        end
+    end
     -- Init via capital so init succeeds without a selected unit.
     Players[0] = T.fakePlayer({ capital = T.fakeCity({ plot = start }) })
     Cursor.init()
-    UI.GetHeadSelectedUnit = function() return nil end
+    UI.GetHeadSelectedUnit = function()
+        return nil
+    end
     T.eq(Cursor.recenter(), "no unit selected")
 end
 
 function M.test_cursor_move_onto_unexplored_speaks_unexplored_every_step()
     setup()
     GameInfo.Terrains[1] = { Description = "Plains" }
-    local start  = T.fakePlot({ x = 0, y = 0, terrain = 1 })
-    local u1     = T.fakePlot({ x = 1, y = 0, revealed = false })
-    local u2     = T.fakePlot({ x = 2, y = 0, revealed = false })
+    local start = T.fakePlot({ x = 0, y = 0, terrain = 1 })
+    local u1 = T.fakePlot({ x = 1, y = 0, revealed = false })
+    local u2 = T.fakePlot({ x = 2, y = 0, revealed = false })
     local plotByXY = { ["0,0"] = start, ["1,0"] = u1, ["2,0"] = u2 }
-    Map.GetPlot = function(x, y) return plotByXY[x .. "," .. y] end
+    Map.GetPlot = function(x, y)
+        return plotByXY[x .. "," .. y]
+    end
     Map.PlotDirection = function(x, y, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then return plotByXY[(x + 1) .. "," .. y] end
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return plotByXY[(x + 1) .. "," .. y]
+        end
         return nil
     end
-    local u = T.fakeUnit({}); u._plot = start
-    UI.GetHeadSelectedUnit = function() return u end
+    local u = T.fakeUnit({})
+    u._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
     Cursor.init()
     -- Both consecutive unexplored moves must speak: silence across a fog-of-
     -- war block leaves the user with no signal that the cursor moved at all.
-    local first  = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    local first = Cursor.move(DirectionTypes.DIRECTION_EAST)
     local second = Cursor.move(DirectionTypes.DIRECTION_EAST)
-    T.truthy(first:lower():find("unexplored", 1, true),
-        "first unexplored step must speak unexplored: " .. first)
-    T.truthy(second:lower():find("unexplored", 1, true),
-        "second unexplored step must also speak unexplored: " .. second)
+    T.truthy(first:lower():find("unexplored", 1, true), "first unexplored step must speak unexplored: " .. first)
+    T.truthy(
+        second:lower():find("unexplored", 1, true),
+        "second unexplored step must also speak unexplored: " .. second
+    )
 end
 
 function M.test_cursor_move_onto_fogged_tile_injects_fog_marker()
     setup()
     GameInfo.Terrains[1] = { Description = "Plains" }
-    local start  = T.fakePlot({ x = 0, y = 0, terrain = 1 })
-    local fogged = T.fakePlot({ x = 1, y = 0, revealed = true, visible = false,
-                                terrain = 1 })
+    local start = T.fakePlot({ x = 0, y = 0, terrain = 1 })
+    local fogged = T.fakePlot({ x = 1, y = 0, revealed = true, visible = false, terrain = 1 })
     local plotByXY = { ["0,0"] = start, ["1,0"] = fogged }
-    Map.GetPlot = function(x, y) return plotByXY[x .. "," .. y] end
+    Map.GetPlot = function(x, y)
+        return plotByXY[x .. "," .. y]
+    end
     Map.PlotDirection = function(x, y, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then return plotByXY[(x + 1) .. "," .. y] end
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return plotByXY[(x + 1) .. "," .. y]
+        end
         return nil
     end
-    local u = T.fakeUnit({}); u._plot = start
-    UI.GetHeadSelectedUnit = function() return u end
+    local u = T.fakeUnit({})
+    u._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
     Cursor.init()
     local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
     T.truthy(out:find("fog", 1, true), "fogged move must include 'fog' token: " .. out)
@@ -564,26 +676,31 @@ function M.test_cursor_owner_diff_does_not_fire_across_unexplored_gap()
     setup()
     GameInfo.Terrains[1] = { Description = "Plains" }
     local start = T.fakePlot({ x = 0, y = 0, terrain = 1, owner = -1 })
-    local a     = T.fakePlot({ x = 1, y = 0, terrain = 1, owner = -1 })
-    local b     = T.fakePlot({ x = 2, y = 0, revealed = false })
-    local c     = T.fakePlot({ x = 3, y = 0, terrain = 1, owner = -1 })
+    local a = T.fakePlot({ x = 1, y = 0, terrain = 1, owner = -1 })
+    local b = T.fakePlot({ x = 2, y = 0, revealed = false })
+    local c = T.fakePlot({ x = 3, y = 0, terrain = 1, owner = -1 })
     local plotByXY = { ["0,0"] = start, ["1,0"] = a, ["2,0"] = b, ["3,0"] = c }
-    Map.GetPlot = function(x, y) return plotByXY[x .. "," .. y] end
+    Map.GetPlot = function(x, y)
+        return plotByXY[x .. "," .. y]
+    end
     Map.PlotDirection = function(x, y, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then return plotByXY[(x + 1) .. "," .. y] end
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return plotByXY[(x + 1) .. "," .. y]
+        end
         return nil
     end
-    local u = T.fakeUnit({}); u._plot = start
-    UI.GetHeadSelectedUnit = function() return u end
+    local u = T.fakeUnit({})
+    u._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
     Cursor.init()
-    local first = Cursor.move(DirectionTypes.DIRECTION_EAST)  -- onto a: "unclaimed. Plains."
+    local first = Cursor.move(DirectionTypes.DIRECTION_EAST) -- onto a: "unclaimed. Plains."
     T.truthy(first:find("unclaimed", 1, true), "first move must announce owner: " .. first)
-    local second = Cursor.move(DirectionTypes.DIRECTION_EAST)  -- onto b (unexplored)
-    T.truthy(second:lower():find("unexplored", 1, true),
-        "unexplored step must speak unexplored: " .. second)
-    local third = Cursor.move(DirectionTypes.DIRECTION_EAST)  -- onto c
-    T.truthy(not third:find("unclaimed", 1, true),
-        "crossing unexplored must not retrigger the owner prefix: " .. third)
+    local second = Cursor.move(DirectionTypes.DIRECTION_EAST) -- onto b (unexplored)
+    T.truthy(second:lower():find("unexplored", 1, true), "unexplored step must speak unexplored: " .. second)
+    local third = Cursor.move(DirectionTypes.DIRECTION_EAST) -- onto c
+    T.truthy(not third:find("unclaimed", 1, true), "crossing unexplored must not retrigger the owner prefix: " .. third)
 end
 
 -- ===== Combat tile movement cost =====
@@ -592,16 +709,14 @@ function M.test_combat_tile_cost_flat_terrain_is_one_move()
     setup()
     GameInfo.Terrains[1] = { Description = "Plains", Movement = 1 }
     local p = T.fakePlot({ terrain = 1 })
-    T.truthy(PlotComposers.combat(p):find("1 moves", 1, true),
-        "flat terrain should read '1 moves'")
+    T.truthy(PlotComposers.combat(p):find("1 moves", 1, true), "flat terrain should read '1 moves'")
 end
 
 function M.test_combat_tile_cost_hills_adds_one()
     setup()
     GameInfo.Terrains[1] = { Description = "Plains", Movement = 1 }
     local p = T.fakePlot({ terrain = 1, hills = true })
-    T.truthy(PlotComposers.combat(p):find("2 moves", 1, true),
-        "hills should add 1 to terrain cost")
+    T.truthy(PlotComposers.combat(p):find("2 moves", 1, true), "hills should add 1 to terrain cost")
 end
 
 function M.test_combat_tile_cost_feature_overrides_terrain()
@@ -609,8 +724,10 @@ function M.test_combat_tile_cost_feature_overrides_terrain()
     GameInfo.Terrains[1] = { Description = "Plains", Movement = 1 }
     GameInfo.Features[3] = { Description = "Marsh", Type = "FEATURE_MARSH", Movement = 3 }
     local p = T.fakePlot({ terrain = 1, feature = 3 })
-    T.truthy(PlotComposers.combat(p):find("3 moves", 1, true),
-        "feature with nonzero Movement must override terrain cost")
+    T.truthy(
+        PlotComposers.combat(p):find("3 moves", 1, true),
+        "feature with nonzero Movement must override terrain cost"
+    )
 end
 
 function M.test_combat_tile_cost_zero_feature_movement_does_not_override()
@@ -620,18 +737,18 @@ function M.test_combat_tile_cost_zero_feature_movement_does_not_override()
     -- terrain cost stands.
     GameInfo.Features[9] = { Description = "Lake", Type = "FEATURE_LAKE", Movement = 0 }
     local p = T.fakePlot({ terrain = 1, feature = 9 })
-    T.truthy(PlotComposers.combat(p):find("1 moves", 1, true),
-        "feature with Movement=0 should leave terrain cost unchanged")
+    T.truthy(
+        PlotComposers.combat(p):find("1 moves", 1, true),
+        "feature with Movement=0 should leave terrain cost unchanged"
+    )
 end
 
 function M.test_combat_tile_cost_mountain_is_impassable()
     setup()
     local p = T.fakePlot({ mountain = true })
     local out = PlotComposers.combat(p)
-    T.truthy(out:lower():find("impassable", 1, true),
-        "mountain should read impassable: " .. out)
-    T.truthy(not out:find("moves", 1, true),
-        "mountain must not also report a move count: " .. out)
+    T.truthy(out:lower():find("impassable", 1, true), "mountain should read impassable: " .. out)
+    T.truthy(not out:find("moves", 1, true), "mountain must not also report a move count: " .. out)
 end
 
 return M

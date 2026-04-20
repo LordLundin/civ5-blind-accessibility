@@ -14,28 +14,34 @@ ScannerInput = {}
 local WM_SHIFT_MASK = 1
 
 local function charForLetter(vk)
-    if vk >= 0x41 and vk <= 0x5A then return string.char(vk + 32) end
+    if vk >= 0x41 and vk <= 0x5A then
+        return string.char(vk + 32)
+    end
     return nil
 end
 
 local function charForDigit(vk)
-    if vk >= 0x30 and vk <= 0x39 then return string.char(vk) end
+    if vk >= 0x30 and vk <= 0x39 then
+        return string.char(vk)
+    end
     return nil
 end
 
 function ScannerInput.create()
     local self = {
-        name             = "ScannerInput",
+        name = "ScannerInput",
         capturesAllInput = true,
         -- No bindings table: every key goes through handleSearchInput
         -- so the modal capture is all in one place.
-        bindings         = {},
-        helpEntries      = {},
-        _buffer          = "",
+        bindings = {},
+        helpEntries = {},
+        _buffer = "",
     }
 
     local function speak(s)
-        if s == nil or s == "" then return end
+        if s == nil or s == "" then
+            return
+        end
         SpeechPipeline.speakInterrupt(s)
     end
 
@@ -56,7 +62,9 @@ function ScannerInput.create()
             return true
         end
         if vk == Keys.VK_BACK then
-            if #self._buffer == 0 then return true end
+            if #self._buffer == 0 then
+                return true
+            end
             self._buffer = string.sub(self._buffer, 1, -2)
             if #self._buffer == 0 then
                 speak(Text.key("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_CLEARED"))
@@ -66,7 +74,9 @@ function ScannerInput.create()
             return true
         end
         if vk == Keys.VK_SPACE then
-            if #self._buffer == 0 then return true end
+            if #self._buffer == 0 then
+                return true
+            end
             self._buffer = self._buffer .. " "
             speak(self._buffer)
             return true

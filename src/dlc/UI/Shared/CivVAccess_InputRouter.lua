@@ -12,12 +12,12 @@
 
 InputRouter = {}
 
-local WM_KEYDOWN    = 256
+local WM_KEYDOWN = 256
 local WM_SYSKEYDOWN = 260
 
 local MOD_SHIFT = 1
-local MOD_CTRL  = 2
-local MOD_ALT   = 4
+local MOD_CTRL = 2
+local MOD_ALT = 4
 
 -- Windows VK for the US '/?' key. Shift+OEM_2 is what the user types to
 -- mean '?'. Non-US layouts produce '?' via a different VK; revisit if we
@@ -26,9 +26,15 @@ local VK_OEM_2 = 191
 
 function InputRouter.currentModifierMask()
     local mask = 0
-    if UI.ShiftKeyDown() then mask = mask + MOD_SHIFT end
-    if UI.CtrlKeyDown()  then mask = mask + MOD_CTRL  end
-    if UI.AltKeyDown()   then mask = mask + MOD_ALT   end
+    if UI.ShiftKeyDown() then
+        mask = mask + MOD_SHIFT
+    end
+    if UI.CtrlKeyDown() then
+        mask = mask + MOD_CTRL
+    end
+    if UI.AltKeyDown() then
+        mask = mask + MOD_ALT
+    end
     return mask
 end
 
@@ -69,8 +75,7 @@ function InputRouter.dispatch(keyCode, modMask, msg)
         if top ~= nil and type(top.handleSearchInput) == "function" then
             local ok, consumed = pcall(top.handleSearchInput, top, keyCode, modMask)
             if not ok then
-                Log.error("InputRouter search hook in '" .. tostring(top.name)
-                    .. "' failed: " .. tostring(consumed))
+                Log.error("InputRouter search hook in '" .. tostring(top.name) .. "' failed: " .. tostring(consumed))
             elseif consumed then
                 return true
             end
@@ -85,8 +90,14 @@ function InputRouter.dispatch(keyCode, modMask, msg)
                 if b.key == keyCode and (b.mods or 0) == modMask then
                     local ok, err = pcall(b.fn)
                     if not ok then
-                        Log.error("InputRouter binding '" .. tostring(b.description)
-                            .. "' in '" .. tostring(h.name) .. "' failed: " .. tostring(err))
+                        Log.error(
+                            "InputRouter binding '"
+                                .. tostring(b.description)
+                                .. "' in '"
+                                .. tostring(h.name)
+                                .. "' failed: "
+                                .. tostring(err)
+                        )
                     end
                     return true
                 end

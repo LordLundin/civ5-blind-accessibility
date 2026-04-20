@@ -24,24 +24,28 @@
 --                     Esc fires at level 1. Return true to consume.
 
 function BaseMenu.install(ContextPtr, spec)
-    local handler        = BaseMenu.create(spec)
-    local priorShowHide  = spec.priorShowHide
-    local priorInput     = spec.priorInput
-    local deferActivate  = spec.deferActivate == true
+    local handler = BaseMenu.create(spec)
+    local priorShowHide = spec.priorShowHide
+    local priorInput = spec.priorInput
+    local deferActivate = spec.deferActivate == true
     local shouldActivate = spec.shouldActivate
-    local onShow         = spec.onShow
-    local tickOwner      = spec.tickOwner ~= false
-    local escAtLevelOne  = spec.escAtLevelOne
-    local pendingPush    = false
+    local onShow = spec.onShow
+    local tickOwner = spec.tickOwner ~= false
+    local escAtLevelOne = spec.escAtLevelOne
+    local pendingPush = false
 
     if tickOwner then
         TickPump.install(ContextPtr)
     end
 
     local function runDeferredPush()
-        if not pendingPush then return end
+        if not pendingPush then
+            return
+        end
         pendingPush = false
-        if ContextPtr:IsHidden() then return end
+        if ContextPtr:IsHidden() then
+            return
+        end
         HandlerStack.push(handler)
     end
 
@@ -49,8 +53,7 @@ function BaseMenu.install(ContextPtr, spec)
         if priorShowHide then
             local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
             if not ok then
-                Log.error("BaseMenu '" .. handler.name
-                    .. "' prior ShowHide: " .. tostring(err))
+                Log.error("BaseMenu '" .. handler.name .. "' prior ShowHide: " .. tostring(err))
             end
         end
         -- reactivate=false: we're about to push this same handler back on;
@@ -65,11 +68,12 @@ function BaseMenu.install(ContextPtr, spec)
         if shouldActivate ~= nil then
             local ok, should = pcall(shouldActivate)
             if not ok then
-                Log.error("BaseMenu '" .. handler.name
-                    .. "' shouldActivate: " .. tostring(should))
+                Log.error("BaseMenu '" .. handler.name .. "' shouldActivate: " .. tostring(should))
                 return
             end
-            if not should then return end
+            if not should then
+                return
+            end
         end
         -- onShow runs after priorShowHide (so the base screen's setters
         -- have finalized) and before the push (so setInitialIndex /
@@ -78,8 +82,7 @@ function BaseMenu.install(ContextPtr, spec)
         if onShow ~= nil then
             local ok, err = pcall(onShow, handler)
             if not ok then
-                Log.error("BaseMenu '" .. handler.name
-                    .. "' onShow: " .. tostring(err))
+                Log.error("BaseMenu '" .. handler.name .. "' onShow: " .. tostring(err))
             end
         end
         -- Park before push so arrow keys are not swallowed by a base-screen
@@ -88,7 +91,9 @@ function BaseMenu.install(ContextPtr, spec)
         BaseMenu._parkFocus(handler)
         if deferActivate then
             pendingPush = true
-            if not tickOwner then TickPump.install(ContextPtr) end
+            if not tickOwner then
+                TickPump.install(ContextPtr)
+            end
             TickPump.runOnce(runDeferredPush)
         else
             HandlerStack.push(handler)
@@ -100,8 +105,7 @@ function BaseMenu.install(ContextPtr, spec)
         -- During edit mode, claim the Enter KEYUP so the engine's default
         -- Enter-release doesn't revoke focus from the EditBox we just took
         -- focus on. Without this, typed characters end up nowhere.
-        if top ~= nil and top._editMode and msg == 257
-                and wp == Keys.VK_RETURN then
+        if top ~= nil and top._editMode and msg == 257 and wp == Keys.VK_RETURN then
             return true
         end
         if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
@@ -112,8 +116,7 @@ function BaseMenu.install(ContextPtr, spec)
             if top == handler then
                 if handler._search:isSearchActive() or handler._search:hasBuffer() then
                     handler._search:clear()
-                    SpeechPipeline.speakInterrupt(
-                        Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+                    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
                     return true
                 end
                 if handler._level > 1 then
@@ -128,23 +131,32 @@ function BaseMenu.install(ContextPtr, spec)
                     -- back to the picker tab rather than closing the screen.
                     local ok, consumed = pcall(escAtLevelOne, handler)
                     if not ok then
-                        Log.error("BaseMenu '" .. handler.name
-                            .. "' escAtLevelOne: " .. tostring(consumed))
+                        Log.error("BaseMenu '" .. handler.name .. "' escAtLevelOne: " .. tostring(consumed))
                     elseif consumed then
                         return true
                     end
                 end
-                if priorInput then return priorInput(msg, wp, lp) end
+                if priorInput then
+                    return priorInput(msg, wp, lp)
+                end
                 return false
             end
             local mods = InputRouter.currentModifierMask()
-            if InputRouter.dispatch(wp, mods, msg) then return true end
-            if priorInput then return priorInput(msg, wp, lp) end
+            if InputRouter.dispatch(wp, mods, msg) then
+                return true
+            end
+            if priorInput then
+                return priorInput(msg, wp, lp)
+            end
             return false
         end
         local mods = InputRouter.currentModifierMask()
-        if InputRouter.dispatch(wp, mods, msg) then return true end
-        if priorInput then return priorInput(msg, wp, lp) end
+        if InputRouter.dispatch(wp, mods, msg) then
+            return true
+        end
+        if priorInput then
+            return priorInput(msg, wp, lp)
+        end
         return false
     end)
 

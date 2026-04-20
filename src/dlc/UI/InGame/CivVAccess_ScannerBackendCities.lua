@@ -15,12 +15,20 @@ local MAX_PLAYERS = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 64
 -- active team's perspective. Returns nil if the owner team is the barb
 -- slot (cities shouldn't exist there, but be defensive at the boundary).
 local function citySubcategory(cityOwnerId, activePlayerId, activeTeam)
-    if cityOwnerId == activePlayerId then return "my" end
+    if cityOwnerId == activePlayerId then
+        return "my"
+    end
     local owner = Players[cityOwnerId]
-    if owner == nil then return nil end
+    if owner == nil then
+        return nil
+    end
     local ownerTeamId = owner:GetTeam()
-    if ownerTeamId == activeTeam then return "my" end
-    if Teams[activeTeam]:IsAtWar(ownerTeamId) then return "enemy" end
+    if ownerTeamId == activeTeam then
+        return "my"
+    end
+    if Teams[activeTeam]:IsAtWar(ownerTeamId) then
+        return "enemy"
+    end
     return "neutral"
 end
 
@@ -31,8 +39,7 @@ local function scanCities(activePlayer, activeTeam, out)
             local teamId = player:GetTeam()
             -- Active player is trivially "met" by themselves; IsHasMet may
             -- return false for own team in some edge cases, so short-circuit.
-            local met = (playerId == activePlayer)
-                or Teams[activeTeam]:IsHasMet(teamId)
+            local met = (playerId == activePlayer) or Teams[activeTeam]:IsHasMet(teamId)
             if met then
                 local sub = citySubcategory(playerId, activePlayer, activeTeam)
                 if sub ~= nil then
@@ -40,17 +47,17 @@ local function scanCities(activePlayer, activeTeam, out)
                         local plot = city:Plot()
                         if plot ~= nil and plot:IsRevealed(activeTeam) then
                             out[#out + 1] = {
-                                plotIndex   = plot:GetPlotIndex(),
-                                backend     = ScannerBackendCities,
-                                data        = {
-                                    kind    = "city",
+                                plotIndex = plot:GetPlotIndex(),
+                                backend = ScannerBackendCities,
+                                data = {
+                                    kind = "city",
                                     ownerId = playerId,
-                                    cityId  = city:GetID(),
+                                    cityId = city:GetID(),
                                 },
-                                category    = "cities",
+                                category = "cities",
                                 subcategory = sub,
-                                itemName    = Text.key(city:GetNameKey()),
-                                sortKey     = 0,
+                                itemName = Text.key(city:GetNameKey()),
+                                sortKey = 0,
                             }
                         end
                     end
@@ -61,22 +68,26 @@ local function scanCities(activePlayer, activeTeam, out)
 end
 
 local function scanBarbCamps(activeTeam, out)
-    if GameInfoTypes == nil then return end
+    if GameInfoTypes == nil then
+        return
+    end
     local campType = GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP
-    if campType == nil then return end
+    if campType == nil then
+        return
+    end
     local campLabel = Text.key("TXT_KEY_ADVISOR_BARBARIAN_CAMP_DISPLAY")
     local isDebug = Game.IsDebugMode()
     for i = 0, Map.GetNumPlots() - 1 do
         local plot = Map.GetPlotByIndex(i)
         if plot ~= nil and plot:GetRevealedImprovementType(activeTeam, isDebug) == campType then
             out[#out + 1] = {
-                plotIndex   = i,
-                backend     = ScannerBackendCities,
-                data        = { kind = "camp" },
-                category    = "cities",
+                plotIndex = i,
+                backend = ScannerBackendCities,
+                data = { kind = "camp" },
+                category = "cities",
                 subcategory = "barb",
-                itemName    = campLabel,
-                sortKey     = 0,
+                itemName = campLabel,
+                sortKey = 0,
             }
         end
     end
@@ -91,22 +102,33 @@ end
 
 function ScannerBackendCities.ValidateEntry(entry, _cursorPlotIndex)
     local plot = Map.GetPlotByIndex(entry.plotIndex)
-    if plot == nil then return false end
+    if plot == nil then
+        return false
+    end
     local activeTeam = Game.GetActiveTeam()
     if entry.data.kind == "camp" then
-        if not GameInfoTypes then return false end
+        if not GameInfoTypes then
+            return false
+        end
         local campType = GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP
-        if campType == nil then return false end
+        if campType == nil then
+            return false
+        end
         local isDebug = Game.IsDebugMode()
         return plot:GetRevealedImprovementType(activeTeam, isDebug) == campType
     end
     -- City: still owned by the same player, still revealed.
-    if not plot:IsRevealed(activeTeam) then return false end
-    if not plot:IsCity() then return false end
+    if not plot:IsRevealed(activeTeam) then
+        return false
+    end
+    if not plot:IsCity() then
+        return false
+    end
     local city = plot:GetPlotCity()
-    if city == nil then return false end
-    return city:GetOwner() == entry.data.ownerId
-        and city:GetID() == entry.data.cityId
+    if city == nil then
+        return false
+    end
+    return city:GetOwner() == entry.data.ownerId and city:GetID() == entry.data.cityId
 end
 
 function ScannerBackendCities.FormatName(entry)

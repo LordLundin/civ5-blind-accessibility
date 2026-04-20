@@ -24,35 +24,40 @@ end
 -- (BaseMenu.create) sets self._tabIndex = 1 separately so the rest of
 -- create()'s state init reads in one place.
 function BaseMenuTabs.normalize(specTabs)
-    check(type(specTabs) == "table" and #specTabs > 0,
-        "spec.tabs must be a non-empty array")
+    check(type(specTabs) == "table" and #specTabs > 0, "spec.tabs must be a non-empty array")
     local tabs = {}
     for i, tab in ipairs(specTabs) do
-        check(type(tab.name) == "string",
-            "tab " .. i .. ".name (TXT_KEY) required")
-        check(type(tab.items) == "table",
-            "tab " .. i .. ".items required")
-        check(tab.onActivate == nil or type(tab.onActivate) == "function",
-            "tab " .. i .. ".onActivate must be a function if provided")
-        check(tab.autoDrillToLevel == nil
-            or (type(tab.autoDrillToLevel) == "number"
-                and tab.autoDrillToLevel >= 1),
-            "tab " .. i .. ".autoDrillToLevel must be a positive number")
-        check(tab.nameFn == nil or type(tab.nameFn) == "function",
-            "tab " .. i .. ".nameFn must be a function if provided")
-        check(tab.onCtrlUp == nil or type(tab.onCtrlUp) == "function",
-            "tab " .. i .. ".onCtrlUp must be a function if provided")
-        check(tab.onCtrlDown == nil or type(tab.onCtrlDown) == "function",
-            "tab " .. i .. ".onCtrlDown must be a function if provided")
+        check(type(tab.name) == "string", "tab " .. i .. ".name (TXT_KEY) required")
+        check(type(tab.items) == "table", "tab " .. i .. ".items required")
+        check(
+            tab.onActivate == nil or type(tab.onActivate) == "function",
+            "tab " .. i .. ".onActivate must be a function if provided"
+        )
+        check(
+            tab.autoDrillToLevel == nil or (type(tab.autoDrillToLevel) == "number" and tab.autoDrillToLevel >= 1),
+            "tab " .. i .. ".autoDrillToLevel must be a positive number"
+        )
+        check(
+            tab.nameFn == nil or type(tab.nameFn) == "function",
+            "tab " .. i .. ".nameFn must be a function if provided"
+        )
+        check(
+            tab.onCtrlUp == nil or type(tab.onCtrlUp) == "function",
+            "tab " .. i .. ".onCtrlUp must be a function if provided"
+        )
+        check(
+            tab.onCtrlDown == nil or type(tab.onCtrlDown) == "function",
+            "tab " .. i .. ".onCtrlDown must be a function if provided"
+        )
         tabs[i] = {
-            name             = tab.name,
-            showPanel        = tab.showPanel,
-            onActivate       = tab.onActivate,
+            name = tab.name,
+            showPanel = tab.showPanel,
+            onActivate = tab.onActivate,
             autoDrillToLevel = tab.autoDrillToLevel,
-            nameFn           = tab.nameFn,
-            onCtrlUp         = tab.onCtrlUp,
-            onCtrlDown       = tab.onCtrlDown,
-            _items           = tab.items,
+            nameFn = tab.nameFn,
+            onCtrlUp = tab.onCtrlUp,
+            onCtrlDown = tab.onCtrlDown,
+            _items = tab.items,
         }
     end
     return tabs
@@ -62,11 +67,17 @@ end
 -- mean "prev/next article" rather than the default "prev/next sibling group".
 -- Returns nil on tabless menus and on tabs without the named hook.
 function BaseMenuTabs.hook(self, name)
-    if self.tabs == nil then return nil end
+    if self.tabs == nil then
+        return nil
+    end
     local tab = self.tabs[self._tabIndex]
-    if tab == nil then return nil end
+    if tab == nil then
+        return nil
+    end
     local fn = tab[name]
-    if type(fn) == "function" then return fn end
+    if type(fn) == "function" then
+        return fn
+    end
     return nil
 end
 
@@ -77,8 +88,9 @@ local function resolveNameText(self, tab)
     if type(tab.nameFn) == "function" then
         local ok, result = pcall(tab.nameFn, self)
         if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' nameFn for tab '"
-                .. tostring(tab.name) .. "': " .. tostring(result))
+            Log.error(
+                "BaseMenu '" .. self.name .. "' nameFn for tab '" .. tostring(tab.name) .. "': " .. tostring(result)
+            )
             return nil
         end
         return result
@@ -96,10 +108,14 @@ local function autoDrillTo(self, targetLevel, nav)
     while self._level < targetLevel do
         local items = nav.currentItems(self)
         local cur = items[nav.currentIndex(self)]
-        if cur == nil or cur.kind ~= "group" then return end
+        if cur == nil or cur.kind ~= "group" then
+            return
+        end
         local children = cur:children()
         local first = nav.nextValidIndex(children, 0, 1)
-        if first == nil then return end
+        if first == nil then
+            return
+        end
         self._level = self._level + 1
         self._indices[self._level] = first
     end
@@ -111,19 +127,30 @@ end
 -- already the active tab. The Tab/Shift+Tab binding path sets force=false
 -- so a wraparound onto the current tab is a no-op.
 function BaseMenuTabs.switch(self, newTabIndex, force, nav)
-    if self.tabs == nil then return end
+    if self.tabs == nil then
+        return
+    end
     local n = #self.tabs
-    if n == 0 then return end
-    if newTabIndex < 1 then newTabIndex = n end
-    if newTabIndex > n then newTabIndex = 1 end
-    if newTabIndex == self._tabIndex and not force then return end
+    if n == 0 then
+        return
+    end
+    if newTabIndex < 1 then
+        newTabIndex = n
+    end
+    if newTabIndex > n then
+        newTabIndex = 1
+    end
+    if newTabIndex == self._tabIndex and not force then
+        return
+    end
     self._tabIndex = newTabIndex
     local tab = self.tabs[newTabIndex]
     if type(tab.showPanel) == "function" then
         local ok, err = pcall(tab.showPanel)
         if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' showPanel for tab '"
-                .. tostring(tab.name) .. "': " .. tostring(err))
+            Log.error(
+                "BaseMenu '" .. self.name .. "' showPanel for tab '" .. tostring(tab.name) .. "': " .. tostring(err)
+            )
         end
     end
     nav.parkFocus(self)
@@ -141,8 +168,9 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
     if type(tab.onActivate) == "function" then
         local ok, err = pcall(tab.onActivate, self)
         if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' onActivate for tab '"
-                .. tostring(tab.name) .. "': " .. tostring(err))
+            Log.error(
+                "BaseMenu '" .. self.name .. "' onActivate for tab '" .. tostring(tab.name) .. "': " .. tostring(err)
+            )
         end
     end
     if type(tab.autoDrillToLevel) == "number" then
@@ -164,7 +192,9 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
 end
 
 function BaseMenuTabs.cycle(self, step, nav)
-    if self.tabs == nil then return end
+    if self.tabs == nil then
+        return
+    end
     BaseMenuTabs.switch(self, self._tabIndex + step, false, nav)
 end
 
@@ -180,8 +210,7 @@ function BaseMenuTabs.openInitial(self, nav)
     if type(tab.showPanel) == "function" then
         local ok, err = pcall(tab.showPanel)
         if not ok then
-            Log.error("BaseMenu '" .. self.name
-                .. "' initial showPanel: " .. tostring(err))
+            Log.error("BaseMenu '" .. self.name .. "' initial showPanel: " .. tostring(err))
         end
     end
     self._level = 1
@@ -191,8 +220,9 @@ function BaseMenuTabs.openInitial(self, nav)
     if type(tab.onActivate) == "function" then
         local ok, err = pcall(tab.onActivate, self)
         if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' onActivate for tab '"
-                .. tostring(tab.name) .. "': " .. tostring(err))
+            Log.error(
+                "BaseMenu '" .. self.name .. "' onActivate for tab '" .. tostring(tab.name) .. "': " .. tostring(err)
+            )
         end
     end
     if type(tab.autoDrillToLevel) == "number" then

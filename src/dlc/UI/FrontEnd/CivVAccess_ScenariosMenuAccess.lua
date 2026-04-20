@@ -18,13 +18,16 @@ include("CivVAccess_FrontendCommon")
 -- StartButton.eLClick callback. Any base-game update that changes the
 -- launch path must be mirrored here.
 local function startScenario()
-    if g_ScenarioList == nil then return end
+    if g_ScenarioList == nil then
+        return
+    end
     local entry = g_ScenarioList[g_iSelected]
-    if entry == nil then return end
+    if entry == nil then
+        return
+    end
     UIManager:SetUICursor(1)
     Modding.ActivateSpecificMod(entry.ModID, entry.Version)
-    local customSetupFile = Modding.GetEvaluatedFilePath(
-        entry.ModID, entry.Version, entry.File)
+    local customSetupFile = Modding.GetEvaluatedFilePath(entry.ModID, entry.Version, entry.File)
     local filePath = customSetupFile.EvaluatedPath
     local extension = Path.GetExtension(filePath)
     local path = string.sub(filePath, 1, #filePath - #extension)
@@ -54,29 +57,39 @@ local function buildItems()
         for i, entry in ipairs(g_ScenarioList) do
             local index = i
             items[#items + 1] = BaseMenuItems.Choice({
-                labelText   = entry.DisplayName,
+                labelText = entry.DisplayName,
                 tooltipText = entry.DisplayDescription,
-                selectedFn  = function() return g_iSelected == index end,
-                activate    = function() SetSelected(index) end,
+                selectedFn = function()
+                    return g_iSelected == index
+                end,
+                activate = function()
+                    SetSelected(index)
+                end,
             })
         end
     end
-    items[#items + 1] = BaseMenuItems.Button({ controlName = "StartButton",
-        textKey  = "TXT_KEY_LOAD_SCENARIO",
-        activate = startScenario })
-    items[#items + 1] = BaseMenuItems.Button({ controlName = "BackButton",
-        textKey  = "TXT_KEY_BACK_BUTTON",
-        activate = function() OnBack() end })
+    items[#items + 1] = BaseMenuItems.Button({
+        controlName = "StartButton",
+        textKey = "TXT_KEY_LOAD_SCENARIO",
+        activate = startScenario,
+    })
+    items[#items + 1] = BaseMenuItems.Button({
+        controlName = "BackButton",
+        textKey = "TXT_KEY_BACK_BUTTON",
+        activate = function()
+            OnBack()
+        end,
+    })
     return items
 end
 
 BaseMenu.install(ContextPtr, {
-    name        = "ScenariosMenu",
+    name = "ScenariosMenu",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SCENARIOS"),
-    priorInput  = BaseMenu.escOnlyInput(OnBack),
-    onShow      = function(h)
+    priorInput = BaseMenu.escOnlyInput(OnBack),
+    onShow = function(h)
         runPriorShow()
         h.setItems(buildItems())
     end,
-    items       = buildItems(),
+    items = buildItems(),
 })

@@ -13,7 +13,9 @@ PlotComposers = {}
 local function readSection(section, plot, ctx, out)
     local tokens = section.Read(plot, ctx)
     for _, t in ipairs(tokens) do
-        if t ~= nil and t ~= "" then out[#out + 1] = t end
+        if t ~= nil and t ~= "" then
+            out[#out + 1] = t
+        end
     end
 end
 
@@ -34,17 +36,17 @@ function PlotComposers.glance(plot)
     if visible then
         readSection(PlotSectionUnits, plot, ctx, tokens)
     end
-    readSection(PlotSections.city,        plot, ctx, tokens)
-    readSection(PlotSections.route,       plot, ctx, tokens)
+    readSection(PlotSections.city, plot, ctx, tokens)
+    readSection(PlotSections.route, plot, ctx, tokens)
     -- Feature runs before terrain so it can set ctx.suppressTerrain when
     -- it's a natural wonder or "special feature" (jungle / marsh / oasis /
     -- ice). Terrain reads ctx.suppressTerrain; plotType (mountain) sets it
     -- too. Feature runs before plotType so the "natural wonder over
     -- mountain" case still produces just the wonder name.
-    readSection(PlotSections.feature,     plot, ctx, tokens)
-    readSection(PlotSections.plotType,    plot, ctx, tokens)
-    readSection(PlotSections.terrain,     plot, ctx, tokens)
-    readSection(PlotSections.resource,    plot, ctx, tokens)
+    readSection(PlotSections.feature, plot, ctx, tokens)
+    readSection(PlotSections.plotType, plot, ctx, tokens)
+    readSection(PlotSections.terrain, plot, ctx, tokens)
+    readSection(PlotSections.resource, plot, ctx, tokens)
     readSection(PlotSections.improvement, plot, ctx, tokens)
     readSection(PlotSectionRiver, plot, ctx, tokens)
     return table.concat(tokens, ", ")
@@ -52,12 +54,12 @@ end
 
 -- W: economy details. Yields are nonzero-only; the rest are simple flags.
 local YIELD_KEYS = {
-    { id = YieldTypes.YIELD_FOOD,       key = "TXT_KEY_CIVVACCESS_ICON_FOOD" },
+    { id = YieldTypes.YIELD_FOOD, key = "TXT_KEY_CIVVACCESS_ICON_FOOD" },
     { id = YieldTypes.YIELD_PRODUCTION, key = "TXT_KEY_CIVVACCESS_ICON_PRODUCTION" },
-    { id = YieldTypes.YIELD_GOLD,       key = "TXT_KEY_CIVVACCESS_ICON_GOLD" },
-    { id = YieldTypes.YIELD_SCIENCE,    key = "TXT_KEY_CIVVACCESS_ICON_SCIENCE" },
-    { id = YieldTypes.YIELD_CULTURE,    key = "TXT_KEY_CIVVACCESS_ICON_CULTURE" },
-    { id = YieldTypes.YIELD_FAITH,      key = "TXT_KEY_CIVVACCESS_ICON_FAITH" },
+    { id = YieldTypes.YIELD_GOLD, key = "TXT_KEY_CIVVACCESS_ICON_GOLD" },
+    { id = YieldTypes.YIELD_SCIENCE, key = "TXT_KEY_CIVVACCESS_ICON_SCIENCE" },
+    { id = YieldTypes.YIELD_CULTURE, key = "TXT_KEY_CIVVACCESS_ICON_CULTURE" },
+    { id = YieldTypes.YIELD_FAITH, key = "TXT_KEY_CIVVACCESS_ICON_FAITH" },
 }
 
 local function readYields(plot, out)
@@ -77,8 +79,7 @@ local function readBuildProgress(plot, out)
         -- PlotHelpManager filters with > 0 and < a large constant. Use the
         -- same shape: a real worker build has a positive small turn count.
         if turns ~= nil and turns > 0 and turns < 1000 then
-            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_BUILD_PROGRESS",
-                Text.key(buildInfo.Description), turns)
+            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_BUILD_PROGRESS", Text.key(buildInfo.Description), turns)
         end
     end
 end
@@ -107,8 +108,7 @@ function PlotComposers.economy(plot)
     end
     local workingCity = plot:GetWorkingCity()
     if workingCity ~= nil then
-        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_WORKED_BY",
-            workingCity:GetName())
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_WORKED_BY", workingCity:GetName())
     end
     readBuildProgress(plot, out)
     return table.concat(out, ", ")
@@ -135,8 +135,7 @@ local function inEnemyZoC(plot, activeTeam, isDebug)
             local count = n:GetNumUnits()
             for i = 0, count - 1 do
                 local u = n:GetUnit(i)
-                if u ~= nil and not u:IsInvisible(activeTeam, isDebug)
-                        and u:IsCombatUnit() then
+                if u ~= nil and not u:IsInvisible(activeTeam, isDebug) and u:IsCombatUnit() then
                     local unitTeam = u:GetTeam()
                     if unitTeam ~= activeTeam and pTeam:IsAtWar(unitTeam) then
                         return true
@@ -158,7 +157,9 @@ end
 -- shipped game Lua and access-violated CvGameCore_Expansion2 when invoked
 -- from this Context.
 local function tileMoveCost(plot)
-    if plot:IsMountain() then return nil, true end
+    if plot:IsMountain() then
+        return nil, true
+    end
     local fid = plot:GetFeatureType()
     if fid >= 0 then
         local frow = GameInfo.Features[fid]
@@ -170,9 +171,13 @@ local function tileMoveCost(plot)
     local tid = plot:GetTerrainType()
     if tid >= 0 then
         local trow = GameInfo.Terrains[tid]
-        if trow and trow.Movement then cost = trow.Movement end
+        if trow and trow.Movement then
+            cost = trow.Movement
+        end
     end
-    if plot:IsHills() then cost = cost + 1 end
+    if plot:IsHills() then
+        cost = cost + 1
+    end
     return cost, false
 end
 

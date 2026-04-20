@@ -11,37 +11,41 @@ local _shared_mt
 
 local function setup()
     warns = {}
-    Log.warn  = function(m) warns[#warns + 1] = m end
-    Log.info  = function() end
+    Log.warn = function(m)
+        warns[#warns + 1] = m
+    end
+    Log.info = function() end
     Log.error = function() end
     Log.debug = function() end
 
     dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
 
     civvaccess_shared.pullDownProbeInstalled = false
-    civvaccess_shared.pullDownCallbacks      = {}
-    civvaccess_shared.pullDownEntries        = {}
-    civvaccess_shared.sliderProbeInstalled   = false
-    civvaccess_shared.sliderCallbacks        = {}
+    civvaccess_shared.pullDownCallbacks = {}
+    civvaccess_shared.pullDownEntries = {}
+    civvaccess_shared.sliderProbeInstalled = false
+    civvaccess_shared.sliderCallbacks = {}
     civvaccess_shared.checkBoxProbeInstalled = false
-    civvaccess_shared.checkBoxCallbacks      = {}
-    civvaccess_shared.buttonProbeInstalled   = false
-    civvaccess_shared.buttonCallbacks        = {}
+    civvaccess_shared.checkBoxCallbacks = {}
+    civvaccess_shared.buttonProbeInstalled = false
+    civvaccess_shared.buttonCallbacks = {}
 
     -- Fresh metatable per setup so one test's patched __index does not bleed
     -- into another. Instance factory strips methods so lookup falls through.
     local proto = Polyfill.makePullDown()
-    _shared_mt = { __index = {
-        GetButton                  = proto.GetButton,
-        ClearEntries               = proto.ClearEntries,
-        BuildEntry                 = proto.BuildEntry,
-        CalculateInternals         = proto.CalculateInternals,
-        RegisterSelectionCallback  = proto.RegisterSelectionCallback,
-        IsHidden                   = proto.IsHidden,
-        IsDisabled                 = proto.IsDisabled,
-        SetHide                    = proto.SetHide,
-        SetDisabled                = proto.SetDisabled,
-    }}
+    _shared_mt = {
+        __index = {
+            GetButton = proto.GetButton,
+            ClearEntries = proto.ClearEntries,
+            BuildEntry = proto.BuildEntry,
+            CalculateInternals = proto.CalculateInternals,
+            RegisterSelectionCallback = proto.RegisterSelectionCallback,
+            IsHidden = proto.IsHidden,
+            IsDisabled = proto.IsDisabled,
+            SetHide = proto.SetHide,
+            SetDisabled = proto.SetDisabled,
+        },
+    }
 end
 
 local function makePD()
@@ -98,14 +102,14 @@ function M.test_install_on_sample_affects_other_pulldowns()
     setup()
     local a = makePD()
     PullDownProbe.ensureInstalled(a)
-    local b = makePD()  -- shares the same __index table now patched
+    local b = makePD() -- shares the same __index table now patched
     b:RegisterSelectionCallback(function() end)
     T.truthy(PullDownProbe.callbackFor(b), "patch covers sibling pulldowns")
 end
 
 function M.test_install_logs_warn_when_sample_has_no_metatable()
     setup()
-    local bare = {}  -- no metatable
+    local bare = {} -- no metatable
     local ok = PullDownProbe.ensureInstalled(bare)
     T.falsy(ok)
     T.truthy(#warns >= 1)
@@ -123,15 +127,17 @@ end
 function M.test_slider_probe_captures_callback()
     setup()
     local protoS = Polyfill.makeSlider()
-    local sliderMt = { __index = {
-        SetValue                = protoS.SetValue,
-        GetValue                = protoS.GetValue,
-        RegisterSliderCallback  = protoS.RegisterSliderCallback,
-        SetVoid1                = protoS.SetVoid1,
-        GetVoid1                = protoS.GetVoid1,
-        IsHidden                = protoS.IsHidden,
-        IsDisabled              = protoS.IsDisabled,
-    }}
+    local sliderMt = {
+        __index = {
+            SetValue = protoS.SetValue,
+            GetValue = protoS.GetValue,
+            RegisterSliderCallback = protoS.RegisterSliderCallback,
+            SetVoid1 = protoS.SetVoid1,
+            GetVoid1 = protoS.GetVoid1,
+            IsHidden = protoS.IsHidden,
+            IsDisabled = protoS.IsDisabled,
+        },
+    }
     local function mkSlider()
         local s = Polyfill.makeSlider()
         s.SetValue, s.GetValue, s.RegisterSliderCallback = nil, nil, nil
@@ -153,12 +159,14 @@ function M.test_slider_probe_with_function_index()
     -- metatable.
     local protoS = Polyfill.makeSlider()
     local methodTable = {
-        SetValue                = protoS.SetValue,
-        GetValue                = protoS.GetValue,
-        RegisterSliderCallback  = protoS.RegisterSliderCallback,
+        SetValue = protoS.SetValue,
+        GetValue = protoS.GetValue,
+        RegisterSliderCallback = protoS.RegisterSliderCallback,
     }
     local sliderMt = {
-        __index = function(self, key) return methodTable[key] end,
+        __index = function(self, key)
+            return methodTable[key]
+        end,
     }
     local function mkSlider()
         local s = Polyfill.makeSlider()
@@ -183,11 +191,13 @@ end
 function M.test_checkbox_probe_captures_handler()
     setup()
     local proto = Polyfill.makeCheckBox()
-    local mt = { __index = {
-        IsChecked            = proto.IsChecked,
-        SetCheck             = proto.SetCheck,
-        RegisterCheckHandler = proto.RegisterCheckHandler,
-    }}
+    local mt = {
+        __index = {
+            IsChecked = proto.IsChecked,
+            SetCheck = proto.SetCheck,
+            RegisterCheckHandler = proto.RegisterCheckHandler,
+        },
+    }
     local function mkCB()
         local c = Polyfill.makeCheckBox()
         c.IsChecked, c.SetCheck, c.RegisterCheckHandler = nil, nil, nil
@@ -206,25 +216,27 @@ end
 
 local function buttonMt()
     local proto = Polyfill.makeButton()
-    return { __index = {
-        SetText          = proto.SetText,
-        GetText          = proto.GetText,
-        SetVoid1         = proto.SetVoid1,
-        GetVoid1         = proto.GetVoid1,
-        SetVoid2         = proto.SetVoid2,
-        GetVoid2         = proto.GetVoid2,
-        IsHidden         = proto.IsHidden,
-        IsDisabled       = proto.IsDisabled,
-        SetHide          = proto.SetHide,
-        SetDisabled      = proto.SetDisabled,
-        RegisterCallback = proto.RegisterCallback,
-    }}
+    return {
+        __index = {
+            SetText = proto.SetText,
+            GetText = proto.GetText,
+            SetVoid1 = proto.SetVoid1,
+            GetVoid1 = proto.GetVoid1,
+            SetVoid2 = proto.SetVoid2,
+            GetVoid2 = proto.GetVoid2,
+            IsHidden = proto.IsHidden,
+            IsDisabled = proto.IsDisabled,
+            SetHide = proto.SetHide,
+            SetDisabled = proto.SetDisabled,
+            RegisterCallback = proto.RegisterCallback,
+        },
+    }
 end
 
 function M.test_button_probe_captures_click_callback_by_mouse_event()
     setup()
     local mt = buttonMt()
-    local b  = Polyfill.makeButtonWithMetatable(mt)
+    local b = Polyfill.makeButtonWithMetatable(mt)
     T.truthy(PullDownProbe.ensureButtonInstalled(b))
     local fn = function() end
     b:RegisterCallback(Mouse.eLClick, fn)
@@ -236,12 +248,11 @@ function M.test_button_probe_ignores_non_numeric_mouse_event()
     -- EditBox:RegisterCallback takes (fn) with no mouse event. Shouldn't
     -- be captured as a button click callback.
     local mt = buttonMt()
-    local b  = Polyfill.makeButtonWithMetatable(mt)
+    local b = Polyfill.makeButtonWithMetatable(mt)
     T.truthy(PullDownProbe.ensureButtonInstalled(b))
     local fn = function() end
     b:RegisterCallback(fn, nil)
-    T.eq(PullDownProbe.buttonCallbackFor(b, Mouse.eLClick), nil,
-        "non-numeric first arg not captured as click")
+    T.eq(PullDownProbe.buttonCallbackFor(b, Mouse.eLClick), nil, "non-numeric first arg not captured as click")
 end
 
 function M.test_button_probe_separate_buttons_have_separate_callbacks()

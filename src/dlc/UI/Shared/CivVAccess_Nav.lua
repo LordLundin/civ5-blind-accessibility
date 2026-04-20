@@ -13,13 +13,21 @@ Nav = {}
 
 function Nav.next(items, start, step, isNavigable)
     local n = #items
-    if n == 0 then return nil end
+    if n == 0 then
+        return nil
+    end
     local i = start
     for _ = 1, n do
         i = i + step
-        if i > n then i = 1 end
-        if i < 1 then i = n end
-        if isNavigable(items[i]) then return i end
+        if i > n then
+            i = 1
+        end
+        if i < 1 then
+            i = n
+        end
+        if isNavigable(items[i]) then
+            return i
+        end
     end
     return nil
 end

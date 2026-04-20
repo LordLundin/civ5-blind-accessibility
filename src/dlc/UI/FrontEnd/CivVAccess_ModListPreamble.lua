@@ -6,7 +6,9 @@ ModListPreamble = {}
 
 local function build()
     local mods = Modding.GetEnabledModsByActivationOrder()
-    if mods == nil or #mods == 0 then return nil end
+    if mods == nil or #mods == 0 then
+        return nil
+    end
     local parts = {}
     for i, v in ipairs(mods) do
         local name = Modding.GetModProperty(v.ModID, v.Version, "Name") or v.ModID

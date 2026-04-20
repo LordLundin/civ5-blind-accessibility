@@ -24,13 +24,23 @@ local SKIP_TYPES = {
 }
 
 local function ownerSubcategory(ownerId, activePlayerId, activeTeam)
-    if ownerId < 0 then return "neutral" end
-    if ownerId == activePlayerId then return "my" end
+    if ownerId < 0 then
+        return "neutral"
+    end
+    if ownerId == activePlayerId then
+        return "my"
+    end
     local owner = Players[ownerId]
-    if owner == nil then return "neutral" end
+    if owner == nil then
+        return "neutral"
+    end
     local ownerTeamId = owner:GetTeam()
-    if ownerTeamId == activeTeam then return "my" end
-    if Teams[activeTeam]:IsAtWar(ownerTeamId) then return "enemy" end
+    if ownerTeamId == activeTeam then
+        return "my"
+    end
+    if Teams[activeTeam]:IsAtWar(ownerTeamId) then
+        return "enemy"
+    end
     return "neutral"
 end
 
@@ -41,7 +51,9 @@ function ScannerBackendImprovements.Scan(activePlayer, activeTeam)
     if GameInfoTypes ~= nil then
         for _, typeName in ipairs(SKIP_TYPES) do
             local id = GameInfoTypes[typeName]
-            if id ~= nil and id >= 0 then skipIds[id] = true end
+            if id ~= nil and id >= 0 then
+                skipIds[id] = true
+            end
         end
     end
     for i = 0, Map.GetNumPlots() - 1 do
@@ -54,16 +66,16 @@ function ScannerBackendImprovements.Scan(activePlayer, activeTeam)
                     local ownerId = plot:GetRevealedOwner(activeTeam, isDebug)
                     local sub = ownerSubcategory(ownerId, activePlayer, activeTeam)
                     out[#out + 1] = {
-                        plotIndex   = i,
-                        backend     = ScannerBackendImprovements,
-                        data        = {
+                        plotIndex = i,
+                        backend = ScannerBackendImprovements,
+                        data = {
                             improvementId = impId,
-                            ownerId       = ownerId,
+                            ownerId = ownerId,
                         },
-                        category    = "improvements",
+                        category = "improvements",
                         subcategory = sub,
-                        itemName    = Text.key(row.Description),
-                        sortKey     = 0,
+                        itemName = Text.key(row.Description),
+                        sortKey = 0,
                     }
                 end
             end
@@ -74,7 +86,9 @@ end
 
 function ScannerBackendImprovements.ValidateEntry(entry, _cursorPlotIndex)
     local plot = Map.GetPlotByIndex(entry.plotIndex)
-    if plot == nil then return false end
+    if plot == nil then
+        return false
+    end
     local activeTeam = Game.GetActiveTeam()
     local isDebug = Game.IsDebugMode()
     if plot:GetRevealedImprovementType(activeTeam, isDebug) ~= entry.data.improvementId then

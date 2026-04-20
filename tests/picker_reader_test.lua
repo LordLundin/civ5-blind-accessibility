@@ -15,14 +15,24 @@ local WM_KEYDOWN = 256
 
 local function setup()
     warns, errors = {}, {}
-    Log.warn  = function(m) warns[#warns + 1]  = m end
-    Log.error = function(m) errors[#errors + 1] = m end
-    Log.info  = function() end
+    Log.warn = function(m)
+        warns[#warns + 1] = m
+    end
+    Log.error = function(m)
+        errors[#errors + 1] = m
+    end
+    Log.info = function() end
     Log.debug = function() end
 
-    UI.ShiftKeyDown = function() return false end
-    UI.CtrlKeyDown  = function() return false end
-    UI.AltKeyDown   = function() return false end
+    UI.ShiftKeyDown = function()
+        return false
+    end
+    UI.CtrlKeyDown = function()
+        return false
+    end
+    UI.AltKeyDown = function()
+        return false
+    end
     Events.AudioPlay2DSound = function() end
 
     speaks = {}
@@ -52,22 +62,30 @@ local function setup()
     Controls = {}
 
     CivVAccess_Strings = CivVAccess_Strings or {}
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"]            = "disabled"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"]             = "cleared"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"]            = "selected"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"]        = "empty"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"] = "cleared"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "selected"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"] = "empty"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"] = "no selection"
-    CivVAccess_Strings["TXT_KEY_INSTALL_PICKER_TAB"]                    = "Picker"
-    CivVAccess_Strings["TXT_KEY_INSTALL_READER_TAB"]                    = "Content"
+    CivVAccess_Strings["TXT_KEY_INSTALL_PICKER_TAB"] = "Picker"
+    CivVAccess_Strings["TXT_KEY_INSTALL_READER_TAB"] = "Content"
 end
 
 local function makeContextPtr()
     return {
-        SetShowHideHandler = function(self, fn) self._sh = fn end,
-        SetInputHandler    = function(self, fn) self._in = fn end,
-        _hidden            = false,
-        IsHidden           = function(self) return self._hidden end,
-        SetUpdate          = function(self, fn) self._update = fn end,
+        SetShowHideHandler = function(self, fn)
+            self._sh = fn
+        end,
+        SetInputHandler = function(self, fn)
+            self._in = fn
+        end,
+        _hidden = false,
+        IsHidden = function(self)
+            return self._hidden
+        end,
+        SetUpdate = function(self, fn)
+            self._update = fn
+        end,
     }
 end
 
@@ -97,7 +115,7 @@ local function installFixture(readerFactory)
         BaseMenuItems.Group({
             labelText = "Group",
             items = {
-                session.Entry({ id = "B", labelText = "Bravo",   buildReader = builder }),
+                session.Entry({ id = "B", labelText = "Bravo", buildReader = builder }),
                 session.Entry({ id = "C", labelText = "Charlie", buildReader = builder }),
             },
         }),
@@ -105,11 +123,11 @@ local function installFixture(readerFactory)
     }
     local ctx = makeContextPtr()
     local handler = session.install(ctx, {
-        name          = "InstalledPedia",
-        displayName   = "Installed Pedia",
+        name = "InstalledPedia",
+        displayName = "Installed Pedia",
         pickerTabName = "TXT_KEY_INSTALL_PICKER_TAB",
         readerTabName = "TXT_KEY_INSTALL_READER_TAB",
-        pickerItems   = pickerItems,
+        pickerItems = pickerItems,
     })
     -- Mimic the engine's show sequence that BaseMenu.install wires: the
     -- ShowHide closure pushes the handler onto HandlerStack + fires
@@ -145,13 +163,17 @@ end
 
 local function textsSpoken()
     local out = {}
-    for _, s in ipairs(speaks) do out[#out + 1] = s.text end
+    for _, s in ipairs(speaks) do
+        out[#out + 1] = s.text
+    end
     return out
 end
 
 local function spokeText(needle)
     for _, s in ipairs(speaks) do
-        if tostring(s.text):find(needle, 1, true) then return true end
+        if tostring(s.text):find(needle, 1, true) then
+            return true
+        end
     end
     return false
 end
@@ -170,8 +192,8 @@ function M.test_entry_activation_swaps_reader_items_and_switches_tab()
     local _, h, _, buildCalls = installFixture(sectionedReader)
 
     -- Alpha -> Group (down) -> drill (right) -> activate Bravo (enter).
-    InputRouter.dispatch(Keys.VK_DOWN,   0, WM_KEYDOWN)
-    InputRouter.dispatch(Keys.VK_RIGHT,  0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(h._level, 2, "drilled into Group")
 
     speaks = {}
@@ -187,13 +209,12 @@ function M.test_entry_activation_reading_first_body_line()
     setup()
     local _, _, _, _ = installFixture(sectionedReader)
 
-    InputRouter.dispatch(Keys.VK_DOWN,   0, WM_KEYDOWN)
-    InputRouter.dispatch(Keys.VK_RIGHT,  0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
 
-    T.truthy(spokeText("body 1"),
-        "first body line announced after reader auto-drill")
+    T.truthy(spokeText("body 1"), "first body line announced after reader auto-drill")
 end
 
 function M.test_same_entry_reactivated_rebuilds_reader()
@@ -282,8 +303,7 @@ function M.test_install_reader_nameFn_empty_when_no_selection()
     speaks = {}
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     T.eq(handler._tabIndex, 2, "tabbed to reader")
-    T.falsy(spokeText("Content"),
-        "Content tab-name suppressed when no article selected")
+    T.falsy(spokeText("Content"), "Content tab-name suppressed when no article selected")
 end
 
 function M.test_install_reader_ctrl_down_advances_article()
@@ -305,9 +325,9 @@ function M.test_install_reader_ctrl_up_goes_to_previous_article()
     setup()
     local _, _, _, buildCalls = installFixture()
     -- Start on Charlie by drilling into group + picking second entry.
-    InputRouter.dispatch(Keys.VK_DOWN,   0, WM_KEYDOWN) -- Alpha -> Group
-    InputRouter.dispatch(Keys.VK_RIGHT,  0, WM_KEYDOWN) -- drill group
-    InputRouter.dispatch(Keys.VK_DOWN,   0, WM_KEYDOWN) -- Bravo -> Charlie
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- Alpha -> Group
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill group
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- Bravo -> Charlie
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- activate Charlie
     T.eq(buildCalls[#buildCalls], "C")
     speaks = {}
@@ -321,21 +341,19 @@ function M.test_install_reader_ctrl_up_at_first_article_is_noop()
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- Alpha
     local callsBefore = #buildCalls
     InputRouter.dispatch(Keys.VK_UP, 2, WM_KEYDOWN)
-    T.eq(#buildCalls, callsBefore,
-        "Ctrl+Up at first article does not re-fire buildReader (no wrap)")
+    T.eq(#buildCalls, callsBefore, "Ctrl+Up at first article does not re-fire buildReader (no wrap)")
 end
 
 function M.test_install_reader_ctrl_down_at_last_article_is_noop()
     setup()
     local _, _, _, buildCalls = installFixture()
     -- Navigate to Delta (last entry).
-    InputRouter.dispatch(Keys.VK_END,    0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_END, 0, WM_KEYDOWN)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(buildCalls[#buildCalls], "D")
     local callsBefore = #buildCalls
     InputRouter.dispatch(Keys.VK_DOWN, 2, WM_KEYDOWN)
-    T.eq(#buildCalls, callsBefore,
-        "Ctrl+Down at last article does not re-fire buildReader (no wrap)")
+    T.eq(#buildCalls, callsBefore, "Ctrl+Down at last article does not re-fire buildReader (no wrap)")
 end
 
 function M.test_install_reader_ctrl_keys_on_picker_tab_use_default_behavior()

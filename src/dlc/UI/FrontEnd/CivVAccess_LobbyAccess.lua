@@ -30,7 +30,7 @@ include("CivVAccess_LobbyCore")
 Log.info("LobbyAccess: wiring PickerReader over base Lobby")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 local session = PickerReader.create()
 
@@ -38,7 +38,9 @@ local session = PickerReader.create()
 -- installed handler (install returns it only after buildPickerItems has
 -- run). Read at activation time; set below after install.
 local mainHandler
-local function getHandler() return mainHandler end
+local function getHandler()
+    return mainHandler
+end
 
 -- Monkey-patch SortAndDisplayListings so every list mutation (AddServer /
 -- RemoveServer from MultiplayerGameListUpdated, clear-on-show, sort toggle)
@@ -47,7 +49,9 @@ local function getHandler() return mainHandler end
 local baseSortAndDisplayListings = SortAndDisplayListings
 SortAndDisplayListings = function(...)
     baseSortAndDisplayListings(...)
-    if mainHandler == nil then return end
+    if mainHandler == nil then
+        return
+    end
     local newItems = Lobby.buildPickerItems(session.Entry, getHandler)
     mainHandler.setItems(newItems, 1)
 end
@@ -58,8 +62,12 @@ end
 -- mode without duplicating that logic here.
 local function titlePreamble()
     if Controls.TitleLabel ~= nil then
-        local ok, t = pcall(function() return Controls.TitleLabel:GetText() end)
-        if ok and t ~= nil and t ~= "" then return tostring(t) end
+        local ok, t = pcall(function()
+            return Controls.TitleLabel:GetText()
+        end)
+        if ok and t ~= nil and t ~= "" then
+            return tostring(t)
+        end
     end
     return nil
 end
@@ -67,14 +75,14 @@ end
 local pickerItems = Lobby.buildPickerItems(session.Entry, getHandler)
 
 mainHandler = session.install(ContextPtr, {
-    name             = "Lobby",
-    displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LOBBY"),
-    preamble         = titlePreamble,
-    pickerTabName    = "TXT_KEY_CIVVACCESS_LOBBY_SERVERS_TAB",
-    readerTabName    = "TXT_KEY_CIVVACCESS_LOBBY_DETAILS_TAB",
-    emptyReaderText  = Text.key("TXT_KEY_CIVVACCESS_LOBBY_NO_SELECTION"),
+    name = "Lobby",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LOBBY"),
+    preamble = titlePreamble,
+    pickerTabName = "TXT_KEY_CIVVACCESS_LOBBY_SERVERS_TAB",
+    readerTabName = "TXT_KEY_CIVVACCESS_LOBBY_DETAILS_TAB",
+    emptyReaderText = Text.key("TXT_KEY_CIVVACCESS_LOBBY_NO_SELECTION"),
     focusParkControl = "BackButton",
-    priorShowHide    = priorShowHide,
-    priorInput       = priorInput,
-    pickerItems      = pickerItems,
+    priorShowHide = priorShowHide,
+    priorInput = priorInput,
+    pickerItems = pickerItems,
 })

@@ -12,11 +12,26 @@ local function setup()
     -- Boot's include order; the test mimics that explicitly.
     Cursor = {
         _calls = {},
-        move     = function(d) table.insert(Cursor._calls, "move:" .. tostring(d)); return "" end,
-        orient   = function()  table.insert(Cursor._calls, "orient");  return "" end,
-        recenter = function()  table.insert(Cursor._calls, "recenter"); return "" end,
-        economy  = function()  table.insert(Cursor._calls, "economy"); return "" end,
-        combat   = function()  table.insert(Cursor._calls, "combat");  return "" end,
+        move = function(d)
+            table.insert(Cursor._calls, "move:" .. tostring(d))
+            return ""
+        end,
+        orient = function()
+            table.insert(Cursor._calls, "orient")
+            return ""
+        end,
+        recenter = function()
+            table.insert(Cursor._calls, "recenter")
+            return ""
+        end,
+        economy = function()
+            table.insert(Cursor._calls, "economy")
+            return ""
+        end,
+        combat = function()
+            table.insert(Cursor._calls, "combat")
+            return ""
+        end,
     }
     SpeechPipeline = SpeechPipeline or {}
     SpeechPipeline.speakInterrupt = function(_) end
@@ -34,7 +49,9 @@ end
 
 local function findBinding(h, key, mods)
     for _, b in ipairs(h.bindings) do
-        if b.key == key and (b.mods or 0) == mods then return b end
+        if b.key == key and (b.mods or 0) == mods then
+            return b
+        end
     end
 end
 
@@ -50,8 +67,8 @@ end
 function M.test_shift_s_recenters_plain_s_orients()
     setup()
     local h = BaselineHandler.create()
-    findBinding(h, Keys.S, 0).fn()  -- plain
-    findBinding(h, Keys.S, 1).fn()  -- shift
+    findBinding(h, Keys.S, 0).fn() -- plain
+    findBinding(h, Keys.S, 1).fn() -- shift
     T.eq(Cursor._calls[1], "orient")
     T.eq(Cursor._calls[2], "recenter")
 end

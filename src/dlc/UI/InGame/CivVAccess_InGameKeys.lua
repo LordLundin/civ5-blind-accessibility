@@ -23,14 +23,16 @@ include("CivVAccess_Log")
 include("CivVAccess_HandlerStack")
 include("CivVAccess_InputRouter")
 
-local WM_KEYDOWN    = 256
+local WM_KEYDOWN = 256
 local WM_SYSKEYDOWN = 260
 local basePriorInput = InputHandler
 
 ContextPtr:SetInputHandler(function(msg, wp, lp)
     if msg == WM_KEYDOWN or msg == WM_SYSKEYDOWN then
         local mods = InputRouter.currentModifierMask()
-        if InputRouter.dispatch(wp, mods, msg) then return true end
+        if InputRouter.dispatch(wp, mods, msg) then
+            return true
+        end
     end
     return basePriorInput(msg, wp, lp)
 end)

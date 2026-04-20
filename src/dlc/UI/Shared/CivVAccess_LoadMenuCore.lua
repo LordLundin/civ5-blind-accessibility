@@ -31,13 +31,13 @@ LoadMenu = {}
 
 local READER_TAB_IDX = 2
 
-local HEADER_KEYS      = SavedGameShared.HEADER_KEYS
-local stripPath        = SavedGameShared.stripPath
-local parseId          = SavedGameShared.parseId
+local HEADER_KEYS = SavedGameShared.HEADER_KEYS
+local stripPath = SavedGameShared.stripPath
+local parseId = SavedGameShared.parseId
 local resolveLeaderCiv = SavedGameShared.resolveLeaderCiv
-local gameTypeLabel    = SavedGameShared.gameTypeLabel
-local descOf           = SavedGameShared.descOf
-local addField         = SavedGameShared.addField
+local gameTypeLabel = SavedGameShared.gameTypeLabel
+local descOf = SavedGameShared.descOf
+local addField = SavedGameShared.addField
 
 -- --------------------------------------------------------------------------
 -- Helpers
@@ -66,7 +66,9 @@ local function sortedFileIndices()
         end)
     elseif g_CurrentSort == SortByName then
         -- SortByName inverts to reverse-alphabetical in autosave mode; match.
-        for _, r in ipairs(records) do r.name = stripPath(r.filename) end
+        for _, r in ipairs(records) do
+            r.name = stripPath(r.filename)
+        end
         if g_ShowAutoSaves then
             table.sort(records, function(a, b)
                 return Locale.Compare(b.name, a.name) == -1
@@ -78,7 +80,9 @@ local function sortedFileIndices()
         end
     end
     local indices = {}
-    for i, r in ipairs(records) do indices[i] = r.idx end
+    for i, r in ipairs(records) do
+        indices[i] = r.idx
+    end
     return indices
 end
 
@@ -111,12 +115,13 @@ local function pushRequirementsSub(mainHandler, kind)
         list = g_SavedGameDLCRequired
         displayKey = "TXT_KEY_LOAD_MENU_REQUIRED_DLC"
     end
-    if list == nil or #list == 0 then return end
+    if list == nil or #list == 0 then
+        return
+    end
     local items = {}
     for _, v in ipairs(list) do
         local name
-        if kind == "dlc" and v.DescriptionKey ~= nil
-                and Locale.HasTextKey(v.DescriptionKey) then
+        if kind == "dlc" and v.DescriptionKey ~= nil and Locale.HasTextKey(v.DescriptionKey) then
             name = Text.key(v.DescriptionKey)
         else
             name = v.Title or ""
@@ -125,16 +130,15 @@ local function pushRequirementsSub(mainHandler, kind)
             end
         end
         if kind == "mods" and v.Version ~= nil then
-            name = Text.format("TXT_KEY_CIVVACCESS_LOAD_MOD_VERSION",
-                name, v.Version)
+            name = Text.format("TXT_KEY_CIVVACCESS_LOAD_MOD_VERSION", name, v.Version)
         end
         items[#items + 1] = BaseMenuItems.Text({ labelText = name })
     end
     local sub = BaseMenu.create({
-        name        = mainHandler.name .. "/Requirements",
+        name = mainHandler.name .. "/Requirements",
         displayName = Text.key(displayKey),
-        items       = items,
-        escapePops  = true,
+        items = items,
+        escapePops = true,
     })
     HandlerStack.push(sub)
 end
@@ -146,31 +150,33 @@ end
 -- tab gets a one-item "deleted" placeholder so the stale save details can't
 -- be read back. Esc on the sub pops without committing (escapePops).
 local function pushDeleteConfirmSub(mainHandler, filename)
-    if filename == nil or filename == "" then return end
+    if filename == nil or filename == "" then
+        return
+    end
     local displayName = stripPath(filename)
-    local confirmLabel = Text.format(
-        "TXT_KEY_CIVVACCESS_LOAD_DELETE_CONFIRM", displayName)
+    local confirmLabel = Text.format("TXT_KEY_CIVVACCESS_LOAD_DELETE_CONFIRM", displayName)
     local subName = mainHandler.name .. "/DeleteConfirm"
     local sub = BaseMenu.create({
-        name        = subName,
+        name = subName,
         displayName = confirmLabel,
         -- No first so that arrow-down to Yes is an explicit affirmative step;
         -- accidental Enter on the default cancels rather than deletes.
         items = {
             BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_NO_BUTTON",
+                textKey = "TXT_KEY_NO_BUTTON",
                 activate = function()
                     HandlerStack.removeByName(subName, true)
                 end,
             }),
             BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_YES_BUTTON",
+                textKey = "TXT_KEY_YES_BUTTON",
                 activate = function()
                     UI.DeleteSavedGame(filename)
                     SetupFileButtonList()
                     mainHandler.setItems({
                         BaseMenuItems.Text({
-                            textKey = "TXT_KEY_CIVVACCESS_LOAD_DELETED" }),
+                            textKey = "TXT_KEY_CIVVACCESS_LOAD_DELETED",
+                        }),
                     }, READER_TAB_IDX)
                     HandlerStack.removeByName(subName, true)
                 end,
@@ -222,8 +228,7 @@ function LoadMenu.buildReader(mainHandler, id)
     -- equivalent to LoadMenu.xml's Title label.
     local leaderDescText, civName = resolveLeaderCiv(header)
     leaves[#leaves + 1] = BaseMenuItems.Text({
-        labelText = Text.format(
-            "TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName),
+        labelText = Text.format("TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName),
     })
 
     -- Saved-on date (regular / autosave only; cloud saves lack a filesystem
@@ -239,19 +244,16 @@ function LoadMenu.buildReader(mainHandler, id)
     -- emitted when the header carries a current era; setup-only saves don't.
     if header.CurrentEra ~= nil and header.CurrentEra ~= "" then
         local era = GameInfo.Eras[header.CurrentEra]
-        local eraDesc = (era ~= nil and era.Description)
-            or "TXT_KEY_MISC_UNKNOWN"
+        local eraDesc = (era ~= nil and era.Description) or "TXT_KEY_MISC_UNKNOWN"
         leaves[#leaves + 1] = BaseMenuItems.Text({
-            labelText = Text.format(
-                "TXT_KEY_CUR_ERA_TURNS_FORMAT", eraDesc, header.TurnNumber),
+            labelText = Text.format("TXT_KEY_CUR_ERA_TURNS_FORMAT", eraDesc, header.TurnNumber),
         })
     end
 
     -- Start era ("<era> Start").
     if header.StartEra ~= nil and header.StartEra ~= "" then
         local startEra = GameInfo.Eras[header.StartEra]
-        local startEraDesc = (startEra ~= nil and startEra.Description)
-            or "TXT_KEY_MISC_UNKNOWN"
+        local startEraDesc = (startEra ~= nil and startEra.Description) or "TXT_KEY_MISC_UNKNOWN"
         leaves[#leaves + 1] = BaseMenuItems.Text({
             labelText = Text.format("TXT_KEY_START_ERA", startEraDesc),
         })
@@ -268,12 +270,9 @@ function LoadMenu.buildReader(mainHandler, id)
     if mapInfo ~= nil and mapInfo.Name ~= nil then
         addField(leaves, HEADER_KEYS.mapType, Locale.Lookup(mapInfo.Name))
     end
-    addField(leaves, HEADER_KEYS.mapSize,
-        descOf(GameInfo.Worlds[header.WorldSize]))
-    addField(leaves, HEADER_KEYS.difficulty,
-        descOf(GameInfo.HandicapInfos[header.Difficulty]))
-    addField(leaves, HEADER_KEYS.gameSpeed,
-        descOf(GameInfo.GameSpeeds[header.GameSpeed]))
+    addField(leaves, HEADER_KEYS.mapSize, descOf(GameInfo.Worlds[header.WorldSize]))
+    addField(leaves, HEADER_KEYS.difficulty, descOf(GameInfo.HandicapInfos[header.Difficulty]))
+    addField(leaves, HEADER_KEYS.gameSpeed, descOf(GameInfo.GameSpeeds[header.GameSpeed]))
 
     -- Action leaves. Load first (the primary action), Delete second, then
     -- conditional Show-DLC / Show-Mods when the save has unmet requirements.
@@ -285,27 +284,30 @@ function LoadMenu.buildReader(mainHandler, id)
     -- "disabled" with the tooltip reason appended.
     leaves[#leaves + 1] = BaseMenuItems.Button({
         controlName = "StartButton",
-        textKey     = "TXT_KEY_LOAD_GAME",
-        tooltipFn   = function(control)
+        textKey = "TXT_KEY_LOAD_GAME",
+        tooltipFn = function(control)
             local ok, tip = pcall(function()
                 return control:GetToolTipString()
             end)
             if not ok then
-                Log.warn("LoadMenu: StartButton GetToolTipString failed: "
-                    .. tostring(tip))
+                Log.warn("LoadMenu: StartButton GetToolTipString failed: " .. tostring(tip))
                 return nil
             end
-            if tip ~= nil and tip ~= "" then return tip end
+            if tip ~= nil and tip ~= "" then
+                return tip
+            end
             return nil
         end,
-        activate = function() OnStartButton() end,
+        activate = function()
+            OnStartButton()
+        end,
     })
 
     -- Delete: not available in cloud mode (engine hides Controls.Delete via
     -- UpdateControlStates). We match by not emitting the leaf.
     if not isCloud then
         leaves[#leaves + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_DELETE_BUTTON",
+            textKey = "TXT_KEY_DELETE_BUTTON",
             activate = function()
                 pushDeleteConfirmSub(mainHandler, filename)
             end,
@@ -318,7 +320,7 @@ function LoadMenu.buildReader(mainHandler, id)
     -- the base content set; skip the leaf.
     if g_SavedGameDLCRequired ~= nil and #g_SavedGameDLCRequired > 0 then
         leaves[#leaves + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_LOAD_MENU_DLC",
+            textKey = "TXT_KEY_LOAD_MENU_DLC",
             activate = function()
                 pushRequirementsSub(mainHandler, "dlc")
             end,
@@ -326,7 +328,7 @@ function LoadMenu.buildReader(mainHandler, id)
     end
     if g_SavedGameModsRequired ~= nil and #g_SavedGameModsRequired > 0 then
         leaves[#leaves + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_LOAD_MENU_MODS",
+            textKey = "TXT_KEY_LOAD_MENU_MODS",
             activate = function()
                 pushRequirementsSub(mainHandler, "mods")
             end,
@@ -362,13 +364,11 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
                 -- UI shows; TXT_KEY_STEAMCLOUD_SAVE is the engine's format
                 -- key for that.
                 local leaderDescText, civName = resolveLeaderCiv(slotHeader)
-                local name = Text.format(
-                    "TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName)
-                local label = Text.format(
-                    "TXT_KEY_STEAMCLOUD_SAVE", i, name)
+                local name = Text.format("TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName)
+                local label = Text.format("TXT_KEY_STEAMCLOUD_SAVE", i, name)
                 items[#items + 1] = entryFactory({
-                    id          = "cloud:" .. tostring(i),
-                    labelText   = label,
+                    id = "cloud:" .. tostring(i),
+                    labelText = label,
                     buildReader = function(handler, id)
                         return LoadMenu.buildReader(mainHandlerRef(), id)
                     end,
@@ -379,8 +379,8 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
         for _, i in ipairs(sortedFileIndices()) do
             local filename = g_FileList[i]
             items[#items + 1] = entryFactory({
-                id          = "save:" .. tostring(i),
-                labelText   = stripPath(filename),
+                id = "save:" .. tostring(i),
+                labelText = stripPath(filename),
                 buildReader = function(handler, id)
                     return LoadMenu.buildReader(mainHandlerRef(), id)
                 end,
@@ -403,27 +403,25 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
     -- Each Choice calls applySort which also touches the base pulldown's
     -- button text and the visual Stack's SortChildren for sighted parity.
     items[#items + 1] = BaseMenuItems.Group({
-        textKey               = "TXT_KEY_CIVVACCESS_LOAD_SORT_BY",
+        textKey = "TXT_KEY_CIVVACCESS_LOAD_SORT_BY",
         visibilityControlName = "SortByPullDown",
         items = {
             BaseMenuItems.Choice({
-                textKey    = "TXT_KEY_SORTBY_LASTMODIFIED",
+                textKey = "TXT_KEY_SORTBY_LASTMODIFIED",
                 selectedFn = function()
                     return g_CurrentSort == SortByLastModified
                 end,
                 activate = function()
-                    applySort(entryFactory, mainHandlerRef,
-                        SortByLastModified, "TXT_KEY_SORTBY_LASTMODIFIED")
+                    applySort(entryFactory, mainHandlerRef, SortByLastModified, "TXT_KEY_SORTBY_LASTMODIFIED")
                 end,
             }),
             BaseMenuItems.Choice({
-                textKey    = "TXT_KEY_SORTBY_NAME",
+                textKey = "TXT_KEY_SORTBY_NAME",
                 selectedFn = function()
                     return g_CurrentSort == SortByName
                 end,
                 activate = function()
-                    applySort(entryFactory, mainHandlerRef,
-                        SortByName, "TXT_KEY_SORTBY_NAME")
+                    applySort(entryFactory, mainHandlerRef, SortByName, "TXT_KEY_SORTBY_NAME")
                 end,
             }),
         },
@@ -437,11 +435,11 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
     -- rebuild and refreshes the picker.
     items[#items + 1] = BaseMenuItems.Checkbox({
         controlName = "AutoCheck",
-        textKey     = "TXT_KEY_AUTOSAVES",
+        textKey = "TXT_KEY_AUTOSAVES",
     })
     items[#items + 1] = BaseMenuItems.Checkbox({
         controlName = "CloudCheck",
-        textKey     = "TXT_KEY_STEAMCLOUD",
+        textKey = "TXT_KEY_STEAMCLOUD",
     })
 
     return items

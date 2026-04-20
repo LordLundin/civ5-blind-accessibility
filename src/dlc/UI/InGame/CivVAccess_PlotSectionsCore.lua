@@ -21,7 +21,9 @@ PlotSections = {}
 
 local function lookupName(table, id)
     local row = GameInfo[table][id]
-    if row == nil then return nil end
+    if row == nil then
+        return nil
+    end
     return Text.key(row.Description)
 end
 
@@ -41,7 +43,7 @@ function PlotSections.ownerIdentity(plot)
             local spoken = Text.format("TXT_KEY_CITY_STATE_OF", civKey)
             return spoken, "city:" .. tostring(city:GetID())
         end
-        local adj  = owner:GetCivilizationAdjectiveKey()
+        local adj = owner:GetCivilizationAdjectiveKey()
         local name = city:GetName()
         local spoken = Text.format("TXT_KEY_CITY_OF", adj, name)
         return spoken, "city:" .. tostring(city:GetID())
@@ -68,28 +70,34 @@ end
 -- section makes sure they always hear "Rome" when they land on Rome.
 PlotSections.city = {
     Read = function(plot)
-        if not plot:IsCity() then return {} end
+        if not plot:IsCity() then
+            return {}
+        end
         local city = plot:GetPlotCity()
         local owner = Players[city:GetOwner()]
         if owner:IsMinorCiv() then
-            return { Text.format("TXT_KEY_CITY_STATE_OF",
-                owner:GetCivilizationShortDescriptionKey()) }
+            return { Text.format("TXT_KEY_CITY_STATE_OF", owner:GetCivilizationShortDescriptionKey()) }
         end
-        return { Text.format("TXT_KEY_CITY_OF",
-            owner:GetCivilizationAdjectiveKey(), city:GetName()) }
+        return { Text.format("TXT_KEY_CITY_OF", owner:GetCivilizationAdjectiveKey(), city:GetName()) }
     end,
 }
 
 PlotSections.terrain = {
     Read = function(plot, ctx)
-        if ctx.suppressTerrain then return {} end
+        if ctx.suppressTerrain then
+            return {}
+        end
         if plot:IsLake() then
             return { Text.key("TXT_KEY_CIVVACCESS_LAKE") }
         end
         local id = plot:GetTerrainType()
-        if id < 0 then return {} end
+        if id < 0 then
+            return {}
+        end
         local name = lookupName("Terrains", id)
-        if name == nil then return {} end
+        if name == nil then
+            return {}
+        end
         return { name }
     end,
 }
@@ -121,17 +129,21 @@ PlotSections.plotType = {
 -- GameInfoTypes global polyfilled.
 local SPECIAL_FEATURE_TYPES = {
     FEATURE_JUNGLE = true,
-    FEATURE_MARSH  = true,
-    FEATURE_OASIS  = true,
-    FEATURE_ICE    = true,
+    FEATURE_MARSH = true,
+    FEATURE_OASIS = true,
+    FEATURE_ICE = true,
 }
 
 PlotSections.feature = {
     Read = function(plot, ctx)
         local id = plot:GetFeatureType()
-        if id == nil or id < 0 then return {} end
+        if id == nil or id < 0 then
+            return {}
+        end
         local row = GameInfo.Features[id]
-        if row == nil then return {} end
+        if row == nil then
+            return {}
+        end
         if row.NaturalWonder or SPECIAL_FEATURE_TYPES[row.Type] then
             ctx.suppressTerrain = true
         end
@@ -143,12 +155,16 @@ PlotSections.resource = {
     Read = function(plot)
         local team = Game.GetActiveTeam()
         local id = plot:GetResourceType(team)
-        if id == nil or id < 0 then return {} end
+        if id == nil or id < 0 then
+            return {}
+        end
         local row = GameInfo.Resources[id]
-        if row == nil then return {} end
+        if row == nil then
+            return {}
+        end
         local name = Text.key(row.Description)
-        local qty  = plot:GetNumResource()
-        local out  = {}
+        local qty = plot:GetNumResource()
+        local out = {}
         if qty > 1 then
             out[#out + 1] = tostring(qty) .. " " .. name
         else
@@ -166,9 +182,7 @@ PlotSections.resource = {
                 if pTeam ~= nil and not pTeam:GetTeamTechs():HasTech(techId) then
                     local techRow = GameInfo.Technologies[techId]
                     if techRow ~= nil then
-                        out[#out + 1] = Text.format(
-                            "TXT_KEY_PLOTROLL_REQUIRES_TECH_TO_USE",
-                            techRow.Description)
+                        out[#out + 1] = Text.format("TXT_KEY_PLOTROLL_REQUIRES_TECH_TO_USE", techRow.Description)
                     end
                 end
             end
@@ -184,9 +198,13 @@ local function pillagedSection(getRevealedId, infoTable, isPillaged)
         Read = function(plot)
             local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
             local id = getRevealedId(plot, team, debug)
-            if id == nil or id < 0 then return {} end
+            if id == nil or id < 0 then
+                return {}
+            end
             local name = lookupName(infoTable, id)
-            if name == nil then return {} end
+            if name == nil then
+                return {}
+            end
             if isPillaged(plot) then
                 return { name .. " " .. Text.key("TXT_KEY_CIVVACCESS_PILLAGED_SUFFIX") }
             end
@@ -196,11 +214,21 @@ local function pillagedSection(getRevealedId, infoTable, isPillaged)
 end
 
 PlotSections.improvement = pillagedSection(
-    function(p, t, d) return p:GetRevealedImprovementType(t, d) end,
+    function(p, t, d)
+        return p:GetRevealedImprovementType(t, d)
+    end,
     "Improvements",
-    function(p) return p:IsImprovementPillaged() end)
+    function(p)
+        return p:IsImprovementPillaged()
+    end
+)
 
 PlotSections.route = pillagedSection(
-    function(p, t, d) return p:GetRevealedRouteType(t, d) end,
+    function(p, t, d)
+        return p:GetRevealedRouteType(t, d)
+    end,
     "Routes",
-    function(p) return p:IsRoutePillaged() end)
+    function(p)
+        return p:IsRoutePillaged()
+    end
+)

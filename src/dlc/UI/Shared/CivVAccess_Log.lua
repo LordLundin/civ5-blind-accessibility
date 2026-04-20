@@ -8,7 +8,15 @@ local function emit(level, msg)
     print("[CivVAccess] [" .. level .. "] " .. tostring(msg))
 end
 
-function Log.debug(msg) emit("DEBUG", msg) end
-function Log.info(msg)  emit("INFO",  msg) end
-function Log.warn(msg)  emit("WARN",  msg) end
-function Log.error(msg) emit("ERROR", msg) end
+function Log.debug(msg)
+    emit("DEBUG", msg)
+end
+function Log.info(msg)
+    emit("INFO", msg)
+end
+function Log.warn(msg)
+    emit("WARN", msg)
+end
+function Log.error(msg)
+    emit("ERROR", msg)
+end

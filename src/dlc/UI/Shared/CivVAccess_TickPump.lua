@@ -43,13 +43,16 @@ function TickPump.tick()
         end
     end
     local h = HandlerStack.active()
-    if h == nil then return end
+    if h == nil then
+        return
+    end
     local fn = h.tick
-    if type(fn) ~= "function" then return end
+    if type(fn) ~= "function" then
+        return
+    end
     local ok, err = pcall(fn, h)
     if not ok then
-        Log.error("TickPump tick failed on '" .. tostring(h.name)
-            .. "': " .. tostring(err))
+        Log.error("TickPump tick failed on '" .. tostring(h.name) .. "': " .. tostring(err))
     end
 end
 

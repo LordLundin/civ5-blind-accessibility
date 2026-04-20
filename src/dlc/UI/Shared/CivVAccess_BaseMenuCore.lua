@@ -62,7 +62,7 @@
 BaseMenu = {}
 
 local MOD_SHIFT = 1
-local MOD_CTRL  = 2
+local MOD_CTRL = 2
 
 -- Spec-validation guard. Logs the failure through the mod's log wrapper
 -- before erroring so the message reaches Lua.log uniformly (a bare assert()
@@ -92,8 +92,12 @@ local function stepValid(items, start, step)
     local i = start
     while true do
         i = i + step
-        if i < 1 or i > n then return nil end
-        if items[i]:isNavigable() then return i end
+        if i < 1 or i > n then
+            return nil
+        end
+        if items[i]:isNavigable() then
+            return i
+        end
     end
 end
 
@@ -133,12 +137,18 @@ end
 -- index itself is not returned (only proper siblings and wrap-around).
 local function findSiblingGroup(items, startIdx, step)
     local n = #items
-    if n == 0 then return nil end
+    if n == 0 then
+        return nil
+    end
     local i = startIdx
     for _ = 1, n do
         i = i + step
-        if i < 1 then i = n end
-        if i > n then i = 1 end
+        if i < 1 then
+            i = n
+        end
+        if i > n then
+            i = 1
+        end
         local sib = items[i]
         if sib ~= nil and sib.kind == "group" and sib:isNavigable() then
             return i
@@ -154,21 +164,34 @@ end
 -- _parkDisabled so repeated calls don't spam.
 
 local function parkFocus(self)
-    if self._parkDisabled then return end
-    if self._focusParkControl == nil then return end
+    if self._parkDisabled then
+        return
+    end
+    if self._focusParkControl == nil then
+        return
+    end
     local park = Controls[self._focusParkControl]
     if park == nil then
-        Log.warn("BaseMenu '" .. self.name .. "' focus-park control '"
-            .. tostring(self._focusParkControl)
-            .. "' not found; disabling park for this handler")
+        Log.warn(
+            "BaseMenu '"
+                .. self.name
+                .. "' focus-park control '"
+                .. tostring(self._focusParkControl)
+                .. "' not found; disabling park for this handler"
+        )
         self._parkDisabled = true
         return
     end
-    local ok, err = pcall(function() park:TakeFocus() end)
+    local ok, err = pcall(function()
+        park:TakeFocus()
+    end)
     if not ok then
-        Log.warn("BaseMenu '" .. self.name
-            .. "' focus-park TakeFocus failed, disabling park for this handler: "
-            .. tostring(err))
+        Log.warn(
+            "BaseMenu '"
+                .. self.name
+                .. "' focus-park TakeFocus failed, disabling park for this handler: "
+                .. tostring(err)
+        )
         self._parkDisabled = true
     end
 end
@@ -177,12 +200,13 @@ end
 
 local function resolvePreamble(self)
     local p = self.preamble
-    if p == nil then return nil end
+    if p == nil then
+        return nil
+    end
     if type(p) == "function" then
         local ok, result = pcall(p)
         if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' preamble fn failed: "
-                .. tostring(result))
+            Log.error("BaseMenu '" .. self.name .. "' preamble fn failed: " .. tostring(result))
             return nil
         end
         return result
@@ -195,7 +219,9 @@ end
 -- the search state before any arrow-key or char event fires against stale
 -- result indices.
 local function resetSearch(self)
-    if self._search ~= nil then self._search:clear() end
+    if self._search ~= nil then
+        self._search:clear()
+    end
 end
 
 -- Navigation helpers BaseMenuTabs needs to call back into. Built once at
@@ -203,19 +229,23 @@ end
 -- declarations bind early, so the table captures stable references).
 local nav = {
     nextValidIndex = nextValidIndex,
-    currentItems   = currentItems,
-    currentIndex   = currentIndex,
-    parkFocus      = parkFocus,
-    resetSearch    = resetSearch,
+    currentItems = currentItems,
+    currentIndex = currentIndex,
+    parkFocus = parkFocus,
+    resetSearch = resetSearch,
 }
 
 -- Navigation / activation -------------------------------------------------
 
 local function moveToIndex(self, newIndex)
-    if newIndex == nil or newIndex == currentIndex(self) then return end
+    if newIndex == nil or newIndex == currentIndex(self) then
+        return
+    end
     self._indices[self._level] = newIndex
     local item = currentItems(self)[newIndex]
-    if item == nil then return end
+    if item == nil then
+        return
+    end
     SpeechPipeline.speakInterrupt(item:announce(self))
 end
 
@@ -225,7 +255,9 @@ end
 local function drillInto(self)
     local items = currentItems(self)
     local group = items[currentIndex(self)]
-    if group == nil or group.kind ~= "group" then return end
+    if group == nil or group.kind ~= "group" then
+        return
+    end
     local children = group:children()
     local first = nextValidIndex(children, 0, 1)
     if first == nil then
@@ -239,12 +271,16 @@ local function drillInto(self)
 end
 
 local function goBackLevel(self)
-    if self._level <= 1 then return end
+    if self._level <= 1 then
+        return
+    end
     self._indices[self._level] = nil
     self._level = self._level - 1
     resetSearch(self)
     local item = currentItems(self)[currentIndex(self)]
-    if item == nil then return end
+    if item == nil then
+        return
+    end
     SpeechPipeline.speakInterrupt(item:announce(self))
 end
 
@@ -253,12 +289,16 @@ end
 -- <child>" on a real boundary crossing; on same-group wrap (1 sibling group)
 -- speaks just the child.
 local function jumpSiblingGroup(self, step, landOnLast)
-    if self._level <= 1 then return end
+    if self._level <= 1 then
+        return
+    end
     local parentLevel = self._level - 1
     local parents = itemsAtLevel(self, parentLevel)
     local startParent = self._indices[parentLevel]
     local newParent = findSiblingGroup(parents, startParent, step)
-    if newParent == nil then return end
+    if newParent == nil then
+        return
+    end
     self._indices[parentLevel] = newParent
     local newItems = currentItems(self)
     local target
@@ -283,7 +323,8 @@ end
 
 local function onUp(self)
     if self._search ~= nil and self._search:isSearchActive() then
-        self._search:navigateResults(-1); return
+        self._search:navigateResults(-1)
+        return
     end
     local items = currentItems(self)
     if self._level == 1 then
@@ -300,7 +341,8 @@ end
 
 local function onDown(self)
     if self._search ~= nil and self._search:isSearchActive() then
-        self._search:navigateResults(1); return
+        self._search:navigateResults(1)
+        return
     end
     local items = currentItems(self)
     if self._level == 1 then
@@ -317,14 +359,16 @@ end
 
 local function onHome(self)
     if self._search ~= nil and self._search:isSearchActive() then
-        self._search:jumpToFirstResult(); return
+        self._search:jumpToFirstResult()
+        return
     end
     moveToIndex(self, nextValidIndex(currentItems(self), 0, 1))
 end
 
 local function onEnd(self)
     if self._search ~= nil and self._search:isSearchActive() then
-        self._search:jumpToLastResult(); return
+        self._search:jumpToLastResult()
+        return
     end
     local items = currentItems(self)
     moveToIndex(self, nextValidIndex(items, #items + 1, -1))
@@ -332,7 +376,9 @@ end
 
 local function onEnter(self)
     local items = currentItems(self)
-    if #items == 0 then return end
+    if #items == 0 then
+        return
+    end
     local item = items[currentIndex(self)]
     if item == nil or not item:isNavigable() then
         Log.warn("BaseMenu '" .. self.name .. "': Enter on invalid item")
@@ -365,19 +411,29 @@ end
 --   Others -> level > 1 Left goes back a level; Right is a no-op
 local function onLeft(self, big)
     local item = currentItems(self)[currentIndex(self)]
-    if item == nil then return end
-    if item.kind == "slider" then
-        if item.adjust then item:adjust(self, -1, big) end
+    if item == nil then
         return
     end
-    if self._level > 1 then goBackLevel(self) end
+    if item.kind == "slider" then
+        if item.adjust then
+            item:adjust(self, -1, big)
+        end
+        return
+    end
+    if self._level > 1 then
+        goBackLevel(self)
+    end
 end
 
 local function onRight(self, big)
     local item = currentItems(self)[currentIndex(self)]
-    if item == nil then return end
+    if item == nil then
+        return
+    end
     if item.kind == "slider" then
-        if item.adjust then item:adjust(self, 1, big) end
+        if item.adjust then
+            item:adjust(self, 1, big)
+        end
         return
     end
     if item.kind == "group" then
@@ -394,15 +450,15 @@ local function onCtrlUp(self)
     if hook ~= nil then
         local ok, err = pcall(hook, self)
         if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' onCtrlUp hook: "
-                .. tostring(err))
+            Log.error("BaseMenu '" .. self.name .. "' onCtrlUp hook: " .. tostring(err))
         end
         return
     end
     if self._level == 1 then
-        local target = findSiblingGroup(currentItems(self),
-            currentIndex(self), -1)
-        if target ~= nil then moveToIndex(self, target) end
+        local target = findSiblingGroup(currentItems(self), currentIndex(self), -1)
+        if target ~= nil then
+            moveToIndex(self, target)
+        end
         return
     end
     jumpSiblingGroup(self, -1, false)
@@ -413,15 +469,15 @@ local function onCtrlDown(self)
     if hook ~= nil then
         local ok, err = pcall(hook, self)
         if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' onCtrlDown hook: "
-                .. tostring(err))
+            Log.error("BaseMenu '" .. self.name .. "' onCtrlDown hook: " .. tostring(err))
         end
         return
     end
     if self._level == 1 then
-        local target = findSiblingGroup(currentItems(self),
-            currentIndex(self), 1)
-        if target ~= nil then moveToIndex(self, target) end
+        local target = findSiblingGroup(currentItems(self), currentIndex(self), 1)
+        if target ~= nil then
+            moveToIndex(self, target)
+        end
         return
     end
     jumpSiblingGroup(self, 1, false)
@@ -437,18 +493,28 @@ end
 -- same announcement the user would hear from arrow-key nav.
 local function buildSearchable(self)
     return {
-        itemCount = function() return #currentItems(self) end,
-        getLabel  = function(i)
+        itemCount = function()
+            return #currentItems(self)
+        end,
+        getLabel = function(i)
             local item = currentItems(self)[i]
-            if item == nil or not item:isNavigable() then return nil end
-            local ok, text = pcall(function() return item:announce(self) end)
-            if not ok or text == nil then return nil end
+            if item == nil or not item:isNavigable() then
+                return nil
+            end
+            local ok, text = pcall(function()
+                return item:announce(self)
+            end)
+            if not ok or text == nil then
+                return nil
+            end
             return TextFilter.filter(text)
         end,
         moveTo = function(origIndex)
             self._indices[self._level] = origIndex
             local item = currentItems(self)[origIndex]
-            if item == nil then return end
+            if item == nil then
+                return
+            end
             SpeechPipeline.speakInterrupt(item:announce(self))
         end,
     }
@@ -461,8 +527,10 @@ end
 -- is still "a letter" for search purposes.
 function BaseMenu._handleSearchInput(handler, vk, mods)
     local hasCtrl = math.floor(mods / 2) % 2 == 1
-    local hasAlt  = math.floor(mods / 4) % 2 == 1
-    if hasCtrl or hasAlt then return false end
+    local hasAlt = math.floor(mods / 4) % 2 == 1
+    if hasCtrl or hasAlt then
+        return false
+    end
 
     local searchable = buildSearchable(handler)
     local search = handler._search
@@ -486,36 +554,35 @@ end
 
 function BaseMenu.create(spec)
     check(type(spec) == "table", "BaseMenu.create requires a spec table")
-    check(type(spec.name) == "string" and spec.name ~= "",
-        "spec.name required")
-    check(type(spec.displayName) == "string" and spec.displayName ~= "",
-        "spec.displayName required")
-    check(spec.tabs == nil or spec.items == nil,
-        "spec must have EITHER tabs OR items, not both")
-    check(spec.preamble == nil
-        or (type(spec.preamble) == "string" and spec.preamble ~= "")
-        or type(spec.preamble) == "function",
-        "spec.preamble must be a non-empty string or a function if provided")
+    check(type(spec.name) == "string" and spec.name ~= "", "spec.name required")
+    check(type(spec.displayName) == "string" and spec.displayName ~= "", "spec.displayName required")
+    check(spec.tabs == nil or spec.items == nil, "spec must have EITHER tabs OR items, not both")
+    check(
+        spec.preamble == nil
+            or (type(spec.preamble) == "string" and spec.preamble ~= "")
+            or type(spec.preamble) == "function",
+        "spec.preamble must be a non-empty string or a function if provided"
+    )
 
     local self = {
-        name              = spec.name,
-        displayName       = spec.displayName,
-        preamble          = spec.preamble,
-        capturesAllInput  = spec.capturesAllInput ~= false,
-        _level            = 1,
-        _indices          = { 1 },
-        _tabIndex         = 1,
+        name = spec.name,
+        displayName = spec.displayName,
+        preamble = spec.preamble,
+        capturesAllInput = spec.capturesAllInput ~= false,
+        _level = 1,
+        _indices = { 1 },
+        _tabIndex = 1,
         -- Optional 1-based cursor at level 1 to land on at first onActivate.
         -- Used by Pulldown to open its child sub-menu pre-positioned on the
         -- current selection. Ignored if the target index is not navigable at
         -- open time; falls through to the first-valid default.
-        _initialIndex     = spec.initialIndex,
+        _initialIndex = spec.initialIndex,
         _focusParkControl = spec.focusParkControl,
         -- _initialized gates the first-open setup (reset cursor, speak
         -- displayName + preamble + tab + item). Re-activations from a sub
         -- pop preserve cursor and just re-announce the current item.
-        _initialized      = false,
-        _search           = TypeAheadSearch.new(),
+        _initialized = false,
+        _search = TypeAheadSearch.new(),
     }
 
     if spec.tabs then
@@ -526,41 +593,135 @@ function BaseMenu.create(spec)
     end
 
     self.bindings = {
-        { key = Keys.VK_UP,     mods = 0,         description = "Previous item",
-          fn = function() onUp(self) end },
-        { key = Keys.VK_DOWN,   mods = 0,         description = "Next item",
-          fn = function() onDown(self) end },
-        { key = Keys.VK_UP,     mods = MOD_CTRL,  description = "Previous group",
-          fn = function() onCtrlUp(self) end },
-        { key = Keys.VK_DOWN,   mods = MOD_CTRL,  description = "Next group",
-          fn = function() onCtrlDown(self) end },
-        { key = Keys.VK_HOME,   mods = 0,         description = "First item",
-          fn = function() onHome(self) end },
-        { key = Keys.VK_END,    mods = 0,         description = "Last item",
-          fn = function() onEnd(self) end },
-        { key = Keys.VK_LEFT,   mods = 0,         description = "Adjust decrease / back",
-          fn = function() onLeft(self, false) end },
-        { key = Keys.VK_RIGHT,  mods = 0,         description = "Adjust increase / drill",
-          fn = function() onRight(self, false) end },
-        { key = Keys.VK_LEFT,   mods = MOD_SHIFT, description = "Adjust decrease (big)",
-          fn = function() onLeft(self, true) end },
-        { key = Keys.VK_RIGHT,  mods = MOD_SHIFT, description = "Adjust increase (big)",
-          fn = function() onRight(self, true) end },
-        { key = Keys.VK_RETURN, mods = 0,         description = "Activate / drill",
-          fn = function() onEnter(self) end },
-        { key = Keys.VK_SPACE,  mods = 0,         description = "Activate / drill",
-          fn = function() onEnter(self) end },
-        { key = Keys.VK_TAB,    mods = 0,         description = "Next tab",
-          fn = function() BaseMenuTabs.cycle(self,  1, nav) end },
-        { key = Keys.VK_TAB,    mods = MOD_SHIFT, description = "Previous tab",
-          fn = function() BaseMenuTabs.cycle(self, -1, nav) end },
-        { key = Keys.VK_F1,     mods = 0,         description = "Read screen header",
-          fn = function() self.readHeader() end },
+        {
+            key = Keys.VK_UP,
+            mods = 0,
+            description = "Previous item",
+            fn = function()
+                onUp(self)
+            end,
+        },
+        {
+            key = Keys.VK_DOWN,
+            mods = 0,
+            description = "Next item",
+            fn = function()
+                onDown(self)
+            end,
+        },
+        {
+            key = Keys.VK_UP,
+            mods = MOD_CTRL,
+            description = "Previous group",
+            fn = function()
+                onCtrlUp(self)
+            end,
+        },
+        {
+            key = Keys.VK_DOWN,
+            mods = MOD_CTRL,
+            description = "Next group",
+            fn = function()
+                onCtrlDown(self)
+            end,
+        },
+        {
+            key = Keys.VK_HOME,
+            mods = 0,
+            description = "First item",
+            fn = function()
+                onHome(self)
+            end,
+        },
+        {
+            key = Keys.VK_END,
+            mods = 0,
+            description = "Last item",
+            fn = function()
+                onEnd(self)
+            end,
+        },
+        {
+            key = Keys.VK_LEFT,
+            mods = 0,
+            description = "Adjust decrease / back",
+            fn = function()
+                onLeft(self, false)
+            end,
+        },
+        {
+            key = Keys.VK_RIGHT,
+            mods = 0,
+            description = "Adjust increase / drill",
+            fn = function()
+                onRight(self, false)
+            end,
+        },
+        {
+            key = Keys.VK_LEFT,
+            mods = MOD_SHIFT,
+            description = "Adjust decrease (big)",
+            fn = function()
+                onLeft(self, true)
+            end,
+        },
+        {
+            key = Keys.VK_RIGHT,
+            mods = MOD_SHIFT,
+            description = "Adjust increase (big)",
+            fn = function()
+                onRight(self, true)
+            end,
+        },
+        {
+            key = Keys.VK_RETURN,
+            mods = 0,
+            description = "Activate / drill",
+            fn = function()
+                onEnter(self)
+            end,
+        },
+        {
+            key = Keys.VK_SPACE,
+            mods = 0,
+            description = "Activate / drill",
+            fn = function()
+                onEnter(self)
+            end,
+        },
+        {
+            key = Keys.VK_TAB,
+            mods = 0,
+            description = "Next tab",
+            fn = function()
+                BaseMenuTabs.cycle(self, 1, nav)
+            end,
+        },
+        {
+            key = Keys.VK_TAB,
+            mods = MOD_SHIFT,
+            description = "Previous tab",
+            fn = function()
+                BaseMenuTabs.cycle(self, -1, nav)
+            end,
+        },
+        {
+            key = Keys.VK_F1,
+            mods = 0,
+            description = "Read screen header",
+            fn = function()
+                self.readHeader()
+            end,
+        },
     }
     if spec.escapePops then
         self.bindings[#self.bindings + 1] = {
-            key = Keys.VK_ESCAPE, mods = 0, description = "Cancel",
-            fn  = function() HandlerStack.removeByName(self.name, true) end,
+            key = Keys.VK_ESCAPE,
+            mods = 0,
+            description = "Cancel",
+            fn = function()
+                HandlerStack.removeByName(self.name, true)
+            end,
         }
     end
 
@@ -639,7 +800,9 @@ function BaseMenu.create(spec)
         local item = items[idx]
         if item == nil or not item:isNavigable() then
             local next = nextValidIndex(items, (idx or 1) - 1, 1)
-            if next == nil then return end
+            if next == nil then
+                return
+            end
             self._indices[self._level] = next
             item = items[next]
         end
@@ -661,8 +824,7 @@ function BaseMenu.create(spec)
         check(type(items) == "table", "setItems: items must be a table")
         if self.tabs then
             tabIndex = tabIndex or self._tabIndex
-            check(self.tabs[tabIndex] ~= nil,
-                "setItems: tab " .. tostring(tabIndex) .. " out of range")
+            check(self.tabs[tabIndex] ~= nil, "setItems: tab " .. tostring(tabIndex) .. " out of range")
             self.tabs[tabIndex]._items = items
         else
             self._items = items
@@ -696,7 +858,9 @@ function BaseMenu.create(spec)
     -- announcement). No-op on nil; silent when idx is out of range
     -- (setItems already clamps invalid slots on the next navigation key).
     function self.setIndex(idx)
-        if idx == nil then return end
+        if idx == nil then
+            return
+        end
         self._level = 1
         self._indices = { idx }
     end
@@ -716,17 +880,25 @@ function BaseMenu.create(spec)
     -- Re-evaluate a function preamble; speakInterrupt if the result changed
     -- from what was last spoken. No-op for string preambles.
     function self.refresh()
-        if type(self.preamble) ~= "function" then return end
+        if type(self.preamble) ~= "function" then
+            return
+        end
         local text = resolvePreamble(self)
-        if text == nil or text == "" then return end
-        if text == lastPreambleText then return end
+        if text == nil or text == "" then
+            return
+        end
+        if text == lastPreambleText then
+            return
+        end
         lastPreambleText = text
         SpeechPipeline.speakInterrupt(text)
     end
 
     -- Exposed so install's InputHandler can route Esc at level > 1 without
     -- touching module locals.
-    self._goBackLevel = function() goBackLevel(self) end
+    self._goBackLevel = function()
+        goBackLevel(self)
+    end
 
     -- Programmatic cross-tab jump. Unlike the Tab-key path, a same-tab call
     -- still fires the tab's onActivate + autoDrill + announcement so a

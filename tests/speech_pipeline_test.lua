@@ -12,10 +12,14 @@ local function setup()
     spoken = {}
     now = 0
     engineStopCount = 0
-    SpeechEngine.stop = function() engineStopCount = engineStopCount + 1 end
+    SpeechEngine.stop = function()
+        engineStopCount = engineStopCount + 1
+    end
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
-    SpeechPipeline._timeSource = function() return now end
+    SpeechPipeline._timeSource = function()
+        return now
+    end
     SpeechPipeline._speakAction = function(text, interrupt)
         spoken[#spoken + 1] = { text = text, interrupt = interrupt }
     end

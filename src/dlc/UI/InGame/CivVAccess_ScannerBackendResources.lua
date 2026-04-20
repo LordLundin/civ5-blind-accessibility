@@ -25,13 +25,13 @@ function ScannerBackendResources.Scan(_activePlayer, activeTeam)
                     local sub = USAGE_SUBS[row.ResourceUsage]
                     if sub ~= nil then
                         out[#out + 1] = {
-                            plotIndex   = i,
-                            backend     = ScannerBackendResources,
-                            data        = { resourceId = resId },
-                            category    = "resources",
+                            plotIndex = i,
+                            backend = ScannerBackendResources,
+                            data = { resourceId = resId },
+                            category = "resources",
                             subcategory = sub,
-                            itemName    = Text.key(row.Description),
-                            sortKey     = 0,
+                            itemName = Text.key(row.Description),
+                            sortKey = 0,
                         }
                     end
                 end
@@ -43,7 +43,9 @@ end
 
 function ScannerBackendResources.ValidateEntry(entry, _cursorPlotIndex)
     local plot = Map.GetPlotByIndex(entry.plotIndex)
-    if plot == nil then return false end
+    if plot == nil then
+        return false
+    end
     local activeTeam = Game.GetActiveTeam()
     return plot:GetResourceType(activeTeam) == entry.data.resourceId
 end

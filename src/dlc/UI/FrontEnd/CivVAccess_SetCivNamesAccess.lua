@@ -17,49 +17,75 @@
 include("CivVAccess_FrontendCommon")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 BaseMenu.install(ContextPtr, {
-    name             = "SetCivNames",
-    displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SET_CIV_NAMES"),
-    priorShowHide    = priorShowHide,
-    priorInput       = priorInput,
+    name = "SetCivNames",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SET_CIV_NAMES"),
+    priorShowHide = priorShowHide,
+    priorInput = priorInput,
     focusParkControl = "CancelButton",
     items = {
-        BaseMenuItems.Textfield({ controlName = "EditCivLeader",
-            textKey       = "TXT_KEY_PEDIA_LEADER_NAME",
-            priorCallback = Validate }),
-        BaseMenuItems.Textfield({ controlName = "EditCivName",
-            textKey       = "TXT_KEY_PEDIA_CIVILIZATION_NAME",
-            priorCallback = Validate }),
-        BaseMenuItems.Textfield({ controlName = "EditCivShortName",
-            textKey       = "TXT_KEY_PEDIA_CIVILIZATION_SHORT_NAME",
-            priorCallback = Validate }),
-        BaseMenuItems.Textfield({ controlName = "EditCivAdjective",
-            textKey       = "TXT_KEY_PEDIA_CIVILIZATION_ADJECTIVE",
-            priorCallback = Validate }),
-        BaseMenuItems.Textfield({ controlName = "EditNickName",
+        BaseMenuItems.Textfield({
+            controlName = "EditCivLeader",
+            textKey = "TXT_KEY_PEDIA_LEADER_NAME",
+            priorCallback = Validate,
+        }),
+        BaseMenuItems.Textfield({
+            controlName = "EditCivName",
+            textKey = "TXT_KEY_PEDIA_CIVILIZATION_NAME",
+            priorCallback = Validate,
+        }),
+        BaseMenuItems.Textfield({
+            controlName = "EditCivShortName",
+            textKey = "TXT_KEY_PEDIA_CIVILIZATION_SHORT_NAME",
+            priorCallback = Validate,
+        }),
+        BaseMenuItems.Textfield({
+            controlName = "EditCivAdjective",
+            textKey = "TXT_KEY_PEDIA_CIVILIZATION_ADJECTIVE",
+            priorCallback = Validate,
+        }),
+        BaseMenuItems.Textfield({
+            controlName = "EditNickName",
             visibilityControlName = "NickNameEditbox",
-            textKey       = "TXT_KEY_MP_NICK_NAME",
-            priorCallback = Validate }),
-        BaseMenuItems.Checkbox({ controlName = "UsePasswordCheck",
+            textKey = "TXT_KEY_MP_NICK_NAME",
+            priorCallback = Validate,
+        }),
+        BaseMenuItems.Checkbox({
+            controlName = "UsePasswordCheck",
             visibilityControlName = "PasswordStack",
-            textKey          = "TXT_KEY_MP_USE_PASSWORD",
-            tooltipKey       = "TXT_KEY_MP_USE_PASSWORD_TT",
-            activateCallback = function() Validate() end }),
-        BaseMenuItems.Textfield({ controlName = "EditPassword",
+            textKey = "TXT_KEY_MP_USE_PASSWORD",
+            tooltipKey = "TXT_KEY_MP_USE_PASSWORD_TT",
+            activateCallback = function()
+                Validate()
+            end,
+        }),
+        BaseMenuItems.Textfield({
+            controlName = "EditPassword",
             visibilityControlName = "PasswordStack",
-            textKey       = "TXT_KEY_MP_PASSWORD",
-            priorCallback = Validate }),
-        BaseMenuItems.Textfield({ controlName = "EditRetypePassword",
+            textKey = "TXT_KEY_MP_PASSWORD",
+            priorCallback = Validate,
+        }),
+        BaseMenuItems.Textfield({
+            controlName = "EditRetypePassword",
             visibilityControlName = "PasswordStack",
-            textKey       = "TXT_KEY_MP_RETYPE_PASSWORD",
-            priorCallback = Validate }),
-        BaseMenuItems.Button({ controlName = "CancelButton",
-            textKey  = "TXT_KEY_CANCEL_BUTTON",
-            activate = function() OnCancel() end }),
-        BaseMenuItems.Button({ controlName = "AcceptButton",
-            textKey  = "TXT_KEY_ACCEPT_BUTTON",
-            activate = function() OnAccept() end }),
+            textKey = "TXT_KEY_MP_RETYPE_PASSWORD",
+            priorCallback = Validate,
+        }),
+        BaseMenuItems.Button({
+            controlName = "CancelButton",
+            textKey = "TXT_KEY_CANCEL_BUTTON",
+            activate = function()
+                OnCancel()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "AcceptButton",
+            textKey = "TXT_KEY_ACCEPT_BUTTON",
+            activate = function()
+                OnAccept()
+            end,
+        }),
     },
 })

@@ -54,13 +54,19 @@ local CAN_ENABLE_REASON = {
 -- itself may contain colons for some Steam Workshop mods, so split from
 -- the right: last colon separates version, everything before is id.
 local function parseId(id)
-    if id == nil or string.sub(id, 1, 4) ~= "mod:" then return nil, nil end
+    if id == nil or string.sub(id, 1, 4) ~= "mod:" then
+        return nil, nil
+    end
     local body = string.sub(id, 5)
     local lastColon = body:match("^.*()(:)")
-    if lastColon == nil then return nil, nil end
-    local modId   = body:sub(1, lastColon - 1)
+    if lastColon == nil then
+        return nil, nil
+    end
+    local modId = body:sub(1, lastColon - 1)
     local version = tonumber(body:sub(lastColon + 1))
-    if modId == "" or version == nil then return nil, nil end
+    if modId == "" or version == nil then
+        return nil, nil
+    end
     return modId, version
 end
 
@@ -81,20 +87,29 @@ end
 -- because the engine API occasionally throws on malformed input in the wild.
 local function canEnableReason(modId, version)
     local ok, result = pcall(function()
-        return Modding.CanEnableMod({{ modId, version }})
+        return Modding.CanEnableMod({ { modId, version } })
     end)
     if not ok then
-        Log.warn("InstalledPanel: CanEnableMod failed for '"
-            .. tostring(modId) .. "' v" .. tostring(version)
-            .. ": " .. tostring(result))
+        Log.warn(
+            "InstalledPanel: CanEnableMod failed for '"
+                .. tostring(modId)
+                .. "' v"
+                .. tostring(version)
+                .. ": "
+                .. tostring(result)
+        )
         return 0
     end
-    if type(result) ~= "table" or result[1] == nil then return 0 end
+    if type(result) ~= "table" or result[1] == nil then
+        return 0
+    end
     return result[1]
 end
 
 local function addField(leaves, headerKey, value)
-    if value == nil or value == "" then return end
+    if value == nil or value == "" then
+        return
+    end
     local prefix = ""
     if headerKey ~= nil and headerKey ~= "" then
         prefix = Text.key(headerKey) .. ": "
@@ -103,7 +118,9 @@ local function addField(leaves, headerKey, value)
 end
 
 local function yesNoLabel(value)
-    if value == "1" then return Text.key("TXT_KEY_MODDING_LABELYES") end
+    if value == "1" then
+        return Text.key("TXT_KEY_MODDING_LABELYES")
+    end
     return Text.key("TXT_KEY_MODDING_LABELNO")
 end
 
@@ -112,7 +129,9 @@ end
 -- bullet carries no information in speech and just adds "bullet" noise
 -- before every dependency item.
 local function stripBullet(text)
-    if text == nil then return "" end
+    if text == nil then
+        return ""
+    end
     local stripped = string.gsub(text, "^%s*%[ICON_BULLET%]%s*", "")
     return stripped
 end
@@ -124,7 +143,9 @@ local function dependencyBullets(leaves, modId, version, modDetails)
     local count = 0
 
     local function add(tmplKey, title)
-        if title == nil or title == "" then return end
+        if title == nil or title == "" then
+            return
+        end
         leaves[#leaves + 1] = BaseMenuItems.Text({
             labelText = Text.format(tmplKey, title),
         })
@@ -143,8 +164,8 @@ local function dependencyBullets(leaves, modId, version, modDetails)
         count = count + 1
     end
 
-    local modAssoc         = Modding.GetModAssociations(modId, version)
-    local dlcAssoc         = Modding.GetDlcAssociations(modId, version)
+    local modAssoc = Modding.GetModAssociations(modId, version)
+    local dlcAssoc = Modding.GetDlcAssociations(modId, version)
     local gameVersionAssoc = Modding.GetGameVersionAssociations(modId, version)
 
     -- Drop the CivVAccess DLC's own GUID from the dependency list so the
@@ -167,9 +188,7 @@ local function dependencyBullets(leaves, modId, version, modDetails)
     -- Dependencies (Type == 2).
     for _, v in ipairs(modAssoc) do
         if v.Type == 2 then
-            local title = Text.format(
-                "TXT_KEY_CIVVACCESS_MODS_VERSION_RANGE",
-                v.ModTitle, v.MinVersion, v.MaxVersion)
+            local title = Text.format("TXT_KEY_CIVVACCESS_MODS_VERSION_RANGE", v.ModTitle, v.MinVersion, v.MaxVersion)
             add("TXT_KEY_MODDING_DEPENDSON", title)
         end
     end
@@ -180,8 +199,7 @@ local function dependencyBullets(leaves, modId, version, modDetails)
     end
     for _, v in ipairs(gameVersionAssoc) do
         if v.Type == 2 then
-            local title = Text.format(
-                "TXT_KEY_MODDING_GAMEVERSION", v.MinVersion, v.MaxVersion)
+            local title = Text.format("TXT_KEY_MODDING_GAMEVERSION", v.MinVersion, v.MaxVersion)
             add("TXT_KEY_MODDING_DEPENDSON", title)
         end
     end
@@ -189,9 +207,7 @@ local function dependencyBullets(leaves, modId, version, modDetails)
     -- References (Type == 1).
     for _, v in ipairs(modAssoc) do
         if v.Type == 1 then
-            local title = Text.format(
-                "TXT_KEY_CIVVACCESS_MODS_VERSION_RANGE",
-                v.ModTitle, v.MinVersion, v.MaxVersion)
+            local title = Text.format("TXT_KEY_CIVVACCESS_MODS_VERSION_RANGE", v.ModTitle, v.MinVersion, v.MaxVersion)
             add("TXT_KEY_MODDING_REFERENCES", title)
         end
     end
@@ -202,8 +218,7 @@ local function dependencyBullets(leaves, modId, version, modDetails)
     end
     for _, v in ipairs(gameVersionAssoc) do
         if v.Type == 1 then
-            local title = Text.format(
-                "TXT_KEY_MODDING_GAMEVERSION", v.MinVersion, v.MaxVersion)
+            local title = Text.format("TXT_KEY_MODDING_GAMEVERSION", v.MinVersion, v.MaxVersion)
             add("TXT_KEY_MODDING_REFERENCES", title)
         end
     end
@@ -211,9 +226,7 @@ local function dependencyBullets(leaves, modId, version, modDetails)
     -- Blockers (Type == -1).
     for _, v in ipairs(modAssoc) do
         if v.Type == -1 then
-            local title = Text.format(
-                "TXT_KEY_CIVVACCESS_MODS_VERSION_RANGE",
-                v.ModTitle, v.MinVersion, v.MaxVersion)
+            local title = Text.format("TXT_KEY_CIVVACCESS_MODS_VERSION_RANGE", v.ModTitle, v.MinVersion, v.MaxVersion)
             add("TXT_KEY_MODDING_BLOCKS", title)
         end
     end
@@ -224,8 +237,7 @@ local function dependencyBullets(leaves, modId, version, modDetails)
     end
     for _, v in ipairs(gameVersionAssoc) do
         if v.Type == -1 then
-            local title = Text.format(
-                "TXT_KEY_MODDING_GAMEVERSION", v.MinVersion, v.MaxVersion)
+            local title = Text.format("TXT_KEY_MODDING_GAMEVERSION", v.MinVersion, v.MaxVersion)
             add("TXT_KEY_MODDING_BLOCKS", title)
         end
     end
@@ -242,10 +254,8 @@ end
 -- visual modal. Lists the effected mods as informational leaves before the
 -- Yes / No choice so the user knows what they're committing to.
 local function pushDisableConfirmSub(mainHandler, modId, version, dependents)
-    local displayName = Modding.GetModProperty(modId, version, "Name")
-        or tostring(modId)
-    local confirmLabel = Text.format(
-        "TXT_KEY_CIVVACCESS_MODS_DISABLE_CONFIRM", displayName)
+    local displayName = Modding.GetModProperty(modId, version, "Name") or tostring(modId)
+    local confirmLabel = Text.format("TXT_KEY_CIVVACCESS_MODS_DISABLE_CONFIRM", displayName)
     local subName = mainHandler.name .. "/DisableConfirm"
     local items = {
         BaseMenuItems.Text({
@@ -254,24 +264,21 @@ local function pushDisableConfirmSub(mainHandler, modId, version, dependents)
     }
     for _, dep in ipairs(dependents) do
         if dep.ModID ~= modId then
-            local depName = Modding.GetModProperty(dep.ModID, dep.Version, "Name")
-                or tostring(dep.ModID)
+            local depName = Modding.GetModProperty(dep.ModID, dep.Version, "Name") or tostring(dep.ModID)
             items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.format(
-                    "TXT_KEY_CIVVACCESS_MODS_VERSION_SUFFIX",
-                    depName, dep.Version),
+                labelText = Text.format("TXT_KEY_CIVVACCESS_MODS_VERSION_SUFFIX", depName, dep.Version),
             })
         end
     end
     -- No first so arrow-down to Yes is an explicit affirmative step.
     items[#items + 1] = BaseMenuItems.Choice({
-        textKey  = "TXT_KEY_NO_BUTTON",
+        textKey = "TXT_KEY_NO_BUTTON",
         activate = function()
             HandlerStack.removeByName(subName, true)
         end,
     })
     items[#items + 1] = BaseMenuItems.Choice({
-        textKey  = "TXT_KEY_YES_BUTTON",
+        textKey = "TXT_KEY_YES_BUTTON",
         activate = function()
             for _, dep in ipairs(dependents) do
                 Modding.DisableMod(dep.ModID, dep.Version)
@@ -281,10 +288,10 @@ local function pushDisableConfirmSub(mainHandler, modId, version, dependents)
         end,
     })
     local sub = BaseMenu.create({
-        name        = subName,
+        name = subName,
         displayName = confirmLabel,
-        items       = items,
-        escapePops  = true,
+        items = items,
+        escapePops = true,
     })
     HandlerStack.push(sub)
 end
@@ -294,33 +301,33 @@ end
 -- commits to a specific action rather than toggling a checkbox + Yes.
 local function pushDeleteConfirmSub(mainHandler, modId, version, displayName)
     local hasUserData = Modding.HasUserData(modId, version)
-    local subName     = mainHandler.name .. "/DeleteConfirm"
-    local confirmLabel = Text.format(
-        "TXT_KEY_CIVVACCESS_MODS_DELETE_CONFIRM", displayName)
+    local subName = mainHandler.name .. "/DeleteConfirm"
+    local confirmLabel = Text.format("TXT_KEY_CIVVACCESS_MODS_DELETE_CONFIRM", displayName)
 
     local items = {
         BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_NO_BUTTON",
+            textKey = "TXT_KEY_NO_BUTTON",
             activate = function()
                 HandlerStack.removeByName(subName, true)
             end,
         }),
         BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_YES_BUTTON",
+            textKey = "TXT_KEY_YES_BUTTON",
             activate = function()
                 Modding.DeleteMod(modId, version)
                 RefreshMods()
                 HandlerStack.removeByName(subName, true)
                 mainHandler.setItems({
                     BaseMenuItems.Text({
-                        textKey = "TXT_KEY_CIVVACCESS_MODS_DELETED" }),
+                        textKey = "TXT_KEY_CIVVACCESS_MODS_DELETED",
+                    }),
                 }, READER_TAB_IDX)
             end,
         }),
     }
     if hasUserData then
         items[#items + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_CIVVACCESS_MODS_DELETE_WITH_USER_DATA",
+            textKey = "TXT_KEY_CIVVACCESS_MODS_DELETE_WITH_USER_DATA",
             activate = function()
                 Modding.DeleteMod(modId, version)
                 Modding.DeleteUserData(modId, version)
@@ -328,45 +335,46 @@ local function pushDeleteConfirmSub(mainHandler, modId, version, displayName)
                 HandlerStack.removeByName(subName, true)
                 mainHandler.setItems({
                     BaseMenuItems.Text({
-                        textKey = "TXT_KEY_CIVVACCESS_MODS_DELETED" }),
+                        textKey = "TXT_KEY_CIVVACCESS_MODS_DELETED",
+                    }),
                 }, READER_TAB_IDX)
             end,
         })
     end
 
     local sub = BaseMenu.create({
-        name        = subName,
+        name = subName,
         displayName = confirmLabel,
-        items       = items,
-        escapePops  = true,
+        items = items,
+        escapePops = true,
     })
     HandlerStack.push(sub)
 end
 
 local function pushUnsubscribeConfirmSub(mainHandler, modId, version, displayName)
     local subName = mainHandler.name .. "/UnsubscribeConfirm"
-    local confirmLabel = Text.format(
-        "TXT_KEY_CIVVACCESS_MODS_UNSUBSCRIBE_CONFIRM", displayName)
+    local confirmLabel = Text.format("TXT_KEY_CIVVACCESS_MODS_UNSUBSCRIBE_CONFIRM", displayName)
     local sub = BaseMenu.create({
-        name        = subName,
+        name = subName,
         displayName = confirmLabel,
-        preamble    = Text.key("TXT_KEY_MODDING_UNSUBSCRIBE_CONFIRM"),
+        preamble = Text.key("TXT_KEY_MODDING_UNSUBSCRIBE_CONFIRM"),
         items = {
             BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_NO_BUTTON",
+                textKey = "TXT_KEY_NO_BUTTON",
                 activate = function()
                     HandlerStack.removeByName(subName, true)
                 end,
             }),
             BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_YES_BUTTON",
+                textKey = "TXT_KEY_YES_BUTTON",
                 activate = function()
                     Modding.UnsubscribeMod(modId, version)
                     RefreshMods()
                     HandlerStack.removeByName(subName, true)
                     mainHandler.setItems({
                         BaseMenuItems.Text({
-                            textKey = "TXT_KEY_CIVVACCESS_MODS_DELETED" }),
+                            textKey = "TXT_KEY_CIVVACCESS_MODS_DELETED",
+                        }),
                     }, READER_TAB_IDX)
                 end,
             }),
@@ -388,8 +396,7 @@ function InstalledPanel.buildReader(mainHandler, id)
 
     local row = findRowById(modId, version)
     if row == nil then
-        Log.warn("InstalledPanel: row missing for '" .. modId .. "' v"
-            .. tostring(version))
+        Log.warn("InstalledPanel: row missing for '" .. modId .. "' v" .. tostring(version))
         return { items = {} }
     end
 
@@ -397,9 +404,14 @@ function InstalledPanel.buildReader(mainHandler, id)
         return Modding.GetInstalledModDetails(modId, version)
     end)
     if not ok or modDetails == nil then
-        Log.warn("InstalledPanel: GetInstalledModDetails failed for '"
-            .. modId .. "' v" .. tostring(version)
-            .. ": " .. tostring(modDetails))
+        Log.warn(
+            "InstalledPanel: GetInstalledModDetails failed for '"
+                .. modId
+                .. "' v"
+                .. tostring(version)
+                .. ": "
+                .. tostring(modDetails)
+        )
         return { items = {} }
     end
 
@@ -420,14 +432,10 @@ function InstalledPanel.buildReader(mainHandler, id)
     end
     addField(leaves, "TXT_KEY_MODDING_LABELVERSION", versionStr)
     addField(leaves, "TXT_KEY_MODDING_LABELAUTHOR", modDetails.Authors)
-    addField(leaves, "TXT_KEY_MODDING_LABELSPECIALTHANKS",
-        modDetails.SpecialThanks)
-    addField(leaves, "TXT_KEY_MODDING_LABELSUPPORTSSINGLEPLAYER",
-        yesNoLabel(modDetails.SupportsSinglePlayer))
-    addField(leaves, "TXT_KEY_MODDING_LABELSUPPORTSMULTIPLAYER",
-        yesNoLabel(modDetails.SupportsMultiplayer))
-    addField(leaves, "TXT_KEY_MODDING_LABELAFFECTSSAVEDGAMES",
-        yesNoLabel(modDetails.AffectsSavedGames))
+    addField(leaves, "TXT_KEY_MODDING_LABELSPECIALTHANKS", modDetails.SpecialThanks)
+    addField(leaves, "TXT_KEY_MODDING_LABELSUPPORTSSINGLEPLAYER", yesNoLabel(modDetails.SupportsSinglePlayer))
+    addField(leaves, "TXT_KEY_MODDING_LABELSUPPORTSMULTIPLAYER", yesNoLabel(modDetails.SupportsMultiplayer))
+    addField(leaves, "TXT_KEY_MODDING_LABELAFFECTSSAVEDGAMES", yesNoLabel(modDetails.AffectsSavedGames))
     addField(leaves, "TXT_KEY_MODDING_LABELUPDATED", modDetails.Updated)
 
     if modDetails.Description ~= nil and modDetails.Description ~= "" then
@@ -441,14 +449,16 @@ function InstalledPanel.buildReader(mainHandler, id)
     -- Current enable state announced as a field so the user knows before
     -- activating Enable / Disable (both actions appear below; only the
     -- relevant one is activatable).
-    addField(leaves, "TXT_KEY_CIVVACCESS_MODS_STATE",
-        Text.key(row.Enabled and "TXT_KEY_CIVVACCESS_MODS_STATE_ENABLED"
-                              or "TXT_KEY_CIVVACCESS_MODS_STATE_DISABLED"))
+    addField(
+        leaves,
+        "TXT_KEY_CIVVACCESS_MODS_STATE",
+        Text.key(row.Enabled and "TXT_KEY_CIVVACCESS_MODS_STATE_ENABLED" or "TXT_KEY_CIVVACCESS_MODS_STATE_DISABLED")
+    )
 
     -- Action leaves.
     if row.Enabled then
         leaves[#leaves + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_MODDING_DISABLEMOD",
+            textKey = "TXT_KEY_MODDING_DISABLEMOD",
             activate = function()
                 local deps = Modding.GetModsRequiredToDisableMod(modId, version)
                 if deps ~= nil and #deps > 1 then
@@ -463,7 +473,7 @@ function InstalledPanel.buildReader(mainHandler, id)
         local reason = canEnableReason(modId, version)
         if reason == 0 then
             leaves[#leaves + 1] = BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_MODDING_ENABLEMOD",
+                textKey = "TXT_KEY_MODDING_ENABLEMOD",
                 activate = function()
                     EnableMod(modId, version)
                 end,
@@ -472,15 +482,15 @@ function InstalledPanel.buildReader(mainHandler, id)
             leaves[#leaves + 1] = BaseMenuItems.Text({
                 labelText = Text.format(
                     "TXT_KEY_CIVVACCESS_MODS_ENABLE_BLOCKED",
-                    Text.key(CAN_ENABLE_REASON[reason]
-                        or "TXT_KEY_MODDING_MOD_BLOCKED_BY_OTHER_MOD")),
+                    Text.key(CAN_ENABLE_REASON[reason] or "TXT_KEY_MODDING_MOD_BLOCKED_BY_OTHER_MOD")
+                ),
             })
         end
     end
 
     if row.State == "NeedsUpdate" then
         leaves[#leaves + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_MODDING_UPDATEMOD",
+            textKey = "TXT_KEY_MODDING_UPDATEMOD",
             activate = function()
                 Modding.UpdateMod(modId, version)
                 RefreshMods()
@@ -491,14 +501,14 @@ function InstalledPanel.buildReader(mainHandler, id)
     local displayName = modDetails.Name or row.DisplayName or ""
     if Modding.CanUnsubscribeMod(modId, version) then
         leaves[#leaves + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_MODDING_UNSUBSCRIBE_MOD",
+            textKey = "TXT_KEY_MODDING_UNSUBSCRIBE_MOD",
             activate = function()
                 pushUnsubscribeConfirmSub(mainHandler, modId, version, displayName)
             end,
         })
     elseif Modding.CanDeleteMod(modId, version) then
         leaves[#leaves + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_MODDING_DELETEMOD",
+            textKey = "TXT_KEY_MODDING_DELETEMOD",
             activate = function()
                 pushDeleteConfirmSub(mainHandler, modId, version, displayName)
             end,
@@ -517,15 +527,13 @@ end
 -- installing rows use the engine's Teaser string (localized progress text).
 local function pickerLabel(row)
     if row.State == "Installed" or row.State == "NeedsUpdate" then
-        local stateLabel = Text.key(row.Enabled
-            and "TXT_KEY_CIVVACCESS_MODS_STATE_ENABLED"
-            or  "TXT_KEY_CIVVACCESS_MODS_STATE_DISABLED")
+        local stateLabel = Text.key(
+            row.Enabled and "TXT_KEY_CIVVACCESS_MODS_STATE_ENABLED" or "TXT_KEY_CIVVACCESS_MODS_STATE_DISABLED"
+        )
         if row.State == "NeedsUpdate" then
-            return Text.format("TXT_KEY_CIVVACCESS_MODS_PICKER_NEEDS_UPDATE",
-                row.DisplayName, stateLabel)
+            return Text.format("TXT_KEY_CIVVACCESS_MODS_PICKER_NEEDS_UPDATE", row.DisplayName, stateLabel)
         end
-        return Text.format("TXT_KEY_CIVVACCESS_MODS_PICKER_ROW",
-            row.DisplayName, stateLabel)
+        return Text.format("TXT_KEY_CIVVACCESS_MODS_PICKER_ROW", row.DisplayName, stateLabel)
     end
     if row.Teaser ~= nil and row.Teaser ~= "" then
         return row.DisplayName .. ": " .. row.Teaser
@@ -537,11 +545,10 @@ function InstalledPanel.buildPickerItems(entryFactory, mainHandlerRef)
     local items = {}
 
     for _, row in ipairs(g_SortedMods) do
-        if (row.State == "Installed" or row.State == "NeedsUpdate")
-                and row.ModId ~= nil and row.Version ~= nil then
+        if (row.State == "Installed" or row.State == "NeedsUpdate") and row.ModId ~= nil and row.Version ~= nil then
             items[#items + 1] = entryFactory({
-                id          = "mod:" .. row.ModId .. ":" .. tostring(row.Version),
-                labelText   = pickerLabel(row),
+                id = "mod:" .. row.ModId .. ":" .. tostring(row.Version),
+                labelText = pickerLabel(row),
                 buildReader = function(handler, id)
                     return InstalledPanel.buildReader(mainHandlerRef(), id)
                 end,
@@ -570,18 +577,22 @@ function InstalledPanel.buildPickerItems(entryFactory, mainHandlerRef)
         textKey = "TXT_KEY_CIVVACCESS_MODS_SORT_BY",
         items = {
             BaseMenuItems.Choice({
-                textKey    = "TXT_KEY_MODDING_SORT_TITLE",
+                textKey = "TXT_KEY_MODDING_SORT_TITLE",
                 selectedFn = function()
                     return g_CurrentSortOption == "Name"
                 end,
-                activate = function() SortListingsBy("Name") end,
+                activate = function()
+                    SortListingsBy("Name")
+                end,
             }),
             BaseMenuItems.Choice({
-                textKey    = "TXT_KEY_MODDING_SORT_ENABLED",
+                textKey = "TXT_KEY_MODDING_SORT_ENABLED",
                 selectedFn = function()
                     return g_CurrentSortOption == "Enabled"
                 end,
-                activate = function() SortListingsBy("Enabled") end,
+                activate = function()
+                    SortListingsBy("Enabled")
+                end,
             }),
         },
     })
@@ -597,11 +608,13 @@ function InstalledPanel.buildPickerItems(entryFactory, mainHandlerRef)
         items = {
             BaseMenuItems.Checkbox({
                 controlName = "ShowDLCMods",
-                textKey     = "TXT_KEY_MODDING_SHOWDLCMODS",
+                textKey = "TXT_KEY_MODDING_SHOWDLCMODS",
             }),
             BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_CIVVACCESS_MODS_APPLY_OPTIONS",
-                activate = function() RefreshMods() end,
+                textKey = "TXT_KEY_CIVVACCESS_MODS_APPLY_OPTIONS",
+                activate = function()
+                    RefreshMods()
+                end,
             }),
         },
     })
@@ -615,18 +628,24 @@ function InstalledPanel.buildPickerItems(entryFactory, mainHandlerRef)
     -- Choice. Workshop is gated on Steam overlay availability, matching
     -- base's SmallButton2:SetHide (ModsBrowser.lua line 38).
     items[#items + 1] = BaseMenuItems.Choice({
-        textKey  = "TXT_KEY_MODDING_NEXT",
-        activate = function() LuaEvents.CivVAccessModsBrowserNext() end,
+        textKey = "TXT_KEY_MODDING_NEXT",
+        activate = function()
+            LuaEvents.CivVAccessModsBrowserNext()
+        end,
     })
     if Steam.IsOverlayEnabled() then
         items[#items + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_MODDING_WORKSHOP",
-            activate = function() LuaEvents.CivVAccessModsBrowserWorkshop() end,
+            textKey = "TXT_KEY_MODDING_WORKSHOP",
+            activate = function()
+                LuaEvents.CivVAccessModsBrowserWorkshop()
+            end,
         })
     end
     items[#items + 1] = BaseMenuItems.Choice({
-        textKey  = "TXT_KEY_MODDING_BACK",
-        activate = function() LuaEvents.CivVAccessModsBrowserBack() end,
+        textKey = "TXT_KEY_MODDING_BACK",
+        activate = function()
+            LuaEvents.CivVAccessModsBrowserBack()
+        end,
     })
 
     return items

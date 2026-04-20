@@ -12,12 +12,18 @@ Text = {}
 -- the Tag after the underscore is ignored (same as the engine when args
 -- arrive by position).
 local function substitute(s, args, argCount)
-    if argCount == 0 then return s end
-    return (s:gsub("{(%d+)_[^}]*}", function(n)
-        local v = args[tonumber(n)]
-        if v == nil then return "" end
-        return tostring(v)
-    end))
+    if argCount == 0 then
+        return s
+    end
+    return (
+        s:gsub("{(%d+)_[^}]*}", function(n)
+            local v = args[tonumber(n)]
+            if v == nil then
+                return ""
+            end
+            return tostring(v)
+        end)
+    )
 end
 
 local function lookup(key, ...)
@@ -25,7 +31,9 @@ local function lookup(key, ...)
         local mapped = CivVAccess_Strings and CivVAccess_Strings[key]
         if mapped ~= nil then
             local argCount = select("#", ...)
-            if argCount == 0 then return mapped end
+            if argCount == 0 then
+                return mapped
+            end
             return substitute(mapped, { ... }, argCount)
         end
         -- Fall through to Locale so the missing-key warning still fires via

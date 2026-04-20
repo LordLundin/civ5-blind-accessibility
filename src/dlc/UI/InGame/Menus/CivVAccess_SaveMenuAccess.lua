@@ -50,12 +50,14 @@ include("CivVAccess_SaveMenuCore")
 Log.info("SaveMenuAccess: wiring PickerReader over base SaveMenu")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 local session = PickerReader.create()
 
 local mainHandler
-local function getHandler() return mainHandler end
+local function getHandler()
+    return mainHandler
+end
 
 -- Monkey-patch SetupFileButtonList so every rebuild (cloud toggle, delete,
 -- save-and-close on failure path, ShowHide open) also refreshes our picker.
@@ -65,7 +67,9 @@ local function getHandler() return mainHandler end
 local baseSetupFileButtonList = SetupFileButtonList
 SetupFileButtonList = function(...)
     baseSetupFileButtonList(...)
-    if mainHandler == nil then return end
+    if mainHandler == nil then
+        return
+    end
     local newItems = SaveMenu.buildPickerItems(session.Entry, getHandler)
     mainHandler.setItems(newItems, 1)
 end
@@ -82,12 +86,12 @@ local bootstrapPickerItems = {
 }
 
 mainHandler = session.install(ContextPtr, {
-    name             = "SaveMenu",
-    displayName      = Text.key("TXT_KEY_MENU_SAVE_BUTTON"),
-    pickerTabName    = "TXT_KEY_CIVVACCESS_SAVE_SAVES_TAB",
-    readerTabName    = "TXT_KEY_CIVVACCESS_SAVE_DETAILS_TAB",
+    name = "SaveMenu",
+    displayName = Text.key("TXT_KEY_MENU_SAVE_BUTTON"),
+    pickerTabName = "TXT_KEY_CIVVACCESS_SAVE_SAVES_TAB",
+    readerTabName = "TXT_KEY_CIVVACCESS_SAVE_DETAILS_TAB",
     focusParkControl = "BackButton",
-    priorShowHide    = priorShowHide,
-    priorInput       = priorInput,
-    pickerItems      = bootstrapPickerItems,
+    priorShowHide = priorShowHide,
+    priorInput = priorInput,
+    pickerItems = bootstrapPickerItems,
 })

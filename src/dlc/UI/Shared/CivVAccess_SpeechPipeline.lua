@@ -30,9 +30,13 @@ function SpeechPipeline._reset()
 end
 
 function SpeechPipeline.speakInterrupt(text)
-    if not _enabled then return end
+    if not _enabled then
+        return
+    end
     local filtered = TextFilter.filter(text)
-    if filtered == nil or filtered == "" then return end
+    if filtered == nil or filtered == "" then
+        return
+    end
     local now = SpeechPipeline._timeSource()
     if filtered == _lastInterruptText and (now - _lastInterruptTime) < DEDUPE_WINDOW_SECONDS then
         return
@@ -43,9 +47,13 @@ function SpeechPipeline.speakInterrupt(text)
 end
 
 function SpeechPipeline.speakQueued(text)
-    if not _enabled then return end
+    if not _enabled then
+        return
+    end
     local filtered = TextFilter.filter(text)
-    if filtered == nil or filtered == "" then return end
+    if filtered == nil or filtered == "" then
+        return
+    end
     SpeechPipeline._speakAction(filtered, false)
 end
 

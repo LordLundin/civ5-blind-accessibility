@@ -28,13 +28,17 @@ Lobby = {}
 -- input (caller logs through its own path).
 local function parseId(id)
     local idStr = string.match(id or "", "^server:(.+)$")
-    if idStr == nil then return nil end
+    if idStr == nil then
+        return nil
+    end
     return tonumber(idStr) or idStr
 end
 
 local function findListingById(serverID)
     for _, listing in ipairs(g_Listings) do
-        if listing.ServerID == serverID then return listing end
+        if listing.ServerID == serverID then
+            return listing
+        end
     end
     return nil
 end
@@ -43,9 +47,13 @@ end
 -- nils if the caption is missing or ill-formed; callers fall back to the
 -- raw string.
 local function parseMemberCounts(caption)
-    if caption == nil then return nil, nil end
+    if caption == nil then
+        return nil, nil
+    end
     local cur, max = string.match(caption, "^(%d+)/(%d+)$")
-    if cur == nil then return nil, nil end
+    if cur == nil then
+        return nil, nil
+    end
     return tonumber(cur), tonumber(max)
 end
 
@@ -69,7 +77,9 @@ end
 -- normalize so the user never hears "@5868795" read out.
 local function playerNames(listing)
     local raw = listing.MembersLabelToolTip
-    if raw == nil or raw == "" then return {} end
+    if raw == nil or raw == "" then
+        return {}
+    end
     local names = {}
     local start = 1
     while true do
@@ -83,16 +93,22 @@ local function playerNames(listing)
         local trimmed = chunk:match("^%s*(.-)%s*$")
         if trimmed ~= nil and trimmed ~= "" then
             trimmed = (trimmed:gsub("@%S+$", ""))
-            if trimmed ~= "" then names[#names + 1] = trimmed end
+            if trimmed ~= "" then
+                names[#names + 1] = trimmed
+            end
         end
-        if a == nil then break end
+        if a == nil then
+            break
+        end
         start = b + 1
     end
     return names
 end
 
 local function addField(leaves, headerKey, value)
-    if value == nil or value == "" then return end
+    if value == nil or value == "" then
+        return
+    end
     local prefix = ""
     if headerKey ~= nil and headerKey ~= "" then
         prefix = Text.key(headerKey) .. ": "
@@ -107,8 +123,12 @@ end
 local function refreshChoiceLabel()
     local l = Controls.RefreshButtonLabel
     if l ~= nil then
-        local ok, t = pcall(function() return l:GetText() end)
-        if ok and t ~= nil and t ~= "" then return tostring(t) end
+        local ok, t = pcall(function()
+            return l:GetText()
+        end)
+        if ok and t ~= nil and t ~= "" then
+            return tostring(t)
+        end
     end
     return Text.key("TXT_KEY_MULTIPLAYER_REFRESH_GAME_LIST")
 end
@@ -164,8 +184,7 @@ function Lobby.buildReader(mainHandler, id)
     -- string built by base CreateDlcToolTip. [ICON_BULLET] + [NEWLINE]
     -- tokens are stripped / spaced by TextFilter on announce so the list
     -- reads cleanly without a custom parse here.
-    addField(leaves, "TXT_KEY_MULTIPLAYER_DLCHOSTED",
-        listing.DLCHostedCaption)
+    addField(leaves, "TXT_KEY_MULTIPLAYER_DLCHOSTED", listing.DLCHostedCaption)
     if listing.DLCHostedToolTip ~= nil and listing.DLCHostedToolTip ~= "" then
         leaves[#leaves + 1] = BaseMenuItems.Text({
             labelText = listing.DLCHostedToolTip,
@@ -176,7 +195,7 @@ function Lobby.buildReader(mainHandler, id)
     -- Matchmaking.JoinMultiplayerGame does not require that visual state;
     -- we call ServerListingButtonClick directly which wraps the join call.
     leaves[#leaves + 1] = BaseMenuItems.Choice({
-        textKey  = "TXT_KEY_MULTIPLAYER_JOIN_GAME",
+        textKey = "TXT_KEY_MULTIPLAYER_JOIN_GAME",
         activate = function()
             ServerListingButtonClick(serverID)
         end,
@@ -189,10 +208,12 @@ end
 -- Picker builder
 
 local function pickerLabel(listing)
-    return Text.format("TXT_KEY_CIVVACCESS_LOBBY_PICKER_ROW",
+    return Text.format(
+        "TXT_KEY_CIVVACCESS_LOBBY_PICKER_ROW",
         listing.ServerName or "",
         membersLabel(listing),
-        listing.MapTypeCaption or "")
+        listing.MapTypeCaption or ""
+    )
 end
 
 function Lobby.buildPickerItems(entryFactory, mainHandlerRef)
@@ -201,8 +222,8 @@ function Lobby.buildPickerItems(entryFactory, mainHandlerRef)
     for _, listing in ipairs(g_Listings) do
         if listing.ServerID ~= nil then
             items[#items + 1] = entryFactory({
-                id          = "server:" .. tostring(listing.ServerID),
-                labelText   = pickerLabel(listing),
+                id = "server:" .. tostring(listing.ServerID),
+                labelText = pickerLabel(listing),
                 tooltipText = listing.DLCHostedToolTip,
                 buildReader = function(handler, id)
                     return Lobby.buildReader(mainHandlerRef(), id)
@@ -236,18 +257,22 @@ function Lobby.buildPickerItems(entryFactory, mainHandlerRef)
         local opt = spec.option
         if opt ~= nil then
             sortChoices[#sortChoices + 1] = BaseMenuItems.Choice({
-                textKey    = spec.key,
-                tooltipFn  = function() return sortDirectionTooltip(opt) end,
+                textKey = spec.key,
+                tooltipFn = function()
+                    return sortDirectionTooltip(opt)
+                end,
                 selectedFn = function()
                     return opt.CurrentDirection ~= nil
                 end,
-                activate = function() SortOptionSelected(opt) end,
+                activate = function()
+                    SortOptionSelected(opt)
+                end,
             })
         end
     end
     items[#items + 1] = BaseMenuItems.Group({
         textKey = "TXT_KEY_CIVVACCESS_LOAD_SORT_BY",
-        items   = sortChoices,
+        items = sortChoices,
     })
 
     -- Connect-to-IP textfield. Visible only in pitboss-internet lobby mode
@@ -255,30 +280,36 @@ function Lobby.buildPickerItems(entryFactory, mainHandlerRef)
     -- priorCallback fires OnConnectIPEdit on commit; base registered the
     -- same handler on the raw EditBox, which our BaseMenuEditMode wraps.
     items[#items + 1] = BaseMenuItems.Textfield({
-        controlName           = "ConnectIPEdit",
+        controlName = "ConnectIPEdit",
         visibilityControlName = "ConnectIPBox",
-        textKey               = "TXT_KEY_MULTIPLAYER_CONNECT_TO_IP",
-        tooltipKey            = "TXT_KEY_MULTIPLAYER_CONNECT_TO_IP_TT",
-        priorCallback         = OnConnectIPEdit,
+        textKey = "TXT_KEY_MULTIPLAYER_CONNECT_TO_IP",
+        tooltipKey = "TXT_KEY_MULTIPLAYER_CONNECT_TO_IP_TT",
+        priorCallback = OnConnectIPEdit,
     })
 
     -- Refresh choice. Label flips between "Refresh Game List" and "Stop
     -- Refresh" per base's UpdateRefreshButton; read live via labelFn so
     -- the user hears current state without a rebuild.
     items[#items + 1] = BaseMenuItems.Choice({
-        labelFn  = refreshChoiceLabel,
-        activate = function() RefreshButtonClick() end,
+        labelFn = refreshChoiceLabel,
+        activate = function()
+            RefreshButtonClick()
+        end,
     })
 
     items[#items + 1] = BaseMenuItems.Choice({
-        textKey    = "TXT_KEY_MULTIPLAYER_HOST_GAME",
+        textKey = "TXT_KEY_MULTIPLAYER_HOST_GAME",
         tooltipKey = "TXT_KEY_MULTIPLAYER_HOST_GAME_TT",
-        activate   = function() HostButtonClick() end,
+        activate = function()
+            HostButtonClick()
+        end,
     })
 
     items[#items + 1] = BaseMenuItems.Choice({
-        textKey  = "TXT_KEY_BACK_BUTTON",
-        activate = function() BackButtonClick() end,
+        textKey = "TXT_KEY_BACK_BUTTON",
+        activate = function()
+            BackButtonClick()
+        end,
     })
 
     return items

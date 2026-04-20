@@ -7,30 +7,38 @@ include("CivVAccess_FrontendCommon")
 include("CivVAccess_ModListPreamble")
 
 BaseMenu.install(ContextPtr, {
-    name        = "ModsSinglePlayer",
+    name = "ModsSinglePlayer",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MODS_SINGLE_PLAYER"),
-    preamble    = ModListPreamble.fn(),
-    priorInput  = BaseMenu.escOnlyInput(NavigateBack),
+    preamble = ModListPreamble.fn(),
+    priorInput = BaseMenu.escOnlyInput(NavigateBack),
     items = {
-        BaseMenuItems.Button({ controlName = "PlayMapButton",
-            textKey  = "TXT_KEY_MODDING_MAPS",
+        BaseMenuItems.Button({
+            controlName = "PlayMapButton",
+            textKey = "TXT_KEY_MODDING_MAPS",
             activate = function()
-                UIManager:QueuePopup(Controls.ModdingGameSetupScreen,
-                    PopupPriority.ModdingGameSetupScreen)
-            end }),
-        BaseMenuItems.Button({ controlName = "CustomGameButton",
-            textKey  = "TXT_KEY_MODDING_CUSTOMGAME",
+                UIManager:QueuePopup(Controls.ModdingGameSetupScreen, PopupPriority.ModdingGameSetupScreen)
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "CustomGameButton",
+            textKey = "TXT_KEY_MODDING_CUSTOMGAME",
             activate = function()
                 UIManager:QueuePopup(Controls.ModsCustom, PopupPriority.ModsCustom)
-            end }),
-        BaseMenuItems.Button({ controlName = "LoadGameButton",
-            textKey  = "TXT_KEY_MODDING_LOADGAME",
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "LoadGameButton",
+            textKey = "TXT_KEY_MODDING_LOADGAME",
             activate = function()
-                UIManager:QueuePopup(Controls.LoadGameScreen,
-                    PopupPriority.LoadGameScreen)
-            end }),
-        BaseMenuItems.Button({ controlName = "BackButton",
-            textKey  = "TXT_KEY_MODDING_MENU_BACK",
-            activate = function() NavigateBack() end }),
+                UIManager:QueuePopup(Controls.LoadGameScreen, PopupPriority.LoadGameScreen)
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "BackButton",
+            textKey = "TXT_KEY_MODDING_MENU_BACK",
+            activate = function()
+                NavigateBack()
+            end,
+        }),
     },
 })

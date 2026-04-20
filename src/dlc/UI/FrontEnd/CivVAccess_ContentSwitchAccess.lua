@@ -7,9 +7,9 @@ include("CivVAccess_FrontendCommon")
 local priorShowHide = OnShowHide
 
 BaseMenu.install(ContextPtr, {
-    name          = "ContentSwitch",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CONTENT_SWITCH"),
-    preamble      = Text.key("TXT_KEY_UPDATING_GAME_DATA"),
+    name = "ContentSwitch",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CONTENT_SWITCH"),
+    preamble = Text.key("TXT_KEY_UPDATING_GAME_DATA"),
     priorShowHide = priorShowHide,
     items = {},
 })

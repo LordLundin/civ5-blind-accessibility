@@ -20,12 +20,12 @@ local MAX_PLAYER_INDEX = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 63
 -- Helicopter Gunship is DOMAIN_LAND with fast-attack behaviour.
 local MELEE_COMBATS = {
     UNITCOMBAT_MELEE = true,
-    UNITCOMBAT_GUN   = true,
+    UNITCOMBAT_GUN = true,
     UNITCOMBAT_ARMOR = true,
     UNITCOMBAT_RECON = true,
 }
 local MOUNTED_COMBATS = {
-    UNITCOMBAT_MOUNTED    = true,
+    UNITCOMBAT_MOUNTED = true,
     UNITCOMBAT_HELICOPTER = true,
 }
 
@@ -47,17 +47,33 @@ local function roleSubcategory(unit)
         return "civilian"
     end
     local domain = unit:GetDomainType()
-    if domain == DomainTypes.DOMAIN_AIR then return "air" end
-    if domain == DomainTypes.DOMAIN_SEA then return "naval" end
+    if domain == DomainTypes.DOMAIN_AIR then
+        return "air"
+    end
+    if domain == DomainTypes.DOMAIN_SEA then
+        return "naval"
+    end
     local combatId = unit:GetUnitCombatType()
-    if combatId == nil or combatId < 0 then return nil end
+    if combatId == nil or combatId < 0 then
+        return nil
+    end
     local combatRow = GameInfo.UnitCombatInfos and GameInfo.UnitCombatInfos[combatId]
     local combatType = combatRow and combatRow.Type
-    if combatType == nil then return nil end
-    if combatType == "UNITCOMBAT_ARCHER" then return "ranged" end
-    if combatType == "UNITCOMBAT_SIEGE"  then return "siege"  end
-    if MOUNTED_COMBATS[combatType]       then return "mounted" end
-    if MELEE_COMBATS[combatType]         then return "melee"   end
+    if combatType == nil then
+        return nil
+    end
+    if combatType == "UNITCOMBAT_ARCHER" then
+        return "ranged"
+    end
+    if combatType == "UNITCOMBAT_SIEGE" then
+        return "siege"
+    end
+    if MOUNTED_COMBATS[combatType] then
+        return "mounted"
+    end
+    if MELEE_COMBATS[combatType] then
+        return "melee"
+    end
     return nil
 end
 
@@ -65,20 +81,32 @@ end
 -- does this unit's owner belong to? Barbarians route into units_enemy
 -- via the separate `barbarians` subcategory; caller checks that first.
 local function ownerCategory(ownerId, activePlayerId, activeTeam)
-    if ownerId == activePlayerId then return "units_my" end
+    if ownerId == activePlayerId then
+        return "units_my"
+    end
     local owner = Players[ownerId]
-    if owner == nil then return nil end
-    if owner:IsBarbarian() then return "units_enemy" end
+    if owner == nil then
+        return nil
+    end
+    if owner:IsBarbarian() then
+        return "units_enemy"
+    end
     local ownerTeamId = owner:GetTeam()
-    if ownerTeamId == activeTeam then return "units_my" end
-    if Teams[activeTeam]:IsAtWar(ownerTeamId) then return "units_enemy" end
+    if ownerTeamId == activeTeam then
+        return "units_my"
+    end
+    if Teams[activeTeam]:IsAtWar(ownerTeamId) then
+        return "units_enemy"
+    end
     return "units_neutral"
 end
 
 local function unitItemName(unit)
     local unitType = unit:GetUnitType()
     local row = GameInfo.Units[unitType]
-    if row == nil or row.Description == nil then return nil end
+    if row == nil or row.Description == nil then
+        return nil
+    end
     return Text.key(row.Description)
 end
 
@@ -93,9 +121,11 @@ function ScannerBackendUnits.Scan(activePlayer, activeTeam)
             if category ~= nil then
                 for unit in player:Units() do
                     local plot = unit:GetPlot()
-                    if plot ~= nil
-                            and plot:IsVisible(activeTeam, isDebug)
-                            and not unit:IsInvisible(activeTeam, isDebug) then
+                    if
+                        plot ~= nil
+                        and plot:IsVisible(activeTeam, isDebug)
+                        and not unit:IsInvisible(activeTeam, isDebug)
+                    then
                         local subcategory
                         if isBarb then
                             subcategory = "barbarians"
@@ -105,16 +135,16 @@ function ScannerBackendUnits.Scan(activePlayer, activeTeam)
                         local name = unitItemName(unit)
                         if subcategory ~= nil and name ~= nil then
                             out[#out + 1] = {
-                                plotIndex   = plot:GetPlotIndex(),
-                                backend     = ScannerBackendUnits,
-                                data        = {
+                                plotIndex = plot:GetPlotIndex(),
+                                backend = ScannerBackendUnits,
+                                data = {
                                     ownerId = playerId,
-                                    unitId  = unit:GetID(),
+                                    unitId = unit:GetID(),
                                 },
-                                category    = category,
+                                category = category,
                                 subcategory = subcategory,
-                                itemName    = name,
-                                sortKey     = 0,
+                                itemName = name,
+                                sortKey = 0,
                             }
                         end
                     end
@@ -127,15 +157,25 @@ end
 
 function ScannerBackendUnits.ValidateEntry(entry, _cursorPlotIndex)
     local player = Players[entry.data.ownerId]
-    if player == nil then return false end
+    if player == nil then
+        return false
+    end
     local unit = player:GetUnitByID(entry.data.unitId)
-    if unit == nil or unit:IsDead() then return false end
+    if unit == nil or unit:IsDead() then
+        return false
+    end
     local plot = unit:GetPlot()
-    if plot == nil then return false end
+    if plot == nil then
+        return false
+    end
     local activeTeam = Game.GetActiveTeam()
     local isDebug = Game.IsDebugMode()
-    if not plot:IsVisible(activeTeam, isDebug) then return false end
-    if unit:IsInvisible(activeTeam, isDebug) then return false end
+    if not plot:IsVisible(activeTeam, isDebug) then
+        return false
+    end
+    if unit:IsInvisible(activeTeam, isDebug) then
+        return false
+    end
     -- Stale plotIndex from a unit that moved is still a valid entry for
     -- announcement; the snapshot's sort is just out of date. Nav uses
     -- the entry's stored plotIndex for distance, which matches what

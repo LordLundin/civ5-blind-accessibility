@@ -23,15 +23,18 @@
 include("CivVAccess_FrontendCommon")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 local function toggleItem(spec)
     local item = { kind = "toggle" }
-    function item:isNavigable()   return true end
-    function item:isActivatable() return true end
+    function item:isNavigable()
+        return true
+    end
+    function item:isActivatable()
+        return true
+    end
     function item:announce(menu)
-        local state = Text.key(spec.getFn() and "TXT_KEY_CIVVACCESS_CHECK_ON"
-                                             or "TXT_KEY_CIVVACCESS_CHECK_OFF")
+        local state = Text.key(spec.getFn() and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
         return spec.labelFn() .. ", " .. state
     end
     function item:activate(menu)
@@ -51,20 +54,30 @@ local function buildItems()
     local items = {}
     for _, entry in ipairs(g_DLCState) do
         items[#items + 1] = toggleItem({
-            labelFn  = function() return entry.Description end,
-            getFn    = function() return entry.Active end,
-            toggleFn = function() entry.Active = not entry.Active end,
+            labelFn = function()
+                return entry.Description
+            end,
+            getFn = function()
+                return entry.Active
+            end,
+            toggleFn = function()
+                entry.Active = not entry.Active
+            end,
         })
     end
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "LargeButton",
-        textKey     = "TXT_KEY_OK_BUTTON",
-        activate    = function() OnOK() end,
+        textKey = "TXT_KEY_OK_BUTTON",
+        activate = function()
+            OnOK()
+        end,
     })
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "BackButton",
-        textKey     = "TXT_KEY_MODDING_BACK",
-        activate    = function() OnCancel() end,
+        textKey = "TXT_KEY_MODDING_BACK",
+        activate = function()
+            OnCancel()
+        end,
     })
     return items
 end
@@ -74,14 +87,16 @@ local mainHandler
 local baseRefreshDLC = RefreshDLC
 RefreshDLC = function(...)
     baseRefreshDLC(...)
-    if mainHandler == nil then return end
+    if mainHandler == nil then
+        return
+    end
     mainHandler.setItems(buildItems())
 end
 
 mainHandler = BaseMenu.install(ContextPtr, {
-    name          = "PremiumContentMenu",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_PREMIUM_CONTENT"),
+    name = "PremiumContentMenu",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_PREMIUM_CONTENT"),
     priorShowHide = priorShowHide,
-    priorInput    = priorInput,
-    items         = buildItems(),
+    priorInput = priorInput,
+    items = buildItems(),
 })

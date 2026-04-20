@@ -27,12 +27,18 @@ civvaccess_shared = civvaccess_shared or {}
 Locale = Locale or {}
 Locale.ConvertTextKey = function(key, ...)
     local args = { ... }
-    if #args == 0 then return key end
-    return (key:gsub("{(%d+)_[^}]*}", function(n)
-        local v = args[tonumber(n)]
-        if v == nil then return "" end
-        return tostring(v)
-    end))
+    if #args == 0 then
+        return key
+    end
+    return (
+        key:gsub("{(%d+)_[^}]*}", function(n)
+            local v = args[tonumber(n)]
+            if v == nil then
+                return ""
+            end
+            return tostring(v)
+        end)
+    )
 end
 
 -- Log and SpeechEngine stay as test-owned capturing stubs so suites can
@@ -40,11 +46,13 @@ end
 -- not in the polyfill: production code owns the real implementations and
 -- tests want a seam for inspection.
 Log = {
-    debug = function() end, info = function() end,
-    warn  = function() end, error = function() end,
+    debug = function() end,
+    info = function() end,
+    warn = function() end,
+    error = function() end,
 }
 SpeechEngine = {
-    say  = function() end,
+    say = function() end,
     stop = function() end,
 }
 
@@ -63,11 +71,11 @@ T.register("help", require("help_test"))
 T.register("picker_reader", require("picker_reader_test"))
 T.register("icons", require("icons_test"))
 T.register("cursor", require("cursor_test"))
-T.register("scanner_taxonomy",      require("scanner_taxonomy_test"))
+T.register("scanner_taxonomy", require("scanner_taxonomy_test"))
 T.register("scanner_classification", require("scanner_classification_test"))
-T.register("scanner_snapshot",      require("scanner_snapshot_test"))
+T.register("scanner_snapshot", require("scanner_snapshot_test"))
 T.register("scanner_search_filter", require("scanner_search_filter_test"))
-T.register("scanner_navigation",    require("scanner_navigation_test"))
-T.register("scanner_announcement",  require("scanner_announcement_test"))
+T.register("scanner_navigation", require("scanner_navigation_test"))
+T.register("scanner_announcement", require("scanner_announcement_test"))
 
 os.exit(T.run() and 0 or 1)

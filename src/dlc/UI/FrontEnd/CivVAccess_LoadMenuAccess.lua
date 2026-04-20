@@ -36,7 +36,7 @@ include("CivVAccess_LoadMenuCore")
 Log.info("LoadMenuAccess: wiring PickerReader over base LoadMenu")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 local session = PickerReader.create()
 
@@ -46,7 +46,9 @@ local session = PickerReader.create()
 -- buildPickerItems as a thunk so buildReader sees the live handler rather
 -- than a captured nil.
 local mainHandler
-local function getHandler() return mainHandler end
+local function getHandler()
+    return mainHandler
+end
 
 -- Monkey-patch SetupFileButtonList so every rebuild (filter toggle,
 -- OnYes delete, ShowHide open) also refreshes our picker items. The base
@@ -57,7 +59,9 @@ local function getHandler() return mainHandler end
 local baseSetupFileButtonList = SetupFileButtonList
 SetupFileButtonList = function(...)
     baseSetupFileButtonList(...)
-    if mainHandler == nil then return end
+    if mainHandler == nil then
+        return
+    end
     local newItems = LoadMenu.buildPickerItems(session.Entry, getHandler)
     mainHandler.setItems(newItems, 1)
 end
@@ -65,12 +69,12 @@ end
 local pickerItems = LoadMenu.buildPickerItems(session.Entry, getHandler)
 
 mainHandler = session.install(ContextPtr, {
-    name             = "LoadMenu",
-    displayName      = Text.key("TXT_KEY_LOAD_GAME"),
-    pickerTabName    = "TXT_KEY_CIVVACCESS_LOAD_SAVES_TAB",
-    readerTabName    = "TXT_KEY_CIVVACCESS_LOAD_DETAILS_TAB",
+    name = "LoadMenu",
+    displayName = Text.key("TXT_KEY_LOAD_GAME"),
+    pickerTabName = "TXT_KEY_CIVVACCESS_LOAD_SAVES_TAB",
+    readerTabName = "TXT_KEY_CIVVACCESS_LOAD_DETAILS_TAB",
     focusParkControl = "BackButton",
-    priorShowHide    = priorShowHide,
-    priorInput       = priorInput,
-    pickerItems      = pickerItems,
+    priorShowHide = priorShowHide,
+    priorInput = priorInput,
+    pickerItems = pickerItems,
 })

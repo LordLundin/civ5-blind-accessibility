@@ -6,11 +6,13 @@
 
 BaselineHandler = {}
 
-local MOD_NONE  = 0
+local MOD_NONE = 0
 local MOD_SHIFT = 1
 
 local function speak(s)
-    if s == nil or s == "" then return end
+    if s == nil or s == "" then
+        return
+    end
     SpeechPipeline.speakInterrupt(s)
 end
 
@@ -23,7 +25,9 @@ end
 -- there are six -- a single dispatch table would cost more than the six
 -- explicit closures and lose grep-ability.
 local function moveDir(dir)
-    return function() speak(Cursor.move(dir)) end
+    return function()
+        speak(Cursor.move(dir))
+    end
 end
 
 function BaselineHandler.create()
@@ -35,26 +39,44 @@ function BaselineHandler.create()
             -- prefix); only special keys use VK_ (VK_LEFT, VK_ESCAPE, etc.).
             bind(Keys.Q, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHWEST), "Move cursor NW"),
             bind(Keys.E, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHEAST), "Move cursor NE"),
-            bind(Keys.A, MOD_NONE, moveDir(DirectionTypes.DIRECTION_WEST),      "Move cursor W"),
-            bind(Keys.D, MOD_NONE, moveDir(DirectionTypes.DIRECTION_EAST),      "Move cursor E"),
+            bind(Keys.A, MOD_NONE, moveDir(DirectionTypes.DIRECTION_WEST), "Move cursor W"),
+            bind(Keys.D, MOD_NONE, moveDir(DirectionTypes.DIRECTION_EAST), "Move cursor E"),
             bind(Keys.Z, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHWEST), "Move cursor SW"),
             bind(Keys.C, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHEAST), "Move cursor SE"),
-            bind(Keys.S, MOD_NONE,  function() speak(Cursor.orient())   end, "Orient from capital"),
-            bind(Keys.S, MOD_SHIFT, function() speak(Cursor.recenter()) end, "Recenter on selected unit"),
-            bind(Keys.W, MOD_NONE,  function() speak(Cursor.economy())  end, "Economy details"),
-            bind(Keys.X, MOD_NONE,  function() speak(Cursor.combat())   end, "Combat details"),
+            bind(Keys.S, MOD_NONE, function()
+                speak(Cursor.orient())
+            end, "Orient from capital"),
+            bind(Keys.S, MOD_SHIFT, function()
+                speak(Cursor.recenter())
+            end, "Recenter on selected unit"),
+            bind(Keys.W, MOD_NONE, function()
+                speak(Cursor.economy())
+            end, "Economy details"),
+            bind(Keys.X, MOD_NONE, function()
+                speak(Cursor.combat())
+            end, "Combat details"),
         },
         helpEntries = {
-            { keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE",
-              description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE" },
-            { keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ORIENT",
-              description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ORIENT" },
-            { keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_RECENTER",
-              description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_RECENTER" },
-            { keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY",
-              description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY" },
-            { keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT",
-              description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT" },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE",
+                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ORIENT",
+                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ORIENT",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_RECENTER",
+                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_RECENTER",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY",
+                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT",
+                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT",
+            },
         },
     }
     return h

@@ -34,11 +34,12 @@ local _shared = civvaccess_shared
 
 local function invoke(handler, methodName)
     local fn = handler[methodName]
-    if type(fn) ~= "function" then return end
+    if type(fn) ~= "function" then
+        return
+    end
     local ok, err = pcall(fn, handler)
     if not ok then
-        Log.error("HandlerStack " .. methodName .. " failed on '"
-            .. tostring(handler.name) .. "': " .. tostring(err))
+        Log.error("HandlerStack " .. methodName .. " failed on '" .. tostring(handler.name) .. "': " .. tostring(err))
     end
     return ok
 end
@@ -64,19 +65,25 @@ function HandlerStack.push(handler)
         Log.warn("HandlerStack.push: nil handler")
         return false
     end
-    if handler.helpEntries == nil and type(handler.bindings) == "table"
-            and #handler.bindings > 0 then
-        Log.warn("HandlerStack.push: '" .. tostring(handler.name)
-            .. "' has bindings but no helpEntries; ? help will not list it."
-            .. " Set helpEntries (or an explicit {}) to opt in.")
+    if handler.helpEntries == nil and type(handler.bindings) == "table" and #handler.bindings > 0 then
+        Log.warn(
+            "HandlerStack.push: '"
+                .. tostring(handler.name)
+                .. "' has bindings but no helpEntries; ? help will not list it."
+                .. " Set helpEntries (or an explicit {}) to opt in."
+        )
     end
     local fn = handler.onActivate
     if type(fn) == "function" then
         local ok, err = pcall(fn, handler)
         if not ok then
-            Log.error("HandlerStack.push onActivate failed on '"
-                .. tostring(handler.name) .. "': " .. tostring(err)
-                .. " (handler not pushed)")
+            Log.error(
+                "HandlerStack.push onActivate failed on '"
+                    .. tostring(handler.name)
+                    .. "': "
+                    .. tostring(err)
+                    .. " (handler not pushed)"
+            )
             return false
         end
     end
@@ -135,7 +142,9 @@ end
 -- firing onActivate on the handler underneath would spuriously announce a
 -- screen the user is about to be pulled off of.
 function HandlerStack.removeByName(name, reactivate)
-    if reactivate == nil then reactivate = true end
+    if reactivate == nil then
+        reactivate = true
+    end
     for i = #_shared.stack, 1, -1 do
         if _shared.stack[i].name == name then
             local h = _shared.stack[i]
@@ -193,7 +202,9 @@ function HandlerStack.collectHelpEntries()
                 end
             end
         end
-        if h.capturesAllInput then break end
+        if h.capturesAllInput then
+            break
+        end
     end
     for _, e in ipairs(HandlerStack.commonHelpEntries) do
         local k = tostring(e.keyLabel)

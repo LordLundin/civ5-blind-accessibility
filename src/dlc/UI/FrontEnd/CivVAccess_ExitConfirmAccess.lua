@@ -11,24 +11,40 @@
 include("CivVAccess_FrontendCommon")
 
 local priorShowHide = OnShowHide
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 BaseMenu.install(ContextPtr, {
-    name          = "ExitConfirm",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_EXIT_CONFIRM"),
-    preamble      = function()
+    name = "ExitConfirm",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_EXIT_CONFIRM"),
+    preamble = function()
         local c = Controls.Message
-        if c == nil then return nil end
-        local ok, t = pcall(function() return c:GetText() end)
-        if not ok or t == nil or t == "" then return nil end
+        if c == nil then
+            return nil
+        end
+        local ok, t = pcall(function()
+            return c:GetText()
+        end)
+        if not ok or t == nil or t == "" then
+            return nil
+        end
         return t
     end,
     priorShowHide = priorShowHide,
-    priorInput    = priorInput,
+    priorInput = priorInput,
     items = {
-        BaseMenuItems.Button({ controlName = "Yes", textKey = "TXT_KEY_YES_BUTTON",
-            activate = function() OnYes() end }),
-        BaseMenuItems.Button({ controlName = "No",  textKey = "TXT_KEY_NO_BUTTON",
-            activate = function() OnNo() end }),
+        BaseMenuItems.Button({
+            controlName = "Yes",
+            textKey = "TXT_KEY_YES_BUTTON",
+            activate = function()
+                OnYes()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "No",
+            textKey = "TXT_KEY_NO_BUTTON",
+            activate = function()
+                OnNo()
+            end,
+        }),
     },
 })

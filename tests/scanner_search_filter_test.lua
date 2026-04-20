@@ -15,7 +15,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TypeAheadSearch.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_ScannerSearch.lua")
-    Log.warn  = function() end
+    Log.warn = function() end
     Log.error = function() end
 end
 
@@ -30,31 +30,35 @@ end
 local function namedSubs(snap)
     local cat = firstSearchCat(snap)
     local out = {}
-    for i = 2, #cat.subcategories do out[#out + 1] = cat.subcategories[i] end
+    for i = 2, #cat.subcategories do
+        out[#out + 1] = cat.subcategories[i]
+    end
     return out
 end
 
 function M.test_empty_query_returns_nil()
     setup()
     T.installMap({})
-    T.eq(ScannerSearch.build({}, "",    0, 0), nil)
+    T.eq(ScannerSearch.build({}, "", 0, 0), nil)
     T.eq(ScannerSearch.build({}, "   ", 0, 0), nil, "whitespace-only query must return nil")
-    T.eq(ScannerSearch.build({}, nil,   0, 0), nil)
+    T.eq(ScannerSearch.build({}, nil, 0, 0), nil)
 end
 
 function M.test_no_match_returns_nil()
     setup()
     T.installMap({ mkPlot(0, 0, 0) })
     local entries = { T.mkEntry("cities", "my", "Rome", 0) }
-    T.eq(ScannerSearch.build(entries, "zzzz", 0, 0), nil,
-        "no matching entry should produce no snapshot, not an empty one")
+    T.eq(
+        ScannerSearch.build(entries, "zzzz", 0, 0),
+        nil,
+        "no matching entry should produce no snapshot, not an empty one"
+    )
 end
 
 function M.test_single_match_produces_search_category()
     setup()
     T.installMap({ mkPlot(0, 0, 0) })
-    local snap = ScannerSearch.build(
-        { T.mkEntry("cities", "my", "Rome", 0) }, "rome", 0, 0)
+    local snap = ScannerSearch.build({ T.mkEntry("cities", "my", "Rome", 0) }, "rome", 0, 0)
     T.truthy(snap ~= nil)
     T.eq(snap.isSearch, true, "search snapshots carry the isSearch flag")
     T.eq(#snap.categories, 1, "search always produces one synthetic category")
@@ -69,14 +73,13 @@ function M.test_match_tier_orders_items_within_sub()
     setup()
     T.installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
     local entries = {
-        T.mkEntry("cities", "my", "Stone and Iron", 1),  -- tier 2 (mid-word)
-        T.mkEntry("cities", "my", "Iron Fist",      0),  -- tier 0 (start whole word)
+        T.mkEntry("cities", "my", "Stone and Iron", 1), -- tier 2 (mid-word)
+        T.mkEntry("cities", "my", "Iron Fist", 0), -- tier 0 (start whole word)
     }
     local snap = ScannerSearch.build(entries, "iron", 0, 0)
     local subs = namedSubs(snap)
     T.eq(#subs, 1, "only cities sub should appear")
-    T.eq(subs[1].items[1].name, "Iron Fist",
-        "tier 0 (start whole word) must rank ahead of tier 2 (mid-word)")
+    T.eq(subs[1].items[1].name, "Iron Fist", "tier 0 (start whole word) must rank ahead of tier 2 (mid-word)")
     T.eq(subs[1].items[2].name, "Stone and Iron")
 end
 
@@ -86,8 +89,8 @@ function M.test_subs_ordered_by_taxonomy_not_match_order()
     setup()
     T.installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
     local entries = {
-        T.mkEntry("resources", "strategic", "Iron", 1),  -- input first
-        T.mkEntry("cities",    "my",        "Iron", 0),  -- input second
+        T.mkEntry("resources", "strategic", "Iron", 1), -- input first
+        T.mkEntry("cities", "my", "Iron", 0), -- input second
     }
     local snap = ScannerSearch.build(entries, "iron", 0, 0)
     local subs = namedSubs(snap)
@@ -110,20 +113,20 @@ function M.test_all_sub_first_and_aggregates_everything()
     for i = 2, #cat.subcategories do
         sumInNamed = sumInNamed + #cat.subcategories[i].items
     end
-    T.eq(countInAll, sumInNamed,
-        "`all` must aggregate every item from every named sub")
+    T.eq(countInAll, sumInNamed, "`all` must aggregate every item from every named sub")
 end
 
 function M.test_all_sub_shares_item_refs_with_named_subs()
     setup()
     T.installMap({ mkPlot(0, 0, 0) })
-    local snap = ScannerSearch.build(
-        { T.mkEntry("cities", "my", "Rome", 0) }, "rome", 0, 0)
+    local snap = ScannerSearch.build({ T.mkEntry("cities", "my", "Rome", 0) }, "rome", 0, 0)
     local cat = firstSearchCat(snap)
-    local allItem   = cat.subcategories[1].items[1]
+    local allItem = cat.subcategories[1].items[1]
     local namedItem = cat.subcategories[2].items[1]
-    T.truthy(rawequal(allItem, namedItem),
-        "search snapshot `all` must share item refs the same way normal snapshots do")
+    T.truthy(
+        rawequal(allItem, namedItem),
+        "search snapshot `all` must share item refs the same way normal snapshots do"
+    )
 end
 
 function M.test_entries_with_unknown_category_dropped()
@@ -142,7 +145,7 @@ function M.test_same_name_shared_across_subs_produces_separate_items()
     setup()
     T.installMap({ mkPlot(0, 0, 0), mkPlot(0, 0, 1) })
     local entries = {
-        T.mkEntry("cities",    "my",        "Iron", 0),
+        T.mkEntry("cities", "my", "Iron", 0),
         T.mkEntry("resources", "strategic", "Iron", 1),
     }
     local snap = ScannerSearch.build(entries, "iron", 0, 0)

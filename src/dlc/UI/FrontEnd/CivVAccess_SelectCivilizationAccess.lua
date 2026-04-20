@@ -18,7 +18,9 @@ local civIds = {}
 local function currentIndex()
     local current = PreGame.GetCivilization(0)
     for i, id in ipairs(civIds) do
-        if id == current then return i end
+        if id == current then
+            return i
+        end
     end
 end
 
@@ -26,11 +28,14 @@ local function buildRegularItems()
     civIds = { -1 }
     local items = {
         BaseMenuItems.Choice({
-            labelText   = Text.key("TXT_KEY_RANDOM_LEADER") .. ", "
-                        .. Text.key("TXT_KEY_RANDOM_CIV"),
+            labelText = Text.key("TXT_KEY_RANDOM_LEADER") .. ", " .. Text.key("TXT_KEY_RANDOM_CIV"),
             tooltipText = Text.key("TXT_KEY_RANDOM_LEADER_HELP"),
-            selectedFn  = function() return PreGame.GetCivilization(0) == -1 end,
-            activate    = function() CivilizationSelected(-1) end,
+            selectedFn = function()
+                return PreGame.GetCivilization(0) == -1
+            end,
+            activate = function()
+                CivilizationSelected(-1)
+            end,
         }),
     }
     local entries = {}
@@ -47,15 +52,21 @@ local function buildRegularItems()
     for row in DB.Query(sql) do
         entries[#entries + 1] = { Text.key(row.LeaderDescription), row }
     end
-    table.sort(entries, function(a, b) return Locale.Compare(a[1], b[1]) == -1 end)
+    table.sort(entries, function(a, b)
+        return Locale.Compare(a[1], b[1]) == -1
+    end)
     for _, entry in ipairs(entries) do
-        local row   = entry[2]
+        local row = entry[2]
         local civID = row.ID
         civIds[#civIds + 1] = civID
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText  = CivDetails.richLabel(row),
-            selectedFn = function() return PreGame.GetCivilization(0) == civID end,
-            activate   = function() CivilizationSelected(civID) end,
+            labelText = CivDetails.richLabel(row),
+            selectedFn = function()
+                return PreGame.GetCivilization(0) == civID
+            end,
+            activate = function()
+                CivilizationSelected(civID)
+            end,
         })
     end
     return items
@@ -65,7 +76,9 @@ local function buildScenarioItems()
     civIds = {}
     local items = {}
     local civList = UI.GetMapPlayers(PreGame.GetMapScript())
-    if civList == nil then return items end
+    if civList == nil then
+        return items
+    end
     local query = DB.CreateQuery([[SELECT
         Civilizations.ID,
         Civilizations.Type,
@@ -81,25 +94,31 @@ local function buildScenarioItems()
         if v.Playable then
             for row in query(v.CivType) do
                 entries[#entries + 1] = {
-                    Text.key(row.LeaderDescription), row, i - 1,
+                    Text.key(row.LeaderDescription),
+                    row,
+                    i - 1,
                 }
             end
         end
     end
-    table.sort(entries, function(a, b) return Locale.Compare(a[1], b[1]) == -1 end)
+    table.sort(entries, function(a, b)
+        return Locale.Compare(a[1], b[1]) == -1
+    end)
     for _, entry in ipairs(entries) do
-        local row            = entry[2]
-        local scenarioCivID  = entry[3]
-        local civID          = row.ID
-        civIds[#civIds + 1]  = civID
+        local row = entry[2]
+        local scenarioCivID = entry[3]
+        local civID = row.ID
+        civIds[#civIds + 1] = civID
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText  = CivDetails.richLabel(row),
+            labelText = CivDetails.richLabel(row),
             -- Base's currentIndex checks PreGame.GetCivilization(0)
             -- unconditionally, so we mirror that. Scenario slot targeting
             -- is only used by activate (for the SetCivilization write);
             -- the "which is currently set" read is always slot 0.
-            selectedFn = function() return PreGame.GetCivilization(0) == civID end,
-            activate   = function()
+            selectedFn = function()
+                return PreGame.GetCivilization(0) == civID
+            end,
+            activate = function()
                 CivilizationSelected(civID, scenarioCivID)
             end,
         })
@@ -114,18 +133,20 @@ local function rebuildItems(h)
     else
         items = buildRegularItems()
     end
-    if h ~= nil then h.setItems(items) end
+    if h ~= nil then
+        h.setItems(items)
+    end
     return items
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "SelectCivilization",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CIVILIZATION"),
+    name = "SelectCivilization",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CIVILIZATION"),
     priorShowHide = ShowHideHandler,
-    priorInput    = InputHandler,
-    onShow        = function(h)
+    priorInput = InputHandler,
+    onShow = function(h)
         rebuildItems(h)
         h.setInitialIndex(currentIndex())
     end,
-    items         = rebuildItems(nil),
+    items = rebuildItems(nil),
 })

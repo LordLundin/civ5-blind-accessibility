@@ -14,32 +14,46 @@ local _test_pd_mt = nil
 
 local function resetPDMetatable()
     local proto = Polyfill.makePullDown()
-    _test_pd_mt = { __index = {
-        GetButton                  = proto.GetButton,
-        ClearEntries               = proto.ClearEntries,
-        BuildEntry                 = proto.BuildEntry,
-        CalculateInternals         = proto.CalculateInternals,
-        RegisterSelectionCallback  = proto.RegisterSelectionCallback,
-        IsHidden                   = proto.IsHidden,
-        IsDisabled                 = proto.IsDisabled,
-        SetHide                    = proto.SetHide,
-        SetDisabled                = proto.SetDisabled,
-    }}
+    _test_pd_mt = {
+        __index = {
+            GetButton = proto.GetButton,
+            ClearEntries = proto.ClearEntries,
+            BuildEntry = proto.BuildEntry,
+            CalculateInternals = proto.CalculateInternals,
+            RegisterSelectionCallback = proto.RegisterSelectionCallback,
+            IsHidden = proto.IsHidden,
+            IsDisabled = proto.IsDisabled,
+            SetHide = proto.SetHide,
+            SetDisabled = proto.SetDisabled,
+        },
+    }
 end
 
 local function setup()
     warns, errors = {}, {}
-    Log.warn  = function(m) warns[#warns + 1]  = m end
-    Log.error = function(m) errors[#errors + 1] = m end
-    Log.info  = function() end
+    Log.warn = function(m)
+        warns[#warns + 1] = m
+    end
+    Log.error = function(m)
+        errors[#errors + 1] = m
+    end
+    Log.info = function() end
     Log.debug = function() end
 
-    UI.ShiftKeyDown = function() return false end
-    UI.CtrlKeyDown  = function() return false end
-    UI.AltKeyDown   = function() return false end
+    UI.ShiftKeyDown = function()
+        return false
+    end
+    UI.CtrlKeyDown = function()
+        return false
+    end
+    UI.AltKeyDown = function()
+        return false
+    end
 
     sounds = {}
-    Events.AudioPlay2DSound = function(id) sounds[#sounds + 1] = id end
+    Events.AudioPlay2DSound = function(id)
+        sounds[#sounds + 1] = id
+    end
 
     speaks = {}
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
@@ -65,26 +79,26 @@ local function setup()
     TickPump._reset()
 
     civvaccess_shared.pullDownProbeInstalled = false
-    civvaccess_shared.pullDownCallbacks      = {}
-    civvaccess_shared.pullDownEntries        = {}
-    civvaccess_shared.sliderProbeInstalled   = false
-    civvaccess_shared.sliderCallbacks        = {}
+    civvaccess_shared.pullDownCallbacks = {}
+    civvaccess_shared.pullDownEntries = {}
+    civvaccess_shared.sliderProbeInstalled = false
+    civvaccess_shared.sliderCallbacks = {}
     civvaccess_shared.checkBoxProbeInstalled = false
-    civvaccess_shared.checkBoxCallbacks      = {}
-    civvaccess_shared.buttonProbeInstalled   = false
-    civvaccess_shared.buttonCallbacks        = {}
+    civvaccess_shared.checkBoxCallbacks = {}
+    civvaccess_shared.buttonProbeInstalled = false
+    civvaccess_shared.buttonCallbacks = {}
 
     CivVAccess_Strings = CivVAccess_Strings or {}
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"]    = "disabled"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"]           = "on"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"]          = "off"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"]     = "edit"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"]    = "blank"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"]  = "editing {1_Label}"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"] = "on"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"] = "off"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "edit"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "blank"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"] = "editing {1_Label}"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"]    = "no match for {1_Buffer}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"]     = "search cleared"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"]    = "selected"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"] = "no match for {1_Buffer}"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"] = "search cleared"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "selected"
 
     resetPDMetatable()
 end
@@ -95,7 +109,9 @@ local WM_KEYDOWN = 256
 
 local function populateControls(map)
     Controls = {}
-    for name, c in pairs(map) do Controls[name] = c end
+    for name, c in pairs(map) do
+        Controls[name] = c
+    end
 end
 
 local function patchProbeFromPullDown(pd)
@@ -103,7 +119,9 @@ local function patchProbeFromPullDown(pd)
 end
 
 local function makePullDownWithMetatable()
-    if _test_pd_mt == nil then resetPDMetatable() end
+    if _test_pd_mt == nil then
+        resetPDMetatable()
+    end
     return Polyfill.makePullDownWithMetatable(_test_pd_mt)
 end
 
@@ -121,10 +139,19 @@ end
 -- Stub Controls matching the shape button-list tests expect.
 local ctrlState
 local function makeCtrl(name)
-    return setmetatable({ _name = name }, { __index = {
-        IsHidden   = function(self) return ctrlState[self._name].hidden   end,
-        IsDisabled = function(self) return ctrlState[self._name].disabled end,
-    }})
+    return setmetatable(
+        { _name = name },
+        {
+            __index = {
+                IsHidden = function(self)
+                    return ctrlState[self._name].hidden
+                end,
+                IsDisabled = function(self)
+                    return ctrlState[self._name].disabled
+                end,
+            },
+        }
+    )
 end
 local function setCtrls(names)
     Controls = {}
@@ -153,14 +180,13 @@ end
 
 function M.test_create_shape_matches_handler_contract()
     setup()
-    setCtrls({"A", "B"})
+    setCtrls({ "A", "B" })
     local h = BaseMenu.create({
-        name = "T", displayName = "Test",
+        name = "T",
+        displayName = "Test",
         items = {
-            BaseMenuItems.Button({ controlName = "A", textKey = "LBL_A",
-                activate = function() end }),
-            BaseMenuItems.Button({ controlName = "B", textKey = "LBL_B",
-                activate = function() end }),
+            BaseMenuItems.Button({ controlName = "A", textKey = "LBL_A", activate = function() end }),
+            BaseMenuItems.Button({ controlName = "B", textKey = "LBL_B", activate = function() end }),
         },
     })
     T.eq(h.capturesAllInput, true)
@@ -175,7 +201,8 @@ function M.test_missing_control_logs_warn_and_keeps_item()
     setup()
     populateControls({})
     local h = BaseMenu.create({
-        name = "T", displayName = "Test",
+        name = "T",
+        displayName = "Test",
         items = {
             BaseMenuItems.Checkbox({ controlName = "Missing", textKey = "LBL" }),
         },
@@ -189,7 +216,8 @@ local function buttonSpec(names)
     local items = {}
     for _, name in ipairs(names) do
         items[#items + 1] = BaseMenuItems.Button({
-            controlName = name, textKey = "LABEL_" .. name,
+            controlName = name,
+            textKey = "LABEL_" .. name,
             activate = function() end,
         })
     end
@@ -198,9 +226,8 @@ end
 
 function M.test_down_moves_to_next_item()
     setup()
-    setCtrls({"A", "B", "C"})
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = buttonSpec({"A","B","C"}) })
+    setCtrls({ "A", "B", "C" })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B", "C" }) })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 2)
@@ -208,9 +235,8 @@ end
 
 function M.test_up_wraps_from_top_to_bottom()
     setup()
-    setCtrls({"A", "B", "C"})
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = buttonSpec({"A","B","C"}) })
+    setCtrls({ "A", "B", "C" })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B", "C" }) })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_UP, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 3)
@@ -218,9 +244,8 @@ end
 
 function M.test_down_wraps_from_bottom_to_top()
     setup()
-    setCtrls({"A", "B", "C"})
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = buttonSpec({"A","B","C"}) })
+    setCtrls({ "A", "B", "C" })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B", "C" }) })
     HandlerStack.push(h)
     h._indices[1] = 3
     speaks = {}
@@ -230,10 +255,9 @@ end
 
 function M.test_hidden_items_are_skipped()
     setup()
-    setCtrls({"A", "B", "C"})
+    setCtrls({ "A", "B", "C" })
     ctrlState.B.hidden = true
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = buttonSpec({"A","B","C"}) })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B", "C" }) })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 3, "hidden B skipped")
@@ -241,12 +265,11 @@ end
 
 function M.test_all_hidden_navigation_is_noop()
     setup()
-    setCtrls({"A", "B", "C"})
+    setCtrls({ "A", "B", "C" })
     ctrlState.A.hidden = true
     ctrlState.B.hidden = true
     ctrlState.C.hidden = true
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = buttonSpec({"A","B","C"}) })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B", "C" }) })
     HandlerStack.push(h)
     local before = h._indices[1]
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
@@ -256,10 +279,9 @@ end
 
 function M.test_home_jumps_to_first_navigable()
     setup()
-    setCtrls({"A", "B", "C"})
+    setCtrls({ "A", "B", "C" })
     ctrlState.A.hidden = true
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = buttonSpec({"A","B","C"}) })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B", "C" }) })
     HandlerStack.push(h)
     h._indices[1] = 3
     InputRouter.dispatch(Keys.VK_HOME, 0, WM_KEYDOWN)
@@ -268,10 +290,9 @@ end
 
 function M.test_end_jumps_to_last_navigable()
     setup()
-    setCtrls({"A", "B", "C"})
+    setCtrls({ "A", "B", "C" })
     ctrlState.C.hidden = true
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = buttonSpec({"A","B","C"}) })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B", "C" }) })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_END, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 2, "C hidden, last navigable is B")
@@ -279,13 +300,17 @@ end
 
 function M.test_enter_fires_activate()
     setup()
-    setCtrls({"A", "B", "C"})
+    setCtrls({ "A", "B", "C" })
     local fired = 0
     local items = {
-        BaseMenuItems.Button({ controlName = "A", textKey = "LA",
-            activate = function() fired = fired + 1 end }),
-        BaseMenuItems.Button({ controlName = "B", textKey = "LB",
-            activate = function() end }),
+        BaseMenuItems.Button({
+            controlName = "A",
+            textKey = "LA",
+            activate = function()
+                fired = fired + 1
+            end,
+        }),
+        BaseMenuItems.Button({ controlName = "B", textKey = "LB", activate = function() end }),
     }
     local h = BaseMenu.create({ name = "T", displayName = "Test", items = items })
     HandlerStack.push(h)
@@ -295,11 +320,21 @@ end
 
 function M.test_space_also_fires_activate()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local fired = 0
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = { BaseMenuItems.Button({ controlName = "A", textKey = "L",
-            activate = function() fired = fired + 1 end }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "L",
+                activate = function()
+                    fired = fired + 1
+                end,
+            }),
+        },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_SPACE, 0, WM_KEYDOWN)
     T.eq(fired, 1)
@@ -307,10 +342,20 @@ end
 
 function M.test_enter_activate_error_caught_and_logged()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = { BaseMenuItems.Button({ controlName = "A", textKey = "L",
-            activate = function() error("kaboom") end }) } })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "L",
+                activate = function()
+                    error("kaboom")
+                end,
+            }),
+        },
+    })
     HandlerStack.push(h)
     local consumed = InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.truthy(consumed, "binding still consumed after error")
@@ -319,10 +364,12 @@ end
 
 function M.test_enter_plays_click_sound()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = { BaseMenuItems.Button({ controlName = "A", textKey = "L",
-            activate = function() end }) } })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
+        items = { BaseMenuItems.Button({ controlName = "A", textKey = "L", activate = function() end }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(#sounds, 1)
@@ -331,15 +378,22 @@ end
 
 function M.test_enter_on_hidden_current_logs_warn_no_crash()
     setup()
-    setCtrls({"A", "B"})
+    setCtrls({ "A", "B" })
     local fired = 0
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
         items = {
-            BaseMenuItems.Button({ controlName = "A", textKey = "L",
-                activate = function() fired = fired + 1 end }),
-            BaseMenuItems.Button({ controlName = "B", textKey = "L",
-                activate = function() end }),
-        } })
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "L",
+                activate = function()
+                    fired = fired + 1
+                end,
+            }),
+            BaseMenuItems.Button({ controlName = "B", textKey = "L", activate = function() end }),
+        },
+    })
     HandlerStack.push(h)
     ctrlState.A.hidden = true
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
@@ -349,14 +403,21 @@ end
 
 function M.test_post_activate_revalidation_advances_on_hidden_flip()
     setup()
-    setCtrls({"A", "B"})
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
+    setCtrls({ "A", "B" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
         items = {
-            BaseMenuItems.Button({ controlName = "A", textKey = "LABEL_A",
-                activate = function() ctrlState.A.hidden = true end }),
-            BaseMenuItems.Button({ controlName = "B", textKey = "LABEL_B",
-                activate = function() end }),
-        } })
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "LABEL_A",
+                activate = function()
+                    ctrlState.A.hidden = true
+                end,
+            }),
+            BaseMenuItems.Button({ controlName = "B", textKey = "LABEL_B", activate = function() end }),
+        },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
@@ -370,10 +431,9 @@ end
 
 function M.test_navigation_walks_disabled_items()
     setup()
-    setCtrls({"A", "B", "C"})
+    setCtrls({ "A", "B", "C" })
     ctrlState.B.disabled = true
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = buttonSpec({"A","B","C"}) })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B", "C" }) })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
@@ -383,11 +443,21 @@ end
 
 function M.test_enter_on_disabled_is_noop_no_activate_no_sound()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local fired = 0
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = { BaseMenuItems.Button({ controlName = "A", textKey = "LABEL_A",
-            activate = function() fired = fired + 1 end }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "LABEL_A",
+                activate = function()
+                    fired = fired + 1
+                end,
+            }),
+        },
+    })
     ctrlState.A.disabled = true
     HandlerStack.push(h)
     sounds = {}
@@ -401,10 +471,9 @@ end
 
 function M.test_onActivate_first_item_disabled_announces_with_suffix()
     setup()
-    setCtrls({"A", "B"})
+    setCtrls({ "A", "B" })
     ctrlState.A.disabled = true
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = buttonSpec({"A","B"}) })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B" }) })
     HandlerStack.push(h)
     T.eq(speaks[#speaks].text, "LABEL_A, disabled")
 end
@@ -415,8 +484,11 @@ function M.test_checkbox_enter_toggles_and_announces_on()
     setup()
     local cb = Polyfill.makeCheckBox({ checked = false })
     populateControls({ Foo = cb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL_FOO" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL_FOO" }) },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
@@ -428,8 +500,11 @@ function M.test_checkbox_space_toggles_back_and_announces_off()
     setup()
     local cb = Polyfill.makeCheckBox({ checked = true })
     populateControls({ Foo = cb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL_FOO" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL_FOO" }) },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_SPACE, 0, WM_KEYDOWN)
@@ -442,11 +517,14 @@ function M.test_checkbox_focus_announces_current_state()
     local a = Polyfill.makeCheckBox({ checked = true })
     local b = Polyfill.makeCheckBox({ checked = false })
     populateControls({ A = a, B = b })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
             BaseMenuItems.Checkbox({ controlName = "A", textKey = "LBL_A" }),
             BaseMenuItems.Checkbox({ controlName = "B", textKey = "LBL_B" }),
-        } })
+        },
+    })
     HandlerStack.push(h)
     T.eq(speaks[1].text, "Screen")
     T.eq(speaks[2].text, "LBL_A, on")
@@ -460,9 +538,14 @@ function M.test_checkbox_fires_captured_handler_on_toggle()
     local cb = Polyfill.makeCheckBox({ checked = false })
     populateControls({ Foo = cb })
     local received = {}
-    registerCheckHandler(cb, function(v) received[#received + 1] = v end)
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL" }) } })
+    registerCheckHandler(cb, function(v)
+        received[#received + 1] = v
+    end)
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL" }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(#received, 1)
@@ -477,14 +560,18 @@ end
 function M.test_slider_right_increments_by_small_step()
     setup()
     local slider = Polyfill.makeSlider({ value = 0.5 })
-    local label  = Polyfill.makeLabel("50%")
+    local label = Polyfill.makeLabel("50%")
     populateControls({ Sld = slider, Lbl = label })
     registerSliderCallback(slider, function(v)
         label:SetText(string.format("%d%%", math.floor(v * 100 + 0.5)))
     end)
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Slider({ controlName = "Sld",
-            labelControlName = "Lbl", textKey = "LBL_SLD" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl", textKey = "LBL_SLD" }),
+        },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
@@ -495,7 +582,7 @@ end
 function M.test_slider_fires_captured_callback_on_adjust()
     setup()
     local slider = Polyfill.makeSlider({ value = 0.5 })
-    local label  = Polyfill.makeLabel("50")
+    local label = Polyfill.makeLabel("50")
     populateControls({ Sld = slider, Lbl = label })
     local received = {}
     registerSliderCallback(slider, function(v, void1)
@@ -503,9 +590,13 @@ function M.test_slider_fires_captured_callback_on_adjust()
         label:SetText(string.format("%d", math.floor(v * 100 + 0.5)))
     end)
     slider:SetVoid1(42)
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Slider({ controlName = "Sld",
-            labelControlName = "Lbl", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl", textKey = "LBL" }),
+        },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(#received, 1, "callback fired once on adjust")
@@ -516,11 +607,15 @@ end
 function M.test_slider_callback_missing_logs_warn()
     setup()
     local slider = Polyfill.makeSlider({ value = 0.5 })
-    local label  = Polyfill.makeLabel("0")
+    local label = Polyfill.makeLabel("0")
     populateControls({ Sld = slider, Lbl = label })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Slider({ controlName = "Sld",
-            labelControlName = "Lbl", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl", textKey = "LBL" }),
+        },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(slider:GetValue(), 0.51, "value still changes")
@@ -530,14 +625,18 @@ end
 function M.test_slider_left_decrements()
     setup()
     local slider = Polyfill.makeSlider({ value = 0.50 })
-    local label  = Polyfill.makeLabel("50")
+    local label = Polyfill.makeLabel("50")
     populateControls({ Sld = slider, Lbl = label })
     slider:RegisterSliderCallback(function(v)
         label:SetText(tostring(math.floor(v * 100 + 0.5)))
     end)
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Slider({ controlName = "Sld",
-            labelControlName = "Lbl", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl", textKey = "LBL" }),
+        },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
     T.eq(slider:GetValue(), 0.49)
@@ -546,13 +645,19 @@ end
 function M.test_slider_shift_left_decrements_by_big_step()
     setup()
     local slider = Polyfill.makeSlider({ value = 0.5 })
-    local label  = Polyfill.makeLabel("50")
+    local label = Polyfill.makeLabel("50")
     populateControls({ Sld = slider, Lbl = label })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Slider({ controlName = "Sld",
-            labelControlName = "Lbl", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl", textKey = "LBL" }),
+        },
+    })
     HandlerStack.push(h)
-    UI.ShiftKeyDown = function() return true end
+    UI.ShiftKeyDown = function()
+        return true
+    end
     InputRouter.dispatch(Keys.VK_LEFT, 1, WM_KEYDOWN)
     T.truthy(math.abs(slider:GetValue() - 0.4) < 1e-6)
 end
@@ -560,11 +665,15 @@ end
 function M.test_slider_right_at_max_stays_clamped()
     setup()
     local slider = Polyfill.makeSlider({ value = 1.0 })
-    local label  = Polyfill.makeLabel("100")
+    local label = Polyfill.makeLabel("100")
     populateControls({ Sld = slider, Lbl = label })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Slider({ controlName = "Sld",
-            labelControlName = "Lbl", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl", textKey = "LBL" }),
+        },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(slider:GetValue(), 1.0)
@@ -573,18 +682,20 @@ end
 -- Home/End belong to list nav even with sliders on the screen.
 function M.test_home_with_slider_at_position_one_goes_to_first_item()
     setup()
-    local cb     = Polyfill.makeCheckBox()
+    local cb = Polyfill.makeCheckBox()
     local slider = Polyfill.makeSlider({ value = 0.5 })
-    local label  = Polyfill.makeLabel("50")
+    local label = Polyfill.makeLabel("50")
     populateControls({ CB = cb, Sld = slider, Lbl = label })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
             BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LBL_CB" }),
-            BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl",
-                textKey = "LBL_SLD" }),
-        } })
+            BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl", textKey = "LBL_SLD" }),
+        },
+    })
     HandlerStack.push(h)
-    h._indices[1] = 2  -- on slider
+    h._indices[1] = 2 -- on slider
     InputRouter.dispatch(Keys.VK_HOME, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 1, "Home navigated to first item, did not snap slider")
     T.eq(slider:GetValue(), 0.5, "slider unchanged")
@@ -611,8 +722,11 @@ function M.test_pulldown_enter_pushes_subhandler_from_probe()
     inst2.Button:SetText("Hard")
     inst2.Button:SetVoid1(2)
 
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) },
+    })
     HandlerStack.push(h)
     speaks = {}
     sounds = {}
@@ -621,7 +735,11 @@ function M.test_pulldown_enter_pushes_subhandler_from_probe()
     T.eq(HandlerStack.active().name, "T/PD_PullDown")
     T.eq(sounds[1], "AS2D_IF_SELECT", "click sound on dropdown open")
     local heard = false
-    for _, s in ipairs(speaks) do if s.text == "Easy" then heard = true end end
+    for _, s in ipairs(speaks) do
+        if s.text == "Easy" then
+            heard = true
+        end
+    end
     T.truthy(heard, "first entry text announced")
 
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
@@ -636,8 +754,11 @@ function M.test_pulldown_enter_without_probe_logs_warn_and_announces_current()
     local pd = makePullDownWithMetatable()
     populateControls({ PD = pd })
     pd:GetButton():SetText("Current")
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
@@ -655,11 +776,14 @@ function M.test_pulldown_sub_pop_preserves_cursor_position()
     local inst = {}
     pd:BuildEntry("InstanceOne", inst)
     inst.Button:SetText("Entry")
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
             BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LBL_CB" }),
             BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }),
-        } })
+        },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 2)
@@ -676,15 +800,20 @@ function M.test_sub_pop_advances_cursor_off_hidden_item()
     local cbAfter = Polyfill.makeCheckBox()
     populateControls({ PD = pd, After = cbAfter })
     patchProbeFromPullDown(pd)
-    pd:RegisterSelectionCallback(function() pd:SetHide(true) end)
+    pd:RegisterSelectionCallback(function()
+        pd:SetHide(true)
+    end)
     local inst = {}
     pd:BuildEntry("InstanceOne", inst)
     inst.Button:SetText("Entry")
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
             BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }),
             BaseMenuItems.Checkbox({ controlName = "After", textKey = "LBL_AFTER" }),
-        } })
+        },
+    })
     HandlerStack.push(h)
     T.eq(h._indices[1], 1, "starts on pulldown")
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
@@ -698,31 +827,44 @@ end
 
 function M.test_tooltip_appended_after_label_value()
     setup()
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_SHOW_MAP"]    = "Show map"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_SHOW_MAP"] = "Show map"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_SHOW_MAP_TT"] = "Toggles the map overlay"
     local cb = Polyfill.makeCheckBox({ checked = true })
     populateControls({ Foo = cb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "Foo",
-            textKey    = "TXT_KEY_CIVVACCESS_TEST_SHOW_MAP",
-            tooltipKey = "TXT_KEY_CIVVACCESS_TEST_SHOW_MAP_TT" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Checkbox({
+                controlName = "Foo",
+                textKey = "TXT_KEY_CIVVACCESS_TEST_SHOW_MAP",
+                tooltipKey = "TXT_KEY_CIVVACCESS_TEST_SHOW_MAP_TT",
+            }),
+        },
+    })
     HandlerStack.push(h)
     T.eq(speaks[2].text, "Show map, on, Toggles the map overlay")
 end
 
 function M.test_tooltip_dedupes_against_label()
     setup()
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_FS"]    = "Fullscreen"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_FS"] = "Fullscreen"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_FS_TT"] = "Fullscreen. Some extra detail"
     local cb = Polyfill.makeCheckBox({ checked = false })
     populateControls({ X = cb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "X",
-            textKey    = "TXT_KEY_CIVVACCESS_TEST_FS",
-            tooltipKey = "TXT_KEY_CIVVACCESS_TEST_FS_TT" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Checkbox({
+                controlName = "X",
+                textKey = "TXT_KEY_CIVVACCESS_TEST_FS",
+                tooltipKey = "TXT_KEY_CIVVACCESS_TEST_FS_TT",
+            }),
+        },
+    })
     HandlerStack.push(h)
-    T.eq(speaks[2].text, "Fullscreen, off, Some extra detail",
-        "duplicate 'Fullscreen' sentence dropped from tooltip")
+    T.eq(speaks[2].text, "Fullscreen, off, Some extra detail", "duplicate 'Fullscreen' sentence dropped from tooltip")
 end
 
 function M.test_tooltipFn_appends_dynamic_tooltip()
@@ -730,9 +872,20 @@ function M.test_tooltipFn_appends_dynamic_tooltip()
     local cb = Polyfill.makeCheckBox()
     populateControls({ C = cb })
     local calls = 0
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "C", textKey = "LBL",
-            tooltipFn = function() calls = calls + 1; return "live tip" end }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Checkbox({
+                controlName = "C",
+                textKey = "LBL",
+                tooltipFn = function()
+                    calls = calls + 1
+                    return "live tip"
+                end,
+            }),
+        },
+    })
     HandlerStack.push(h)
     T.eq(speaks[2].text, "LBL, off, live tip")
     T.truthy(calls >= 1)
@@ -742,9 +895,19 @@ function M.test_tooltipFn_error_is_logged_and_swallowed()
     setup()
     local cb = Polyfill.makeCheckBox()
     populateControls({ C = cb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "C", textKey = "LBL",
-            tooltipFn = function() error("boom") end }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Checkbox({
+                controlName = "C",
+                textKey = "LBL",
+                tooltipFn = function()
+                    error("boom")
+                end,
+            }),
+        },
+    })
     HandlerStack.push(h)
     T.eq(speaks[2].text, "LBL, off")
     T.truthy(#errors >= 1)
@@ -752,25 +915,42 @@ end
 
 function M.test_tooltipFn_nil_result_does_not_add_comma()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Button({ controlName = "A", textKey = "LABEL_A",
-            tooltipFn = function() return nil end,
-            activate  = function() end }) } })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "LABEL_A",
+                tooltipFn = function()
+                    return nil
+                end,
+                activate = function() end,
+            }),
+        },
+    })
     HandlerStack.push(h)
-    T.eq(speaks[#speaks].text, "LABEL_A",
-        "nil tooltipFn leaves announcement clean")
+    T.eq(speaks[#speaks].text, "LABEL_A", "nil tooltipFn leaves announcement clean")
 end
 
 function M.test_slider_empty_label_falls_back_to_textKey()
     setup()
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_SLD"] = "Delay"
     local slider = Polyfill.makeSlider({ value = 0.5 })
-    local label  = Polyfill.makeLabel("")
+    local label = Polyfill.makeLabel("")
     populateControls({ Sld = slider, Lbl = label })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Slider({ controlName = "Sld",
-            labelControlName = "Lbl", textKey = "TXT_KEY_CIVVACCESS_TEST_SLD" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Slider({
+                controlName = "Sld",
+                labelControlName = "Lbl",
+                textKey = "TXT_KEY_CIVVACCESS_TEST_SLD",
+            }),
+        },
+    })
     HandlerStack.push(h)
     T.eq(speaks[2].text, "Delay", "empty label control -> textKey label alone")
 end
@@ -783,13 +963,26 @@ function M.test_tabs_tab_key_cycles_and_resets_cursor()
     local cbB = Polyfill.makeCheckBox()
     local shown = 1
     populateControls({ CA = cbA, CB = cbB })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
-            { name = "TAB_A", showPanel = function() shown = 1 end,
-              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) } },
-            { name = "TAB_B", showPanel = function() shown = 2 end,
-              items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) } },
-        } })
+            {
+                name = "TAB_A",
+                showPanel = function()
+                    shown = 1
+                end,
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) },
+            },
+            {
+                name = "TAB_B",
+                showPanel = function()
+                    shown = 2
+                end,
+                items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) },
+            },
+        },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
@@ -805,14 +998,19 @@ function M.test_tabs_shift_tab_cycles_backward_wraps()
     local cbB = Polyfill.makeCheckBox()
     local cbC = Polyfill.makeCheckBox()
     populateControls({ CA = cbA, CB = cbB, CC = cbC })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
             { name = "A", items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) } },
             { name = "B", items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "L" }) } },
             { name = "C", items = { BaseMenuItems.Checkbox({ controlName = "CC", textKey = "L" }) } },
-        } })
+        },
+    })
     HandlerStack.push(h)
-    UI.ShiftKeyDown = function() return true end
+    UI.ShiftKeyDown = function()
+        return true
+    end
     InputRouter.dispatch(Keys.VK_TAB, 1, WM_KEYDOWN)
     T.eq(h._tabIndex, 3, "wrapped from 1 backward to 3")
 end
@@ -828,11 +1026,14 @@ function M.test_tab_position_preserved_across_pulldown_sub()
     inst.Button:SetText("Entry")
     local cbFiller = Polyfill.makeCheckBox()
     Controls.Filler = cbFiller
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
             { name = "TAB_A", items = { BaseMenuItems.Checkbox({ controlName = "Filler", textKey = "L" }) } },
             { name = "TAB_B", items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) } },
-        } })
+        },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     T.eq(h._tabIndex, 2)
@@ -847,11 +1048,19 @@ end
 
 local function makeContextPtr()
     return {
-        SetShowHideHandler = function(self, fn) self._sh = fn end,
-        SetInputHandler    = function(self, fn) self._in = fn end,
-        _hidden            = false,
-        IsHidden           = function(self) return self._hidden end,
-        SetUpdate          = function(self, fn) self._update = fn end,
+        SetShowHideHandler = function(self, fn)
+            self._sh = fn
+        end,
+        SetInputHandler = function(self, fn)
+            self._in = fn
+        end,
+        _hidden = false,
+        IsHidden = function(self)
+            return self._hidden
+        end,
+        SetUpdate = function(self, fn)
+            self._update = fn
+        end,
     }
 end
 
@@ -860,8 +1069,10 @@ function M.test_install_push_on_show_pop_on_hide()
     local a = Polyfill.makeCheckBox()
     populateControls({ A = a })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "A", textKey = "L" }) } })
+    BaseMenu.install(
+        ctx,
+        { name = "T", displayName = "Screen", items = { BaseMenuItems.Checkbox({ controlName = "A", textKey = "L" }) } }
+    )
     ctx._sh(false, false)
     T.eq(HandlerStack.count(), 1)
     ctx._sh(true, false)
@@ -870,10 +1081,9 @@ end
 
 function M.test_install_double_show_keeps_stack_depth_at_one()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "S", displayName = "Screen",
-        items = buttonSpec({"A"}) })
+    BaseMenu.install(ctx, { name = "S", displayName = "Screen", items = buttonSpec({ "A" }) })
     ctx._sh(false, false)
     ctx._sh(false, false)
     T.eq(HandlerStack.count(), 1, "idempotent push via removeByName+push")
@@ -885,9 +1095,14 @@ function M.test_install_prior_showhide_chained()
     populateControls({ A = a })
     local ctx = makeContextPtr()
     local priorArg = nil
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
         items = { BaseMenuItems.Checkbox({ controlName = "A", textKey = "L" }) },
-        priorShowHide = function(bIsHide) priorArg = bIsHide end })
+        priorShowHide = function(bIsHide)
+            priorArg = bIsHide
+        end,
+    })
     ctx._sh(false, false)
     T.eq(priorArg, false)
     T.eq(HandlerStack.count(), 1)
@@ -895,11 +1110,16 @@ end
 
 function M.test_install_prior_showhide_error_caught_push_still_happens()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "S", displayName = "Screen",
-        items = buttonSpec({"A"}),
-        priorShowHide = function() error("prior boom") end })
+    BaseMenu.install(ctx, {
+        name = "S",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        priorShowHide = function()
+            error("prior boom")
+        end,
+    })
     ctx._sh(false, false)
     T.truthy(#errors >= 1, "prior error logged")
     T.eq(HandlerStack.count(), 1, "push not blocked by prior error")
@@ -907,18 +1127,25 @@ end
 
 function M.test_install_show_parks_focus_on_named_control()
     setup()
-    local a    = Polyfill.makeCheckBox()
-    local eb   = Polyfill.makeEditBox({ text = "" })
+    local a = Polyfill.makeCheckBox()
+    local eb = Polyfill.makeEditBox({ text = "" })
     local park = Polyfill.makeButton()
     populateControls({ A = a, E = eb, Cancel = park })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
         focusParkControl = "Cancel",
-        priorShowHide = function(bIsHide) if not bIsHide then eb:TakeFocus() end end,
+        priorShowHide = function(bIsHide)
+            if not bIsHide then
+                eb:TakeFocus()
+            end
+        end,
         items = {
             BaseMenuItems.Textfield({ controlName = "E", textKey = "L" }),
             BaseMenuItems.Checkbox({ controlName = "A", textKey = "LA" }),
-        } })
+        },
+    })
     ctx._sh(false, false)
     T.eq(park._hasFocus, true, "focus parked on Cancel after base's TakeFocus")
 end
@@ -929,12 +1156,17 @@ function M.test_install_esc_bypasses_to_prior_input()
     populateControls({ A = a })
     local ctx = makeContextPtr()
     local priorFired = 0
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
         items = { BaseMenuItems.Checkbox({ controlName = "A", textKey = "L" }) },
         priorInput = function(msg, wp, lp)
-            if wp == Keys.VK_ESCAPE then priorFired = priorFired + 1 end
+            if wp == Keys.VK_ESCAPE then
+                priorFired = priorFired + 1
+            end
             return true
-        end })
+        end,
+    })
     ctx._sh(false, false)
     local consumed = ctx._in(WM_KEYDOWN, Keys.VK_ESCAPE, 0)
     T.truthy(consumed, "prior returned true")
@@ -952,12 +1184,17 @@ function M.test_install_esc_on_subhandler_closes_sub_not_screen()
     inst.Button:SetText("Entry")
     local ctx = makeContextPtr()
     local priorFired = 0
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
         items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "L" }) },
         priorInput = function(msg, wp, lp)
-            if wp == Keys.VK_ESCAPE then priorFired = priorFired + 1 end
+            if wp == Keys.VK_ESCAPE then
+                priorFired = priorFired + 1
+            end
             return true
-        end })
+        end,
+    })
     ctx._sh(false, false)
     ctx._in(WM_KEYDOWN, Keys.VK_RETURN, 0)
     T.eq(HandlerStack.count(), 2)
@@ -969,12 +1206,18 @@ end
 
 function M.test_install_input_falls_back_to_prior_on_unbound_key()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local ctx = makeContextPtr()
     local priorFired = 0
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = buttonSpec({"A"}),
-        priorInput = function() priorFired = priorFired + 1; return true end })
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        priorInput = function()
+            priorFired = priorFired + 1
+            return true
+        end,
+    })
     ctx._sh(false, false)
     -- Unbound key that is not in any binding: e.g. letter 'Z'. Since the
     -- menu has capturesAllInput = true, InputRouter consumes it; fallback
@@ -990,11 +1233,17 @@ function M.test_close_reopen_resets_cursor()
     local cbB = Polyfill.makeCheckBox()
     populateControls({ A = cbA, B = cbB })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = {
-            BaseMenuItems.Checkbox({ controlName = "A", textKey = "LA" }),
-            BaseMenuItems.Checkbox({ controlName = "B", textKey = "LB" }),
-        } })
+    BaseMenu.install(
+        ctx,
+        {
+            name = "T",
+            displayName = "Screen",
+            items = {
+                BaseMenuItems.Checkbox({ controlName = "A", textKey = "LA" }),
+                BaseMenuItems.Checkbox({ controlName = "B", textKey = "LB" }),
+            },
+        }
+    )
     ctx._sh(false, false)
     local h = HandlerStack.active()
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
@@ -1006,35 +1255,47 @@ end
 
 function M.test_tab_switch_reparks_focus_on_configured_control()
     setup()
-    local cbA  = Polyfill.makeCheckBox()
-    local ebB  = Polyfill.makeEditBox({ text = "" })
+    local cbA = Polyfill.makeCheckBox()
+    local ebB = Polyfill.makeEditBox({ text = "" })
     local park = Polyfill.makeButton()
     populateControls({ CA = cbA, EB = ebB, Park = park })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         focusParkControl = "Park",
         tabs = {
-            { name = "TAB_A",
-              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) } },
-            { name = "TAB_B",
-              showPanel = function() ebB:TakeFocus() end,
-              items = { BaseMenuItems.Textfield({ controlName = "EB", textKey = "L" }) } },
-        } })
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) },
+            },
+            {
+                name = "TAB_B",
+                showPanel = function()
+                    ebB:TakeFocus()
+                end,
+                items = { BaseMenuItems.Textfield({ controlName = "EB", textKey = "L" }) },
+            },
+        },
+    })
     HandlerStack.push(h)
     park._hasFocus = nil
-    ebB._hasFocus  = nil
+    ebB._hasFocus = nil
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     T.eq(h._tabIndex, 2)
-    T.eq(park._hasFocus, true,
-        "park control focused after tab switch so arrow keys reach the form")
+    T.eq(park._hasFocus, true, "park control focused after tab switch so arrow keys reach the form")
 end
 
 -- Preamble --------------------------------------------------------------
 
 function M.test_preamble_string_queued_after_displayName()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = "Are you sure?", items = buttonSpec({"A"}) })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "Are you sure?",
+        items = buttonSpec({ "A" }),
+    })
     HandlerStack.push(h)
     T.eq(#speaks, 3)
     T.eq(speaks[1].text, "Screen")
@@ -1047,11 +1308,17 @@ end
 
 function M.test_preamble_function_called_at_onActivate_not_at_create()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local calls = 0
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = function() calls = calls + 1; return "dynamic body" end,
-        items = buttonSpec({"A"}) })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = function()
+            calls = calls + 1
+            return "dynamic body"
+        end,
+        items = buttonSpec({ "A" }),
+    })
     T.eq(calls, 0, "preamble fn not called at create time")
     HandlerStack.push(h)
     T.eq(calls, 1, "preamble fn called once at onActivate")
@@ -1060,19 +1327,31 @@ end
 
 function M.test_preamble_function_returning_empty_is_skipped()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = function() return "" end, items = buttonSpec({"A"}) })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = function()
+            return ""
+        end,
+        items = buttonSpec({ "A" }),
+    })
     HandlerStack.push(h)
     T.eq(#speaks, 2, "empty preamble not spoken")
 end
 
 function M.test_refresh_respeaks_when_function_preamble_changes()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local body = "first"
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = function() return body end, items = buttonSpec({"A"}) })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = function()
+            return body
+        end,
+        items = buttonSpec({ "A" }),
+    })
     HandlerStack.push(h)
     speaks = {}
     body = "second"
@@ -1084,9 +1363,15 @@ end
 
 function M.test_refresh_noop_when_unchanged()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = function() return "same" end, items = buttonSpec({"A"}) })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = function()
+            return "same"
+        end,
+        items = buttonSpec({ "A" }),
+    })
     HandlerStack.push(h)
     speaks = {}
     h.refresh()
@@ -1095,9 +1380,13 @@ end
 
 function M.test_refresh_noop_when_preamble_is_string()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = "static body", items = buttonSpec({"A"}) })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "static body",
+        items = buttonSpec({ "A" }),
+    })
     HandlerStack.push(h)
     speaks = {}
     h.refresh()
@@ -1106,9 +1395,15 @@ end
 
 function M.test_refresh_fn_error_logged_no_crash()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = function() error("boom") end, items = buttonSpec({"A"}) })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = function()
+            error("boom")
+        end,
+        items = buttonSpec({ "A" }),
+    })
     HandlerStack.push(h)
     speaks = {}
     h.refresh()
@@ -1120,9 +1415,13 @@ end
 
 function M.test_f1_speaks_displayName_then_preamble()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = "intro body", items = buttonSpec({"A"}) })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "intro body",
+        items = buttonSpec({ "A" }),
+    })
     HandlerStack.push(h)
     speaks = {}
     SpeechPipeline._reset()
@@ -1136,9 +1435,8 @@ end
 
 function M.test_f1_with_no_preamble_speaks_displayName_only()
     setup()
-    setCtrls({"A"})
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = buttonSpec({"A"}) })
+    setCtrls({ "A" })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = buttonSpec({ "A" }) })
     HandlerStack.push(h)
     speaks = {}
     SpeechPipeline._reset()
@@ -1149,10 +1447,16 @@ end
 
 function M.test_f1_resolves_function_preamble_live()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local body = "first"
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = function() return body end, items = buttonSpec({"A"}) })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = function()
+            return body
+        end,
+        items = buttonSpec({ "A" }),
+    })
     HandlerStack.push(h)
     body = "second"
     speaks = {}
@@ -1163,10 +1467,16 @@ end
 
 function M.test_f1_syncs_lastPreambleText_so_refresh_is_noop()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local body = "first"
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        preamble = function() return body end, items = buttonSpec({"A"}) })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = function()
+            return body
+        end,
+        items = buttonSpec({ "A" }),
+    })
     HandlerStack.push(h)
     body = "second"
     SpeechPipeline._reset()
@@ -1204,11 +1514,16 @@ end
 
 function M.test_shouldActivate_false_skips_push()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = buttonSpec({"A"}),
-        shouldActivate = function() return false end })
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        shouldActivate = function()
+            return false
+        end,
+    })
     ctx._sh(false, false)
     T.eq(HandlerStack.count(), 0, "push skipped")
     T.eq(#speaks, 0, "no speech")
@@ -1216,11 +1531,16 @@ end
 
 function M.test_shouldActivate_true_pushes()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = buttonSpec({"A"}),
-        shouldActivate = function() return true end })
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        shouldActivate = function()
+            return true
+        end,
+    })
     ctx._sh(false, false)
     T.eq(HandlerStack.count(), 1)
 end
@@ -1229,10 +1549,14 @@ end
 
 function M.test_deferActivate_delays_push_to_update_tick()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "D", displayName = "Screen",
-        items = buttonSpec({"A"}), deferActivate = true })
+    BaseMenu.install(ctx, {
+        name = "D",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        deferActivate = true,
+    })
     ctx._sh(false, false)
     T.eq(HandlerStack.count(), 0, "push not synchronous with show")
     T.eq(#speaks, 0)
@@ -1244,10 +1568,14 @@ end
 
 function M.test_deferActivate_hide_before_tick_cancels_push()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "D", displayName = "Screen",
-        items = buttonSpec({"A"}), deferActivate = true })
+    BaseMenu.install(ctx, {
+        name = "D",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        deferActivate = true,
+    })
     ctx._sh(false, false)
     ctx._sh(true, false)
     TickPump.tick()
@@ -1257,10 +1585,14 @@ end
 
 function M.test_deferActivate_hidden_at_tick_skips_push()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "D", displayName = "Screen",
-        items = buttonSpec({"A"}), deferActivate = true })
+    BaseMenu.install(ctx, {
+        name = "D",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        deferActivate = true,
+    })
     ctx._sh(false, false)
     ctx._hidden = true
     TickPump.tick()
@@ -1274,8 +1606,11 @@ function M.test_setItems_replaces_items_single_tab()
     local a = Polyfill.makeCheckBox()
     local b = Polyfill.makeCheckBox()
     populateControls({ A = a })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "A", textKey = "FIRST" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Checkbox({ controlName = "A", textKey = "FIRST" }) },
+    })
     HandlerStack.push(h)
     speaks = {}
     h.setItems({
@@ -1292,11 +1627,14 @@ function M.test_setItems_replaces_tab_items_by_index()
     local a = Polyfill.makeCheckBox()
     local b = Polyfill.makeCheckBox()
     populateControls({ A = a, B = b })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
             { name = "TAB_A", items = { BaseMenuItems.Checkbox({ controlName = "A", textKey = "LA" }) } },
             { name = "TAB_B", items = { BaseMenuItems.Checkbox({ controlName = "B", textKey = "LB" }) } },
-        } })
+        },
+    })
     HandlerStack.push(h)
     h.setItems({
         BaseMenuItems.Checkbox({ control = b, labelText = "B-NEW-1" }),
@@ -1313,12 +1651,15 @@ function M.test_setItems_clamps_cursor_when_out_of_range()
     local b = Polyfill.makeCheckBox()
     local c = Polyfill.makeCheckBox()
     populateControls({ A = a, B = b, C = c })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
             BaseMenuItems.Checkbox({ controlName = "A", textKey = "LA" }),
             BaseMenuItems.Checkbox({ controlName = "B", textKey = "LB" }),
             BaseMenuItems.Checkbox({ controlName = "C", textKey = "LC" }),
-        } })
+        },
+    })
     HandlerStack.push(h)
     h._indices[1] = 3
     h.setItems({ BaseMenuItems.Checkbox({ control = a, labelText = "A" }) })
@@ -1331,20 +1672,24 @@ function M.test_labelText_overrides_textKey_lookup()
     setup()
     local cb = Polyfill.makeCheckBox()
     populateControls({ C = cb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ controlName = "C",
-            labelText = "PreLocalized Option" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Checkbox({ controlName = "C", labelText = "PreLocalized Option" }) },
+    })
     HandlerStack.push(h)
-    T.eq(speaks[2].text, "PreLocalized Option, off",
-        "labelText used verbatim")
+    T.eq(speaks[2].text, "PreLocalized Option, off", "labelText used verbatim")
 end
 
 function M.test_control_ref_bypasses_controlName_lookup()
     setup()
     local cb = Polyfill.makeCheckBox({ checked = true })
     Controls = {}
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Checkbox({ control = cb, textKey = "DIRECT" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Checkbox({ control = cb, textKey = "DIRECT" }) },
+    })
     HandlerStack.push(h)
     T.eq(#warns, 0, "no missing-control warnings")
     T.eq(speaks[2].text, "DIRECT, on")
@@ -1354,15 +1699,20 @@ end
 
 function M.test_capturesAllInput_blocks_lower_handlers()
     setup()
-    setCtrls({"A"})
+    setCtrls({ "A" })
     local lowerFired = 0
     HandlerStack.push({
-        name = "lower", capturesAllInput = false,
-        bindings = {{ key = 65, mods = 0,
-            fn = function() lowerFired = lowerFired + 1 end }},
+        name = "lower",
+        capturesAllInput = false,
+        bindings = { {
+            key = 65,
+            mods = 0,
+            fn = function()
+                lowerFired = lowerFired + 1
+            end,
+        } },
     })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = buttonSpec({"A"}) })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = buttonSpec({ "A" }) })
     HandlerStack.push(h)
     local consumed = InputRouter.dispatch(65, 0, WM_KEYDOWN)
     T.truthy(consumed, "barrier swallows unbound key")
@@ -1375,34 +1725,41 @@ function M.test_enter_on_textfield_pushes_edit_submenu()
     setup()
     local eb = Polyfill.makeEditBox({ text = "Athens" })
     populateControls({ E = eb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     local top = HandlerStack.active()
     T.truthy(top._editMode, "edit-mode sub is on top of stack")
     T.eq(top.name, "T/E_Edit")
-    T.eq(top.capturesAllInput, false,
-        "capturesAllInput off so unbound keys fall through to EditBox")
+    T.eq(top.capturesAllInput, false, "capturesAllInput off so unbound keys fall through to EditBox")
     T.eq(eb:GetText(), "", "editbox cleared")
     TickPump.tick()
     T.eq(eb._hasFocus, true, "engine focus taken for typing on next tick")
     local found = false
     for _, s in ipairs(speaks) do
-        if s.text == "editing LBL" then found = true end
+        if s.text == "editing LBL" then
+            found = true
+        end
     end
     T.truthy(found, "editing announcement fired")
 end
 
 function M.test_escape_during_edit_restores_and_pops()
     setup()
-    local eb   = Polyfill.makeEditBox({ text = "Athens" })
+    local eb = Polyfill.makeEditBox({ text = "Athens" })
     local park = Polyfill.makeButton()
     populateControls({ E = eb, Park = park })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         focusParkControl = "Park",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     eb:SetText("partial")
@@ -1415,7 +1772,9 @@ function M.test_escape_during_edit_restores_and_pops()
     T.eq(park._hasFocus, true, "focus parked off the EditBox")
     local foundRestored = false
     for _, s in ipairs(speaks) do
-        if s.text == "LBL restored" then foundRestored = true end
+        if s.text == "LBL restored" then
+            foundRestored = true
+        end
     end
     T.truthy(foundRestored, "restored announcement fired")
 end
@@ -1424,8 +1783,11 @@ function M.test_enter_during_edit_commits_without_restoring()
     setup()
     local eb = Polyfill.makeEditBox({ text = "Athens" })
     populateControls({ E = eb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     eb:SetText("new name")
@@ -1442,9 +1804,11 @@ function M.test_commit_fires_priorCallback_with_final_text()
     local function prior(text, control, bIsEnter)
         received[#received + 1] = { text = text, control = control, bIsEnter = bIsEnter }
     end
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL",
-            priorCallback = prior }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL", priorCallback = prior }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     eb:SetText("committed")
@@ -1453,45 +1817,51 @@ function M.test_commit_fires_priorCallback_with_final_text()
     T.eq(#received, 1, "priorCallback fired exactly once on commit")
     T.eq(received[1].text, "committed")
     T.eq(received[1].control, eb)
-    T.eq(received[1].bIsEnter, true,
-        "bIsEnter=true so priorCallback mimics native Enter-triggered call")
+    T.eq(received[1].bIsEnter, true, "bIsEnter=true so priorCallback mimics native Enter-triggered call")
 end
 
 function M.test_commit_announces_committed_value()
     setup()
     local eb = Polyfill.makeEditBox({ text = "old" })
     populateControls({ E = eb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     eb:SetText("new value")
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    T.eq(speaks[#speaks].text, "new value",
-        "commit speaks the just-saved value")
+    T.eq(speaks[#speaks].text, "new value", "commit speaks the just-saved value")
 end
 
 function M.test_commit_on_empty_announces_blank()
     setup()
     local eb = Polyfill.makeEditBox({ text = "old" })
     populateControls({ E = eb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    T.eq(speaks[#speaks].text, "blank",
-        "empty commit speaks the blank sentinel")
+    T.eq(speaks[#speaks].text, "blank", "empty commit speaks the blank sentinel")
 end
 
 function M.test_commit_without_priorCallback_is_safe()
     setup()
     local eb = Polyfill.makeEditBox({ text = "old" })
     populateControls({ E = eb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     eb:SetText("committed")
@@ -1505,16 +1875,25 @@ function M.test_restore_does_not_fire_priorCallback()
     local eb = Polyfill.makeEditBox({ text = "original" })
     populateControls({ E = eb })
     local fired = 0
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL",
-            priorCallback = function() fired = fired + 1 end }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Textfield({
+                controlName = "E",
+                textKey = "LBL",
+                priorCallback = function()
+                    fired = fired + 1
+                end,
+            }),
+        },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     eb:SetText("partial")
     fired = 0
     InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)
-    T.eq(fired, 0,
-        "restore path must NOT fire priorCallback; never committed this text")
+    T.eq(fired, 0, "restore path must NOT fire priorCallback; never committed this text")
     T.eq(eb:GetText(), "original")
 end
 
@@ -1522,15 +1901,19 @@ function M.test_edit_submenu_has_no_arrow_bindings()
     setup()
     local eb = Polyfill.makeEditBox({ text = "" })
     populateControls({ E = eb })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     local editSub = HandlerStack.active()
     for _, b in ipairs(editSub.bindings) do
-        T.truthy(b.key ~= Keys.VK_UP and b.key ~= Keys.VK_DOWN
-              and b.key ~= Keys.VK_LEFT and b.key ~= Keys.VK_RIGHT,
-            "edit-mode bindings must not intercept arrow keys")
+        T.truthy(
+            b.key ~= Keys.VK_UP and b.key ~= Keys.VK_DOWN and b.key ~= Keys.VK_LEFT and b.key ~= Keys.VK_RIGHT,
+            "edit-mode bindings must not intercept arrow keys"
+        )
     end
 end
 
@@ -1539,16 +1922,20 @@ function M.test_reenter_edit_installs_fresh_wrapping_callback()
     local eb = Polyfill.makeEditBox({ text = "first" })
     populateControls({ E = eb })
     local priorCalls = 0
-    local function prior() priorCalls = priorCalls + 1 end
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL",
-            priorCallback = prior }) } })
+    local function prior()
+        priorCalls = priorCalls + 1
+    end
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL", priorCallback = prior }) },
+    })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- enter edit
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- commit (reinstates prior)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- enter edit
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- commit (reinstates prior)
     T.eq(eb._cb, prior, "prior reinstated on exit")
     priorCalls = 0
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- re-enter edit
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- re-enter edit
     T.truthy(eb._cb ~= prior, "new wrapping callback installed")
     eb._cb("x", eb, false)
     T.eq(priorCalls, 1, "re-entered wrapper still chains to prior")
@@ -1559,10 +1946,16 @@ function M.test_edit_mode_enter_keyup_is_claimed()
     local eb = Polyfill.makeEditBox({ text = "x" })
     populateControls({ E = eb })
     local ctx = makeContextPtr()
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+    BaseMenu.install(
+        ctx,
+        {
+            name = "T",
+            displayName = "Screen",
+            items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
+        }
+    )
     ctx._sh(false, false)
-    ctx._in(WM_KEYDOWN, Keys.VK_RETURN, 0)  -- enter edit
+    ctx._in(WM_KEYDOWN, Keys.VK_RETURN, 0) -- enter edit
     -- Enter KEYUP (msg 257) while in edit mode should be claimed so the
     -- engine's Enter-release doesn't revoke focus.
     local consumed = ctx._in(257, Keys.VK_RETURN, 0)
@@ -1580,15 +1973,15 @@ local MOD_CTRL = 2
 local function buttonItem(name, label)
     return BaseMenuItems.Button({
         controlName = name,
-        textKey     = label or ("LBL_" .. name),
-        activate    = function() end,
+        textKey = label or ("LBL_" .. name),
+        activate = function() end,
     })
 end
 
 local function groupItem(label, children)
     return BaseMenuItems.Group({
         labelText = label,
-        items     = children,
+        items = children,
     })
 end
 
@@ -1597,11 +1990,14 @@ function M.test_group_drill_on_enter_enters_first_child()
     setCtrls({ "A", "GCHILD1", "GCHILD2" })
     local child1 = buttonItem("GCHILD1", "Child One")
     local child2 = buttonItem("GCHILD2", "Child Two")
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
             buttonItem("A", "Leaf A"),
             groupItem("Group One", { child1, child2 }),
-        } })
+        },
+    })
     HandlerStack.push(h)
     -- Move to the group and Enter.
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
@@ -1616,8 +2012,7 @@ function M.test_group_drill_on_right()
     setup()
     setCtrls({ "GCHILD1" })
     local child = buttonItem("GCHILD1", "Only Child")
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { groupItem("Group", { child }) } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupItem("Group", { child }) } })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
@@ -1628,10 +2023,13 @@ end
 function M.test_left_at_level_2_goes_back()
     setup()
     setCtrls({ "CHILD" })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { groupItem("Parent", { buttonItem("CHILD", "Child") }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { groupItem("Parent", { buttonItem("CHILD", "Child") }) },
+    })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- drill
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
     T.eq(h._level, 2)
     speaks = {}
     InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
@@ -1643,14 +2041,24 @@ function M.test_esc_at_level_2_goes_back_via_install_handler()
     setup()
     setCtrls({ "CHILD" })
     local ctx = {
-        SetShowHideHandler = function(self, fn) self._sh = fn end,
-        SetInputHandler    = function(self, fn) self._in = fn end,
-        _hidden            = false,
-        IsHidden           = function(self) return self._hidden end,
-        SetUpdate          = function(self, fn) self._update = fn end,
+        SetShowHideHandler = function(self, fn)
+            self._sh = fn
+        end,
+        SetInputHandler = function(self, fn)
+            self._in = fn
+        end,
+        _hidden = false,
+        IsHidden = function(self)
+            return self._hidden
+        end,
+        SetUpdate = function(self, fn)
+            self._update = fn
+        end,
     }
-    local handler = BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = { groupItem("Parent", { buttonItem("CHILD", "Child") }) } })
+    local handler = BaseMenu.install(
+        ctx,
+        { name = "T", displayName = "Screen", items = { groupItem("Parent", { buttonItem("CHILD", "Child") }) } }
+    )
     ctx._sh(false, false)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(handler._level, 2)
@@ -1665,15 +2073,29 @@ function M.test_esc_at_level_1_bypasses_to_priorInput()
     setCtrls({ "A" })
     local bypassed = false
     local ctx = {
-        SetShowHideHandler = function(self, fn) self._sh = fn end,
-        SetInputHandler    = function(self, fn) self._in = fn end,
-        _hidden            = false,
-        IsHidden           = function(self) return self._hidden end,
-        SetUpdate          = function(self, fn) self._update = fn end,
+        SetShowHideHandler = function(self, fn)
+            self._sh = fn
+        end,
+        SetInputHandler = function(self, fn)
+            self._in = fn
+        end,
+        _hidden = false,
+        IsHidden = function(self)
+            return self._hidden
+        end,
+        SetUpdate = function(self, fn)
+            self._update = fn
+        end,
     }
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        priorInput = function() bypassed = true; return true end,
-        items = { buttonItem("A", "Leaf") } })
+    BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        priorInput = function()
+            bypassed = true
+            return true
+        end,
+        items = { buttonItem("A", "Leaf") },
+    })
     ctx._sh(false, false)
     ctx._in(256, Keys.VK_ESCAPE, 0)
     T.truthy(bypassed, "Esc at level 1 delegated to priorInput")
@@ -1684,14 +2106,13 @@ function M.test_down_at_level_2_past_last_wraps_to_next_group_first_child()
     setCtrls({ "A", "B", "C", "D" })
     local groupA = groupItem("Group A", { buttonItem("A", "A1"), buttonItem("B", "A2") })
     local groupB = groupItem("Group B", { buttonItem("C", "B1"), buttonItem("D", "B2") })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { groupA, groupB } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupA, groupB } })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)      -- drill into A
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- step within A
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into A
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- step within A
     T.eq(h._indices[2], 2)
     speaks = {}
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- past last -> cross to B
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past last -> cross to B
     T.eq(h._indices[1], 2, "parent advanced to Group B")
     T.eq(h._indices[2], 1, "cursor on first child of B")
     T.eq(speaks[1].text, "Group B", "parent context announced")
@@ -1703,14 +2124,13 @@ function M.test_up_at_level_2_past_first_wraps_to_prev_group_last_child()
     setCtrls({ "A", "B", "C", "D" })
     local groupA = groupItem("Group A", { buttonItem("A", "A1"), buttonItem("B", "A2") })
     local groupB = groupItem("Group B", { buttonItem("C", "B1"), buttonItem("D", "B2") })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { groupA, groupB } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupA, groupB } })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- on Group B
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)      -- drill into B
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- on Group B
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into B
     T.eq(h._indices[2], 1)
     speaks = {}
-    InputRouter.dispatch(Keys.VK_UP, 0, WM_KEYDOWN)         -- past first -> cross to A
+    InputRouter.dispatch(Keys.VK_UP, 0, WM_KEYDOWN) -- past first -> cross to A
     T.eq(h._indices[1], 1, "parent moved back to Group A")
     T.eq(h._indices[2], 2, "cursor on last child of A")
     T.eq(speaks[1].text, "Group A")
@@ -1722,19 +2142,22 @@ function M.test_cross_parent_skips_leaves_at_parent_level()
     setCtrls({ "LEAF1", "A1", "A2", "LEAF2", "B1" })
     local groupA = groupItem("A", { buttonItem("A1"), buttonItem("A2") })
     local groupB = groupItem("B", { buttonItem("B1") })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
             buttonItem("LEAF1", "Leaf1"),
             groupA,
             buttonItem("LEAF2", "Leaf2"),
             groupB,
-        } })
+        },
+    })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)   -- on Group A
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)  -- drill
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)   -- A2
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- on Group A
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A2
     speaks = {}
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)   -- past end -> skip Leaf2 -> B
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past end -> skip Leaf2 -> B
     T.eq(h._indices[1], 4, "jumped across Leaf2 to Group B")
     T.eq(h._indices[2], 1)
     T.eq(speaks[1].text, "B")
@@ -1745,11 +2168,10 @@ function M.test_home_at_level_2_stays_within_group()
     setCtrls({ "A1", "A2", "B1" })
     local groupA = groupItem("A", { buttonItem("A1"), buttonItem("A2") })
     local groupB = groupItem("B", { buttonItem("B1") })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { groupA, groupB } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupA, groupB } })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- drill into A
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)    -- A2
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into A
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A2
     InputRouter.dispatch(Keys.VK_HOME, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 1, "still in group A")
     T.eq(h._indices[2], 1, "on first child of A")
@@ -1758,14 +2180,19 @@ end
 function M.test_ctrl_down_at_level_1_jumps_across_leaves_to_next_group()
     setup()
     setCtrls({ "LEAF", "G1C", "G2C" })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
             buttonItem("LEAF", "Leaf"),
             groupItem("Group 1", { buttonItem("G1C", "C1") }),
             groupItem("Group 2", { buttonItem("G2C", "C2") }),
-        } })
+        },
+    })
     HandlerStack.push(h)
-    UI.CtrlKeyDown = function() return true end
+    UI.CtrlKeyDown = function()
+        return true
+    end
     speaks = {}
     InputRouter.dispatch(Keys.VK_DOWN, MOD_CTRL, WM_KEYDOWN)
     T.eq(h._indices[1], 2, "skipped Leaf, landed on Group 1")
@@ -1779,13 +2206,14 @@ function M.test_ctrl_up_at_level_2_jumps_to_prev_group_first_child()
     setCtrls({ "A1", "B1", "B2" })
     local groupA = groupItem("A", { buttonItem("A1") })
     local groupB = groupItem("B", { buttonItem("B1"), buttonItem("B2") })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { groupA, groupB } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupA, groupB } })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- on Group B
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)      -- drill B
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)       -- B2
-    UI.CtrlKeyDown = function() return true end
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- on Group B
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill B
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- B2
+    UI.CtrlKeyDown = function()
+        return true
+    end
     speaks = {}
     InputRouter.dispatch(Keys.VK_UP, MOD_CTRL, WM_KEYDOWN)
     T.eq(h._indices[1], 1, "parent moved to Group A")
@@ -1796,8 +2224,11 @@ end
 function M.test_empty_group_drill_is_noop_and_reannounces_label()
     setup()
     setCtrls({})
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Group({ labelText = "Empty", items = {} }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Group({ labelText = "Empty", items = {} }) },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
@@ -1811,19 +2242,18 @@ function M.test_group_itemsFn_is_called_lazily_and_cached()
     local calls = 0
     local group = BaseMenuItems.Group({
         labelText = "Lazy",
-        itemsFn   = function()
+        itemsFn = function()
             calls = calls + 1
             return { buttonItem("C", "Child") }
         end,
     })
     T.eq(calls, 0, "not called at spec time")
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { group } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { group } })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)  -- drill
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
     T.eq(calls, 1)
-    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)   -- back
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)  -- drill again
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN) -- back
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill again
     T.eq(calls, 1, "children cached after first drill")
 end
 
@@ -1835,17 +2265,19 @@ function M.test_pulldown_fallback_fires_per_entry_button_callback()
     -- Shared metatable so the button probe's patch covers every entry
     -- button built for this pulldown.
     local btnProto = Polyfill.makeButton()
-    local btnMt = { __index = {
-        SetText          = btnProto.SetText,
-        GetText          = btnProto.GetText,
-        SetVoid1         = btnProto.SetVoid1,
-        GetVoid1         = btnProto.GetVoid1,
-        IsHidden         = btnProto.IsHidden,
-        IsDisabled       = btnProto.IsDisabled,
-        SetHide          = btnProto.SetHide,
-        SetDisabled      = btnProto.SetDisabled,
-        RegisterCallback = btnProto.RegisterCallback,
-    }}
+    local btnMt = {
+        __index = {
+            SetText = btnProto.SetText,
+            GetText = btnProto.GetText,
+            SetVoid1 = btnProto.SetVoid1,
+            GetVoid1 = btnProto.GetVoid1,
+            IsHidden = btnProto.IsHidden,
+            IsDisabled = btnProto.IsDisabled,
+            SetHide = btnProto.SetHide,
+            SetDisabled = btnProto.SetDisabled,
+            RegisterCallback = btnProto.RegisterCallback,
+        },
+    }
     -- Pre-build instances with buttons that share the metatable, then
     -- register the probe from the first of those buttons before any
     -- per-button RegisterCallback calls.
@@ -1860,16 +2292,23 @@ function M.test_pulldown_fallback_fires_per_entry_button_callback()
     -- No top-level RegisterSelectionCallback: per-entry click callbacks
     -- only. Mirrors the map-script option dropdown pattern.
     local fired = {}
-    inst1.Button:RegisterCallback(Mouse.eLClick, function() fired[#fired + 1] = "t" end)
-    inst2.Button:RegisterCallback(Mouse.eLClick, function() fired[#fired + 1] = "c" end)
+    inst1.Button:RegisterCallback(Mouse.eLClick, function()
+        fired[#fired + 1] = "t"
+    end)
+    inst2.Button:RegisterCallback(Mouse.eLClick, function()
+        fired[#fired + 1] = "c"
+    end)
 
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) },
+    })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- drill into sub
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- drill into sub
     T.eq(HandlerStack.count(), 2, "sub pushed via per-entry fallback")
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- commit second entry
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- commit second entry
     T.eq(#fired, 1)
     T.eq(fired[1], "c", "second entry's per-button callback fired")
     T.eq(HandlerStack.count(), 1, "sub popped after commit")
@@ -1887,8 +2326,11 @@ function M.test_pulldown_inner_button_disabled_marks_inactivatable()
     -- Base code pattern: disable the pulldown's inner button, not the
     -- pulldown userdata itself (e.g., map-size-locked maps).
     pd:GetButton():SetDisabled(true)
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL" }) },
+    })
     HandlerStack.push(h)
     local item = h._items[1]
     T.falsy(item:isActivatable(), "inner button disabled blocks activation")
@@ -1898,7 +2340,9 @@ function M.test_pulldown_inner_button_disabled_marks_inactivatable()
     -- Announcement should carry the disabled suffix.
     local found = false
     for _, s in ipairs(speaks) do
-        if s.text and s.text:find("disabled") then found = true end
+        if s.text and s.text:find("disabled") then
+            found = true
+        end
     end
     T.truthy(found, "disabled suffix announced")
 end
@@ -1915,18 +2359,26 @@ function M.test_pulldown_entry_announce_fn_replaces_entry_text()
     pd:BuildEntry("InstanceOne", i2)
     i1.Button:SetText("Plain A")
     i2.Button:SetText("Plain B")
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
-            BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD",
+            BaseMenuItems.Pulldown({
+                controlName = "PD",
+                textKey = "LBL_PD",
                 entryAnnounceFn = function(inst, idx)
                     return "rich " .. idx
-                end }),
-        } })
+                end,
+            }),
+        },
+    })
     HandlerStack.push(h)
     speaks = {}
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- drill
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- drill
     local richHeard = {}
-    for _, s in ipairs(speaks) do richHeard[s.text] = true end
+    for _, s in ipairs(speaks) do
+        richHeard[s.text] = true
+    end
     T.truthy(richHeard["rich 1"], "override used for first entry announce")
     -- Move to second entry and confirm its override announce too.
     speaks = {}
@@ -1944,8 +2396,11 @@ function M.test_pulldown_no_callback_at_all_logs_warn()
     pd:BuildEntry("InstanceOne", inst)
     inst.Button:SetText("Lonely")
     -- Neither top-level callback nor per-button click callback registered.
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) },
+    })
     HandlerStack.push(h)
     warns = {}
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
@@ -1959,14 +2414,13 @@ function M.test_group_cached_false_rebuilds_on_every_drill()
     local calls = 0
     local group = BaseMenuItems.Group({
         labelText = "Dynamic",
-        cached    = false,
-        itemsFn   = function()
+        cached = false,
+        itemsFn = function()
             calls = calls + 1
             return { buttonItem("C", "Child") }
         end,
     })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { group } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { group } })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
@@ -1979,15 +2433,18 @@ function M.test_hidden_group_is_skipped_in_navigation()
     setCtrls({ "HIDE_BOX", "A", "C" })
     ctrlState.HIDE_BOX.hidden = true
     local hiddenGroup = BaseMenuItems.Group({
-        labelText           = "HiddenGroup",
+        labelText = "HiddenGroup",
         visibilityControlName = "HIDE_BOX",
-        items               = { buttonItem("A") },
+        items = { buttonItem("A") },
     })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         items = {
             buttonItem("C", "Leaf"),
             hiddenGroup,
-        } })
+        },
+    })
     HandlerStack.push(h)
     -- Only one navigable item at top level: Leaf.
     speaks = {}
@@ -1999,13 +2456,12 @@ function M.test_single_sibling_group_wraps_circularly_within_itself()
     setup()
     setCtrls({ "A1", "A2" })
     local only = groupItem("Solo", { buttonItem("A1", "A1"), buttonItem("A2", "A2") })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { only } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { only } })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- drill
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)    -- A2
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A2
     speaks = {}
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)    -- past end, only 1 group -> wrap self
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past end, only 1 group -> wrap self
     T.eq(h._indices[1], 1, "still same parent")
     T.eq(h._indices[2], 1, "wrapped to first child")
     T.eq(speaks[1].text, "A1")
@@ -2014,24 +2470,22 @@ end
 function M.test_slider_at_level_2_left_right_adjusts_not_back()
     setup()
     local slider = Polyfill.makeSlider({ value = 0.5 })
-    local label  = Polyfill.makeLabel("50")
+    local label = Polyfill.makeLabel("50")
     populateControls({ Sld = slider, Lbl = label })
     slider:RegisterSliderCallback(function(v)
         label:SetText(tostring(math.floor(v * 100 + 0.5)))
     end)
     local group = groupItem("Options", {
-        BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl",
-            textKey = "LBL_S" }),
+        BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl", textKey = "LBL_S" }),
     })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { group } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { group } })
     HandlerStack.push(h)
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- drill
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
     T.eq(h._level, 2)
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)   -- slider adjust, NOT back
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- slider adjust, NOT back
     T.eq(h._level, 2, "still at level 2: right adjusted the slider")
     T.eq(slider:GetValue(), 0.51)
-    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)    -- slider decrement
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN) -- slider decrement
     T.eq(h._level, 2, "still at level 2: left adjusted the slider")
     T.eq(slider:GetValue(), 0.50)
 end
@@ -2040,14 +2494,24 @@ function M.test_level_reset_on_hide_then_reopen()
     setup()
     setCtrls({ "CHILD" })
     local ctx = {
-        SetShowHideHandler = function(self, fn) self._sh = fn end,
-        SetInputHandler    = function(self, fn) self._in = fn end,
-        _hidden            = false,
-        IsHidden           = function(self) return self._hidden end,
-        SetUpdate          = function(self, fn) self._update = fn end,
+        SetShowHideHandler = function(self, fn)
+            self._sh = fn
+        end,
+        SetInputHandler = function(self, fn)
+            self._in = fn
+        end,
+        _hidden = false,
+        IsHidden = function(self)
+            return self._hidden
+        end,
+        SetUpdate = function(self, fn)
+            self._update = fn
+        end,
     }
-    local handler = BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = { groupItem("P", { buttonItem("CHILD", "C") }) } })
+    local handler = BaseMenu.install(
+        ctx,
+        { name = "T", displayName = "Screen", items = { groupItem("P", { buttonItem("CHILD", "C") }) } }
+    )
     ctx._sh(false, false)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(handler._level, 2)
@@ -2061,30 +2525,36 @@ end
 local function installForSearch(labelledItems)
     local ctx = makeContextPtr()
     local names = {}
-    for _, it in ipairs(labelledItems) do names[#names + 1] = it.name end
+    for _, it in ipairs(labelledItems) do
+        names[#names + 1] = it.name
+    end
     setCtrls(names)
     local specItems = {}
     for _, it in ipairs(labelledItems) do
         specItems[#specItems + 1] = BaseMenuItems.Button({
-            controlName = it.name, labelText = it.label,
+            controlName = it.name,
+            labelText = it.label,
             activate = function() end,
         })
     end
-    local handler = BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = specItems })
+    local handler = BaseMenu.install(ctx, { name = "T", displayName = "Screen", items = specItems })
     ctx._sh(false, false)
     return ctx, handler
 end
 
-local function keydown(ctx, vk) return ctx._in(WM_KEYDOWN, vk, 0) end
-local function vkLetter(c) return string.byte(string.upper(c)) end
+local function keydown(ctx, vk)
+    return ctx._in(WM_KEYDOWN, vk, 0)
+end
+local function vkLetter(c)
+    return string.byte(string.upper(c))
+end
 
 function M.test_search_letter_moves_to_first_match()
     setup()
     local ctx, h = installForSearch({
-        { name = "A", label = "Apple"    },
-        { name = "B", label = "Banana"   },
-        { name = "C", label = "Cherry"   },
+        { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
+        { name = "C", label = "Cherry" },
     })
     speaks = {}
     T.truthy(keydown(ctx, vkLetter("b")), "letter consumed by search")
@@ -2103,7 +2573,10 @@ function M.test_search_no_match_speaks_and_stays_active()
     T.truthy(h._search:isSearchActive())
     local saw = false
     for _, s in ipairs(speaks) do
-        if s.text == "no match for z" then saw = true; break end
+        if s.text == "no match for z" then
+            saw = true
+            break
+        end
     end
     T.truthy(saw, "no-match announcement fired")
 end
@@ -2154,13 +2627,27 @@ function M.test_search_enter_activates_current_result()
     local ctx = makeContextPtr()
     setCtrls({ "A", "B" })
     local fired = 0
-    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = {
-            BaseMenuItems.Button({ controlName = "A", labelText = "Apple",
-                activate = function() end }),
-            BaseMenuItems.Button({ controlName = "B", labelText = "Banana",
-                activate = function() fired = fired + 1 end }),
-        } })
+    BaseMenu.install(
+        ctx,
+        {
+            name = "T",
+            displayName = "Screen",
+            items = {
+                BaseMenuItems.Button({
+                    controlName = "A",
+                    labelText = "Apple",
+                    activate = function() end,
+                }),
+                BaseMenuItems.Button({
+                    controlName = "B",
+                    labelText = "Banana",
+                    activate = function()
+                        fired = fired + 1
+                    end,
+                }),
+            },
+        }
+    )
     ctx._sh(false, false)
     keydown(ctx, vkLetter("b"))
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
@@ -2171,13 +2658,22 @@ function M.test_search_clears_on_drill()
     setup()
     setCtrls({ "CHILD" })
     local ctx = makeContextPtr()
-    local handler = BaseMenu.install(ctx, { name = "T", displayName = "Screen",
-        items = {
-            groupItem("PARENT", {
-                BaseMenuItems.Button({ controlName = "CHILD", labelText = "Apple",
-                    activate = function() end }),
-            }),
-        } })
+    local handler = BaseMenu.install(
+        ctx,
+        {
+            name = "T",
+            displayName = "Screen",
+            items = {
+                groupItem("PARENT", {
+                    BaseMenuItems.Button({
+                        controlName = "CHILD",
+                        labelText = "Apple",
+                        activate = function() end,
+                    }),
+                }),
+            },
+        }
+    )
     ctx._sh(false, false)
     keydown(ctx, vkLetter("p"))
     T.truthy(handler._search:isSearchActive())
@@ -2192,12 +2688,13 @@ function M.test_search_ignored_when_ctrl_held()
     local ctx, h = installForSearch({
         { name = "A", label = "Apple" },
     })
-    UI.CtrlKeyDown = function() return true end
+    UI.CtrlKeyDown = function()
+        return true
+    end
     keydown(ctx, vkLetter("a"))
     -- The modal capturesAllInput barrier still absorbs Ctrl+A, but the
     -- critical guarantee is that it did not feed the search buffer.
-    T.falsy(h._search:isSearchActive(),
-        "Ctrl+A must not start a type-ahead search")
+    T.falsy(h._search:isSearchActive(), "Ctrl+A must not start a type-ahead search")
 end
 
 -- Choice.selectedFn: browse-then-commit screens (ScenariosMenu, CustomMod,
@@ -2212,17 +2709,24 @@ function M.test_choice_selectedfn_prepends_selected_and_reannounces()
     populateControls({})
     local currentSelection = nil
     local choiceA = BaseMenuItems.Choice({
-        labelText  = "Apple",
-        selectedFn = function() return currentSelection == "A" end,
-        activate   = function() currentSelection = "A" end,
+        labelText = "Apple",
+        selectedFn = function()
+            return currentSelection == "A"
+        end,
+        activate = function()
+            currentSelection = "A"
+        end,
     })
     local choiceB = BaseMenuItems.Choice({
-        labelText  = "Banana",
-        selectedFn = function() return currentSelection == "B" end,
-        activate   = function() currentSelection = "B" end,
+        labelText = "Banana",
+        selectedFn = function()
+            return currentSelection == "B"
+        end,
+        activate = function()
+            currentSelection = "B"
+        end,
     })
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = { choiceA, choiceB } })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = { choiceA, choiceB } })
     HandlerStack.push(h)
 
     -- Nothing selected yet: neither announce prepends "selected".
@@ -2252,10 +2756,11 @@ function M.test_choice_without_selectedfn_does_not_reannounce()
     local fired = false
     local choice = BaseMenuItems.Choice({
         labelText = "Apple",
-        activate  = function() fired = true end,
+        activate = function()
+            fired = true
+        end,
     })
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = { choice } })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = { choice } })
     HandlerStack.push(h)
 
     speaks = {}
@@ -2288,17 +2793,18 @@ function M.test_pulldown_sub_entry_announces_selected_for_current_value()
     -- Parent pulldown's committed value is "Hard".
     pd:GetButton():SetText("Hard")
 
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
-        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) },
+    })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
 
     local sub = HandlerStack.active()
     T.eq(sub.name, "T/PD_PullDown")
-    T.eq(sub._items[1]:announce(sub), "Easy",
-        "non-matching entry has no 'selected' prefix")
-    T.eq(sub._items[2]:announce(sub), "selected, Hard",
-        "matching entry announces with 'selected' prefix")
+    T.eq(sub._items[1]:announce(sub), "Easy", "non-matching entry has no 'selected' prefix")
+    T.eq(sub._items[2]:announce(sub), "selected, Hard", "matching entry announces with 'selected' prefix")
 end
 
 function M.test_choice_selectedfn_skips_reannounce_when_activate_pops_handler()
@@ -2309,16 +2815,21 @@ function M.test_choice_selectedfn_skips_reannounce_when_activate_pops_handler()
     -- our re-announce would race against that and produce a stutter.
     local choice
     choice = BaseMenuItems.Choice({
-        labelText  = "Apple",
-        selectedFn = function() return true end,
-        activate   = function() HandlerStack.pop() end,
+        labelText = "Apple",
+        selectedFn = function()
+            return true
+        end,
+        activate = function()
+            HandlerStack.pop()
+        end,
     })
-    local parent = BaseMenu.create({ name = "PARENT", displayName = "Parent",
-        items = { BaseMenuItems.Button({ controlName = "X", textKey = "X",
-            activate = function() end }) } })
-    local h = BaseMenu.create({ name = "T", displayName = "Test",
-        items = { choice } })
-    setCtrls({"X"})
+    local parent = BaseMenu.create({
+        name = "PARENT",
+        displayName = "Parent",
+        items = { BaseMenuItems.Button({ controlName = "X", textKey = "X", activate = function() end }) },
+    })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = { choice } })
+    setCtrls({ "X" })
     HandlerStack.push(parent)
     HandlerStack.push(h)
 
@@ -2328,8 +2839,7 @@ function M.test_choice_selectedfn_skips_reannounce_when_activate_pops_handler()
     -- The critical invariant is that no "selected, Apple" entry appears
     -- after that -- the child's re-announce was suppressed.
     for _, s in ipairs(speaks) do
-        T.truthy(s.text ~= "selected, Apple",
-            "suppressed re-announce after handler pop")
+        T.truthy(s.text ~= "selected, Apple", "suppressed re-announce after handler pop")
     end
 end
 
@@ -2341,26 +2851,33 @@ function M.test_tab_nameFn_overrides_tab_name_on_switch()
     local cbB = Polyfill.makeCheckBox()
     populateControls({ CA = cbA, CB = cbB })
     local dynamic = "first call"
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
-            { name = "TAB_A",
-              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) } },
-            { name = "TAB_B",
-              nameFn = function() return dynamic end,
-              items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) } },
-        } })
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) },
+            },
+            {
+                name = "TAB_B",
+                nameFn = function()
+                    return dynamic
+                end,
+                items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) },
+            },
+        },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
-    T.eq(speaks[1].text, "first call",
-        "nameFn result replaces tab.name on switch")
+    T.eq(speaks[1].text, "first call", "nameFn result replaces tab.name on switch")
     -- Switch away + back; nameFn re-runs and picks up the new value.
     dynamic = "second call"
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     speaks = {}
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
-    T.eq(speaks[1].text, "second call",
-        "nameFn re-evaluated on every switch")
+    T.eq(speaks[1].text, "second call", "nameFn re-evaluated on every switch")
 end
 
 function M.test_tab_nameFn_empty_result_skips_tab_name_announcement()
@@ -2368,26 +2885,37 @@ function M.test_tab_nameFn_empty_result_skips_tab_name_announcement()
     local cbA = Polyfill.makeCheckBox()
     local cbB = Polyfill.makeCheckBox()
     populateControls({ CA = cbA, CB = cbB })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
-            { name = "TAB_A",
-              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) } },
-            { name = "TAB_B",
-              nameFn = function() return "" end,
-              items = { BaseMenuItems.Checkbox({ controlName = "CB", labelText = "item B" }) } },
-        } })
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) },
+            },
+            {
+                name = "TAB_B",
+                nameFn = function()
+                    return ""
+                end,
+                items = { BaseMenuItems.Checkbox({ controlName = "CB", labelText = "item B" }) },
+            },
+        },
+    })
     HandlerStack.push(h)
     speaks = {}
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     -- Empty nameFn means the tab-name announcement is skipped; the item
     -- announcement still fires (as interrupt, since nothing preceded it).
     for _, s in ipairs(speaks) do
-        T.truthy(s.text ~= "TAB_B",
-            "TAB_B literal never spoken when nameFn returns empty")
+        T.truthy(s.text ~= "TAB_B", "TAB_B literal never spoken when nameFn returns empty")
     end
     local sawItem = false
     for _, s in ipairs(speaks) do
-        if tostring(s.text):find("item B", 1, true) then sawItem = true; break end
+        if tostring(s.text):find("item B", 1, true) then
+            sawItem = true
+            break
+        end
     end
     T.truthy(sawItem, "first item still announced after empty nameFn")
 end
@@ -2398,22 +2926,32 @@ function M.test_tab_onCtrlUp_hook_overrides_sibling_group_jump()
     local cbB = Polyfill.makeCheckBox()
     populateControls({ CA = cbA, CB = cbB })
     local hookCalls = 0
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
-            { name = "TAB_A",
-              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) } },
-            { name = "TAB_B",
-              onCtrlUp   = function(handler) hookCalls = hookCalls + 1 end,
-              onCtrlDown = function(handler) hookCalls = hookCalls + 10 end,
-              items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) } },
-        } })
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) },
+            },
+            {
+                name = "TAB_B",
+                onCtrlUp = function(handler)
+                    hookCalls = hookCalls + 1
+                end,
+                onCtrlDown = function(handler)
+                    hookCalls = hookCalls + 10
+                end,
+                items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) },
+            },
+        },
+    })
     HandlerStack.push(h)
     -- Switch to the hooked tab and fire Ctrl+Up then Ctrl+Down.
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
-    InputRouter.dispatch(Keys.VK_UP,   2, WM_KEYDOWN) -- mods=MOD_CTRL
+    InputRouter.dispatch(Keys.VK_UP, 2, WM_KEYDOWN) -- mods=MOD_CTRL
     InputRouter.dispatch(Keys.VK_DOWN, 2, WM_KEYDOWN)
-    T.eq(hookCalls, 11,
-        "onCtrlUp+onCtrlDown each fired once on the active hooked tab")
+    T.eq(hookCalls, 11, "onCtrlUp+onCtrlDown each fired once on the active hooked tab")
 end
 
 function M.test_tab_without_onCtrl_hook_falls_back_to_default()
@@ -2421,16 +2959,24 @@ function M.test_tab_without_onCtrl_hook_falls_back_to_default()
     local g1a = BaseMenuItems.Checkbox({ controlName = "C1a", textKey = "L1a" })
     local g1b = BaseMenuItems.Checkbox({ controlName = "C1b", textKey = "L1b" })
     local g2a = BaseMenuItems.Checkbox({ controlName = "C2a", textKey = "L2a" })
-    populateControls({ C1a = Polyfill.makeCheckBox(), C1b = Polyfill.makeCheckBox(),
-                       C2a = Polyfill.makeCheckBox() })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    populateControls({
+        C1a = Polyfill.makeCheckBox(),
+        C1b = Polyfill.makeCheckBox(),
+        C2a = Polyfill.makeCheckBox(),
+    })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
-            { name = "UNHOOKED",
-              items = {
-                BaseMenuItems.Group({ labelText = "G1", items = { g1a, g1b } }),
-                BaseMenuItems.Group({ labelText = "G2", items = { g2a } }),
-              } },
-        } })
+            {
+                name = "UNHOOKED",
+                items = {
+                    BaseMenuItems.Group({ labelText = "G1", items = { g1a, g1b } }),
+                    BaseMenuItems.Group({ labelText = "G2", items = { g2a } }),
+                },
+            },
+        },
+    })
     HandlerStack.push(h)
     T.eq(h._indices[1], 1, "starts on G1")
     InputRouter.dispatch(Keys.VK_DOWN, 2, WM_KEYDOWN) -- Ctrl+Down
@@ -2442,14 +2988,24 @@ function M.test_tab_first_init_fires_tab_one_onActivate()
     local cbA = Polyfill.makeCheckBox()
     populateControls({ CA = cbA })
     local fired, gotHandler = false, nil
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
-            { name = "TAB_A",
-              onActivate = function(handler) fired = true; gotHandler = handler end,
-              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) } },
-            { name = "TAB_B",
-              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) } },
-        } })
+            {
+                name = "TAB_A",
+                onActivate = function(handler)
+                    fired = true
+                    gotHandler = handler
+                end,
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) },
+            },
+            {
+                name = "TAB_B",
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) },
+            },
+        },
+    })
     HandlerStack.push(h)
     T.eq(fired, true, "tab 1 onActivate fires on first open")
     T.eq(gotHandler, h, "onActivate receives the handler")
@@ -2458,13 +3014,19 @@ end
 function M.test_tab_first_init_applies_tab_one_autoDrillToLevel()
     setup()
     local inner = BaseMenuItems.Text({ labelText = "Inner" })
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
-            { name = "TAB_A", autoDrillToLevel = 2,
-              items = {
-                BaseMenuItems.Group({ labelText = "G", items = { inner } }),
-              } },
-        } })
+            {
+                name = "TAB_A",
+                autoDrillToLevel = 2,
+                items = {
+                    BaseMenuItems.Group({ labelText = "G", items = { inner } }),
+                },
+            },
+        },
+    })
     HandlerStack.push(h)
     T.eq(h._level, 2, "first open drilled into the first group on tab 1")
     T.eq(h._indices[2], 1, "cursor lands on first child after drill")
@@ -2472,15 +3034,22 @@ end
 
 function M.test_tab_first_init_onActivate_can_override_cursor()
     setup()
-    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
         tabs = {
-            { name = "TAB_A",
-              onActivate = function(handler) handler._indices = { 2 } end,
-              items = {
-                BaseMenuItems.Text({ labelText = "First" }),
-                BaseMenuItems.Text({ labelText = "Second" }),
-              } },
-        } })
+            {
+                name = "TAB_A",
+                onActivate = function(handler)
+                    handler._indices = { 2 }
+                end,
+                items = {
+                    BaseMenuItems.Text({ labelText = "First" }),
+                    BaseMenuItems.Text({ labelText = "Second" }),
+                },
+            },
+        },
+    })
     HandlerStack.push(h)
     T.eq(h._indices[1], 2, "tab 1 onActivate overrode the default cursor")
     -- Final speech queues the cursor's current item, not the default first.

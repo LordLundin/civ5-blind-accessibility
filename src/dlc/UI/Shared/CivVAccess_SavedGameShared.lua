@@ -18,14 +18,16 @@ SavedGameShared = {}
 -- sighted-user labels (tooltip strings on the *Menu.xml file's icon row)
 -- and pick up localization.
 SavedGameShared.HEADER_KEYS = {
-    mapType    = "TXT_KEY_AD_SETUP_MAP_TYPE",
-    mapSize    = "TXT_KEY_AD_SETUP_MAP_SIZE",
+    mapType = "TXT_KEY_AD_SETUP_MAP_TYPE",
+    mapSize = "TXT_KEY_AD_SETUP_MAP_SIZE",
     difficulty = "TXT_KEY_AD_SETUP_HANDICAP",
-    gameSpeed  = "TXT_KEY_GAME_SPEED",
+    gameSpeed = "TXT_KEY_GAME_SPEED",
 }
 
 function SavedGameShared.stripPath(filename)
-    if filename == nil or filename == "" then return "" end
+    if filename == nil or filename == "" then
+        return ""
+    end
     return Path.GetFileNameWithoutExtension(filename)
 end
 
@@ -33,7 +35,9 @@ end
 -- Returns nil on malformed ids so the caller can log through its own path.
 function SavedGameShared.parseId(id)
     local kind, idxStr = string.match(id or "", "^(%a+):(%d+)$")
-    if kind == nil then return nil end
+    if kind == nil then
+        return nil
+    end
     return kind, tonumber(idxStr)
 end
 
@@ -42,13 +46,12 @@ end
 -- carry a per-save override (LeaderName / CivilizationName). Mirrors the
 -- SetSelected body in the base LoadMenu / SaveMenu.
 function SavedGameShared.resolveLeaderCiv(header)
-    local civName        = Text.key("TXT_KEY_MISC_UNKNOWN")
+    local civName = Text.key("TXT_KEY_MISC_UNKNOWN")
     local leaderDescText = Text.key("TXT_KEY_MISC_UNKNOWN")
     local civ = GameInfo.Civilizations[header.PlayerCivilization]
     if civ ~= nil then
         civName = Text.key(civ.Description)
-        local row = GameInfo.Civilization_Leaders(
-            "CivilizationType = '" .. civ.Type .. "'")()
+        local row = GameInfo.Civilization_Leaders("CivilizationType = '" .. civ.Type .. "'")()
         if row ~= nil then
             local leader = GameInfo.Leaders[row.LeaderheadType]
             if leader ~= nil then
@@ -90,7 +93,9 @@ end
 -- headerKey is a TXT_KEY for the label prefix; leave nil/empty to emit the
 -- value alone. Value must be a pre-resolved string (not a TXT_KEY).
 function SavedGameShared.addField(leaves, headerKey, value)
-    if value == nil or value == "" then return end
+    if value == nil or value == "" then
+        return
+    end
     local prefix = ""
     if headerKey ~= nil and headerKey ~= "" then
         prefix = Text.key(headerKey) .. ": "

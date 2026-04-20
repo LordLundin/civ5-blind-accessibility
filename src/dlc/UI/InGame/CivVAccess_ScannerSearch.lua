@@ -14,9 +14,9 @@ ScannerSearch = {}
 
 local function newSub(key, label)
     return {
-        key          = key,
-        label        = label,
-        items        = {},
+        key = key,
+        label = label,
+        items = {},
         _itemsByName = {},
     }
 end
@@ -24,9 +24,13 @@ end
 -- Returns a snapshot when at least one entry matches; nil otherwise so the
 -- caller can speak the no-match token without installing a dead snapshot.
 function ScannerSearch.build(entries, query, cursorX, cursorY)
-    if query == nil then return nil end
+    if query == nil then
+        return nil
+    end
     local trimmed = query:match("^%s*(.-)%s*$") or ""
-    if #trimmed == 0 then return nil end
+    if #trimmed == 0 then
+        return nil
+    end
     local lowerQuery = string.lower(trimmed)
 
     -- Build per-original-category buckets in taxonomy order so the sub
@@ -41,33 +45,30 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
 
     local matchCount = 0
     for _, entry in ipairs(entries) do
-        local tier = TypeAheadSearch.matchTier(
-            string.lower(entry.itemName or ""), lowerQuery)
+        local tier = TypeAheadSearch.matchTier(string.lower(entry.itemName or ""), lowerQuery)
         if tier >= 0 then
             local plot = Map.GetPlotByIndex(entry.plotIndex)
             if plot == nil then
-                Log.warn("ScannerSearch: entry with unresolved plotIndex "
-                    .. tostring(entry.plotIndex))
+                Log.warn("ScannerSearch: entry with unresolved plotIndex " .. tostring(entry.plotIndex))
             else
                 local sub = subsByKey[entry.category]
                 if sub == nil then
-                    Log.warn("ScannerSearch: entry with unknown category '"
-                        .. tostring(entry.category) .. "'")
+                    Log.warn("ScannerSearch: entry with unknown category '" .. tostring(entry.category) .. "'")
                 else
                     local px, py = plot:GetX(), plot:GetY()
                     local dist = Map.PlotDistance(cursorX, cursorY, px, py)
                     local instance = {
-                        entry    = entry,
-                        plotX    = px,
-                        plotY    = py,
+                        entry = entry,
+                        plotX = px,
+                        plotY = py,
                         distance = dist,
                     }
                     local item = sub._itemsByName[entry.itemName]
                     if item == nil then
                         item = {
-                            name      = entry.itemName,
+                            name = entry.itemName,
                             instances = {},
-                            _tier     = tier,
+                            _tier = tier,
                         }
                         sub._itemsByName[entry.itemName] = item
                         sub.items[#sub.items + 1] = item
@@ -85,7 +86,9 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
         end
     end
 
-    if matchCount == 0 then return nil end
+    if matchCount == 0 then
+        return nil
+    end
 
     -- Assemble non-empty subs in taxonomy order. The `all` sub holds shared
     -- item references across every named sub, matching ScannerSnap's
@@ -108,14 +111,16 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
             end)
         end
         table.sort(sub.items, function(a, b)
-            if a._tier ~= b._tier then return a._tier < b._tier end
+            if a._tier ~= b._tier then
+                return a._tier < b._tier
+            end
             return a.instances[1].distance < b.instances[1].distance
         end)
         sub._itemsByName = nil
     end
 
     local allSub = {
-        key   = "all",
+        key = "all",
         label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ALL",
         items = {},
     }
@@ -125,7 +130,9 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
         end
     end
     table.sort(allSub.items, function(a, b)
-        if a._tier ~= b._tier then return a._tier < b._tier end
+        if a._tier ~= b._tier then
+            return a._tier < b._tier
+        end
         return a.instances[1].distance < b.instances[1].distance
     end)
 
@@ -135,13 +142,15 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
     end
 
     return {
-        cursorX    = cursorX,
-        cursorY    = cursorY,
-        isSearch   = true,
-        categories = { {
-            key           = "search",
-            label         = "TXT_KEY_CIVVACCESS_SCANNER_SEARCH_RESULTS",
-            subcategories = subs,
-        } },
+        cursorX = cursorX,
+        cursorY = cursorY,
+        isSearch = true,
+        categories = {
+            {
+                key = "search",
+                label = "TXT_KEY_CIVVACCESS_SCANNER_SEARCH_RESULTS",
+                subcategories = subs,
+            },
+        },
     }
 end

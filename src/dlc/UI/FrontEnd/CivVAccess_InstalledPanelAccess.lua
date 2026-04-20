@@ -51,7 +51,9 @@ local session = PickerReader.create()
 -- RefreshMods wrapper can reach the installed handler. See LoadMenuAccess
 -- for the same pattern.
 local mainHandler
-local function getHandler() return mainHandler end
+local function getHandler()
+    return mainHandler
+end
 
 -- Monkey-patch RefreshMods so every rebuild (sort toggle, enable / disable,
 -- download state transition, explicit Options-apply) also refreshes our
@@ -63,7 +65,9 @@ local function getHandler() return mainHandler end
 local baseRefreshMods = RefreshMods
 RefreshMods = function(...)
     baseRefreshMods(...)
-    if mainHandler == nil then return end
+    if mainHandler == nil then
+        return
+    end
     local newItems = InstalledPanel.buildPickerItems(session.Entry, getHandler)
     mainHandler.setItems(newItems, 1)
 end
@@ -71,18 +75,20 @@ end
 local pickerItems = InstalledPanel.buildPickerItems(session.Entry, getHandler)
 
 mainHandler = session.install(ContextPtr, {
-    name             = "InstalledPanel",
-    displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_INSTALLED_PANEL"),
-    pickerTabName    = "TXT_KEY_CIVVACCESS_MODS_LIST_TAB",
-    readerTabName    = "TXT_KEY_CIVVACCESS_MODS_DETAILS_TAB",
+    name = "InstalledPanel",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_INSTALLED_PANEL"),
+    pickerTabName = "TXT_KEY_CIVVACCESS_MODS_LIST_TAB",
+    readerTabName = "TXT_KEY_CIVVACCESS_MODS_DETAILS_TAB",
     -- OptionsButton is a SmallButton at the top-right of InstalledPanel.
     -- ListingScrollPanel (ScrollPanel) does not implement TakeFocus and
     -- fails parkFocus with a "method TakeFocus nil" warning.
     focusParkControl = "OptionsButton",
-    pickerItems      = pickerItems,
+    pickerItems = pickerItems,
     -- Skip the Context-init push. The LuaEvent listener below drives push /
     -- pop based on the parent ModsBrowser's real visibility transitions.
-    shouldActivate   = function() return false end,
+    shouldActivate = function()
+        return false
+    end,
 })
 
 -- Push / pop in response to ModsBrowser visibility signal. Defer the push

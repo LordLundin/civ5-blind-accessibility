@@ -9,8 +9,12 @@ ScannerBackendSpecial = {
 
 local function naturalWonderName(featureId)
     local row = GameInfo.Features[featureId]
-    if row == nil or not row.NaturalWonder then return nil end
-    if row.Description == nil then return nil end
+    if row == nil or not row.NaturalWonder then
+        return nil
+    end
+    if row.Description == nil then
+        return nil
+    end
     return Text.key(row.Description)
 end
 
@@ -27,26 +31,25 @@ function ScannerBackendSpecial.Scan(_activePlayer, activeTeam)
                 local name = naturalWonderName(featureId)
                 if name ~= nil then
                     out[#out + 1] = {
-                        plotIndex   = i,
-                        backend     = ScannerBackendSpecial,
-                        data        = { kind = "wonder", featureId = featureId },
-                        category    = "special",
+                        plotIndex = i,
+                        backend = ScannerBackendSpecial,
+                        data = { kind = "wonder", featureId = featureId },
+                        category = "special",
                         subcategory = "natural_wonders",
-                        itemName    = name,
-                        sortKey     = 0,
+                        itemName = name,
+                        sortKey = 0,
                     }
                 end
             end
-            if goodyHutId ~= nil
-                    and plot:GetRevealedImprovementType(activeTeam, isDebug) == goodyHutId then
+            if goodyHutId ~= nil and plot:GetRevealedImprovementType(activeTeam, isDebug) == goodyHutId then
                 out[#out + 1] = {
-                    plotIndex   = i,
-                    backend     = ScannerBackendSpecial,
-                    data        = { kind = "ruins" },
-                    category    = "special",
+                    plotIndex = i,
+                    backend = ScannerBackendSpecial,
+                    data = { kind = "ruins" },
+                    category = "special",
                     subcategory = "ancient_ruins",
-                    itemName    = goodyHutLabel,
-                    sortKey     = 0,
+                    itemName = goodyHutLabel,
+                    sortKey = 0,
                 }
             end
         end
@@ -56,18 +59,26 @@ end
 
 function ScannerBackendSpecial.ValidateEntry(entry, _cursorPlotIndex)
     local plot = Map.GetPlotByIndex(entry.plotIndex)
-    if plot == nil then return false end
+    if plot == nil then
+        return false
+    end
     local activeTeam = Game.GetActiveTeam()
     local isDebug = Game.IsDebugMode()
-    if not plot:IsRevealed(activeTeam, isDebug) then return false end
+    if not plot:IsRevealed(activeTeam, isDebug) then
+        return false
+    end
     if entry.data.kind == "wonder" then
         return plot:GetFeatureType() == entry.data.featureId
     end
     -- Ancient ruin: popped when a unit steps on it, so revealed
     -- improvement flips back to NO_IMPROVEMENT.
-    if GameInfoTypes == nil then return false end
+    if GameInfoTypes == nil then
+        return false
+    end
     local goodyHutId = GameInfoTypes.IMPROVEMENT_GOODY_HUT
-    if goodyHutId == nil then return false end
+    if goodyHutId == nil then
+        return false
+    end
     return plot:GetRevealedImprovementType(activeTeam, isDebug) == goodyHutId
 end
 

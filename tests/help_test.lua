@@ -11,14 +11,24 @@ local warns
 
 local function setup()
     warns = {}
-    Log.warn  = function(msg) warns[#warns + 1] = msg end
-    Log.error = function(msg) warns[#warns + 1] = msg end
-    Log.info  = function() end
+    Log.warn = function(msg)
+        warns[#warns + 1] = msg
+    end
+    Log.error = function(msg)
+        warns[#warns + 1] = msg
+    end
+    Log.info = function() end
     Log.debug = function() end
 
-    UI.ShiftKeyDown = function() return false end
-    UI.CtrlKeyDown  = function() return false end
-    UI.AltKeyDown   = function() return false end
+    UI.ShiftKeyDown = function()
+        return false
+    end
+    UI.CtrlKeyDown = function()
+        return false
+    end
+    UI.AltKeyDown = function()
+        return false
+    end
 
     Events.AudioPlay2DSound = function() end
 
@@ -59,9 +69,12 @@ end
 function M.test_help_open_pushes_handler_named_Help()
     setup()
     HandlerStack.push({
-        name = "base", helpEntries = {
-            { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
-              description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS" },
+        name = "base",
+        helpEntries = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
+                description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS",
+            },
         },
     })
     Help.open()
@@ -79,9 +92,12 @@ end
 function M.test_help_items_are_keyLabel_comma_description()
     setup()
     HandlerStack.push({
-        name = "base", helpEntries = {
-            { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
-              description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS" },
+        name = "base",
+        helpEntries = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
+                description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS",
+            },
         },
     })
     Help.open()
@@ -97,11 +113,16 @@ end
 function M.test_help_collects_from_stack_before_pushing_itself()
     setup()
     HandlerStack.push({
-        name = "base", helpEntries = {
-            { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
-              description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS" },
-            { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
-              description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL" },
+        name = "base",
+        helpEntries = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
+                description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
+                description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL",
+            },
         },
     })
     Help.open()
@@ -119,11 +140,12 @@ function M.test_help_self_entries_describe_navigation_not_base_menu()
     -- Help replaces the auto-populated BaseMenu helpEntries with a short
     -- curated list. Should include escape + ? for closing.
     local seen = {}
-    for _, e in ipairs(help.helpEntries) do seen[e.keyLabel] = true end
+    for _, e in ipairs(help.helpEntries) do
+        seen[e.keyLabel] = true
+    end
     T.truthy(seen["TXT_KEY_CIVVACCESS_HELP_KEY_ESC"])
     T.truthy(seen["TXT_KEY_CIVVACCESS_HELP_KEY_QUESTION"])
-    T.falsy(seen["TXT_KEY_CIVVACCESS_HELP_KEY_F1"],
-        "F1 read-header not applicable to help list")
+    T.falsy(seen["TXT_KEY_CIVVACCESS_HELP_KEY_F1"], "F1 read-header not applicable to help list")
 end
 
 function M.test_help_escape_pops_handler()
@@ -134,8 +156,7 @@ function M.test_help_escape_pops_handler()
     -- Escape is wired by BaseMenu.create when spec.escapePops is set.
     local consumed = InputRouter.dispatch(Keys.VK_ESCAPE, 0, 256)
     T.truthy(consumed)
-    T.eq(HandlerStack.active().name, "base",
-        "Esc pops Help, restoring the base handler")
+    T.eq(HandlerStack.active().name, "base", "Esc pops Help, restoring the base handler")
 end
 
 function M.test_help_shift_question_pops_handler()
@@ -145,7 +166,9 @@ function M.test_help_shift_question_pops_handler()
     T.eq(HandlerStack.active().name, "Help")
     -- Shift+? while Help is on top: InputRouter skips the Help.open pre-walk
     -- gate (top is Help), so Help's own binding fires and pops.
-    UI.ShiftKeyDown = function() return true end
+    UI.ShiftKeyDown = function()
+        return true
+    end
     local consumed = InputRouter.dispatch(191, 1, 256)
     T.truthy(consumed)
     T.eq(HandlerStack.active().name, "base")
@@ -156,15 +179,22 @@ end
 function M.test_help_respects_captures_barrier_below()
     setup()
     HandlerStack.push({
-        name = "bottom", helpEntries = {
-            { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_F1",
-              description = "TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER" },
+        name = "bottom",
+        helpEntries = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F1",
+                description = "TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER",
+            },
         },
     })
     HandlerStack.push({
-        name = "middle-barrier", capturesAllInput = true, helpEntries = {
-            { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_TAB",
-              description = "TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB" },
+        name = "middle-barrier",
+        capturesAllInput = true,
+        helpEntries = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_TAB",
+                description = "TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB",
+            },
         },
     })
     Help.open()
@@ -175,15 +205,21 @@ end
 function M.test_help_dedupes_keyLabel_top_wins()
     setup()
     HandlerStack.push({
-        name = "bottom", helpEntries = {
-            { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
-              description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL" },
+        name = "bottom",
+        helpEntries = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
+                description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL",
+            },
         },
     })
     HandlerStack.push({
-        name = "top", helpEntries = {
-            { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
-              description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE" },
+        name = "top",
+        helpEntries = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
+                description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE",
+            },
         },
     })
     Help.open()

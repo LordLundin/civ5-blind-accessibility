@@ -14,30 +14,34 @@ local function unitDescription(unit)
     -- announced in front of their own unit every time. The civ adjective
     -- ("Arabian Warrior") already disambiguates owner.
     if unit:HasName() then
-        local desc = Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV",
-            owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
+        local desc =
+            Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
         return Text.key(unit:GetNameNoDesc()) .. " (" .. desc .. ")"
     end
-    return Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV",
-        owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
+    return Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
 end
 
 local function describeUnit(unit, activeTeam, isDebug)
-    if unit:IsInvisible(activeTeam, isDebug) then return nil end
-    if unit:IsCargo() then return nil end
-    if unit:GetDomainType() == DomainTypes.DOMAIN_AIR then return nil end
+    if unit:IsInvisible(activeTeam, isDebug) then
+        return nil
+    end
+    if unit:IsCargo() then
+        return nil
+    end
+    if unit:GetDomainType() == DomainTypes.DOMAIN_AIR then
+        return nil
+    end
     local s = unitDescription(unit)
     local damage = unit:GetDamage()
     if damage > 0 then
-        s = s .. ", " .. Text.format("TXT_KEY_CIVVACCESS_HP_FORMAT",
-            GameDefines.MAX_HIT_POINTS - damage)
+        s = s .. ", " .. Text.format("TXT_KEY_CIVVACCESS_HP_FORMAT", GameDefines.MAX_HIT_POINTS - damage)
     end
     return s
 end
 
 PlotSectionUnits = {
     Read = function(plot)
-        local team    = Game.GetActiveTeam()
+        local team = Game.GetActiveTeam()
         local isDebug = Game.IsDebugMode()
         local out = {}
 
@@ -46,7 +50,9 @@ PlotSectionUnits = {
             local u = plot:GetUnit(i)
             if u ~= nil then
                 local desc = describeUnit(u, team, isDebug)
-                if desc ~= nil then out[#out + 1] = desc end
+                if desc ~= nil then
+                    out[#out + 1] = desc
+                end
             end
         end
 

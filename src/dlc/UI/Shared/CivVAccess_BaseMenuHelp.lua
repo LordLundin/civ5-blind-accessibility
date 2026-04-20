@@ -8,48 +8,64 @@
 BaseMenuHelp = {}
 
 BaseMenuHelp.MenuHelpEntries = {
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_AZ09",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_SEARCH" },
+    { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_AZ09", description = "TXT_KEY_CIVVACCESS_HELP_DESC_SEARCH" },
 }
 
 BaseMenuHelp.ListNavHelpEntries = {
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_FIRST_LAST" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ENTER_SPACE",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_ACTIVATE" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_LEFT_RIGHT",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_LEFT_RIGHT",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST_BIG" },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS",
+    },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_FIRST_LAST",
+    },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ENTER_SPACE",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_ACTIVATE",
+    },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_LEFT_RIGHT",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST",
+    },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_LEFT_RIGHT",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST_BIG",
+    },
 }
 
 BaseMenuHelp.NestedNavHelpEntries = {
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_UP_DOWN",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_GROUP" },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_UP_DOWN",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_GROUP",
+    },
 }
 
 BaseMenuHelp.TabbedHelpEntries = {
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_TAB",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_PREV_TAB" },
+    { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_TAB", description = "TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB" },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_PREV_TAB",
+    },
 }
 
 BaseMenuHelp.ReadHeaderHelpEntry = {
-    keyLabel    = "TXT_KEY_CIVVACCESS_HELP_KEY_F1",
+    keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F1",
     description = "TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER",
 }
 
 BaseMenuHelp.EscapePopsHelpEntry = {
-    keyLabel    = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
+    keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
     description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL",
 }
 
 local function appendAll(dst, src)
-    if type(src) ~= "table" then return end
-    for _, e in ipairs(src) do dst[#dst + 1] = e end
+    if type(src) ~= "table" then
+        return
+    end
+    for _, e in ipairs(src) do
+        dst[#dst + 1] = e
+    end
 end
 
 -- Compose the authored help list for a BaseMenu-backed handler, reading the
@@ -60,9 +76,13 @@ function BaseMenuHelp.buildHelpEntries(spec)
     appendAll(list, BaseMenuHelp.MenuHelpEntries)
     appendAll(list, BaseMenuHelp.ListNavHelpEntries)
     appendAll(list, BaseMenuHelp.NestedNavHelpEntries)
-    if spec.tabs then appendAll(list, BaseMenuHelp.TabbedHelpEntries) end
+    if spec.tabs then
+        appendAll(list, BaseMenuHelp.TabbedHelpEntries)
+    end
     list[#list + 1] = BaseMenuHelp.ReadHeaderHelpEntry
-    if spec.escapePops then list[#list + 1] = BaseMenuHelp.EscapePopsHelpEntry end
+    if spec.escapePops then
+        list[#list + 1] = BaseMenuHelp.EscapePopsHelpEntry
+    end
     appendAll(list, spec.helpExtras)
     return list
 end

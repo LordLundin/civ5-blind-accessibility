@@ -11,17 +11,23 @@ include("CivVAccess_FrontendCommon")
 local priorInput = InputHandler
 
 civvaccess_shared._frontEndPopupHandler = BaseMenu.install(ContextPtr, {
-    name        = "FrontEndPopup",
+    name = "FrontEndPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_FRONT_END_POPUP"),
-    preamble    = function()
-        if Controls.PopupText then return Controls.PopupText:GetText() end
+    preamble = function()
+        if Controls.PopupText then
+            return Controls.PopupText:GetText()
+        end
         return nil
     end,
-    priorInput  = priorInput,
+    priorInput = priorInput,
     items = {
-        BaseMenuItems.Button({ controlName = "CloseButton",
-            textKey  = "TXT_KEY_CLOSE",
-            activate = function() OnBack() end }),
+        BaseMenuItems.Button({
+            controlName = "CloseButton",
+            textKey = "TXT_KEY_CLOSE",
+            activate = function()
+                OnBack()
+            end,
+        }),
     },
 })
 
@@ -29,8 +35,12 @@ if not civvaccess_shared._frontEndPopupRefreshInstalled then
     civvaccess_shared._frontEndPopupRefreshInstalled = true
     Events.FrontEndPopup.Add(function()
         local h = civvaccess_shared._frontEndPopupHandler
-        if h == nil then return end
-        local ok, err = pcall(function() h.refresh() end)
+        if h == nil then
+            return
+        end
+        local ok, err = pcall(function()
+            h.refresh()
+        end)
         if not ok then
             Log.error("FrontEndPopupAccess refresh: " .. tostring(err))
         end

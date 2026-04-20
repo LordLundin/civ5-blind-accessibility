@@ -16,20 +16,21 @@ Help = {}
 -- (b) these are the entries a user sees every time they hit ?, so they
 -- deserve a short, curated list.
 local HELP_SELF_ENTRIES = {
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_AZ09",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_SEARCH" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_FIRST_LAST" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE" },
-    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_QUESTION",
-      description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE" },
+    { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_AZ09", description = "TXT_KEY_CIVVACCESS_HELP_DESC_SEARCH" },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS",
+    },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_FIRST_LAST",
+    },
+    { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC", description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE" },
+    { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_QUESTION", description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE" },
 }
 
 local function resolveEntryLabel(entry)
-    local keyLabel    = Text.key(entry.keyLabel)
+    local keyLabel = Text.key(entry.keyLabel)
     local description = Text.key(entry.description)
     return Text.format("TXT_KEY_CIVVACCESS_HELP_ENTRY", keyLabel, description)
 end
@@ -51,11 +52,11 @@ end
 function Help.open()
     local entries = HandlerStack.collectHelpEntries()
     local handler = BaseMenu.create({
-        name             = "Help",
-        displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_HELP"),
-        items            = buildItems(entries),
+        name = "Help",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_HELP"),
+        items = buildItems(entries),
         capturesAllInput = true,
-        escapePops       = true,
+        escapePops = true,
     })
 
     -- BaseMenu.create auto-populates helpEntries from its own bindings.
@@ -67,8 +68,12 @@ function Help.open()
     -- bails when top.name == "Help" so this binding gets a chance to fire.
     -- Windows VK for '/?' is 191; mods bit 1 is Shift (see InputRouter).
     handler.bindings[#handler.bindings + 1] = {
-        key = 191, mods = 1, description = "Close help",
-        fn  = function() HandlerStack.removeByName("Help", true) end,
+        key = 191,
+        mods = 1,
+        description = "Close help",
+        fn = function()
+            HandlerStack.removeByName("Help", true)
+        end,
     }
 
     HandlerStack.push(handler)

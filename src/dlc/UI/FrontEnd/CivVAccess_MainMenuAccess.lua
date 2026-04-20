@@ -16,31 +16,59 @@ local priorShowHide = ShowHideHandler
 -- ShowHide(false) then (true) within one frame. Deferral lets the hide
 -- cancel the push before the name + first item speaks.
 BaseMenu.install(ContextPtr, {
-    name          = "MainMenu",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAIN_MENU"),
+    name = "MainMenu",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAIN_MENU"),
     deferActivate = true,
     priorShowHide = priorShowHide,
     items = {
-        BaseMenuItems.Button({ controlName = "SinglePlayerButton",
-            textKey  = "TXT_KEY_MODDING_SINGLE_PLAYER",
-            activate = function() SinglePlayerClick() end }),
-        BaseMenuItems.Button({ controlName = "MultiplayerButton",
-            textKey  = "TXT_KEY_MULTIPLAYER",
-            activate = function() MultiplayerClick() end }),
-        BaseMenuItems.Button({ controlName = "ModsButton",
-            textKey  = "TXT_KEY_MODS",
-            activate = function() ModsButtonClick() end }),
-        BaseMenuItems.Button({ controlName = "OptionsButton",
-            textKey  = "TXT_KEY_OPTIONS",
-            activate = function() OptionsClick() end }),
-        BaseMenuItems.Button({ controlName = "OtherButton",
-            textKey  = "TXT_KEY_OTHER",
-            activate = function() OtherClick() end }),
-        BaseMenuItems.Button({ controlName = "ExpansionRulesSwitch",
-            textKey  = "TXT_KEY_LOAD_MENU_DLC",
-            activate = function() OnExpansionRulesSwitch() end }),
-        BaseMenuItems.Button({ controlName = "ExitButton",
-            textKey  = "TXT_KEY_EXIT_BUTTON",
-            activate = function() OnExitGame() end }),
+        BaseMenuItems.Button({
+            controlName = "SinglePlayerButton",
+            textKey = "TXT_KEY_MODDING_SINGLE_PLAYER",
+            activate = function()
+                SinglePlayerClick()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "MultiplayerButton",
+            textKey = "TXT_KEY_MULTIPLAYER",
+            activate = function()
+                MultiplayerClick()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "ModsButton",
+            textKey = "TXT_KEY_MODS",
+            activate = function()
+                ModsButtonClick()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "OptionsButton",
+            textKey = "TXT_KEY_OPTIONS",
+            activate = function()
+                OptionsClick()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "OtherButton",
+            textKey = "TXT_KEY_OTHER",
+            activate = function()
+                OtherClick()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "ExpansionRulesSwitch",
+            textKey = "TXT_KEY_LOAD_MENU_DLC",
+            activate = function()
+                OnExpansionRulesSwitch()
+            end,
+        }),
+        BaseMenuItems.Button({
+            controlName = "ExitButton",
+            textKey = "TXT_KEY_EXIT_BUTTON",
+            activate = function()
+                OnExitGame()
+            end,
+        }),
     },
 })

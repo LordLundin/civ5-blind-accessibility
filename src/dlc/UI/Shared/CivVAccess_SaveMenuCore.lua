@@ -33,13 +33,13 @@ SaveMenu = {}
 
 local READER_TAB_IDX = 2
 
-local HEADER_KEYS      = SavedGameShared.HEADER_KEYS
-local stripPath        = SavedGameShared.stripPath
-local parseId          = SavedGameShared.parseId
+local HEADER_KEYS = SavedGameShared.HEADER_KEYS
+local stripPath = SavedGameShared.stripPath
+local parseId = SavedGameShared.parseId
 local resolveLeaderCiv = SavedGameShared.resolveLeaderCiv
-local gameTypeLabel    = SavedGameShared.gameTypeLabel
-local descOf           = SavedGameShared.descOf
-local addField         = SavedGameShared.addField
+local gameTypeLabel = SavedGameShared.gameTypeLabel
+local descOf = SavedGameShared.descOf
+local addField = SavedGameShared.addField
 
 local function isMultiplayerStarted()
     return PreGame.IsMultiplayerGame() and PreGame.GameStarted()
@@ -85,17 +85,17 @@ end
 local function pushConfirmSub(mainHandler, subSuffix, promptLabel, onYes)
     local subName = mainHandler.name .. "/" .. subSuffix
     local sub = BaseMenu.create({
-        name        = subName,
+        name = subName,
         displayName = promptLabel,
         items = {
             BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_NO_BUTTON",
+                textKey = "TXT_KEY_NO_BUTTON",
                 activate = function()
                     HandlerStack.removeByName(subName, true)
                 end,
             }),
             BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_YES_BUTTON",
+                textKey = "TXT_KEY_YES_BUTTON",
                 activate = function()
                     HandlerStack.removeByName(subName, true)
                     onYes()
@@ -114,24 +114,21 @@ end
 -- selected save's DisplayName (which SetSelected just wrote into NameBox,
 -- so the two paths end up equivalent).
 local function pushOverwriteDiskConfirm(mainHandler, entry, saveText)
-    local label = Text.format(
-        "TXT_KEY_CIVVACCESS_SAVE_OVERWRITE_CONFIRM", entry.DisplayName)
+    local label = Text.format("TXT_KEY_CIVVACCESS_SAVE_OVERWRITE_CONFIRM", entry.DisplayName)
     pushConfirmSub(mainHandler, "OverwriteConfirm", label, function()
         performSaveDisk(saveText)
     end)
 end
 
 local function pushOverwriteCloudConfirm(mainHandler, slotIndex)
-    local label = Text.format(
-        "TXT_KEY_CIVVACCESS_SAVE_OVERWRITE_CLOUD_CONFIRM", slotIndex)
+    local label = Text.format("TXT_KEY_CIVVACCESS_SAVE_OVERWRITE_CLOUD_CONFIRM", slotIndex)
     pushConfirmSub(mainHandler, "OverwriteCloudConfirm", label, function()
         performSaveCloud(slotIndex)
     end)
 end
 
 local function pushDeleteConfirm(mainHandler, entry)
-    local label = Text.format(
-        "TXT_KEY_CIVVACCESS_SAVE_DELETE_CONFIRM", entry.DisplayName)
+    local label = Text.format("TXT_KEY_CIVVACCESS_SAVE_DELETE_CONFIRM", entry.DisplayName)
     pushConfirmSub(mainHandler, "DeleteConfirm", label, function()
         performDelete(entry.FileName)
         mainHandler.setItems({
@@ -148,8 +145,7 @@ end
 local function onSaveActivate(mainHandler)
     local text = Controls.NameBox:GetText()
     if text == nil or not ValidateText(text) then
-        SpeechPipeline.speakInterrupt(
-            Text.key("TXT_KEY_CIVVACCESS_SAVE_INVALID_NAME"))
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SAVE_INVALID_NAME"))
         return
     end
     for _, v in ipairs(g_SavedGames) do
@@ -197,8 +193,8 @@ function SaveMenu.buildReader(mainHandler, id)
         })
         leaves[#leaves + 1] = BaseMenuItems.Button({
             controlName = "SaveButton",
-            textKey     = "TXT_KEY_CIVVACCESS_SAVE_TO_SLOT_ACTION",
-            activate    = function()
+            textKey = "TXT_KEY_CIVVACCESS_SAVE_TO_SLOT_ACTION",
+            activate = function()
                 performSaveCloud(idx)
             end,
         })
@@ -214,8 +210,7 @@ function SaveMenu.buildReader(mainHandler, id)
     -- "<leader> - <civ>", already localized). Mirrors SaveMenu.xml's Title.
     local leaderDescText, civName = resolveLeaderCiv(header)
     leaves[#leaves + 1] = BaseMenuItems.Text({
-        labelText = Text.format(
-            "TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName),
+        labelText = Text.format("TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName),
     })
 
     -- Saved-on date (disk only; cloud slot headers don't carry an mtime).
@@ -230,18 +225,15 @@ function SaveMenu.buildReader(mainHandler, id)
     -- setup-only saves don't.
     if header.CurrentEra ~= nil and header.CurrentEra ~= "" then
         local era = GameInfo.Eras[header.CurrentEra]
-        local eraDesc = (era ~= nil and era.Description)
-            or "TXT_KEY_MISC_UNKNOWN"
+        local eraDesc = (era ~= nil and era.Description) or "TXT_KEY_MISC_UNKNOWN"
         leaves[#leaves + 1] = BaseMenuItems.Text({
-            labelText = Text.format(
-                "TXT_KEY_CUR_ERA_TURNS_FORMAT", eraDesc, header.TurnNumber),
+            labelText = Text.format("TXT_KEY_CUR_ERA_TURNS_FORMAT", eraDesc, header.TurnNumber),
         })
     end
 
     if header.StartEra ~= nil and header.StartEra ~= "" then
         local startEra = GameInfo.Eras[header.StartEra]
-        local startEraDesc = (startEra ~= nil and startEra.Description)
-            or "TXT_KEY_MISC_UNKNOWN"
+        local startEraDesc = (startEra ~= nil and startEra.Description) or "TXT_KEY_MISC_UNKNOWN"
         leaves[#leaves + 1] = BaseMenuItems.Text({
             labelText = Text.format("TXT_KEY_START_ERA", startEraDesc),
         })
@@ -256,20 +248,17 @@ function SaveMenu.buildReader(mainHandler, id)
     if mapInfo ~= nil and mapInfo.Name ~= nil then
         addField(leaves, HEADER_KEYS.mapType, Locale.Lookup(mapInfo.Name))
     end
-    addField(leaves, HEADER_KEYS.mapSize,
-        descOf(GameInfo.Worlds[header.WorldSize]))
-    addField(leaves, HEADER_KEYS.difficulty,
-        descOf(GameInfo.HandicapInfos[header.Difficulty]))
-    addField(leaves, HEADER_KEYS.gameSpeed,
-        descOf(GameInfo.GameSpeeds[header.GameSpeed]))
+    addField(leaves, HEADER_KEYS.mapSize, descOf(GameInfo.Worlds[header.WorldSize]))
+    addField(leaves, HEADER_KEYS.difficulty, descOf(GameInfo.HandicapInfos[header.Difficulty]))
+    addField(leaves, HEADER_KEYS.gameSpeed, descOf(GameInfo.GameSpeeds[header.GameSpeed]))
 
     -- Overwrite action: fires pushed confirm sub. Disk-save overwrites go
     -- through UI.SaveGame (which overwrites an existing file of the same
     -- name); cloud slot overwrites through Steam.SaveGameToCloud(i).
     leaves[#leaves + 1] = BaseMenuItems.Button({
         controlName = "SaveButton",
-        textKey     = "TXT_KEY_CIVVACCESS_SAVE_OVERWRITE_ACTION",
-        activate    = function()
+        textKey = "TXT_KEY_CIVVACCESS_SAVE_OVERWRITE_ACTION",
+        activate = function()
             if isCloud then
                 pushOverwriteCloudConfirm(mainHandler, idx)
             else
@@ -284,7 +273,7 @@ function SaveMenu.buildReader(mainHandler, id)
     -- Steam API call the base doesn't use).
     if not isCloud then
         leaves[#leaves + 1] = BaseMenuItems.Choice({
-            textKey  = "TXT_KEY_DELETE_BUTTON",
+            textKey = "TXT_KEY_DELETE_BUTTON",
             activate = function()
                 pushDeleteConfirm(mainHandler, entry)
             end,
@@ -316,17 +305,17 @@ function SaveMenu.buildPickerItems(entryFactory, mainHandlerRef)
         -- collision). So wrap priorCallback to drop bIsEnter so commit is
         -- just a value update, and let our Save leaf handle the save action.
         items[#items + 1] = BaseMenuItems.Textfield({
-            controlName           = "NameBox",
-            textKey               = "TXT_KEY_CIVVACCESS_SAVE_NAME_LABEL",
+            controlName = "NameBox",
+            textKey = "TXT_KEY_CIVVACCESS_SAVE_NAME_LABEL",
             visibilityControlName = "NameBoxFrame",
-            priorCallback         = function(text, control, _)
+            priorCallback = function(text, control, _)
                 OnEditBoxChange(text, control, false)
             end,
         })
         items[#items + 1] = BaseMenuItems.Button({
             controlName = "SaveButton",
-            textKey     = "TXT_KEY_MENU_SAVE",
-            activate    = function()
+            textKey = "TXT_KEY_MENU_SAVE",
+            activate = function()
                 onSaveActivate(mainHandlerRef())
             end,
         })
@@ -334,7 +323,7 @@ function SaveMenu.buildPickerItems(entryFactory, mainHandlerRef)
 
     items[#items + 1] = BaseMenuItems.Checkbox({
         controlName = "CloudCheck",
-        textKey     = "TXT_KEY_STEAMCLOUD",
+        textKey = "TXT_KEY_STEAMCLOUD",
     })
 
     -- Save entries. g_SavedGames is populated by SetupFileButtonList in
@@ -346,16 +335,14 @@ function SaveMenu.buildPickerItems(entryFactory, mainHandlerRef)
             local label
             if v.SaveData ~= nil then
                 local leaderDescText, civName = resolveLeaderCiv(v.SaveData)
-                local name = Text.format(
-                    "TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName)
+                local name = Text.format("TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName)
                 label = Text.format("TXT_KEY_STEAMCLOUD_SAVE", i, name)
             else
-                label = Text.format(
-                    "TXT_KEY_CIVVACCESS_SAVE_CLOUD_SLOT_EMPTY", i)
+                label = Text.format("TXT_KEY_CIVVACCESS_SAVE_CLOUD_SLOT_EMPTY", i)
             end
             items[#items + 1] = entryFactory({
-                id          = "cloud:" .. tostring(i),
-                labelText   = label,
+                id = "cloud:" .. tostring(i),
+                labelText = label,
                 buildReader = function(_, id)
                     return SaveMenu.buildReader(mainHandlerRef(), id)
                 end,
@@ -364,8 +351,8 @@ function SaveMenu.buildPickerItems(entryFactory, mainHandlerRef)
     else
         for i, v in ipairs(g_SavedGames) do
             items[#items + 1] = entryFactory({
-                id          = "save:" .. tostring(i),
-                labelText   = v.DisplayName or stripPath(v.FileName),
+                id = "save:" .. tostring(i),
+                labelText = v.DisplayName or stripPath(v.FileName),
                 buildReader = function(_, id)
                     return SaveMenu.buildReader(mainHandlerRef(), id)
                 end,

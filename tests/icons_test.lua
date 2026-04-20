@@ -9,9 +9,9 @@ local T = require("support")
 local M = {}
 
 local function setup()
-    Log.warn  = function() end
+    Log.warn = function() end
     Log.error = function() end
-    Log.info  = function() end
+    Log.info = function() end
     Log.debug = function() end
 
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
@@ -31,14 +31,14 @@ end
 
 function M.test_yield_icons_resolve()
     setup()
-    T.eq(filtered("ICON_GOLD"),       "gold")
-    T.eq(filtered("ICON_FOOD"),       "food")
+    T.eq(filtered("ICON_GOLD"), "gold")
+    T.eq(filtered("ICON_FOOD"), "food")
     T.eq(filtered("ICON_PRODUCTION"), "production")
-    T.eq(filtered("ICON_CULTURE"),    "culture")
-    T.eq(filtered("ICON_SCIENCE"),    "science")
-    T.eq(filtered("ICON_RESEARCH"),   "research")
-    T.eq(filtered("ICON_FAITH"),      "faith")
-    T.eq(filtered("ICON_TOURISM"),    "tourism")
+    T.eq(filtered("ICON_CULTURE"), "culture")
+    T.eq(filtered("ICON_SCIENCE"), "science")
+    T.eq(filtered("ICON_RESEARCH"), "research")
+    T.eq(filtered("ICON_FAITH"), "faith")
+    T.eq(filtered("ICON_TOURISM"), "tourism")
 end
 
 -- ICON_PEACE is the pre-BNW faith glyph; pedia still uses it for the
@@ -52,9 +52,9 @@ end
 
 function M.test_combat_icons_resolve()
     setup()
-    T.eq(filtered("ICON_STRENGTH"),       "combat strength")
+    T.eq(filtered("ICON_STRENGTH"), "combat strength")
     T.eq(filtered("ICON_RANGE_STRENGTH"), "ranged strength")
-    T.eq(filtered("ICON_MOVES"),          "movement")
+    T.eq(filtered("ICON_MOVES"), "movement")
 end
 
 -- Happiness (positive / negative split) -----------------------------------
@@ -70,12 +70,12 @@ end
 
 function M.test_resource_icons_resolve()
     setup()
-    T.eq(filtered("ICON_RES_IRON"),  "iron")
+    T.eq(filtered("ICON_RES_IRON"), "iron")
     T.eq(filtered("ICON_RES_HORSE"), "horses")
     T.eq(filtered("ICON_RES_WHALE"), "whales")
     -- Game text uses ICON_RES_COW; "cattle" is the screen-reader-friendly
     -- spoken form (the engine label for the resource).
-    T.eq(filtered("ICON_RES_COW"),   "cattle")
+    T.eq(filtered("ICON_RES_COW"), "cattle")
 end
 
 function M.test_res_gold_disambiguated_from_currency()
@@ -83,19 +83,19 @@ function M.test_res_gold_disambiguated_from_currency()
     -- ICON_GOLD is the currency; ICON_RES_GOLD is the tile resource. They
     -- must speak differently so a sentence like "Gold mines produce [ICON_GOLD]"
     -- isn't ambiguous.
-    T.eq(filtered("ICON_GOLD"),      "gold")
-    T.eq(filtered("ICON_RES_GOLD"),  "gold ore")
+    T.eq(filtered("ICON_GOLD"), "gold")
+    T.eq(filtered("ICON_RES_GOLD"), "gold ore")
 end
 
 -- Religions ---------------------------------------------------------------
 
 function M.test_religion_icons_resolve()
     setup()
-    T.eq(filtered("ICON_RELIGION"),                  "religion")
-    T.eq(filtered("ICON_RELIGION_PANTHEON"),         "pantheon")
-    T.eq(filtered("ICON_RELIGION_CHRISTIANITY"),     "Christianity")
-    T.eq(filtered("ICON_RELIGION_ISLAM"),            "Islam")
-    T.eq(filtered("ICON_RELIGION_ZOROASTRIANISM"),   "Zoroastrianism")
+    T.eq(filtered("ICON_RELIGION"), "religion")
+    T.eq(filtered("ICON_RELIGION_PANTHEON"), "pantheon")
+    T.eq(filtered("ICON_RELIGION_CHRISTIANITY"), "Christianity")
+    T.eq(filtered("ICON_RELIGION_ISLAM"), "Islam")
+    T.eq(filtered("ICON_RELIGION_ZOROASTRIANISM"), "Zoroastrianism")
 end
 
 -- Base-game typos map to the same spoken form as the correct spelling.
@@ -104,7 +104,7 @@ end
 
 function M.test_typo_happines_4_maps_to_unhappy()
     setup()
-    T.eq(filtered("ICON_HAPPINES_4"),  "unhappy")
+    T.eq(filtered("ICON_HAPPINES_4"), "unhappy")
     T.eq(filtered("ICON_HAPPINESS_4"), "unhappy")
 end
 
@@ -117,35 +117,35 @@ end
 function M.test_typo_aluminnum_maps_to_aluminum()
     setup()
     T.eq(filtered("ICON_RES_ALUMINNUM"), "aluminum")
-    T.eq(filtered("ICON_RES_ALUMINUM"),  "aluminum")
+    T.eq(filtered("ICON_RES_ALUMINUM"), "aluminum")
 end
 
 function M.test_typo_cultur_maps_to_culture()
     setup()
-    T.eq(filtered("ICON_CULTUR"),  "culture")
+    T.eq(filtered("ICON_CULTUR"), "culture")
     T.eq(filtered("ICON_CULTURE"), "culture")
 end
 
 function M.test_typo_greatpeople_maps_to_great_people()
     setup()
-    T.eq(filtered("ICON_GREATPEOPLE"),  "great people")
+    T.eq(filtered("ICON_GREATPEOPLE"), "great people")
     T.eq(filtered("ICON_GREAT_PEOPLE"), "great people")
 end
 
 function M.test_connection_alias_matches_connected()
     setup()
     T.eq(filtered("ICON_CONNECTION"), "connected")
-    T.eq(filtered("ICON_CONNECTED"),  "connected")
+    T.eq(filtered("ICON_CONNECTED"), "connected")
 end
 
 -- Glyphs ------------------------------------------------------------------
 
 function M.test_arrow_glyphs_resolve()
     setup()
-    T.eq(filtered("ICON_ARROW_LEFT"),  "left")
+    T.eq(filtered("ICON_ARROW_LEFT"), "left")
     T.eq(filtered("ICON_ARROW_RIGHT"), "right")
-    T.eq(filtered("ICON_PLUS"),        "plus")
-    T.eq(filtered("ICON_MINUS"),       "minus")
+    T.eq(filtered("ICON_PLUS"), "plus")
+    T.eq(filtered("ICON_MINUS"), "minus")
 end
 
 function M.test_bullet_resolves_to_empty_silence()

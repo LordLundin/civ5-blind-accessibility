@@ -9,7 +9,9 @@ local capturedLogs
 
 local function setup()
     capturedLogs = {}
-    Log.debug = function(msg) capturedLogs[#capturedLogs + 1] = msg end
+    Log.debug = function(msg)
+        capturedLogs[#capturedLogs + 1] = msg
+    end
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
 end
 
@@ -56,8 +58,7 @@ end
 
 function M.test_color_tokens_stripped()
     setup()
-    T.eq(TextFilter.filter("[COLOR_POSITIVE_TEXT]+3[ENDCOLOR] food"),
-        "+3 food")
+    T.eq(TextFilter.filter("[COLOR_POSITIVE_TEXT]+3[ENDCOLOR] food"), "+3 food")
 end
 
 function M.test_color_token_with_digits_stripped()
@@ -110,7 +111,9 @@ function M.test_unregistered_icon_warns_only_once()
     TextFilter.filter("[ICON_MYSTERY] again")
     local hits = 0
     for _, msg in ipairs(capturedLogs) do
-        if msg:find("ICON_MYSTERY") then hits = hits + 1 end
+        if msg:find("ICON_MYSTERY") then
+            hits = hits + 1
+        end
     end
     T.eq(hits, 1, "warning should fire exactly once per icon name")
 end
@@ -135,15 +138,13 @@ end
 function M.test_icon_dropped_when_spoken_form_follows()
     setup()
     TextFilter.registerIcon("ICON_STRENGTH", "combat strength")
-    T.eq(TextFilter.filter("higher [ICON_STRENGTH] Combat Strength than"),
-        "higher Combat Strength than")
+    T.eq(TextFilter.filter("higher [ICON_STRENGTH] Combat Strength than"), "higher Combat Strength than")
 end
 
 function M.test_icon_dropped_when_spoken_form_precedes()
     setup()
     TextFilter.registerIcon("ICON_STRENGTH", "combat strength")
-    T.eq(TextFilter.filter("Combat Strength [ICON_STRENGTH]"),
-        "Combat Strength")
+    T.eq(TextFilter.filter("Combat Strength [ICON_STRENGTH]"), "Combat Strength")
 end
 
 function M.test_icon_kept_when_adjacent_word_differs()
@@ -157,15 +158,13 @@ function M.test_icon_kept_when_adjacent_word_is_longer_prefix_match()
     -- "golden" must not trigger the dedup for spoken "gold"; the trailing
     -- "en" fails the word-boundary check, so the icon speaks normally.
     TextFilter.registerIcon("ICON_GOLD", "gold")
-    T.eq(TextFilter.filter("[ICON_GOLD] Golden Age bonus"),
-        "gold Golden Age bonus")
+    T.eq(TextFilter.filter("[ICON_GOLD] Golden Age bonus"), "gold Golden Age bonus")
 end
 
 function M.test_icon_dedup_handles_trailing_punctuation()
     setup()
     TextFilter.registerIcon("ICON_STRENGTH", "combat strength")
-    T.eq(TextFilter.filter("the [ICON_STRENGTH] Combat Strength."),
-        "the Combat Strength.")
+    T.eq(TextFilter.filter("the [ICON_STRENGTH] Combat Strength."), "the Combat Strength.")
 end
 
 function M.test_icon_dedup_is_case_insensitive()
@@ -216,17 +215,13 @@ end
 function M.test_composed_color_newline_icon_whitespace()
     setup()
     TextFilter.registerIcon("ICON_GOLD", "gold")
-    T.eq(
-        TextFilter.filter("[COLOR_X]  [ICON_GOLD]\t+5[ENDCOLOR][NEWLINE]next"),
-        "gold +5 next")
+    T.eq(TextFilter.filter("[COLOR_X]  [ICON_GOLD]\t+5[ENDCOLOR][NEWLINE]next"), "gold +5 next")
 end
 
 function M.test_composed_all_markup_emdash_control()
     setup()
     TextFilter.registerIcon("ICON_PROD", "production")
-    T.eq(
-        TextFilter.filter("\1[STYLE_H][ICON_PROD]\226\128\148city[NEWLINE]"),
-        "production city")
+    T.eq(TextFilter.filter("\1[STYLE_H][ICON_PROD]\226\128\148city[NEWLINE]"), "production city")
 end
 
 return M

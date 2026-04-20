@@ -17,44 +17,66 @@
 include("CivVAccess_Log")
 include("CivVAccess_PullDownProbe")
 
-PullDownProbe.installFromControls(
-    {
-        -- OptionsMenu
-        "TutorialPull", "BindMousePull", "LeaderPull", "MSAAPull",
-        "FSResolutionPull", "WResolutionPull",
-        -- AdvancedSetup
-        "MapTypePullDown", "MapSizePullDown", "HandicapPullDown",
-        "GameSpeedPullDown", "EraPullDown", "CivPulldown", "TeamPullDown",
-        -- MPGameSetupScreen / StagingRoom
-        "TurnModePull", "TurnTimerPullDown", "MaxTurnsPullDown",
-        -- LoadMenu
-        "SortByPullDown",
-    },
-    {
-        -- OptionsMenu
-        "MusicVolumeSlider", "EffectsVolumeSlider",
-        "AmbienceVolumeSlider", "SpeechVolumeSlider",
-        "Tooltip1TimerSlider", "DragSpeedSlider", "PinchSpeedSlider",
-        -- AdvancedSetup / MPGameSetupScreen / StagingRoom
-        "MinorCivsSlider",
-    },
-    {
-        -- OptionsMenu: any checkbox is enough; metatable is shared.
-        "SinglePlayerAutoEndTurnCheckBox", "ZoomCheck", "VSyncCheck",
-        "AutoWorkersDontReplaceCB", "FullscreenCheck",
-        -- MPGameSetupScreen / StagingRoom / AdvancedSetup
-        "MaxTurnsCheck", "TurnTimerCheck", "ScenarioCheck",
-        "PrivateGameCheckbox",
-        -- LoadMenu
-        "AutoCheck", "CloudCheck",
-        -- InstalledPanel (Options popup)
-        "ShowDLCMods",
-    },
-    {
-        -- Buttons: shared metatable across GridButton / TextButton usages.
-        -- First resolvable wins; all screens that use ProbeBoot have at
-        -- least a BackButton or DefaultButton at top-level Controls.
-        "BackButton", "DefaultButton", "StartButton", "LaunchButton",
-        "LoadGameButton", "ExitButton", "AddAIButton", "EditButton",
-    }
-)
+PullDownProbe.installFromControls({
+    -- OptionsMenu
+    "TutorialPull",
+    "BindMousePull",
+    "LeaderPull",
+    "MSAAPull",
+    "FSResolutionPull",
+    "WResolutionPull",
+    -- AdvancedSetup
+    "MapTypePullDown",
+    "MapSizePullDown",
+    "HandicapPullDown",
+    "GameSpeedPullDown",
+    "EraPullDown",
+    "CivPulldown",
+    "TeamPullDown",
+    -- MPGameSetupScreen / StagingRoom
+    "TurnModePull",
+    "TurnTimerPullDown",
+    "MaxTurnsPullDown",
+    -- LoadMenu
+    "SortByPullDown",
+}, {
+    -- OptionsMenu
+    "MusicVolumeSlider",
+    "EffectsVolumeSlider",
+    "AmbienceVolumeSlider",
+    "SpeechVolumeSlider",
+    "Tooltip1TimerSlider",
+    "DragSpeedSlider",
+    "PinchSpeedSlider",
+    -- AdvancedSetup / MPGameSetupScreen / StagingRoom
+    "MinorCivsSlider",
+}, {
+    -- OptionsMenu: any checkbox is enough; metatable is shared.
+    "SinglePlayerAutoEndTurnCheckBox",
+    "ZoomCheck",
+    "VSyncCheck",
+    "AutoWorkersDontReplaceCB",
+    "FullscreenCheck",
+    -- MPGameSetupScreen / StagingRoom / AdvancedSetup
+    "MaxTurnsCheck",
+    "TurnTimerCheck",
+    "ScenarioCheck",
+    "PrivateGameCheckbox",
+    -- LoadMenu
+    "AutoCheck",
+    "CloudCheck",
+    -- InstalledPanel (Options popup)
+    "ShowDLCMods",
+}, {
+    -- Buttons: shared metatable across GridButton / TextButton usages.
+    -- First resolvable wins; all screens that use ProbeBoot have at
+    -- least a BackButton or DefaultButton at top-level Controls.
+    "BackButton",
+    "DefaultButton",
+    "StartButton",
+    "LaunchButton",
+    "LoadGameButton",
+    "ExitButton",
+    "AddAIButton",
+    "EditButton",
+})

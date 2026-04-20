@@ -8,8 +8,12 @@ local warns, errors
 
 local function setup()
     warns, errors = {}, {}
-    Log.warn  = function(msg) warns[#warns + 1] = msg end
-    Log.error = function(msg) errors[#errors + 1] = msg end
+    Log.warn = function(msg)
+        warns[#warns + 1] = msg
+    end
+    Log.error = function(msg)
+        errors[#errors + 1] = msg
+    end
     Log.debug = function() end
     dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
     HandlerStack._reset()
@@ -21,10 +25,16 @@ local function makeHandler(name, opts)
     h.capturesAllInput = opts.capturesAllInput or false
     h.bindings = opts.bindings
     h.helpEntries = opts.helpEntries
-    h.onActivate = function(self) self.activate = self.activate + 1 end
-    h.onDeactivate = function(self) self.deactivate = self.deactivate + 1 end
+    h.onActivate = function(self)
+        self.activate = self.activate + 1
+    end
+    h.onDeactivate = function(self)
+        self.deactivate = self.deactivate + 1
+    end
     if opts.activateError then
-        h.onActivate = function() error("boom") end
+        h.onActivate = function()
+            error("boom")
+        end
     end
     return h
 end
@@ -93,7 +103,9 @@ end
 function M.test_popAbove_removes_only_above_target()
     setup()
     local a, b, c = makeHandler("a"), makeHandler("b"), makeHandler("c")
-    HandlerStack.push(a); HandlerStack.push(b); HandlerStack.push(c)
+    HandlerStack.push(a)
+    HandlerStack.push(b)
+    HandlerStack.push(c)
     T.truthy(HandlerStack.popAbove(a))
     T.eq(HandlerStack.count(), 1)
     T.eq(HandlerStack.active(), a)
@@ -116,7 +128,8 @@ end
 function M.test_removeByName_top_reactivates_new_top()
     setup()
     local a, b = makeHandler("a"), makeHandler("b")
-    HandlerStack.push(a); HandlerStack.push(b)
+    HandlerStack.push(a)
+    HandlerStack.push(b)
     T.truthy(HandlerStack.removeByName("b"))
     T.eq(b.deactivate, 1)
     T.eq(a.activate, 2)
@@ -125,7 +138,9 @@ end
 function M.test_removeByName_middle_does_not_reactivate()
     setup()
     local a, b, c = makeHandler("a"), makeHandler("b"), makeHandler("c")
-    HandlerStack.push(a); HandlerStack.push(b); HandlerStack.push(c)
+    HandlerStack.push(a)
+    HandlerStack.push(b)
+    HandlerStack.push(c)
     T.truthy(HandlerStack.removeByName("b"))
     T.eq(b.deactivate, 1)
     T.eq(c.activate, 1, "top unchanged, no reactivation")
@@ -142,7 +157,8 @@ end
 function M.test_deactivateAll_clears_and_deactivates_each()
     setup()
     local a, b = makeHandler("a"), makeHandler("b")
-    HandlerStack.push(a); HandlerStack.push(b)
+    HandlerStack.push(a)
+    HandlerStack.push(b)
     HandlerStack.deactivateAll()
     T.eq(HandlerStack.count(), 0)
     T.eq(a.deactivate, 1)
@@ -156,7 +172,7 @@ function M.test_collectHelpEntries_reads_helpEntries_only()
     local a = makeHandler("a", {
         helpEntries = {
             { keyLabel = "Up/Down", description = "Navigate" },
-            { keyLabel = "Enter",   description = "Activate" },
+            { keyLabel = "Enter", description = "Activate" },
         },
     })
     HandlerStack.push(a)
@@ -169,7 +185,7 @@ function M.test_collectHelpEntries_ignores_bindings_without_helpEntries()
     setup()
     local a = makeHandler("a", { bindings = {
         { key = 1, mods = 0, description = "one" },
-    }})
+    } })
     HandlerStack.push(a)
     local entries = HandlerStack.collectHelpEntries()
     T.eq(#entries, 0, "bindings are not a help source")
@@ -179,7 +195,7 @@ function M.test_push_warns_when_bindings_lack_helpEntries()
     setup()
     local a = makeHandler("a", { bindings = {
         { key = 1, mods = 0, description = "one" },
-    }})
+    } })
     HandlerStack.push(a)
     T.truthy(#warns >= 1, "bindings without helpEntries logs a warning")
 end
@@ -187,7 +203,7 @@ end
 function M.test_push_does_not_warn_when_empty_helpEntries_declared()
     setup()
     local a = makeHandler("a", {
-        bindings    = { { key = 1, mods = 0, description = "one" } },
+        bindings = { { key = 1, mods = 0, description = "one" } },
         helpEntries = {},
     })
     HandlerStack.push(a)
@@ -196,14 +212,23 @@ end
 
 function M.test_collectHelpEntries_dedups_by_keyLabel_top_wins()
     setup()
-    local a = makeHandler("a", { helpEntries = {
-        { keyLabel = "Escape", description = "Back to previous screen" },
-    }})
-    local b = makeHandler("b", { helpEntries = {
-        { keyLabel = "Escape", description = "Close" },
-        { keyLabel = "Enter",  description = "Activate" },
-    }})
-    HandlerStack.push(a); HandlerStack.push(b)
+    local a = makeHandler(
+        "a",
+        { helpEntries = {
+            { keyLabel = "Escape", description = "Back to previous screen" },
+        } }
+    )
+    local b = makeHandler(
+        "b",
+        {
+            helpEntries = {
+                { keyLabel = "Escape", description = "Close" },
+                { keyLabel = "Enter", description = "Activate" },
+            },
+        }
+    )
+    HandlerStack.push(a)
+    HandlerStack.push(b)
     local entries = HandlerStack.collectHelpEntries()
     T.eq(#entries, 2)
     T.eq(entries[1].description, "Close", "topmost keyLabel wins")
@@ -213,15 +238,17 @@ function M.test_collectHelpEntries_stops_after_capture_barrier()
     setup()
     local a = makeHandler("a", { helpEntries = {
         { keyLabel = "A", description = "a" },
-    }})
+    } })
     local b = makeHandler("b", {
         capturesAllInput = true,
         helpEntries = { { keyLabel = "B", description = "b" } },
     })
     local c = makeHandler("c", { helpEntries = {
         { keyLabel = "C", description = "c" },
-    }})
-    HandlerStack.push(a); HandlerStack.push(b); HandlerStack.push(c)
+    } })
+    HandlerStack.push(a)
+    HandlerStack.push(b)
+    HandlerStack.push(c)
     local entries = HandlerStack.collectHelpEntries()
     -- c (top) and b (barrier, inclusive) contribute; a is masked.
     T.eq(#entries, 2)
@@ -234,7 +261,7 @@ function M.test_collectHelpEntries_appends_commonHelpEntries()
     }
     local a = makeHandler("a", { helpEntries = {
         { keyLabel = "Up/Down", description = "nav" },
-    }})
+    } })
     HandlerStack.push(a)
     local entries = HandlerStack.collectHelpEntries()
     T.eq(#entries, 2)
@@ -249,7 +276,7 @@ function M.test_collectHelpEntries_common_does_not_duplicate_handler_label()
     }
     local a = makeHandler("a", { helpEntries = {
         { keyLabel = "Escape", description = "handler esc" },
-    }})
+    } })
     HandlerStack.push(a)
     local entries = HandlerStack.collectHelpEntries()
     T.eq(#entries, 1)

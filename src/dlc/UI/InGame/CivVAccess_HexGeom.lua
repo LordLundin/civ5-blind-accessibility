@@ -31,26 +31,26 @@ end
 local function decomposeCube(dx, dy, dz)
     local counts = { E = 0, SE = 0, SW = 0, W = 0, NW = 0, NE = 0 }
     if dy <= 0 and dz <= 0 then
-        counts.E,  counts.SE = -dy, -dz
+        counts.E, counts.SE = -dy, -dz
     elseif dx >= 0 and dy >= 0 then
         counts.SE, counts.SW = dx, dy
     elseif dz <= 0 and dx <= 0 then
-        counts.SW, counts.W  = -dz, -dx
+        counts.SW, counts.W = -dz, -dx
     elseif dy >= 0 and dz >= 0 then
-        counts.W,  counts.NW = dy, dz
+        counts.W, counts.NW = dy, dz
     elseif dx <= 0 and dy <= 0 then
         counts.NW, counts.NE = -dx, -dy
-    else  -- dz >= 0 and dx >= 0
-        counts.NE, counts.E  = dz, dx
+    else -- dz >= 0 and dx >= 0
+        counts.NE, counts.E = dz, dx
     end
     return counts
 end
 
 local OUTPUT_ORDER = {
-    { dir = "E",  key = "TXT_KEY_CIVVACCESS_DIR_E"  },
+    { dir = "E", key = "TXT_KEY_CIVVACCESS_DIR_E" },
     { dir = "SE", key = "TXT_KEY_CIVVACCESS_DIR_SE" },
     { dir = "SW", key = "TXT_KEY_CIVVACCESS_DIR_SW" },
-    { dir = "W",  key = "TXT_KEY_CIVVACCESS_DIR_W"  },
+    { dir = "W", key = "TXT_KEY_CIVVACCESS_DIR_W" },
     { dir = "NW", key = "TXT_KEY_CIVVACCESS_DIR_NW" },
     { dir = "NE", key = "TXT_KEY_CIVVACCESS_DIR_NE" },
 }
@@ -58,7 +58,9 @@ local OUTPUT_ORDER = {
 -- Returns the concatenated "<n><short-token>, ..." decomposition of the
 -- (fromX, fromY) -> (toX, toY) delta. Empty string at zero delta.
 function HexGeom.directionString(fromX, fromY, toX, toY)
-    if fromX == toX and fromY == toY then return "" end
+    if fromX == toX and fromY == toY then
+        return ""
+    end
     local fx, fy, fz = offsetToCube(fromX, fromY)
     local tx, ty, tz = offsetToCube(toX, toY)
     local counts = decomposeCube(tx - fx, ty - fy, tz - fz)

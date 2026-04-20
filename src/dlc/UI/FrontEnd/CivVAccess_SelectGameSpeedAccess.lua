@@ -20,7 +20,9 @@ end
 local function currentIndex()
     local current = PreGame.GetGameSpeed()
     for i, info in ipairs(sortedSpeeds()) do
-        if info.ID == current then return i end
+        if info.ID == current then
+            return i
+        end
     end
 end
 
@@ -29,20 +31,26 @@ local function buildItems()
     for _, info in ipairs(sortedSpeeds()) do
         local id = info.ID
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText   = Text.key(info.Description),
+            labelText = Text.key(info.Description),
             tooltipText = Text.key(info.Help),
-            selectedFn  = function() return PreGame.GetGameSpeed() == id end,
-            activate    = function() SpeedSelected(id) end,
+            selectedFn = function()
+                return PreGame.GetGameSpeed() == id
+            end,
+            activate = function()
+                SpeedSelected(id)
+            end,
         })
     end
     return items
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "SelectGameSpeed",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_GAME_SPEED"),
+    name = "SelectGameSpeed",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_GAME_SPEED"),
     priorShowHide = ShowHideHandler,
-    priorInput    = InputHandler,
-    onShow        = function(h) h.setInitialIndex(currentIndex()) end,
-    items         = buildItems(),
+    priorInput = InputHandler,
+    onShow = function(h)
+        h.setInitialIndex(currentIndex())
+    end,
+    items = buildItems(),
 })

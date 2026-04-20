@@ -9,10 +9,10 @@ include("CivVAccess_FrontendCommon")
 local priorShowHide = ShowHide
 
 BaseMenu.install(ContextPtr, {
-    name           = "WaitingForPlayers",
-    displayName    = Text.key("TXT_KEY_CIVVACCESS_SCREEN_WAITING_PLAYERS"),
-    preamble       = Text.key("TXT_KEY_SOMEONE_STILL_LOADING"),
-    priorShowHide  = priorShowHide,
+    name = "WaitingForPlayers",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_WAITING_PLAYERS"),
+    preamble = Text.key("TXT_KEY_SOMEONE_STILL_LOADING"),
+    priorShowHide = priorShowHide,
     shouldActivate = function()
         return PreGame.IsMultiplayerGame() or PreGame.IsHotSeatGame()
     end,

@@ -34,7 +34,7 @@ include("CivVAccess_LoadReplayMenuCore")
 Log.info("LoadReplayMenuAccess: wiring PickerReader over base LoadReplayMenu")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 local session = PickerReader.create()
 
@@ -42,7 +42,9 @@ local session = PickerReader.create()
 -- installed handler (install returns it only after buildPickerItems has
 -- run). Read at activation time; set below after install.
 local mainHandler
-local function getHandler() return mainHandler end
+local function getHandler()
+    return mainHandler
+end
 
 -- Monkey-patch SetupFileButtonList so every rebuild (OnYes delete,
 -- ShowHide open) also refreshes our picker items. The base body must run
@@ -52,7 +54,9 @@ local function getHandler() return mainHandler end
 local baseSetupFileButtonList = SetupFileButtonList
 SetupFileButtonList = function(...)
     baseSetupFileButtonList(...)
-    if mainHandler == nil then return end
+    if mainHandler == nil then
+        return
+    end
     local newItems = LoadReplayMenu.buildPickerItems(session.Entry, getHandler)
     mainHandler.setItems(newItems, 1)
 end
@@ -60,13 +64,13 @@ end
 local pickerItems = LoadReplayMenu.buildPickerItems(session.Entry, getHandler)
 
 mainHandler = session.install(ContextPtr, {
-    name             = "LoadReplayMenu",
-    displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LOAD_REPLAY"),
-    pickerTabName    = "TXT_KEY_CIVVACCESS_REPLAY_LIST_TAB",
-    readerTabName    = "TXT_KEY_CIVVACCESS_REPLAY_DETAILS_TAB",
-    emptyReaderText  = Text.key("TXT_KEY_CIVVACCESS_REPLAY_NO_SELECTION"),
+    name = "LoadReplayMenu",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LOAD_REPLAY"),
+    pickerTabName = "TXT_KEY_CIVVACCESS_REPLAY_LIST_TAB",
+    readerTabName = "TXT_KEY_CIVVACCESS_REPLAY_DETAILS_TAB",
+    emptyReaderText = Text.key("TXT_KEY_CIVVACCESS_REPLAY_NO_SELECTION"),
     focusParkControl = "BackButton",
-    priorShowHide    = priorShowHide,
-    priorInput       = priorInput,
-    pickerItems      = pickerItems,
+    priorShowHide = priorShowHide,
+    priorInput = priorInput,
+    pickerItems = pickerItems,
 })

@@ -11,7 +11,7 @@
 include("CivVAccess_FrontendCommon")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 local handler
 
 -- Map-type entries: supported-size suffix -------------------------------
@@ -33,13 +33,17 @@ local _sizeByNameCache
 
 local function worldNameById(worldID)
     local w = GameInfo.Worlds[worldID]
-    if w == nil then return nil end
+    if w == nil then
+        return nil
+    end
     return Text.key(w.Description)
 end
 
 local function worldNameByType(typeKey)
     local w = GameInfo.Worlds[typeKey]
-    if w == nil then return nil end
+    if w == nil then
+        return nil
+    end
     return Text.key(w.Description)
 end
 
@@ -47,26 +51,30 @@ local function buildSizeByName()
     local total
     do
         local n = 0
-        for _ in GameInfo.Worlds("ID >= 0") do n = n + 1 end
+        for _ in GameInfo.Worlds("ID >= 0") do
+            n = n + 1
+        end
         total = n
     end
 
     local function formatSuffix(sizes)
-        if #sizes == 0 or #sizes == total then return nil end
-        if #sizes == 1 then
-            return Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY",
-                sizes[1])
+        if #sizes == 0 or #sizes == total then
+            return nil
         end
-        return Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED",
-            table.concat(sizes, ", "))
+        if #sizes == 1 then
+            return Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY", sizes[1])
+        end
+        return Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED", table.concat(sizes, ", "))
     end
 
     local byName = {}
     for row in GameInfo.Maps() do
         local sizes = {}
-        for srow in GameInfo.Map_Sizes{MapType = row.Type} do
+        for srow in GameInfo.Map_Sizes({ MapType = row.Type }) do
             local s = worldNameByType(srow.WorldSizeType)
-            if s ~= nil then sizes[#sizes + 1] = s end
+            if s ~= nil then
+                sizes[#sizes + 1] = s
+            end
         end
         local suffix = formatSuffix(sizes)
         if suffix ~= nil then
@@ -92,8 +100,7 @@ local function buildSizeByName()
             if wb ~= nil and wb.MapSize ~= nil then
                 local s = worldNameById(wb.MapSize)
                 if s ~= nil then
-                    byName[name] = Text.format(
-                        "TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY", s)
+                    byName[name] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY", s)
                 end
             end
         end
@@ -116,12 +123,14 @@ local function currentSelectionName()
         return Text.key("TXT_KEY_RANDOM_MAP_SCRIPT")
     end
     local file = PreGame.GetMapScript()
-    for row in GameInfo.MapScripts{FileName = file} do
+    for row in GameInfo.MapScripts({ FileName = file }) do
         return Text.key(row.Name)
     end
-    for row in GameInfo.Map_Sizes{FileName = file} do
+    for row in GameInfo.Map_Sizes({ FileName = file }) do
         local entry = GameInfo.Maps[row.MapType]
-        if entry ~= nil then return Text.key(entry.Name) end
+        if entry ~= nil then
+            return Text.key(entry.Name)
+        end
     end
 end
 
@@ -133,9 +142,9 @@ local function buildItemsForFolder(folder)
     if folder.ParentFolder ~= nil then
         local parent = folder.ParentFolder
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText  = Text.key("TXT_KEY_SELECT_MAP_TYPE_BACK"),
+            labelText = Text.key("TXT_KEY_SELECT_MAP_TYPE_BACK"),
             tooltipKey = "TXT_KEY_SELECT_MAP_TYPE_BACK_HELP",
-            activate   = function()
+            activate = function()
                 View(parent)
                 -- rootFolder has no Name; fall back to the screen display name.
                 local label = parent.Name
@@ -170,18 +179,21 @@ local function buildItemsForFolder(folder)
             -- carry a selection flag. Captured at build time because the
             -- commit path closes the screen (HandlerStack.active()
             -- guards the re-announce).
-            local isCurrentLeaf = (not isSubFolder)
-                and selectionName ~= nil and name == selectionName
+            local isCurrentLeaf = (not isSubFolder) and selectionName ~= nil and name == selectionName
             local selectedFn
             if isCurrentLeaf then
-                selectedFn = function() return true end
+                selectedFn = function()
+                    return true
+                end
             end
             items[#items + 1] = BaseMenuItems.Choice({
-                labelText   = label,
+                labelText = label,
                 tooltipText = desc,
-                selectedFn  = selectedFn,
-                activate    = function()
-                    if callback ~= nil then callback() end
+                selectedFn = selectedFn,
+                activate = function()
+                    if callback ~= nil then
+                        callback()
+                    end
                     -- Sub-folder drill-in: announce the folder so the user
                     -- knows they moved. Leaf selection closes the screen via
                     -- OnBack and the parent handler re-announces, so skip.
@@ -190,7 +202,9 @@ local function buildItemsForFolder(folder)
                     end
                 end,
             })
-            if isCurrentLeaf then selectedIdx = #items end
+            if isCurrentLeaf then
+                selectedIdx = #items
+            end
         end
     end
     return items, selectedIdx
@@ -215,10 +229,12 @@ function View(folder)
 end
 
 handler = BaseMenu.install(ContextPtr, {
-    name          = "SelectMapType",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAP_TYPE"),
+    name = "SelectMapType",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAP_TYPE"),
     priorShowHide = priorShowHide,
-    priorInput    = priorInput,
-    onShow        = function() _sizeByNameCache = nil end,
-    items         = {},
+    priorInput = priorInput,
+    onShow = function()
+        _sizeByNameCache = nil
+    end,
+    items = {},
 })

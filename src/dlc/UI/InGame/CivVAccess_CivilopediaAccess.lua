@@ -46,7 +46,7 @@ include("CivVAccess_PickerReader")
 include("CivVAccess_CivilopediaCore")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 Log.info("CivilopediaAccess: wiring PickerReader over base pedia")
 
@@ -56,12 +56,12 @@ local pickerItems = Civilopedia.buildPickerItems(session.Entry)
 Log.info("CivilopediaAccess: built " .. tostring(#pickerItems) .. " top-level categories")
 
 session.install(ContextPtr, {
-    name             = "CivilopediaScreen",
-    displayName      = Text.key("TXT_KEY_CIVILOPEDIA"),
-    pickerTabName    = "TXT_KEY_CIVVACCESS_PEDIA_CATEGORIES_TAB",
-    readerTabName    = "TXT_KEY_CIVVACCESS_PEDIA_CONTENT_TAB",
+    name = "CivilopediaScreen",
+    displayName = Text.key("TXT_KEY_CIVILOPEDIA"),
+    pickerTabName = "TXT_KEY_CIVVACCESS_PEDIA_CATEGORIES_TAB",
+    readerTabName = "TXT_KEY_CIVVACCESS_PEDIA_CONTENT_TAB",
     focusParkControl = "CloseButton",
-    priorShowHide    = priorShowHide,
-    priorInput       = priorInput,
-    pickerItems      = pickerItems,
+    priorShowHide = priorShowHide,
+    priorInput = priorInput,
+    pickerItems = pickerItems,
 })

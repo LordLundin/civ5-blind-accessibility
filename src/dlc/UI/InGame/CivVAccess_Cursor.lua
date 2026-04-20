@@ -20,7 +20,9 @@ local _x, _y = nil, nil
 local _lastOwnerIdentity = nil
 
 local function plotHere()
-    if _x == nil then return nil end
+    if _x == nil then
+        return nil
+    end
     return Map.GetPlot(_x, _y)
 end
 
@@ -39,9 +41,13 @@ end
 -- and a stale ID would silently stop matching the player's actual capital.
 local function capitalPlot()
     local player = Players[Game.GetActivePlayer()]
-    if player == nil then return nil end
+    if player == nil then
+        return nil
+    end
     local capital = player:GetCapitalCity()
-    if capital == nil then return nil end
+    if capital == nil then
+        return nil
+    end
     return capital:Plot()
 end
 
@@ -87,7 +93,9 @@ local function announceForMove(plot)
         prefix = spoken .. ". "
     end
     if glance == "" then
-        if prefix == "" then return "" end
+        if prefix == "" then
+            return ""
+        end
         return spoken .. "."
     end
     return prefix .. glance .. "."
@@ -176,8 +184,12 @@ local function delegateDetail(composer)
     return composer(plotHere())
 end
 
-function Cursor.economy() return delegateDetail(PlotComposers.economy) end
-function Cursor.combat()  return delegateDetail(PlotComposers.combat)  end
+function Cursor.economy()
+    return delegateDetail(PlotComposers.economy)
+end
+function Cursor.combat()
+    return delegateDetail(PlotComposers.combat)
+end
 
 -- Test seam: lets suites reset between cases without exposing the
 -- locals. Production never calls this.

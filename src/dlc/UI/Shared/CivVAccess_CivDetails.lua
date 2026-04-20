@@ -21,15 +21,16 @@ local uniqueBuildingsQuery = DB.CreateQuery([[SELECT Description FROM Buildings
     WHERE Civilization_BuildingClassOverrides.CivilizationType = ? AND
     Civilization_BuildingClassOverrides.BuildingType IS NOT NULL]])
 
-local uniqueImprovementsQuery = DB.CreateQuery(
-    [[SELECT Description FROM Improvements WHERE CivilizationType = ?]])
+local uniqueImprovementsQuery = DB.CreateQuery([[SELECT Description FROM Improvements WHERE CivilizationType = ?]])
 
 local traitsQuery = DB.CreateQuery([[SELECT Description, ShortDescription FROM Traits
     INNER JOIN Leader_Traits ON Traits.Type = Leader_Traits.TraitType
     WHERE Leader_Traits.LeaderType = ? LIMIT 1]])
 
 local function appendLabeled(parts, labelKey, value)
-    if value == nil or value == "" then return end
+    if value == nil or value == "" then
+        return
+    end
     parts[#parts + 1] = Text.key(labelKey) .. ": " .. value
 end
 
@@ -51,21 +52,17 @@ function CivDetails.richLabel(row)
             if desc ~= nil and desc ~= "" then
                 value = value .. ", " .. desc
             end
-            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIQUE_ABILITY")
-                .. ": " .. value
+            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIQUE_ABILITY") .. ": " .. value
         end
     end
     for urow in uniqueUnitsQuery(row.Type) do
-        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_UNIT",
-            Text.key(urow.Description))
+        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_UNIT", Text.key(urow.Description))
     end
     for urow in uniqueBuildingsQuery(row.Type) do
-        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_BUILDING",
-            Text.key(urow.Description))
+        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_BUILDING", Text.key(urow.Description))
     end
     for urow in uniqueImprovementsQuery(row.Type) do
-        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT",
-            Text.key(urow.Description))
+        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT", Text.key(urow.Description))
     end
     return table.concat(parts, ", ")
 end
@@ -93,8 +90,9 @@ function CivDetails.pulldownLabels()
     for row in DB.Query(sql) do
         entries[#entries + 1] = { Text.key(row.LeaderDescription), row }
     end
-    table.sort(entries,
-        function(a, b) return Locale.Compare(a[1], b[1]) == -1 end)
+    table.sort(entries, function(a, b)
+        return Locale.Compare(a[1], b[1]) == -1
+    end)
     for _, entry in ipairs(entries) do
         labels[#labels + 1] = CivDetails.richLabel(entry[2])
     end

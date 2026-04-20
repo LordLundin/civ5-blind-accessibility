@@ -14,17 +14,25 @@
 include("CivVAccess_FrontendCommon")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+local priorInput = InputHandler
 
 local function wrappedPriorShowHide(bIsHide, bIsInit)
     priorShowHide(bIsHide, bIsInit)
-    if bIsHide then return end
-    if civvaccess_shared._joiningRoomListenersInstalled then return end
+    if bIsHide then
+        return
+    end
+    if civvaccess_shared._joiningRoomListenersInstalled then
+        return
+    end
     civvaccess_shared._joiningRoomListenersInstalled = true
     local function doRefresh()
         local h = civvaccess_shared._joiningRoomHandler
-        if h == nil then return end
-        local ok, err = pcall(function() h.refresh() end)
+        if h == nil then
+            return
+        end
+        local ok, err = pcall(function()
+            h.refresh()
+        end)
         if not ok then
             Log.error("JoiningRoomAccess refresh: " .. tostring(err))
         end
@@ -35,13 +43,15 @@ local function wrappedPriorShowHide(bIsHide, bIsInit)
 end
 
 civvaccess_shared._joiningRoomHandler = BaseMenu.install(ContextPtr, {
-    name          = "JoiningRoom",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"),
-    preamble      = function()
-        if Controls.JoiningLabel then return Controls.JoiningLabel:GetText() end
+    name = "JoiningRoom",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"),
+    preamble = function()
+        if Controls.JoiningLabel then
+            return Controls.JoiningLabel:GetText()
+        end
         return nil
     end,
     priorShowHide = wrappedPriorShowHide,
-    priorInput    = priorInput,
-    items         = {},
+    priorInput = priorInput,
+    items = {},
 })

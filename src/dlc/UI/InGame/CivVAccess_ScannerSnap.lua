@@ -43,26 +43,28 @@ local function newCategory(catDef)
     -- `all` is always first. Uses a mod-authored label; the other subs
     -- pull whatever key their taxonomy entry declared (game or mod).
     subs[1] = {
-        key          = "all",
-        label        = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ALL",
-        items        = {},
+        key = "all",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ALL",
+        items = {},
         _itemsByName = {},
     }
     for _, subDef in ipairs(catDef.subcategories) do
         subs[#subs + 1] = {
-            key          = subDef.key,
-            label        = subDef.label,
-            items        = {},
+            key = subDef.key,
+            label = subDef.label,
+            items = {},
             _itemsByName = {},
         }
     end
     local subsByKey = {}
-    for _, sub in ipairs(subs) do subsByKey[sub.key] = sub end
+    for _, sub in ipairs(subs) do
+        subsByKey[sub.key] = sub
+    end
     return {
-        key           = catDef.key,
-        label         = catDef.label,
+        key = catDef.key,
+        label = catDef.label,
         subcategories = subs,
-        _subsByKey    = subsByKey,
+        _subsByKey = subsByKey,
     }
 end
 
@@ -76,7 +78,9 @@ local function sortSnapshot(snapshot)
                     end
                     local ka = a.entry.sortKey or 0
                     local kb = b.entry.sortKey or 0
-                    if ka ~= kb then return ka < kb end
+                    if ka ~= kb then
+                        return ka < kb
+                    end
                     return a.entry.plotIndex < b.entry.plotIndex
                 end)
             end
@@ -105,27 +109,33 @@ function ScannerSnap.build(entries, cursorX, cursorY)
     for _, entry in ipairs(entries) do
         local cat = catsByKey[entry.category]
         if cat == nil then
-            Log.warn("ScannerSnap: entry with unknown category '"
-                .. tostring(entry.category) .. "' from backend "
-                .. tostring(entry.backend and entry.backend.name))
+            Log.warn(
+                "ScannerSnap: entry with unknown category '"
+                    .. tostring(entry.category)
+                    .. "' from backend "
+                    .. tostring(entry.backend and entry.backend.name)
+            )
         else
             local sub = cat._subsByKey[entry.subcategory]
             if sub == nil then
-                Log.warn("ScannerSnap: entry with unknown subcategory '"
-                    .. tostring(entry.subcategory) .. "' under '"
-                    .. tostring(entry.category) .. "'")
+                Log.warn(
+                    "ScannerSnap: entry with unknown subcategory '"
+                        .. tostring(entry.subcategory)
+                        .. "' under '"
+                        .. tostring(entry.category)
+                        .. "'"
+                )
             else
                 local plot = Map.GetPlotByIndex(entry.plotIndex)
                 if plot == nil then
-                    Log.warn("ScannerSnap: entry with unresolved plotIndex "
-                        .. tostring(entry.plotIndex))
+                    Log.warn("ScannerSnap: entry with unresolved plotIndex " .. tostring(entry.plotIndex))
                 else
                     local px, py = plot:GetX(), plot:GetY()
                     local dist = Map.PlotDistance(cursorX, cursorY, px, py)
                     local instance = {
-                        entry    = entry,
-                        plotX    = px,
-                        plotY    = py,
+                        entry = entry,
+                        plotX = px,
+                        plotY = py,
                         distance = dist,
                     }
                     local item = sub._itemsByName[entry.itemName]
@@ -145,8 +155,8 @@ function ScannerSnap.build(entries, cursorX, cursorY)
     end
 
     local snapshot = {
-        cursorX    = cursorX,
-        cursorY    = cursorY,
+        cursorX = cursorX,
+        cursorY = cursorY,
         categories = cats,
     }
     sortSnapshot(snapshot)
@@ -171,13 +181,21 @@ end
 -- to land.
 function ScannerSnap.pruneInstance(snapshot, catIdx, subIdx, itemIdx, instIdx)
     local cat = snapshot.categories[catIdx]
-    if cat == nil then return end
+    if cat == nil then
+        return
+    end
     local sub = cat.subcategories[subIdx]
-    if sub == nil then return end
+    if sub == nil then
+        return
+    end
     local item = sub.items[itemIdx]
-    if item == nil then return end
+    if item == nil then
+        return
+    end
     table.remove(item.instances, instIdx)
-    if #item.instances > 0 then return end
+    if #item.instances > 0 then
+        return
+    end
 
     -- Empty item: remove it from this sub and every other sub in the
     -- same category that references the same item object.

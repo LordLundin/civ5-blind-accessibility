@@ -34,82 +34,82 @@ ScannerCore = {}
 -- category; `all` is implicit at index 1 and not listed here.
 ScannerCore.CATEGORIES = {
     {
-        key   = "cities",
+        key = "cities",
         label = "TXT_KEY_CITIES_HEADING1_TITLE",
         subcategories = {
-            { key = "my",      label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_MY" },
+            { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_MY" },
             { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_NEUTRAL" },
-            { key = "enemy",   label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_ENEMY" },
-            { key = "barb",    label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_BARB_CAMPS" },
+            { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_ENEMY" },
+            { key = "barb", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_BARB_CAMPS" },
         },
     },
     {
-        key   = "units_my",
+        key = "units_my",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_MY",
         subcategories = {
-            { key = "melee",        label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MELEE" },
-            { key = "ranged",       label = "TXT_KEY_ADVISOR_RANGED_UNIT_DISPLAY" },
-            { key = "siege",        label = "TXT_KEY_ADVISOR_SIEGE_UNIT_DISPLAY" },
-            { key = "mounted",      label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MOUNTED" },
-            { key = "naval",        label = "TXT_KEY_ADVISOR_COMBAT_NAVAL_UNIT_DISPLAY" },
-            { key = "air",          label = "TXT_KEY_UNITS_AIR_HEADING3_TITLE" },
-            { key = "civilian",     label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_CIVILIAN" },
+            { key = "melee", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MELEE" },
+            { key = "ranged", label = "TXT_KEY_ADVISOR_RANGED_UNIT_DISPLAY" },
+            { key = "siege", label = "TXT_KEY_ADVISOR_SIEGE_UNIT_DISPLAY" },
+            { key = "mounted", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MOUNTED" },
+            { key = "naval", label = "TXT_KEY_ADVISOR_COMBAT_NAVAL_UNIT_DISPLAY" },
+            { key = "air", label = "TXT_KEY_UNITS_AIR_HEADING3_TITLE" },
+            { key = "civilian", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_CIVILIAN" },
             { key = "great_people", label = "TXT_KEY_ADVISOR_GREAT_PERSON_DISPLAY" },
         },
     },
     {
-        key   = "units_neutral",
+        key = "units_neutral",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_NEUTRAL",
         subcategories = {
-            { key = "melee",        label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MELEE" },
-            { key = "ranged",       label = "TXT_KEY_ADVISOR_RANGED_UNIT_DISPLAY" },
-            { key = "siege",        label = "TXT_KEY_ADVISOR_SIEGE_UNIT_DISPLAY" },
-            { key = "mounted",      label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MOUNTED" },
-            { key = "naval",        label = "TXT_KEY_ADVISOR_COMBAT_NAVAL_UNIT_DISPLAY" },
-            { key = "air",          label = "TXT_KEY_UNITS_AIR_HEADING3_TITLE" },
-            { key = "civilian",     label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_CIVILIAN" },
+            { key = "melee", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MELEE" },
+            { key = "ranged", label = "TXT_KEY_ADVISOR_RANGED_UNIT_DISPLAY" },
+            { key = "siege", label = "TXT_KEY_ADVISOR_SIEGE_UNIT_DISPLAY" },
+            { key = "mounted", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MOUNTED" },
+            { key = "naval", label = "TXT_KEY_ADVISOR_COMBAT_NAVAL_UNIT_DISPLAY" },
+            { key = "air", label = "TXT_KEY_UNITS_AIR_HEADING3_TITLE" },
+            { key = "civilian", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_CIVILIAN" },
             { key = "great_people", label = "TXT_KEY_ADVISOR_GREAT_PERSON_DISPLAY" },
         },
     },
     {
-        key   = "units_enemy",
+        key = "units_enemy",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_ENEMY",
         subcategories = {
-            { key = "melee",        label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MELEE" },
-            { key = "ranged",       label = "TXT_KEY_ADVISOR_RANGED_UNIT_DISPLAY" },
-            { key = "siege",        label = "TXT_KEY_ADVISOR_SIEGE_UNIT_DISPLAY" },
-            { key = "mounted",      label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MOUNTED" },
-            { key = "naval",        label = "TXT_KEY_ADVISOR_COMBAT_NAVAL_UNIT_DISPLAY" },
-            { key = "air",          label = "TXT_KEY_UNITS_AIR_HEADING3_TITLE" },
-            { key = "civilian",     label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_CIVILIAN" },
+            { key = "melee", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MELEE" },
+            { key = "ranged", label = "TXT_KEY_ADVISOR_RANGED_UNIT_DISPLAY" },
+            { key = "siege", label = "TXT_KEY_ADVISOR_SIEGE_UNIT_DISPLAY" },
+            { key = "mounted", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MOUNTED" },
+            { key = "naval", label = "TXT_KEY_ADVISOR_COMBAT_NAVAL_UNIT_DISPLAY" },
+            { key = "air", label = "TXT_KEY_UNITS_AIR_HEADING3_TITLE" },
+            { key = "civilian", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_CIVILIAN" },
             { key = "great_people", label = "TXT_KEY_ADVISOR_GREAT_PERSON_DISPLAY" },
-            { key = "barbarians",   label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_BARBARIANS" },
+            { key = "barbarians", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_BARBARIANS" },
         },
     },
     {
-        key   = "resources",
+        key = "resources",
         label = "TXT_KEY_MAP_OPTION_RESOURCES",
         subcategories = {
             { key = "strategic", label = "TXT_KEY_RESOURCES_STRATEGIC_HEADING2_TITLE" },
-            { key = "luxury",    label = "TXT_KEY_RESOURCES_LUXURY_HEADING2_TITLE" },
-            { key = "bonus",     label = "TXT_KEY_RESOURCES_BONUS_HEADING2_TITLE" },
+            { key = "luxury", label = "TXT_KEY_RESOURCES_LUXURY_HEADING2_TITLE" },
+            { key = "bonus", label = "TXT_KEY_RESOURCES_BONUS_HEADING2_TITLE" },
         },
     },
     {
-        key   = "improvements",
+        key = "improvements",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_IMPROVEMENTS",
         subcategories = {
-            { key = "my",      label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY" },
+            { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY" },
             { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_NEUTRAL" },
-            { key = "enemy",   label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY" },
+            { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY" },
         },
     },
     {
-        key   = "special",
+        key = "special",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_SPECIAL",
         subcategories = {
             { key = "natural_wonders", label = "TXT_KEY_ADVISOR_DISCOVERED_NATURAL_WONDER_DISPLAY" },
-            { key = "ancient_ruins",   label = "TXT_KEY_IMPROVEMENT_GOODY_HUT" },
+            { key = "ancient_ruins", label = "TXT_KEY_IMPROVEMENT_GOODY_HUT" },
         },
     },
 }
@@ -127,12 +127,13 @@ end
 ScannerCore.BACKENDS = {}
 
 function ScannerCore.registerBackend(backend)
-    if type(backend) ~= "table"
-            or type(backend.Scan) ~= "function"
-            or type(backend.ValidateEntry) ~= "function"
-            or type(backend.FormatName) ~= "function" then
-        Log.error("ScannerCore.registerBackend: bad backend shape "
-            .. tostring(backend and backend.name))
+    if
+        type(backend) ~= "table"
+        or type(backend.Scan) ~= "function"
+        or type(backend.ValidateEntry) ~= "function"
+        or type(backend.FormatName) ~= "function"
+    then
+        Log.error("ScannerCore.registerBackend: bad backend shape " .. tostring(backend and backend.name))
         return
     end
     ScannerCore.BACKENDS[#ScannerCore.BACKENDS + 1] = backend

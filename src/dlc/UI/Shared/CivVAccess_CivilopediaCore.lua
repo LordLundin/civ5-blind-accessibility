@@ -30,21 +30,21 @@
 Civilopedia = {}
 
 Civilopedia.CATEGORY = {
-    HOME_PAGE      = 1,
-    GAME_CONCEPTS  = 2,
-    TECH           = 3,
-    UNITS          = 4,
-    PROMOTIONS     = 5,
-    BUILDINGS      = 6,
-    WONDERS        = 7,
-    POLICIES       = 8,
-    PEOPLE         = 9,
-    CIVILIZATIONS  = 10,
-    CITY_STATES    = 11,
-    TERRAIN        = 12,
-    RESOURCES      = 13,
-    IMPROVEMENTS   = 14,
-    BELIEFS        = 15,
+    HOME_PAGE = 1,
+    GAME_CONCEPTS = 2,
+    TECH = 3,
+    UNITS = 4,
+    PROMOTIONS = 5,
+    BUILDINGS = 6,
+    WONDERS = 7,
+    POLICIES = 8,
+    PEOPLE = 9,
+    CIVILIZATIONS = 10,
+    CITY_STATES = 11,
+    TERRAIN = 12,
+    RESOURCES = 13,
+    IMPROVEMENTS = 14,
+    BELIEFS = 15,
     WORLD_CONGRESS = 16,
 }
 
@@ -64,33 +64,57 @@ end
 -- up localized text automatically. Order is the reading order inside the
 -- narrow stack.
 local STAT_FRAMES = {
-    { frame = "CostFrame",              label = "CostLabel",              headerKey = "TXT_KEY_PEDIA_COST_LABEL" },
-    { frame = "MaintenanceFrame",       label = "MaintenanceLabel",       headerKey = "TXT_KEY_PEDIA_MAINT_LABEL" },
-    { frame = "HappinessFrame",         label = "HappinessLabel",         headerKey = "TXT_KEY_PEDIA_HAPPINESS_LABEL" },
+    { frame = "CostFrame", label = "CostLabel", headerKey = "TXT_KEY_PEDIA_COST_LABEL" },
+    { frame = "MaintenanceFrame", label = "MaintenanceLabel", headerKey = "TXT_KEY_PEDIA_MAINT_LABEL" },
+    { frame = "HappinessFrame", label = "HappinessLabel", headerKey = "TXT_KEY_PEDIA_HAPPINESS_LABEL" },
     { frame = "UnmoddedHappinessFrame", label = "UnmoddedHappinessLabel", headerKey = "TXT_KEY_PEDIA_HAPPINESS_LABEL" },
-    { frame = "CultureFrame",           label = "CultureLabel",           headerKey = "TXT_KEY_PEDIA_CULTURE_LABEL" },
-    { frame = "FaithFrame",             label = "FaithLabel",             headerKey = "TXT_KEY_PEDIA_FAITH_LABEL" },
-    { frame = "DefenseFrame",           label = "DefenseLabel",           headerKey = "TXT_KEY_PEDIA_DEFENSE_LABEL" },
-    { frame = "FoodFrame",              label = "FoodLabel",              headerKey = "TXT_KEY_PEDIA_FOOD_LABEL" },
-    { frame = "GoldChangeFrame",        label = "GoldChangeLabel",        headerKey = "TXT_KEY_PEDIA_GOLD_LABEL" },
-    { frame = "GoldFrame",              label = "GoldLabel",              headerKey = "TXT_KEY_PEDIA_GOLD_LABEL" },
-    { frame = "ScienceFrame",           label = "ScienceLabel",           headerKey = "TXT_KEY_PEDIA_SCIENCE_LABEL" },
-    { frame = "ProductionFrame",        label = "ProductionLabel",        headerKey = "TXT_KEY_PEDIA_PRODUCTION_LABEL" },
-    { frame = "GreatPeopleFrame",       label = "GreatPeopleLabel",       headerKey = "TXT_KEY_PEDIA_GP_LABEL" },
-    { frame = "CombatFrame",            label = "CombatLabel",            headerKey = "TXT_KEY_PEDIA_COMBAT_LABEL" },
-    { frame = "RangedCombatFrame",      label = "RangedCombatLabel",      headerKey = "TXT_KEY_PEDIA_RANGEDCOMBAT_LABEL" },
+    { frame = "CultureFrame", label = "CultureLabel", headerKey = "TXT_KEY_PEDIA_CULTURE_LABEL" },
+    { frame = "FaithFrame", label = "FaithLabel", headerKey = "TXT_KEY_PEDIA_FAITH_LABEL" },
+    { frame = "DefenseFrame", label = "DefenseLabel", headerKey = "TXT_KEY_PEDIA_DEFENSE_LABEL" },
+    { frame = "FoodFrame", label = "FoodLabel", headerKey = "TXT_KEY_PEDIA_FOOD_LABEL" },
+    { frame = "GoldChangeFrame", label = "GoldChangeLabel", headerKey = "TXT_KEY_PEDIA_GOLD_LABEL" },
+    { frame = "GoldFrame", label = "GoldLabel", headerKey = "TXT_KEY_PEDIA_GOLD_LABEL" },
+    { frame = "ScienceFrame", label = "ScienceLabel", headerKey = "TXT_KEY_PEDIA_SCIENCE_LABEL" },
+    {
+        frame = "ProductionFrame",
+        label = "ProductionLabel",
+        headerKey = "TXT_KEY_PEDIA_PRODUCTION_LABEL",
+    },
+    { frame = "GreatPeopleFrame", label = "GreatPeopleLabel", headerKey = "TXT_KEY_PEDIA_GP_LABEL" },
+    { frame = "CombatFrame", label = "CombatLabel", headerKey = "TXT_KEY_PEDIA_COMBAT_LABEL" },
+    {
+        frame = "RangedCombatFrame",
+        label = "RangedCombatLabel",
+        headerKey = "TXT_KEY_PEDIA_RANGEDCOMBAT_LABEL",
+    },
     { frame = "RangedCombatRangeFrame", label = "RangedCombatRangeLabel", headerKey = "TXT_KEY_PEDIA_RANGE_LABEL" },
-    { frame = "MovementFrame",          label = "MovementLabel",          headerKey = "TXT_KEY_PEDIA_MOVEMENT_LABEL" },
-    { frame = "CombatTypeFrame",        label = "CombatTypeLabel",        headerKey = "TXT_KEY_PEDIA_COMBATTYPE_LABEL" },
-    { frame = "YieldFrame",             label = "YieldLabel",             headerKey = "TXT_KEY_PEDIA_YIELD_LABEL" },
-    { frame = "MountainYieldFrame",     label = "MountainYieldLabel",     headerKey = "TXT_KEY_PEDIA_MOUNTAINADJYIELD_LABEL" },
-    { frame = "MovementCostFrame",      label = "MovementCostLabel",      headerKey = "TXT_KEY_PEDIA_MOVECOST_LABEL" },
-    { frame = "CombatModFrame",         label = "CombatModLabel",         headerKey = "TXT_KEY_PEDIA_COMBATMOD_LABEL" },
-    { frame = "LivedFrame",             label = "LivedLabel",             headerKey = "TXT_KEY_PEDIA_LIVED_LABEL" },
-    { frame = "TitlesFrame",            label = "TitlesLabel",            headerKey = "TXT_KEY_PEDIA_TITLES_LABEL" },
-    { frame = "PrereqEraFrame",         label = "PrereqEraLabel",         headerKey = "TXT_KEY_PEDIA_PREREQ_ERA_LABEL" },
-    { frame = "PolicyBranchFrame",      label = "PolicyBranchLabel",      headerKey = "TXT_KEY_PEDIA_POLICYBRANCH_LABEL" },
-    { frame = "TenetLevelFrame",        label = "TenetLevelLabel",        headerKey = "TXT_KEY_PEDIA_TENET_LEVEL" },
+    { frame = "MovementFrame", label = "MovementLabel", headerKey = "TXT_KEY_PEDIA_MOVEMENT_LABEL" },
+    {
+        frame = "CombatTypeFrame",
+        label = "CombatTypeLabel",
+        headerKey = "TXT_KEY_PEDIA_COMBATTYPE_LABEL",
+    },
+    { frame = "YieldFrame", label = "YieldLabel", headerKey = "TXT_KEY_PEDIA_YIELD_LABEL" },
+    {
+        frame = "MountainYieldFrame",
+        label = "MountainYieldLabel",
+        headerKey = "TXT_KEY_PEDIA_MOUNTAINADJYIELD_LABEL",
+    },
+    { frame = "MovementCostFrame", label = "MovementCostLabel", headerKey = "TXT_KEY_PEDIA_MOVECOST_LABEL" },
+    { frame = "CombatModFrame", label = "CombatModLabel", headerKey = "TXT_KEY_PEDIA_COMBATMOD_LABEL" },
+    { frame = "LivedFrame", label = "LivedLabel", headerKey = "TXT_KEY_PEDIA_LIVED_LABEL" },
+    { frame = "TitlesFrame", label = "TitlesLabel", headerKey = "TXT_KEY_PEDIA_TITLES_LABEL" },
+    {
+        frame = "PrereqEraFrame",
+        label = "PrereqEraLabel",
+        headerKey = "TXT_KEY_PEDIA_PREREQ_ERA_LABEL",
+    },
+    {
+        frame = "PolicyBranchFrame",
+        label = "PolicyBranchLabel",
+        headerKey = "TXT_KEY_PEDIA_POLICYBRANCH_LABEL",
+    },
+    { frame = "TenetLevelFrame", label = "TenetLevelLabel", headerKey = "TXT_KEY_PEDIA_TENET_LEVEL" },
 }
 
 -- Text frames: single-Label frames holding prose. Headers are dropped at
@@ -98,15 +122,15 @@ local STAT_FRAMES = {
 -- the body doesn't already convey) so no headerKey is needed here.
 local TEXT_FRAMES = {
     { frame = "HomePageBlurbFrame", label = "HomePageBlurbLabel" },
-    { frame = "GameInfoFrame",      label = "GameInfoLabel" },
-    { frame = "AbilitiesFrame",     label = "AbilitiesLabel" },
-    { frame = "SummaryFrame",       label = "SummaryLabel" },
-    { frame = "ExtendedFrame",      label = "ExtendedLabel" },
-    { frame = "DNotesFrame",        label = "DNotesLabel" },
-    { frame = "StrategyFrame",      label = "StrategyLabel" },
-    { frame = "HistoryFrame",       label = "HistoryLabel" },
-    { frame = "QuoteFrame",         label = "QuoteLabel" },
-    { frame = "SilentQuoteFrame",   label = "SilentQuoteLabel" },
+    { frame = "GameInfoFrame", label = "GameInfoLabel" },
+    { frame = "AbilitiesFrame", label = "AbilitiesLabel" },
+    { frame = "SummaryFrame", label = "SummaryLabel" },
+    { frame = "ExtendedFrame", label = "ExtendedLabel" },
+    { frame = "DNotesFrame", label = "DNotesLabel" },
+    { frame = "StrategyFrame", label = "StrategyLabel" },
+    { frame = "HistoryFrame", label = "HistoryLabel" },
+    { frame = "QuoteFrame", label = "QuoteLabel" },
+    { frame = "SilentQuoteFrame", label = "SilentQuoteLabel" },
 }
 
 -- Relationship frames: each holds an InstanceManager-allocated grid of
@@ -122,45 +146,221 @@ local TEXT_FRAMES = {
 -- current article's category isn't Units or Buildings) -- leaves are
 -- emitted as plain (non-activatable) Text.
 local RELATIONSHIP_DEFS = {
-    { frame = "PrereqTechFrame",         manager = g_PrereqTechManager,         button = "PrereqTechButton",         category = Civilopedia.CATEGORY.TECH,          headerKey = "TXT_KEY_PEDIA_PREREQ_TECH_LABEL" },
-    { frame = "LeadsToTechFrame",        manager = g_LeadsToTechManager,        button = "LeadsToTechButton",        category = Civilopedia.CATEGORY.TECH,          headerKey = "TXT_KEY_PEDIA_LEADS_TO_TECH_LABEL" },
-    { frame = "ObsoleteTechFrame",       manager = g_ObsoleteTechManager,       button = "ObsoleteTechButton",       category = Civilopedia.CATEGORY.TECH,          headerKey = "TXT_KEY_PEDIA_OBSOLETE_TECH_LABEL" },
-    { frame = "RevealTechsFrame",        manager = g_RevealTechsManager,        button = "RevealTechButton",         category = Civilopedia.CATEGORY.TECH,          headerKey = "TXT_KEY_PEDIA_REVEAL_TECH_LABEL" },
-    { frame = "UnlockedUnitsFrame",      manager = g_UnlockedUnitsManager,      button = "UnlockedUnitButton",       category = Civilopedia.CATEGORY.UNITS,         headerKey = "TXT_KEY_PEDIA_UNIT_UNLOCK_LABEL" },
-    { frame = "UnlockedBuildingsFrame",  manager = g_UnlockedBuildingsManager,  button = "UnlockedBuildingButton",   category = Civilopedia.CATEGORY.BUILDINGS,     headerKey = "TXT_KEY_PEDIA_BLDG_UNLOCK_LABEL" },
-    { frame = "UnlockedProjectsFrame",   manager = g_UnlockedProjectsManager,   button = "UnlockedProjectButton",    category = Civilopedia.CATEGORY.WONDERS,       headerKey = "TXT_KEY_PEDIA_PROJ_UNLOCK_LABEL" },
-    { frame = "RevealedResourcesFrame",  manager = g_RevealedResourcesManager,  button = "RevealedResourceButton",   category = Civilopedia.CATEGORY.RESOURCES,     headerKey = "TXT_KEY_PEDIA_RESRC_RVL_LABEL" },
-    { frame = "RequiredResourcesFrame",  manager = g_RequiredResourcesManager,  button = "RequiredResourceButton",   category = Civilopedia.CATEGORY.RESOURCES,     headerKey = "TXT_KEY_PEDIA_REQ_RESRC_LABEL" },
-    { frame = "LocalResourcesFrame",     manager = g_LocalResourcesManager,     button = "LocalResourceButton",      category = Civilopedia.CATEGORY.RESOURCES,     headerKey = "TXT_KEY_PEDIA_LOCAL_RESRC_LABEL" },
-    { frame = "WorkerActionsFrame",      manager = g_WorkerActionsManager,      button = "WorkerActionButton",       category = Civilopedia.CATEGORY.IMPROVEMENTS,  headerKey = "TXT_KEY_PEDIA_WORKER_ACTION_LABEL" },
-    { frame = "FreePromotionsFrame",     manager = g_PromotionsManager,         button = "PromotionButton",          category = Civilopedia.CATEGORY.PROMOTIONS,    headerKey = "TXT_KEY_PEDIA_FREEPROMOTIONS_LABEL" },
-    { frame = "RequiredPromotionsFrame", manager = g_RequiredPromotionsManager, button = "RequiredPromotionButton",  category = Civilopedia.CATEGORY.PROMOTIONS,    headerKey = "TXT_KEY_PEDIA_REQ_PROMOTIONS_LABEL" },
-    { frame = "RequiredBuildingsFrame",  manager = g_RequiredBuildingsManager,  button = "RequiredBuildingButton",   category = Civilopedia.CATEGORY.BUILDINGS,     headerKey = "TXT_KEY_PEDIA_REQ_BLDG_LABEL" },
-    { frame = "RequiredPoliciesFrame",   manager = g_RequiredPoliciesManager,   button = "RequiredPolicyButton",     category = Civilopedia.CATEGORY.POLICIES,      headerKey = "TXT_KEY_PEDIA_PREREQ_POLICY_LABEL" },
-    { frame = "SpecialistsFrame",        manager = g_SpecialistsManager,        button = "SpecialistButton",         category = Civilopedia.CATEGORY.PEOPLE,        headerKey = "TXT_KEY_PEDIA_SPEC_LABEL" },
-    { frame = "LeadersFrame",            manager = g_LeadersManager,            button = "LeaderButton",             category = Civilopedia.CATEGORY.CIVILIZATIONS, headerKey = "TXT_KEY_PEDIA_LEADERS_LABEL" },
-    { frame = "CivilizationsFrame",      manager = g_CivilizationsManager,      button = "CivilizationButton",       category = Civilopedia.CATEGORY.CIVILIZATIONS, headerKey = "TXT_KEY_PEDIA_CIVILIZATIONS_LABEL" },
-    { frame = "UniqueUnitsFrame",        manager = g_UniqueUnitsManager,        button = "UniqueUnitButton",         category = Civilopedia.CATEGORY.UNITS,         headerKey = "TXT_KEY_PEDIA_UNIQUEUNIT_LABEL" },
-    { frame = "UniqueBuildingsFrame",    manager = g_UniqueBuildingsManager,    button = "UniqueBuildingButton",     category = Civilopedia.CATEGORY.BUILDINGS,     headerKey = "TXT_KEY_PEDIA_UNIQUEBLDG_LABEL" },
-    { frame = "UniqueImprovementsFrame", manager = g_UniqueImprovementsManager, button = "UniqueImprovementButton",  category = Civilopedia.CATEGORY.IMPROVEMENTS,  headerKey = "TXT_KEY_PEDIA_UNIQUEIMPRV_LABEL" },
-    { frame = "UpgradeFrame",            manager = g_UpgradeManager,            button = "UpgradeButton",            category = Civilopedia.CATEGORY.UNITS,         headerKey = "TXT_KEY_COMMAND_UPGRADE" },
-    { frame = "FeaturesFrame",           manager = g_FeaturesManager,           button = "FeatureButton",            category = Civilopedia.CATEGORY.TERRAIN,       headerKey = "TXT_KEY_PEDIA_FEATURES_LABEL" },
-    { frame = "TerrainsFrame",           manager = g_TerrainsManager,           button = "TerrainButton",            category = Civilopedia.CATEGORY.TERRAIN,       headerKey = "TXT_KEY_PEDIA_TERRAINS_LABEL" },
-    { frame = "ImprovementsFrame",       manager = g_ImprovementsManager,       button = "ImprovementButton",        category = Civilopedia.CATEGORY.IMPROVEMENTS,  headerKey = "TXT_KEY_PEDIA_IMPROVEMENTS_LABEL" },
+    {
+        frame = "PrereqTechFrame",
+        manager = g_PrereqTechManager,
+        button = "PrereqTechButton",
+        category = Civilopedia.CATEGORY.TECH,
+        headerKey = "TXT_KEY_PEDIA_PREREQ_TECH_LABEL",
+    },
+    {
+        frame = "LeadsToTechFrame",
+        manager = g_LeadsToTechManager,
+        button = "LeadsToTechButton",
+        category = Civilopedia.CATEGORY.TECH,
+        headerKey = "TXT_KEY_PEDIA_LEADS_TO_TECH_LABEL",
+    },
+    {
+        frame = "ObsoleteTechFrame",
+        manager = g_ObsoleteTechManager,
+        button = "ObsoleteTechButton",
+        category = Civilopedia.CATEGORY.TECH,
+        headerKey = "TXT_KEY_PEDIA_OBSOLETE_TECH_LABEL",
+    },
+    {
+        frame = "RevealTechsFrame",
+        manager = g_RevealTechsManager,
+        button = "RevealTechButton",
+        category = Civilopedia.CATEGORY.TECH,
+        headerKey = "TXT_KEY_PEDIA_REVEAL_TECH_LABEL",
+    },
+    {
+        frame = "UnlockedUnitsFrame",
+        manager = g_UnlockedUnitsManager,
+        button = "UnlockedUnitButton",
+        category = Civilopedia.CATEGORY.UNITS,
+        headerKey = "TXT_KEY_PEDIA_UNIT_UNLOCK_LABEL",
+    },
+    {
+        frame = "UnlockedBuildingsFrame",
+        manager = g_UnlockedBuildingsManager,
+        button = "UnlockedBuildingButton",
+        category = Civilopedia.CATEGORY.BUILDINGS,
+        headerKey = "TXT_KEY_PEDIA_BLDG_UNLOCK_LABEL",
+    },
+    {
+        frame = "UnlockedProjectsFrame",
+        manager = g_UnlockedProjectsManager,
+        button = "UnlockedProjectButton",
+        category = Civilopedia.CATEGORY.WONDERS,
+        headerKey = "TXT_KEY_PEDIA_PROJ_UNLOCK_LABEL",
+    },
+    {
+        frame = "RevealedResourcesFrame",
+        manager = g_RevealedResourcesManager,
+        button = "RevealedResourceButton",
+        category = Civilopedia.CATEGORY.RESOURCES,
+        headerKey = "TXT_KEY_PEDIA_RESRC_RVL_LABEL",
+    },
+    {
+        frame = "RequiredResourcesFrame",
+        manager = g_RequiredResourcesManager,
+        button = "RequiredResourceButton",
+        category = Civilopedia.CATEGORY.RESOURCES,
+        headerKey = "TXT_KEY_PEDIA_REQ_RESRC_LABEL",
+    },
+    {
+        frame = "LocalResourcesFrame",
+        manager = g_LocalResourcesManager,
+        button = "LocalResourceButton",
+        category = Civilopedia.CATEGORY.RESOURCES,
+        headerKey = "TXT_KEY_PEDIA_LOCAL_RESRC_LABEL",
+    },
+    {
+        frame = "WorkerActionsFrame",
+        manager = g_WorkerActionsManager,
+        button = "WorkerActionButton",
+        category = Civilopedia.CATEGORY.IMPROVEMENTS,
+        headerKey = "TXT_KEY_PEDIA_WORKER_ACTION_LABEL",
+    },
+    {
+        frame = "FreePromotionsFrame",
+        manager = g_PromotionsManager,
+        button = "PromotionButton",
+        category = Civilopedia.CATEGORY.PROMOTIONS,
+        headerKey = "TXT_KEY_PEDIA_FREEPROMOTIONS_LABEL",
+    },
+    {
+        frame = "RequiredPromotionsFrame",
+        manager = g_RequiredPromotionsManager,
+        button = "RequiredPromotionButton",
+        category = Civilopedia.CATEGORY.PROMOTIONS,
+        headerKey = "TXT_KEY_PEDIA_REQ_PROMOTIONS_LABEL",
+    },
+    {
+        frame = "RequiredBuildingsFrame",
+        manager = g_RequiredBuildingsManager,
+        button = "RequiredBuildingButton",
+        category = Civilopedia.CATEGORY.BUILDINGS,
+        headerKey = "TXT_KEY_PEDIA_REQ_BLDG_LABEL",
+    },
+    {
+        frame = "RequiredPoliciesFrame",
+        manager = g_RequiredPoliciesManager,
+        button = "RequiredPolicyButton",
+        category = Civilopedia.CATEGORY.POLICIES,
+        headerKey = "TXT_KEY_PEDIA_PREREQ_POLICY_LABEL",
+    },
+    {
+        frame = "SpecialistsFrame",
+        manager = g_SpecialistsManager,
+        button = "SpecialistButton",
+        category = Civilopedia.CATEGORY.PEOPLE,
+        headerKey = "TXT_KEY_PEDIA_SPEC_LABEL",
+    },
+    {
+        frame = "LeadersFrame",
+        manager = g_LeadersManager,
+        button = "LeaderButton",
+        category = Civilopedia.CATEGORY.CIVILIZATIONS,
+        headerKey = "TXT_KEY_PEDIA_LEADERS_LABEL",
+    },
+    {
+        frame = "CivilizationsFrame",
+        manager = g_CivilizationsManager,
+        button = "CivilizationButton",
+        category = Civilopedia.CATEGORY.CIVILIZATIONS,
+        headerKey = "TXT_KEY_PEDIA_CIVILIZATIONS_LABEL",
+    },
+    {
+        frame = "UniqueUnitsFrame",
+        manager = g_UniqueUnitsManager,
+        button = "UniqueUnitButton",
+        category = Civilopedia.CATEGORY.UNITS,
+        headerKey = "TXT_KEY_PEDIA_UNIQUEUNIT_LABEL",
+    },
+    {
+        frame = "UniqueBuildingsFrame",
+        manager = g_UniqueBuildingsManager,
+        button = "UniqueBuildingButton",
+        category = Civilopedia.CATEGORY.BUILDINGS,
+        headerKey = "TXT_KEY_PEDIA_UNIQUEBLDG_LABEL",
+    },
+    {
+        frame = "UniqueImprovementsFrame",
+        manager = g_UniqueImprovementsManager,
+        button = "UniqueImprovementButton",
+        category = Civilopedia.CATEGORY.IMPROVEMENTS,
+        headerKey = "TXT_KEY_PEDIA_UNIQUEIMPRV_LABEL",
+    },
+    {
+        frame = "UpgradeFrame",
+        manager = g_UpgradeManager,
+        button = "UpgradeButton",
+        category = Civilopedia.CATEGORY.UNITS,
+        headerKey = "TXT_KEY_COMMAND_UPGRADE",
+    },
+    {
+        frame = "FeaturesFrame",
+        manager = g_FeaturesManager,
+        button = "FeatureButton",
+        category = Civilopedia.CATEGORY.TERRAIN,
+        headerKey = "TXT_KEY_PEDIA_FEATURES_LABEL",
+    },
+    {
+        frame = "TerrainsFrame",
+        manager = g_TerrainsManager,
+        button = "TerrainButton",
+        category = Civilopedia.CATEGORY.TERRAIN,
+        headerKey = "TXT_KEY_PEDIA_TERRAINS_LABEL",
+    },
+    {
+        frame = "ImprovementsFrame",
+        manager = g_ImprovementsManager,
+        button = "ImprovementButton",
+        category = Civilopedia.CATEGORY.IMPROVEMENTS,
+        headerKey = "TXT_KEY_PEDIA_IMPROVEMENTS_LABEL",
+    },
     -- Context-dependent target category; resolved at scrape time from the
     -- current article's category.
-    { frame = "ReplacesFrame",           manager = g_ReplacesManager,           button = "ReplaceButton",            category = "ctx_replaces",                     headerKey = "TXT_KEY_PEDIA_REPLACES_LABEL" },
-    { frame = "ResourcesFoundFrame",     manager = g_ResourcesFoundManager,     button = "ResourceFoundButton",      category = "ctx_resources_found",              headerKey = "TXT_KEY_PEDIA_RESOURCESFOUND_LABEL" },
+    {
+        frame = "ReplacesFrame",
+        manager = g_ReplacesManager,
+        button = "ReplaceButton",
+        category = "ctx_replaces",
+        headerKey = "TXT_KEY_PEDIA_REPLACES_LABEL",
+    },
+    {
+        frame = "ResourcesFoundFrame",
+        manager = g_ResourcesFoundManager,
+        button = "ResourceFoundButton",
+        category = "ctx_resources_found",
+        headerKey = "TXT_KEY_PEDIA_RESOURCESFOUND_LABEL",
+    },
     -- Display-only (no navigation): the relationship has no single link
     -- target that makes sense to navigate to.
-    { frame = "TraitsFrame",             manager = g_TraitsManager,             button = "TraitButton",              category = nil,                                headerKey = "TXT_KEY_PEDIA_TRAITS_LABEL" },
-    { frame = "GreatWorksFrame",         manager = g_GreatWorksManager,         button = "GreatWorksButton",         category = nil,                                headerKey = "TXT_KEY_PEDIA_GREAT_WORKS_LABEL" },
+    {
+        frame = "TraitsFrame",
+        manager = g_TraitsManager,
+        button = "TraitButton",
+        category = nil,
+        headerKey = "TXT_KEY_PEDIA_TRAITS_LABEL",
+    },
+    {
+        frame = "GreatWorksFrame",
+        manager = g_GreatWorksManager,
+        button = "GreatWorksButton",
+        category = nil,
+        headerKey = "TXT_KEY_PEDIA_GREAT_WORKS_LABEL",
+    },
 }
 
 -- Control-access helpers ------------------------------------------------
 
 local function ctrlText(ctrl)
-    if ctrl == nil then return "" end
+    if ctrl == nil then
+        return ""
+    end
     return ctrl:GetText() or ""
 end
 
@@ -173,14 +373,15 @@ end
 -- uses {resolution, option}) syncs the picker cursor correctly.
 local function makeEntryID(cat, entryID)
     if type(entryID) == "table" then
-        return tostring(cat) .. ":" .. tostring(entryID[1])
-            .. ":" .. tostring(entryID[2])
+        return tostring(cat) .. ":" .. tostring(entryID[1]) .. ":" .. tostring(entryID[2])
     end
     return tostring(cat) .. ":" .. tostring(entryID)
 end
 
 local function addLeaf(leaves, header, body)
-    if body == nil or body == "" then return end
+    if body == nil or body == "" then
+        return
+    end
     local text
     if header == nil or header == "" then
         text = body
@@ -195,7 +396,9 @@ end
 -- game TXT_KEY_PEDIA_*_LABEL values ship with so call sites can always
 -- add their own ": " separator without doubling up.
 local function headerFor(def)
-    if def.headerKey == nil or def.headerKey == "" then return "" end
+    if def.headerKey == nil or def.headerKey == "" then
+        return ""
+    end
     local h = Text.key(def.headerKey)
     if type(h) == "string" and h:sub(-1) == ":" then
         return h:sub(1, -2)
@@ -209,8 +412,12 @@ end
 -- between Terrain and Resources).
 local function resolveRelationshipCategory(def, currentCat)
     local c = def.category
-    if c == nil then return nil end
-    if type(c) == "number" then return c end
+    if c == nil then
+        return nil
+    end
+    if type(c) == "number" then
+        return c
+    end
     if c == "ctx_replaces" then
         return currentCat
     elseif c == "ctx_resources_found" then
@@ -235,14 +442,14 @@ local followLink
 -- TXT_KEY_<PREFIX>_0 .. <PREFIX>_N in the base pedia. Matches the prior-
 -- generation mod's SECTION_TEXT_KEYS table.
 local SECTION_TEXT_KEY_PREFIX = {
-    [Civilopedia.CATEGORY.GAME_CONCEPTS]  = "TXT_KEY_GAME_CONCEPT_SECTION_",
-    [Civilopedia.CATEGORY.PROMOTIONS]     = "TXT_KEY_PROMOTIONS_SECTION_",
-    [Civilopedia.CATEGORY.WONDERS]        = "TXT_KEY_WONDER_SECTION_",
-    [Civilopedia.CATEGORY.PEOPLE]         = "TXT_KEY_PEOPLE_SECTION_",
-    [Civilopedia.CATEGORY.CIVILIZATIONS]  = "TXT_KEY_CIVILIZATIONS_SECTION_",
-    [Civilopedia.CATEGORY.TERRAIN]        = "TXT_KEY_TERRAIN_SECTION_",
-    [Civilopedia.CATEGORY.RESOURCES]      = "TXT_KEY_RESOURCES_SECTION_",
-    [Civilopedia.CATEGORY.BELIEFS]        = "TXT_KEY_PEDIA_BELIEFS_CATEGORY_",
+    [Civilopedia.CATEGORY.GAME_CONCEPTS] = "TXT_KEY_GAME_CONCEPT_SECTION_",
+    [Civilopedia.CATEGORY.PROMOTIONS] = "TXT_KEY_PROMOTIONS_SECTION_",
+    [Civilopedia.CATEGORY.WONDERS] = "TXT_KEY_WONDER_SECTION_",
+    [Civilopedia.CATEGORY.PEOPLE] = "TXT_KEY_PEOPLE_SECTION_",
+    [Civilopedia.CATEGORY.CIVILIZATIONS] = "TXT_KEY_CIVILIZATIONS_SECTION_",
+    [Civilopedia.CATEGORY.TERRAIN] = "TXT_KEY_TERRAIN_SECTION_",
+    [Civilopedia.CATEGORY.RESOURCES] = "TXT_KEY_RESOURCES_SECTION_",
+    [Civilopedia.CATEGORY.BELIEFS] = "TXT_KEY_PEDIA_BELIEFS_CATEGORY_",
     [Civilopedia.CATEGORY.WORLD_CONGRESS] = "TXT_KEY_PEDIA_WORLD_CONGRESS_CATEGORY_",
 }
 
@@ -259,7 +466,9 @@ local function getSections(cat)
         return sections
     end
     local sl = sortedList[cat]
-    if sl == nil then return sections end
+    if sl == nil then
+        return sections
+    end
     local CAT = Civilopedia.CATEGORY
 
     if cat == CAT.HOME_PAGE or cat == CAT.IMPROVEMENTS then
@@ -286,8 +495,7 @@ local function getSections(cat)
         -- Optional Faith section at key 0 when religion is active; era
         -- sections then start at key 1 (not era.ID 0 directly).
         local offset = 0
-        local religionOn = (Game == nil)
-            or (not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION))
+        local religionOn = (Game == nil) or (not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION))
         if religionOn and sl[0] and #sl[0] > 0 then
             sections[#sections + 1] = {
                 key = 0,
@@ -354,7 +562,9 @@ local function getSections(cat)
     -- Fallback: iterate numeric keys in ascending order, no label.
     local keys = {}
     for k in pairs(sl) do
-        if type(k) == "number" then keys[#keys + 1] = k end
+        if type(k) == "number" then
+            keys[#keys + 1] = k
+        end
     end
     table.sort(keys)
     for _, k in ipairs(keys) do
@@ -370,8 +580,8 @@ end
 local function entryFromArticle(entryFactory, cat, article)
     local entryID = article.entryID
     return entryFactory({
-        id          = makeEntryID(cat, entryID),
-        labelText   = tostring(article.entryName or ""),
+        id = makeEntryID(cat, entryID),
+        labelText = tostring(article.entryName or ""),
         buildReader = function(handler, id)
             return Civilopedia.buildReader(handler, cat, entryID)
         end,
@@ -393,14 +603,11 @@ local function introEntry(entryFactory, cat, spec)
     local entrySpec = {
         id = tostring(cat) .. ":intro",
         buildReader = function(handler)
-            local fn = CivilopediaCategory
-                and CivilopediaCategory[cat]
-                and CivilopediaCategory[cat].DisplayHomePage
+            local fn = CivilopediaCategory and CivilopediaCategory[cat] and CivilopediaCategory[cat].DisplayHomePage
             if type(fn) == "function" then
                 local ok, err = pcall(fn)
                 if not ok then
-                    Log.warn("Civilopedia Intro DisplayHomePage(" .. tostring(cat)
-                        .. ") failed: " .. tostring(err))
+                    Log.warn("Civilopedia Intro DisplayHomePage(" .. tostring(cat) .. ") failed: " .. tostring(err))
                 end
             end
             local leaves = {}
@@ -442,8 +649,8 @@ local function categoryChildren(entryFactory, cat)
         local articles = sec.articles
         children[#children + 1] = BaseMenuItems.Group({
             labelText = sec.label,
-            cached    = false,
-            itemsFn   = function()
+            cached = false,
+            itemsFn = function()
                 local entries = {}
                 for i, article in ipairs(articles) do
                     entries[i] = entryFromArticle(entryFactory, cat, article)
@@ -458,14 +665,16 @@ end
 local function categoryGroup(cat, entryFactory)
     return BaseMenuItems.Group({
         textKey = categoryLabelKey(cat),
-        cached  = false,
+        cached = false,
         itemsFn = function()
             return categoryChildren(entryFactory, cat)
         end,
     })
 end
 
-local function hasTable(name) return GameInfo[name] ~= nil end
+local function hasTable(name)
+    return GameInfo[name] ~= nil
+end
 
 -- Harvesters ------------------------------------------------------------
 
@@ -501,8 +710,12 @@ end
 -- its category name twice: once from the picker selection, once as the
 -- first block header).
 local function dropTitleEchoHeader(header, title)
-    if header == nil or header == "" then return "" end
-    if title ~= nil and title ~= "" and header == title then return "" end
+    if header == nil or header == "" then
+        return ""
+    end
+    if title ~= nil and title ~= "" and header == title then
+        return ""
+    end
     return header
 end
 
@@ -511,13 +724,17 @@ end
 -- instance has FFTextHeader + FFTextLabel. Skip when stack is hidden:
 -- ClearArticle hides the stack but leaves stale allocated instances.
 local function harvestFreeFormText(leaves)
-    if ctrlHidden(Controls.FFTextStack) then return end
+    if ctrlHidden(Controls.FFTextStack) then
+        return
+    end
     local mgr = g_FreeFormTextManager
-    if mgr == nil or mgr.m_AllocatedInstances == nil then return end
+    if mgr == nil or mgr.m_AllocatedInstances == nil then
+        return
+    end
     local title = ctrlText(Controls.ArticleID)
     for _, instance in ipairs(mgr.m_AllocatedInstances) do
         local header = dropTitleEchoHeader(ctrlText(instance.FFTextHeader), title)
-        local body   = ctrlText(instance.FFTextLabel)
+        local body = ctrlText(instance.FFTextLabel)
         addLeaf(leaves, header, body)
     end
 end
@@ -525,13 +742,17 @@ end
 -- BBTextStack: full-width intro blurbs used by home pages. Same shape as
 -- FFText: per-instance header + body.
 local function harvestBBText(leaves)
-    if ctrlHidden(Controls.BBTextStack) then return end
+    if ctrlHidden(Controls.BBTextStack) then
+        return
+    end
     local mgr = g_BBTextManager
-    if mgr == nil or mgr.m_AllocatedInstances == nil then return end
+    if mgr == nil or mgr.m_AllocatedInstances == nil then
+        return
+    end
     local title = ctrlText(Controls.ArticleID)
     for _, instance in ipairs(mgr.m_AllocatedInstances) do
         local header = dropTitleEchoHeader(ctrlText(instance.BBTextHeader), title)
-        local body   = ctrlText(instance.BBTextLabel)
+        local body = ctrlText(instance.BBTextLabel)
         addLeaf(leaves, header, body)
     end
 end
@@ -547,12 +768,12 @@ local function harvestRelationships(leaves, handler, currentCat)
             local mgr = def.manager
             if mgr ~= nil and mgr.m_AllocatedInstances ~= nil then
                 local targetCat = resolveRelationshipCategory(def, currentCat)
-                local header    = headerFor(def)
-                local seen      = {}
+                local header = headerFor(def)
+                local seen = {}
                 for _, instance in ipairs(mgr.m_AllocatedInstances) do
                     local btn = instance[def.button]
                     if btn ~= nil then
-                        local label  = btn:GetToolTipString()
+                        local label = btn:GetToolTipString()
                         local voidID = btn:GetVoid1()
                         if label ~= nil and label ~= "" then
                             local dedup = tostring(voidID) .. "|" .. tostring(label)
@@ -563,7 +784,7 @@ local function harvestRelationships(leaves, handler, currentCat)
                                     local capturedCat, capturedID = targetCat, voidID
                                     leaves[#leaves + 1] = BaseMenuItems.Choice({
                                         labelText = text,
-                                        activate  = function()
+                                        activate = function()
                                             followLink(handler, capturedCat, capturedID)
                                         end,
                                     })
@@ -598,13 +819,21 @@ end
 -- lands on the article we followed to, not the one the user originally
 -- opened from -- tuple-entryID categories (WorldCongress) included.
 function followLink(handler, targetCat, targetID)
-    if CivilopediaCategory ~= nil
-            and CivilopediaCategory[targetCat] ~= nil
-            and type(CivilopediaCategory[targetCat].SelectArticle) == "function" then
+    if
+        CivilopediaCategory ~= nil
+        and CivilopediaCategory[targetCat] ~= nil
+        and type(CivilopediaCategory[targetCat].SelectArticle) == "function"
+    then
         local ok, err = pcall(CivilopediaCategory[targetCat].SelectArticle, targetID, 1)
         if not ok then
-            Log.warn("Civilopedia followLink SelectArticle(" .. tostring(targetCat)
-                .. ", " .. tostring(targetID) .. ") failed: " .. tostring(err))
+            Log.warn(
+                "Civilopedia followLink SelectArticle("
+                    .. tostring(targetCat)
+                    .. ", "
+                    .. tostring(targetID)
+                    .. ") failed: "
+                    .. tostring(err)
+            )
         end
     end
     if type(handler.setPickerReaderSelection) == "function" then
@@ -639,18 +868,18 @@ function Civilopedia.buildPickerItems(entryFactory)
         textKey = categoryLabelKey(CAT.HOME_PAGE),
     })
     items[#items + 1] = categoryGroup(CAT.GAME_CONCEPTS, entryFactory)
-    items[#items + 1] = categoryGroup(CAT.TECH,          entryFactory)
-    items[#items + 1] = categoryGroup(CAT.UNITS,         entryFactory)
-    items[#items + 1] = categoryGroup(CAT.PROMOTIONS,    entryFactory)
-    items[#items + 1] = categoryGroup(CAT.BUILDINGS,     entryFactory)
-    items[#items + 1] = categoryGroup(CAT.WONDERS,       entryFactory)
-    items[#items + 1] = categoryGroup(CAT.POLICIES,      entryFactory)
-    items[#items + 1] = categoryGroup(CAT.PEOPLE,        entryFactory)
+    items[#items + 1] = categoryGroup(CAT.TECH, entryFactory)
+    items[#items + 1] = categoryGroup(CAT.UNITS, entryFactory)
+    items[#items + 1] = categoryGroup(CAT.PROMOTIONS, entryFactory)
+    items[#items + 1] = categoryGroup(CAT.BUILDINGS, entryFactory)
+    items[#items + 1] = categoryGroup(CAT.WONDERS, entryFactory)
+    items[#items + 1] = categoryGroup(CAT.POLICIES, entryFactory)
+    items[#items + 1] = categoryGroup(CAT.PEOPLE, entryFactory)
     items[#items + 1] = categoryGroup(CAT.CIVILIZATIONS, entryFactory)
-    items[#items + 1] = categoryGroup(CAT.CITY_STATES,   entryFactory)
-    items[#items + 1] = categoryGroup(CAT.TERRAIN,       entryFactory)
-    items[#items + 1] = categoryGroup(CAT.RESOURCES,     entryFactory)
-    items[#items + 1] = categoryGroup(CAT.IMPROVEMENTS,  entryFactory)
+    items[#items + 1] = categoryGroup(CAT.CITY_STATES, entryFactory)
+    items[#items + 1] = categoryGroup(CAT.TERRAIN, entryFactory)
+    items[#items + 1] = categoryGroup(CAT.RESOURCES, entryFactory)
+    items[#items + 1] = categoryGroup(CAT.IMPROVEMENTS, entryFactory)
     if hasTable("Beliefs") then
         items[#items + 1] = categoryGroup(CAT.BELIEFS, entryFactory)
     end
@@ -664,21 +893,34 @@ end
 -- pedia's own SelectArticle, then harvests leaves from the rendered
 -- controls. Flat list, autoDrillToLevel = 1.
 function Civilopedia.buildReader(handler, category, entryID)
-    if CivilopediaCategory ~= nil
-            and CivilopediaCategory[category] ~= nil
-            and type(CivilopediaCategory[category].SelectArticle) == "function" then
+    if
+        CivilopediaCategory ~= nil
+        and CivilopediaCategory[category] ~= nil
+        and type(CivilopediaCategory[category].SelectArticle) == "function"
+    then
         local ok, err = pcall(CivilopediaCategory[category].SelectArticle, entryID, 1)
         if not ok then
-            Log.warn("Civilopedia SelectArticle(" .. tostring(category)
-                .. ", " .. tostring(entryID) .. ") failed: " .. tostring(err))
+            Log.warn(
+                "Civilopedia SelectArticle("
+                    .. tostring(category)
+                    .. ", "
+                    .. tostring(entryID)
+                    .. ") failed: "
+                    .. tostring(err)
+            )
         end
     end
 
     local leaves = {}
     Civilopedia._harvestInto(leaves, handler, category)
     if #leaves == 0 then
-        Log.warn("Civilopedia buildReader: cat=" .. tostring(category)
-            .. " entryID=" .. tostring(entryID) .. " no visible controls")
+        Log.warn(
+            "Civilopedia buildReader: cat="
+                .. tostring(category)
+                .. " entryID="
+                .. tostring(entryID)
+                .. " no visible controls"
+        )
         leaves[1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_ARTICLE"),
         })

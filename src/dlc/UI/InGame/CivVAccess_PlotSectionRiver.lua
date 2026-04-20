@@ -9,19 +9,16 @@
 
 local SELF_EDGES = {
     { dir = "TXT_KEY_CIVVACCESS_DIR_NE", method = "IsNEOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_W",  method = "IsWOfRiver"  },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_W", method = "IsWOfRiver" },
     { dir = "TXT_KEY_CIVVACCESS_DIR_NW", method = "IsNWOfRiver" },
 }
 
 -- (neighbor direction, method on neighbor returning true if THAT edge of
 -- ours is a river). The neighbor's W flag is our E edge, etc.
 local NEIGHBOR_EDGES = {
-    { dir = "TXT_KEY_CIVVACCESS_DIR_E",
-      neighborDir = "DIRECTION_EAST",      method = "IsWOfRiver"  },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_SE",
-      neighborDir = "DIRECTION_SOUTHEAST", method = "IsNWOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_SW",
-      neighborDir = "DIRECTION_SOUTHWEST", method = "IsNEOfRiver" },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_E", neighborDir = "DIRECTION_EAST", method = "IsWOfRiver" },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_SE", neighborDir = "DIRECTION_SOUTHEAST", method = "IsNWOfRiver" },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_SW", neighborDir = "DIRECTION_SOUTHWEST", method = "IsNEOfRiver" },
 }
 
 -- Spoken order (clockwise from NE), independent of how we collected the
@@ -41,24 +38,30 @@ PlotSectionRiver = {
     Read = function(plot)
         local edges = {}
         for _, e in ipairs(SELF_EDGES) do
-            if plot[e.method](plot) then edges[e.dir] = true end
+            if plot[e.method](plot) then
+                edges[e.dir] = true
+            end
         end
         for _, e in ipairs(NEIGHBOR_EDGES) do
-            local n = Map.PlotDirection(plot:GetX(), plot:GetY(),
-                DirectionTypes[e.neighborDir])
-            if n ~= nil and n[e.method](n) then edges[e.dir] = true end
+            local n = Map.PlotDirection(plot:GetX(), plot:GetY(), DirectionTypes[e.neighborDir])
+            if n ~= nil and n[e.method](n) then
+                edges[e.dir] = true
+            end
         end
 
         local present = {}
         for _, dir in ipairs(SPOKEN_ORDER) do
-            if edges[dir] then present[#present + 1] = Text.key(dir) end
+            if edges[dir] then
+                present[#present + 1] = Text.key(dir)
+            end
         end
 
-        if #present == 0 then return {} end
+        if #present == 0 then
+            return {}
+        end
         if #present == #SPOKEN_ORDER then
             return { Text.key("TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES") }
         end
-        return { Text.key("TXT_KEY_CIVVACCESS_RIVER_PREFIX")
-                  .. " " .. table.concat(present, " ") }
+        return { Text.key("TXT_KEY_CIVVACCESS_RIVER_PREFIX") .. " " .. table.concat(present, " ") }
     end,
 }

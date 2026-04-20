@@ -20,24 +20,30 @@ MPGameSetupShared = {}
 local function safeText(getter, context)
     local ok, t = pcall(getter)
     if not ok then
-        Log.warn("MPGameSetupShared safeText"
-            .. (context and (" [" .. context .. "]") or "")
-            .. " failed: " .. tostring(t))
+        Log.warn(
+            "MPGameSetupShared safeText" .. (context and (" [" .. context .. "]") or "") .. " failed: " .. tostring(t)
+        )
         return ""
     end
-    if t == nil then return "" end
+    if t == nil then
+        return ""
+    end
     return tostring(t)
 end
 
 local function worldNameById(worldID)
     local w = GameInfo.Worlds[worldID]
-    if w == nil then return nil end
+    if w == nil then
+        return nil
+    end
     return Text.key(w.Description)
 end
 
 local function worldNameByType(typeKey)
     local w = GameInfo.Worlds[typeKey]
-    if w == nil then return nil end
+    if w == nil then
+        return nil
+    end
     return Text.key(w.Description)
 end
 
@@ -57,28 +63,34 @@ function MPGameSetupShared.invalidateMapLabels()
 end
 
 local function mpMapTypeSizeLabels()
-    if _mpMapSizeLabelsCache ~= nil then return _mpMapSizeLabelsCache end
+    if _mpMapSizeLabelsCache ~= nil then
+        return _mpMapSizeLabelsCache
+    end
 
     local mapScripts = {}
-    for row in GameInfo.MapScripts{SupportsMultiplayer = 1} do
+    for row in GameInfo.MapScripts({ SupportsMultiplayer = 1 }) do
         mapScripts[#mapScripts + 1] = {
-            name     = Locale.ConvertTextKey(row.Name),
+            name = Locale.ConvertTextKey(row.Name),
             allSizes = true,
         }
     end
     for row in GameInfo.Maps() do
         local sizes = {}
-        for srow in GameInfo.Map_Sizes{MapType = row.Type} do
+        for srow in GameInfo.Map_Sizes({ MapType = row.Type }) do
             local s = worldNameByType(srow.WorldSizeType)
-            if s ~= nil then sizes[#sizes + 1] = s end
+            if s ~= nil then
+                sizes[#sizes + 1] = s
+            end
         end
         mapScripts[#mapScripts + 1] = {
-            name  = Locale.Lookup(row.Name),
+            name = Locale.Lookup(row.Name),
             sizes = sizes,
         }
     end
     local filter = {}
-    for row in GameInfo.Map_Sizes() do filter[row.FileName] = true end
+    for row in GameInfo.Map_Sizes() do
+        filter[row.FileName] = true
+    end
     for _, map in ipairs(Modding.GetMapFiles()) do
         if not filter[map.File] then
             local wb = UI.GetMapPreview(map.File)
@@ -93,18 +105,24 @@ local function mpMapTypeSizeLabels()
             local sizes = {}
             if wb ~= nil and wb.MapSize ~= nil then
                 local s = worldNameById(wb.MapSize)
-                if s ~= nil then sizes[#sizes + 1] = s end
+                if s ~= nil then
+                    sizes[#sizes + 1] = s
+                end
             end
             mapScripts[#mapScripts + 1] = { name = name, sizes = sizes }
         end
     end
 
-    table.sort(mapScripts, function(a, b) return a.name < b.name end)
+    table.sort(mapScripts, function(a, b)
+        return a.name < b.name
+    end)
 
     local total
     do
         local n = 0
-        for _ in GameInfo.Worlds("ID >= 0") do n = n + 1 end
+        for _ in GameInfo.Worlds("ID >= 0") do
+            n = n + 1
+        end
         total = n
     end
 
@@ -115,11 +133,9 @@ local function mpMapTypeSizeLabels()
         elseif #s.sizes == total then
             labels[i] = nil
         elseif #s.sizes == 1 then
-            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY",
-                s.sizes[1])
+            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY", s.sizes[1])
         else
-            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED",
-                table.concat(s.sizes, ", "))
+            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED", table.concat(s.sizes, ", "))
         end
     end
     _mpMapSizeLabelsCache = labels
@@ -127,16 +143,18 @@ local function mpMapTypeSizeLabels()
 end
 
 function MPGameSetupShared.mapTypeEntryAnnounce(inst, index)
-    local text = safeText(function() return inst.Button:GetText() end,
-        "MapType entry GetText")
+    local text = safeText(function()
+        return inst.Button:GetText()
+    end, "MapType entry GetText")
     local sizeInfo = mpMapTypeSizeLabels()[index]
     local parts = { text }
     if sizeInfo ~= nil and sizeInfo ~= "" then
         parts[#parts + 1] = sizeInfo
     end
     local combined = table.concat(parts, ", ")
-    local tip = safeText(function() return inst.Button:GetToolTipString() end,
-        "MapType entry GetToolTipString")
+    local tip = safeText(function()
+        return inst.Button:GetToolTipString()
+    end, "MapType entry GetToolTipString")
     if tip ~= "" then
         return BaseMenuItems.appendTooltip(combined, tip)
     end
@@ -156,8 +174,8 @@ end
 -- simultaneous / dynamic turn-mode toggles, so they'd duplicate.
 local EXCLUDED_GAME_OPTION_TYPES = {
     GAMEOPTION_END_TURN_TIMER_ENABLED = true,
-    GAMEOPTION_SIMULTANEOUS_TURNS     = true,
-    GAMEOPTION_DYNAMIC_TURNS          = true,
+    GAMEOPTION_SIMULTANEOUS_TURNS = true,
+    GAMEOPTION_DYNAMIC_TURNS = true,
 }
 
 -- MP sorts by SortPriority first, then raw string compare on Name (not
@@ -174,12 +192,13 @@ end
 
 function MPGameSetupShared.victoryChildren()
     local items = {}
-    local instances = (g_VictoryCondtionsManager
-        and g_VictoryCondtionsManager.m_AllocatedInstances) or {}
+    local instances = (g_VictoryCondtionsManager and g_VictoryCondtionsManager.m_AllocatedInstances) or {}
     local i = 1
     for row in GameInfo.Victories() do
         local inst = instances[i]
-        if inst == nil then break end
+        if inst == nil then
+            break
+        end
         items[#items + 1] = BaseMenuItems.Checkbox({
             control = inst.GameOptionRoot,
             textKey = row.Description,
@@ -191,14 +210,18 @@ end
 
 local function gameOptionDropdownRows()
     local rows = {}
-    for option in DB.Query(
+    for option in
+        DB.Query(
             [[select * from MapScriptOptions where exists (select 1 from
               MapScriptOptionPossibleValues where FileName = MapScriptOptions.FileName
               and OptionID = MapScriptOptions.OptionID) and Hidden = 0 and
-              FileName = ?]], PreGame.GetMapScript()) do
+              FileName = ?]],
+            PreGame.GetMapScript()
+        )
+    do
         rows[#rows + 1] = {
-            Name         = Locale.ConvertTextKey(option.Name),
-            Help         = option.Description and Locale.ConvertTextKey(option.Description) or nil,
+            Name = Locale.ConvertTextKey(option.Name),
+            Help = option.Description and Locale.ConvertTextKey(option.Description) or nil,
             SortPriority = option.SortPriority,
         }
     end
@@ -208,27 +231,30 @@ end
 local function gameOptionCheckboxRows()
     local rows = {}
     local hotseat = PreGame.IsHotSeatGame()
-    for option in GameInfo.GameOptions{Visible = 1} do
+    for option in GameInfo.GameOptions({ Visible = 1 }) do
         if not EXCLUDED_GAME_OPTION_TYPES[option.Type] then
-            local supported = hotseat and option.SupportsSinglePlayer
-                                       or option.SupportsMultiplayer
+            local supported = hotseat and option.SupportsSinglePlayer or option.SupportsMultiplayer
             if supported then
                 rows[#rows + 1] = {
-                    Name         = Locale.ConvertTextKey(option.Description),
-                    Help         = option.Help and Locale.ConvertTextKey(option.Help) or nil,
+                    Name = Locale.ConvertTextKey(option.Description),
+                    Help = option.Help and Locale.ConvertTextKey(option.Help) or nil,
                     SortPriority = 0,
                 }
             end
         end
     end
-    for option in DB.Query(
+    for option in
+        DB.Query(
             [[select * from MapScriptOptions where not exists (select 1 from
               MapScriptOptionPossibleValues where FileName = MapScriptOptions.FileName
               and OptionID = MapScriptOptions.OptionID) and Hidden = 0 and
-              FileName = ?]], PreGame.GetMapScript()) do
+              FileName = ?]],
+            PreGame.GetMapScript()
+        )
+    do
         rows[#rows + 1] = {
-            Name         = Locale.ConvertTextKey(option.Name),
-            Help         = option.Description and Locale.ConvertTextKey(option.Description) or nil,
+            Name = Locale.ConvertTextKey(option.Name),
+            Help = option.Description and Locale.ConvertTextKey(option.Description) or nil,
             SortPriority = option.SortPriority,
         }
     end
@@ -239,28 +265,32 @@ function MPGameSetupShared.gameOptionsChildren()
     local items = {}
     if g_DropDownOptionsManager ~= nil then
         local instances = g_DropDownOptionsManager.m_AllocatedInstances
-        local rows      = gameOptionDropdownRows()
+        local rows = gameOptionDropdownRows()
         mpSortOptions(rows)
         for i, opt in ipairs(rows) do
             local inst = instances[i]
-            if inst == nil then break end
+            if inst == nil then
+                break
+            end
             items[#items + 1] = BaseMenuItems.Pulldown({
-                control     = inst.OptionDropDown,
-                labelText   = opt.Name,
+                control = inst.OptionDropDown,
+                labelText = opt.Name,
                 tooltipText = opt.Help,
             })
         end
     end
     if g_GameOptionsManager ~= nil then
         local instances = g_GameOptionsManager.m_AllocatedInstances
-        local rows      = gameOptionCheckboxRows()
+        local rows = gameOptionCheckboxRows()
         mpSortOptions(rows)
         for i, opt in ipairs(rows) do
             local inst = instances[i]
-            if inst == nil then break end
+            if inst == nil then
+                break
+            end
             items[#items + 1] = BaseMenuItems.Checkbox({
-                control     = inst.GameOptionRoot,
-                labelText   = opt.Name,
+                control = inst.GameOptionRoot,
+                labelText = opt.Name,
                 tooltipText = opt.Help,
             })
         end
@@ -270,15 +300,16 @@ end
 
 function MPGameSetupShared.dlcChildren()
     local items = {}
-    local instances = (g_DLCAllowedManager
-        and g_DLCAllowedManager.m_AllocatedInstances) or {}
+    local instances = (g_DLCAllowedManager and g_DLCAllowedManager.m_AllocatedInstances) or {}
     -- Base skips IsBaseContentUpgrade == 1 rows (force-allowed, not
     -- user-editable); mirror that filter so indices line up.
     local i = 1
     for row in GameInfo.DownloadableContent() do
         if row.IsBaseContentUpgrade == 0 then
             local inst = instances[i]
-            if inst == nil then break end
+            if inst == nil then
+                break
+            end
             items[#items + 1] = BaseMenuItems.Checkbox({
                 control = inst.GameOptionRoot,
                 textKey = row.FriendlyNameKey,

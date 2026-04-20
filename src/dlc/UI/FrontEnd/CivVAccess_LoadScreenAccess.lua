@@ -17,7 +17,9 @@ include("CivVAccess_FrontendCommon")
 if not civvaccess_shared.loadScreenReadyListenerInstalled then
     civvaccess_shared.loadScreenReadyListenerInstalled = true
     Events.SequenceGameInitComplete.Add(function()
-        if PreGame.IsMultiplayerGame() or PreGame.IsHotSeatGame() then return end
+        if PreGame.IsMultiplayerGame() or PreGame.IsHotSeatGame() then
+            return
+        end
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_LOAD_READY"))
     end)
 end

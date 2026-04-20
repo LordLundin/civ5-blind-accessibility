@@ -23,23 +23,28 @@ function T.register(prefix, mod)
 end
 
 local function fmt(v)
-    if type(v) == "string" then return string.format("%q", v) end
+    if type(v) == "string" then
+        return string.format("%q", v)
+    end
     return tostring(v)
 end
 
 function T.eq(actual, expected, note)
     if actual ~= expected then
-        error((note and (note .. ": ") or "")
-            .. "expected " .. fmt(expected) .. ", got " .. fmt(actual), 2)
+        error((note and (note .. ": ") or "") .. "expected " .. fmt(expected) .. ", got " .. fmt(actual), 2)
     end
 end
 
 function T.truthy(v, note)
-    if not v then error((note or "expected truthy") .. ", got " .. fmt(v), 2) end
+    if not v then
+        error((note or "expected truthy") .. ", got " .. fmt(v), 2)
+    end
 end
 
 function T.falsy(v, note)
-    if v then error((note or "expected falsy") .. ", got " .. fmt(v), 2) end
+    if v then
+        error((note or "expected falsy") .. ", got " .. fmt(v), 2)
+    end
 end
 
 -- Fake engine handles for cursor / plot-section tests. These are NOT in
@@ -55,7 +60,7 @@ function T.fakePlot(opts)
         _isCity = opts.isCity or false,
         _city = opts.city,
         _isRevealed = (opts.revealed ~= false),
-        _isVisible  = (opts.visible  ~= false),
+        _isVisible = (opts.visible ~= false),
         _isLake = opts.lake or false,
         _isHills = opts.hills or false,
         _isMountain = opts.mountain or false,
@@ -80,38 +85,102 @@ function T.fakePlot(opts)
         _defenseMod = opts.defenseMod or 0,
         _buildTurns = opts.buildTurns or {},
     }
-    function p:GetX() return self._x end
-    function p:GetY() return self._y end
-    function p:GetPlotIndex() return self._plotIndex end
-    function p:IsCity() return self._isCity end
-    function p:GetPlotCity() return self._city end
-    function p:IsRevealed(_team, _debug) return self._isRevealed end
-    function p:IsVisible(_team, _debug) return self._isVisible end
-    function p:IsLake() return self._isLake end
-    function p:IsHills() return self._isHills end
-    function p:IsMountain() return self._isMountain end
-    function p:IsFreshWater() return self._isFreshWater end
-    function p:IsTradeRoute() return self._isTradeRoute end
-    function p:IsImprovementPillaged() return self._isImpPillaged end
-    function p:IsRoutePillaged() return self._isRoutePillaged end
-    function p:GetTerrainType() return self._terrain end
-    function p:GetFeatureType() return self._feature end
-    function p:GetResourceType(_team) return self._resource end
-    function p:GetNumResource() return self._resourceQty end
-    function p:GetRevealedImprovementType(_team, _debug) return self._improvement end
-    function p:GetRevealedRouteType(_team, _debug) return self._route end
-    function p:GetRevealedOwner(_team, _debug) return self._owner end
-    function p:GetOwner() return self._owner end
-    function p:GetNumUnits() return #self._units end
-    function p:GetUnit(i) return self._units[i + 1] end
-    function p:GetNumLayerUnits() return #self._layerUnits end
-    function p:GetLayerUnit(i) return self._layerUnits[i + 1] end
-    function p:IsWOfRiver() return self._isWOfRiver end
-    function p:IsNWOfRiver() return self._isNWOfRiver end
-    function p:IsNEOfRiver() return self._isNEOfRiver end
-    function p:CalculateYield(yid, _disp) return self._yields[yid] or 0 end
-    function p:GetWorkingCity() return self._workingCity end
-    function p:DefenseModifier(_team, _ignoreBuilding, _help) return self._defenseMod end
+    function p:GetX()
+        return self._x
+    end
+    function p:GetY()
+        return self._y
+    end
+    function p:GetPlotIndex()
+        return self._plotIndex
+    end
+    function p:IsCity()
+        return self._isCity
+    end
+    function p:GetPlotCity()
+        return self._city
+    end
+    function p:IsRevealed(_team, _debug)
+        return self._isRevealed
+    end
+    function p:IsVisible(_team, _debug)
+        return self._isVisible
+    end
+    function p:IsLake()
+        return self._isLake
+    end
+    function p:IsHills()
+        return self._isHills
+    end
+    function p:IsMountain()
+        return self._isMountain
+    end
+    function p:IsFreshWater()
+        return self._isFreshWater
+    end
+    function p:IsTradeRoute()
+        return self._isTradeRoute
+    end
+    function p:IsImprovementPillaged()
+        return self._isImpPillaged
+    end
+    function p:IsRoutePillaged()
+        return self._isRoutePillaged
+    end
+    function p:GetTerrainType()
+        return self._terrain
+    end
+    function p:GetFeatureType()
+        return self._feature
+    end
+    function p:GetResourceType(_team)
+        return self._resource
+    end
+    function p:GetNumResource()
+        return self._resourceQty
+    end
+    function p:GetRevealedImprovementType(_team, _debug)
+        return self._improvement
+    end
+    function p:GetRevealedRouteType(_team, _debug)
+        return self._route
+    end
+    function p:GetRevealedOwner(_team, _debug)
+        return self._owner
+    end
+    function p:GetOwner()
+        return self._owner
+    end
+    function p:GetNumUnits()
+        return #self._units
+    end
+    function p:GetUnit(i)
+        return self._units[i + 1]
+    end
+    function p:GetNumLayerUnits()
+        return #self._layerUnits
+    end
+    function p:GetLayerUnit(i)
+        return self._layerUnits[i + 1]
+    end
+    function p:IsWOfRiver()
+        return self._isWOfRiver
+    end
+    function p:IsNWOfRiver()
+        return self._isNWOfRiver
+    end
+    function p:IsNEOfRiver()
+        return self._isNEOfRiver
+    end
+    function p:CalculateYield(yid, _disp)
+        return self._yields[yid] or 0
+    end
+    function p:GetWorkingCity()
+        return self._workingCity
+    end
+    function p:DefenseModifier(_team, _ignoreBuilding, _help)
+        return self._defenseMod
+    end
     function p:GetBuildTurnsLeft(buildId, _player, _extra1, _extra2)
         return self._buildTurns[buildId] or 0
     end
@@ -132,17 +201,39 @@ function T.fakeUnit(opts)
         _damage = opts.damage or 0,
         _isCombatUnit = (opts.combat ~= false),
     }
-    function u:GetOwner() return self._owner end
-    function u:GetTeam() return self._team end
-    function u:IsInvisible(_team, _debug) return self._isInvisible end
-    function u:IsCargo() return self._isCargo end
-    function u:GetDomainType() return self._domain end
-    function u:HasName() return self._hasName end
-    function u:GetNameKey() return self._nameKey end
-    function u:GetNameNoDesc() return self._nameNoDesc end
-    function u:GetDamage() return self._damage end
-    function u:IsCombatUnit() return self._isCombatUnit end
-    function u:GetPlot() return self._plot end
+    function u:GetOwner()
+        return self._owner
+    end
+    function u:GetTeam()
+        return self._team
+    end
+    function u:IsInvisible(_team, _debug)
+        return self._isInvisible
+    end
+    function u:IsCargo()
+        return self._isCargo
+    end
+    function u:GetDomainType()
+        return self._domain
+    end
+    function u:HasName()
+        return self._hasName
+    end
+    function u:GetNameKey()
+        return self._nameKey
+    end
+    function u:GetNameNoDesc()
+        return self._nameNoDesc
+    end
+    function u:GetDamage()
+        return self._damage
+    end
+    function u:IsCombatUnit()
+        return self._isCombatUnit
+    end
+    function u:GetPlot()
+        return self._plot
+    end
     return u
 end
 
@@ -155,11 +246,21 @@ function T.fakePlayer(opts)
         _team = opts.team or 0,
         _capital = opts.capital,
     }
-    function p:GetCivilizationAdjectiveKey() return self._adj end
-    function p:GetCivilizationShortDescriptionKey() return self._shortDesc end
-    function p:IsMinorCiv() return self._isMinor end
-    function p:GetTeam() return self._team end
-    function p:GetCapitalCity() return self._capital end
+    function p:GetCivilizationAdjectiveKey()
+        return self._adj
+    end
+    function p:GetCivilizationShortDescriptionKey()
+        return self._shortDesc
+    end
+    function p:IsMinorCiv()
+        return self._isMinor
+    end
+    function p:GetTeam()
+        return self._team
+    end
+    function p:GetCapitalCity()
+        return self._capital
+    end
     return p
 end
 
@@ -171,10 +272,18 @@ function T.fakeCity(opts)
         _id = opts.id or 1,
         _plot = opts.plot,
     }
-    function c:GetName() return self._name end
-    function c:GetOwner() return self._owner end
-    function c:GetID() return self._id end
-    function c:Plot() return self._plot end
+    function c:GetName()
+        return self._name
+    end
+    function c:GetOwner()
+        return self._owner
+    end
+    function c:GetID()
+        return self._id
+    end
+    function c:Plot()
+        return self._plot
+    end
     return c
 end
 
@@ -183,7 +292,9 @@ function T.fakeTeam(opts)
     local team = {
         _atWar = opts.atWar or {},
     }
-    function team:IsAtWar(other) return self._atWar[other] or false end
+    function team:IsAtWar(other)
+        return self._atWar[other] or false
+    end
     return team
 end
 
@@ -191,14 +302,20 @@ end
 -- distance for simplicity; GetPlot does a linear (x, y) lookup. Shared by
 -- every scanner test suite that exercises plot-backed entries.
 function T.installMap(plots)
-    Map.GetNumPlots    = function() return #plots end
-    Map.GetPlotByIndex = function(i) return plots[i + 1] end
-    Map.PlotDistance   = function(x1, y1, x2, y2)
+    Map.GetNumPlots = function()
+        return #plots
+    end
+    Map.GetPlotByIndex = function(i)
+        return plots[i + 1]
+    end
+    Map.PlotDistance = function(x1, y1, x2, y2)
         return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
     end
     Map.GetPlot = function(x, y)
         for _, p in ipairs(plots) do
-            if p:GetX() == x and p:GetY() == y then return p end
+            if p:GetX() == x and p:GetY() == y then
+                return p
+            end
         end
         return nil
     end
@@ -210,13 +327,13 @@ end
 function T.mkEntry(cat, sub, name, plotIndex, opts)
     opts = opts or {}
     return {
-        plotIndex   = plotIndex,
-        backend     = opts.backend or { name = "test" },
-        data        = {},
-        category    = cat,
+        plotIndex = plotIndex,
+        backend = opts.backend or { name = "test" },
+        data = {},
+        category = cat,
         subcategory = sub,
-        itemName    = name,
-        sortKey     = opts.sortKey or 0,
+        itemName = name,
+        sortKey = opts.sortKey or 0,
     }
 end
 
@@ -230,8 +347,7 @@ function T.run()
             failed[#failed + 1] = { name = c.name, err = err }
         end
     end
-    print(string.format("%d passed, %d failed (of %d)",
-        passed, #failed, #T.cases))
+    print(string.format("%d passed, %d failed (of %d)", passed, #failed, #T.cases))
     for _, f in ipairs(failed) do
         print("  FAIL " .. f.name)
         print("       " .. tostring(f.err))
