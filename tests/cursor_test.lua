@@ -192,17 +192,20 @@ function M.test_units_skips_cargo_and_air()
     T.eq(#out, 1, "only the non-cargo non-air unit should announce")
 end
 
-function M.test_units_singleplayer_omits_nickname_when_empty()
-    -- Regression: the method `GetNickName` exists on every Player (singleplayer
-    -- or multiplayer), so testing `owner.GetNickName ~= nil` is always true
-    -- and would force the multiplayer branch. Test the RETURN value.
+function M.test_units_never_use_multiplayer_template()
+    -- The engine returns a non-empty nickname even in singleplayer ("Player
+    -- 1" / profile name), so the MULTIPLAYER_UNIT_TT path would prepend the
+    -- local player's name to their own unit every step. Always use the civ
+    -- adjective form instead.
     setup()
-    Players[0] = T.fakePlayer({ adj = "Roman", shortDesc = "Rome" })  -- no nick
+    Players[0] = T.fakePlayer({ adj = "Roman", shortDesc = "Rome", nick = "Player 1" })
     local warrior = T.fakeUnit({ owner = 0, nameKey = "Warrior" })
     local p = T.fakePlot({ units = { warrior } })
     local s = PlotSectionUnits.Read(p, {})[1]
     T.truthy(not s:find("TXT_KEY_MULTIPLAYER", 1, true),
-        "singleplayer unit must not use the multiplayer template: " .. s)
+        "must not use the multiplayer template: " .. s)
+    T.truthy(not s:find("Player 1", 1, true),
+        "must not leak the local nickname into the announcement: " .. s)
 end
 
 function M.test_units_hp_suffix_when_damaged()

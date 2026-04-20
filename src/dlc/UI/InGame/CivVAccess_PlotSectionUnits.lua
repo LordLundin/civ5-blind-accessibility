@@ -7,14 +7,12 @@
 
 local function unitDescription(unit)
     local owner = Players[unit:GetOwner()]
-    -- Multiplayer nickname path mirrors PlotMouseoverInclude.GetUnitsString.
-    -- Test the return value, not the method's existence: the method exists
-    -- on every Player object, returning nil/"" in singleplayer.
-    local nick = owner:GetNickName()
-    if nick ~= nil and nick ~= "" then
-        return Text.format("TXT_KEY_MULTIPLAYER_UNIT_TT",
-            nick, owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
-    end
+    -- Always the civ-adjective form. Base game's GetUnitsString branches
+    -- on GetNickName for the MULTIPLAYER_UNIT_TT template, but in both
+    -- single- and multi-player the engine returns a non-empty placeholder
+    -- (profile name / "Player N"), leaving the player's own name
+    -- announced in front of their own unit every time. The civ adjective
+    -- ("Arabian Warrior") already disambiguates owner.
     if unit:HasName() then
         local desc = Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV",
             owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
