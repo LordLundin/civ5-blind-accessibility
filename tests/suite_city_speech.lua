@@ -216,11 +216,10 @@ local function setup()
     GameInfo.Religions = {}
     GameInfo.MinorCivilizations = {}
     GameInfo.MinorCivTraits = {}
-    YieldTypes = YieldTypes
-        or {
-            YIELD_FOOD = 0,
-            YIELD_PRODUCTION = 1,
-        }
+    YieldTypes = YieldTypes or {
+        YIELD_FOOD = 0,
+        YIELD_PRODUCTION = 1,
+    }
     GameDefines = GameDefines or {}
     GameDefines.MAX_CITY_HIT_POINTS = 200
 end
@@ -259,7 +258,8 @@ end
 local function installMinorCiv(teamId, ownerId, traitType, opts)
     opts = opts or {}
     GameInfo.MinorCivilizations[42] = { MinorCivTrait = "MINOR_CIV_TRAIT_MILITARISTIC_ROW" }
-    GameInfo.MinorCivilizations[traitType.minorType or 42] = { MinorCivTrait = traitType.traitRow or "MINOR_CIV_TRAIT_MILITARISTIC_ROW" }
+    GameInfo.MinorCivilizations[traitType.minorType or 42] =
+        { MinorCivTrait = traitType.traitRow or "MINOR_CIV_TRAIT_MILITARISTIC_ROW" }
     GameInfo.MinorCivTraits[traitType.traitRow or "MINOR_CIV_TRAIT_MILITARISTIC_ROW"] = { Type = traitType.type }
     Players[ownerId] = {
         _isMinor = true,
@@ -311,41 +311,55 @@ function M.test_identity_speaks_unmet_for_unmet_city()
             return false
         end,
     }
-    Players[5] = { IsMinorCiv = function()
-        return false
-    end }
+    Players[5] = {
+        IsMinorCiv = function()
+            return false
+        end,
+    }
     local city = mkCity({ owner = 5, team = 5 })
     T.eq(CitySpeech.identity(city), "unmet")
 end
 
 function M.test_development_speaks_unmet_for_unmet_city()
     setup()
-    Teams[5] = { IsHasMet = function()
-        return false
-    end, IsAtWar = function()
-        return false
-    end, IsPermanentWarPeace = function()
-        return false
-    end }
-    Players[5] = { IsMinorCiv = function()
-        return false
-    end }
+    Teams[5] = {
+        IsHasMet = function()
+            return false
+        end,
+        IsAtWar = function()
+            return false
+        end,
+        IsPermanentWarPeace = function()
+            return false
+        end,
+    }
+    Players[5] = {
+        IsMinorCiv = function()
+            return false
+        end,
+    }
     local city = mkCity({ owner = 5, team = 5 })
     T.eq(CitySpeech.development(city), "unmet")
 end
 
 function M.test_politics_speaks_unmet_for_unmet_city()
     setup()
-    Teams[5] = { IsHasMet = function()
-        return false
-    end, IsAtWar = function()
-        return false
-    end, IsPermanentWarPeace = function()
-        return false
-    end }
-    Players[5] = { IsMinorCiv = function()
-        return false
-    end }
+    Teams[5] = {
+        IsHasMet = function()
+            return false
+        end,
+        IsAtWar = function()
+            return false
+        end,
+        IsPermanentWarPeace = function()
+            return false
+        end,
+    }
+    Players[5] = {
+        IsMinorCiv = function()
+            return false
+        end,
+    }
     local city = mkCity({ owner = 5, team = 5 })
     T.eq(CitySpeech.politics(city), "unmet")
 end
@@ -532,9 +546,11 @@ end
 function M.test_identity_team_city_speaks_garrison_name()
     setup()
     GameInfo.Units[100] = { Description = "Swordsman" }
-    local garrison = { GetUnitType = function()
-        return 100
-    end }
+    local garrison = {
+        GetUnitType = function()
+            return 100
+        end,
+    }
     local city = mkCity({ garrisonedUnit = garrison })
     T.truthy(CitySpeech.identity(city):find("garrisoned Swordsman", 1, true), "garrison name expected")
 end
@@ -545,9 +561,11 @@ function M.test_identity_enemy_city_omits_garrison()
     setup()
     installForeignMajor(5, 5)
     GameInfo.Units[100] = { Description = "Swordsman" }
-    local garrison = { GetUnitType = function()
-        return 100
-    end }
+    local garrison = {
+        GetUnitType = function()
+            return 100
+        end,
+    }
     local city = mkCity({ owner = 5, team = 5, garrisonedUnit = garrison })
     T.falsy(CitySpeech.identity(city):find("garrisoned", 1, true), "enemy garrison must not be spoken")
 end
@@ -672,9 +690,11 @@ function M.test_politics_speaks_liberation_when_original_differs()
     -- by team 2 (a city-state). Liberation preview should fire.
     setup()
     installForeignMajor(5, 5, { atWar = true, warmonger = "W", liberation = "Liberate to restore Athens." })
-    Players[2] = { IsMinorCiv = function()
-        return true
-    end }
+    Players[2] = {
+        IsMinorCiv = function()
+            return true
+        end,
+    }
     local city = mkCity({ owner = 5, team = 5, originalOwner = 2 })
     local out = CitySpeech.politics(city)
     T.truthy(out:find("liberation preview", 1, true), "liberation label expected: " .. out)

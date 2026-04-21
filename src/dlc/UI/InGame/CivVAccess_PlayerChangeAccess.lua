@@ -113,37 +113,47 @@ local function wrappedShowHide(bIsHide, bIsInit)
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "PlayerChange",
-    displayName   = Text.key("TXT_KEY_MP_NEXT_PLAYER"),
-    preamble      = function() return Controls.Title:GetText() end,
-    priorInput    = priorInput,
+    name = "PlayerChange",
+    displayName = Text.key("TXT_KEY_MP_NEXT_PLAYER"),
+    preamble = function()
+        return Controls.Title:GetText()
+    end,
+    priorInput = priorInput,
     priorShowHide = wrappedShowHide,
-    items         = {
+    items = {
         BaseMenuItems.Textfield({
             controlName = "EnterPasswordEditBox",
             visibilityControlName = "Stack",
-            textKey     = "TXT_KEY_MP_ENTER_PASSWORD",
+            textKey = "TXT_KEY_MP_ENTER_PASSWORD",
             priorCallback = Validate,
         }),
         BaseMenuItems.Button({
             controlName = "ContinueButton",
-            textKey     = "TXT_KEY_MP_PLAYER_CHANGE_CONTINUE",
-            activate    = function() OnContinue() end,
+            textKey = "TXT_KEY_MP_PLAYER_CHANGE_CONTINUE",
+            activate = function()
+                OnContinue()
+            end,
         }),
         BaseMenuItems.Button({
             controlName = "ChangePasswordButton",
-            labelFn     = function() return Controls.ChangePasswordLabel:GetText() end,
-            activate    = function() OnChangePassword() end,
+            labelFn = function()
+                return Controls.ChangePasswordLabel:GetText()
+            end,
+            activate = function()
+                OnChangePassword()
+            end,
         }),
         BaseMenuItems.Button({
             controlName = "SaveButton",
-            textKey     = "TXT_KEY_ACTION_SAVE",
-            activate    = function() OnSave() end,
+            textKey = "TXT_KEY_ACTION_SAVE",
+            activate = function()
+                OnSave()
+            end,
         }),
         BaseMenuItems.Button({
             controlName = "MainMenuButton",
-            textKey     = "TXT_KEY_MP_MAIN_MENU",
-            activate    = mainMenuActivate,
+            textKey = "TXT_KEY_MP_MAIN_MENU",
+            activate = mainMenuActivate,
         }),
     },
 })

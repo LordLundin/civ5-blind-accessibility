@@ -619,8 +619,13 @@ function M.test_zoc_entry_ends_turn()
     Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
     local result = Pathfinder.findPath(unit, plots[2][0])
     T.truthy(result ~= nil, "corridor with ZoC must still be pathable")
-    T.truthy(result.turns > baseline.turns, "ZoC entry must add at least one turn; got "
-        .. tostring(result.turns) .. " vs baseline " .. tostring(baseline.turns))
+    T.truthy(
+        result.turns > baseline.turns,
+        "ZoC entry must add at least one turn; got "
+            .. tostring(result.turns)
+            .. " vs baseline "
+            .. tostring(baseline.turns)
+    )
 end
 
 -- 12. Embarkation: land unit entering water ends turn; with flat-cost
@@ -757,10 +762,20 @@ function M.test_open_borders_uses_their_grant_not_ours()
         end)
         Players[1] = {
             _team = 1,
-            GetTeam = function() return 1 end,
-            IsAlive = function() return true end,
-            GetBuildingClassCount = function() return 0 end,
-            Units = function() return function() return nil end end,
+            GetTeam = function()
+                return 1
+            end,
+            IsAlive = function()
+                return true
+            end,
+            GetBuildingClassCount = function()
+                return 0
+            end,
+            Units = function()
+                return function()
+                    return nil
+                end
+            end,
         }
         return plots
     end
@@ -797,13 +812,21 @@ function M.test_barbarian_zoc_projects()
     local barbUnit = T.fakeUnit({ owner = 4, team = 4, combat = true, invisible = false })
     barbUnit._plot = plots[0][1]
     Players[4] = {
-        GetTeam = function() return 4 end,
-        IsAlive = function() return true end,
-        GetBuildingClassCount = function() return 0 end,
+        GetTeam = function()
+            return 4
+        end,
+        IsAlive = function()
+            return true
+        end,
+        GetBuildingClassCount = function()
+            return 0
+        end,
         Units = function()
             local sent = false
             return function()
-                if sent then return nil end
+                if sent then
+                    return nil
+                end
                 sent = true
                 return barbUnit
             end
@@ -827,13 +850,21 @@ function M.test_zoc_skips_non_war_units()
     local neutralUnit = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
     neutralUnit._plot = plots[0][1]
     Players[1] = {
-        GetTeam = function() return 1 end,
-        IsAlive = function() return true end,
-        GetBuildingClassCount = function() return 0 end,
+        GetTeam = function()
+            return 1
+        end,
+        IsAlive = function()
+            return true
+        end,
+        GetBuildingClassCount = function()
+            return 0
+        end,
         Units = function()
             local sent = false
             return function()
-                if sent then return nil end
+                if sent then
+                    return nil
+                end
                 sent = true
                 return neutralUnit
             end
@@ -856,13 +887,21 @@ function M.test_zoc_skips_fogged_enemies()
     local enemyUnit = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
     enemyUnit._plot = plots[0][1]
     Players[1] = {
-        GetTeam = function() return 1 end,
-        IsAlive = function() return true end,
-        GetBuildingClassCount = function() return 0 end,
+        GetTeam = function()
+            return 1
+        end,
+        IsAlive = function()
+            return true
+        end,
+        GetBuildingClassCount = function()
+            return 0
+        end,
         Units = function()
             local sent = false
             return function()
-                if sent then return nil end
+                if sent then
+                    return nil
+                end
                 sent = true
                 return enemyUnit
             end
@@ -907,7 +946,9 @@ function M.test_woods_as_road_does_not_waive_river_crossing()
     plots[0][0]._riverCrossings[plots[1][0]] = true
     plots[1][0]._riverCrossings[plots[0][0]] = true
     local unit = mkUnit(plots[0][0], {})
-    Players[0].GetLeaderType = function() return 0 end
+    Players[0].GetLeaderType = function()
+        return 0
+    end
     local result = Pathfinder.findPath(unit, plots[2][0])
     T.eq(result.turns, 2, "river-into-friendly-forest must still cost a turn for Iroquois without Engineering")
 end
@@ -1030,7 +1071,12 @@ function M.test_unreachable_target_returns_reason()
     setup()
     local plots = installGrid(3, function(col, row, p)
         -- Mountain ring around (2, 0).
-        if (col == 1 and row == 0) or (col == 3 and row == 0) or (col == 2 and row == -1) or (col == 2 and row == 1) then
+        if
+            (col == 1 and row == 0)
+            or (col == 3 and row == 0)
+            or (col == 2 and row == -1)
+            or (col == 2 and row == 1)
+        then
             p._isMountain = true
         end
         -- Also block diagonal neighbors so the odd-row offsets don't
@@ -1092,12 +1138,20 @@ function M.test_great_wall_obsolete_after_owner_dynamite()
     end)
     Players[1] = {
         _team = 1,
-        GetTeam = function() return 1 end,
-        IsAlive = function() return true end,
+        GetTeam = function()
+            return 1
+        end,
+        IsAlive = function()
+            return true
+        end,
         GetBuildingClassCount = function(_, cls)
             return cls == BUILDINGCLASS_GREAT_WALL and 1 or 0
         end,
-        Units = function() return function() return nil end end,
+        Units = function()
+            return function()
+                return nil
+            end
+        end,
     }
     Teams[1] = T.fakeTeam({
         atWar = { [0] = true },
@@ -1141,7 +1195,9 @@ end
 function M.test_naval_open_borders_city_transit()
     setup()
     local city = T.fakeCity({ owner = 1 })
-    city.GetTeam = function() return 1 end
+    city.GetTeam = function()
+        return 1
+    end
     local plots = installGrid(4, function(col, row, p)
         p._isWater = true
         p._terrain = TERRAIN_COAST
@@ -1156,10 +1212,20 @@ function M.test_naval_open_borders_city_transit()
     end)
     Players[1] = {
         _team = 1,
-        GetTeam = function() return 1 end,
-        IsAlive = function() return true end,
-        GetBuildingClassCount = function() return 0 end,
-        Units = function() return function() return nil end end,
+        GetTeam = function()
+            return 1
+        end,
+        IsAlive = function()
+            return true
+        end,
+        GetBuildingClassCount = function()
+            return 0
+        end,
+        Units = function()
+            return function()
+                return nil
+            end
+        end,
     }
     Teams[1] = T.fakeTeam({ openBorders = { [0] = true } })
     local unit = mkUnit(plots[0][0], { domain = DomainTypes.DOMAIN_SEA, maxMoves = 240 })

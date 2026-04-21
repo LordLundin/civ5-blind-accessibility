@@ -384,9 +384,12 @@ local function stepCost(fromPlot, toPlot, dir, ctx)
     if toPlot.GetNumUnits and toPlot:GetNumUnits() > 0 then
         for i = 0, toPlot:GetNumUnits() - 1 do
             local u = toPlot:GetUnit(i)
-            if u ~= nil
-                and u.GetOwner and u:GetOwner() ~= ctx.player
-                and u.IsCombatUnit and u:IsCombatUnit()
+            if
+                u ~= nil
+                and u.GetOwner
+                and u:GetOwner() ~= ctx.player
+                and u.IsCombatUnit
+                and u:IsCombatUnit()
                 and not u:IsInvisible(ctx.team, ctx.isDebug)
             then
                 return nil
@@ -407,14 +410,12 @@ local function stepCost(fromPlot, toPlot, dir, ctx)
         return nil
     end
 
-    if toPlot:IsMountain() then
-        if ctx.isHover then
-            -- hover units ignore mountains entirely
-        elseif ctx.canCrossMountains then
+    -- Hover units ignore mountains entirely and fall through.
+    if toPlot:IsMountain() and not ctx.isHover then
+        if ctx.canCrossMountains then
             return ctx.maxMoves, true
-        else
-            return nil
         end
+        return nil
     end
 
     -- Impassable features: FEATURE_ICE blocks naval and embarked land;
@@ -498,8 +499,7 @@ local function stepCost(fromPlot, toPlot, dir, ctx)
                 -- THEIR territory, so we ask whether they granted us that
                 -- right -- not whether we granted them ours.
                 local theirTeam = Teams[otherTeam]
-                local openBorders = theirTeam ~= nil
-                    and theirTeam:IsAllowsOpenBordersToTeam(ctx.team)
+                local openBorders = theirTeam ~= nil and theirTeam:IsAllowsOpenBordersToTeam(ctx.team)
                 if not atWar and not openBorders then
                     return nil
                 end
@@ -614,7 +614,8 @@ local function stepCost(fromPlot, toPlot, dir, ctx)
     local fx, fy = fromPlot:GetX(), fromPlot:GetY()
     local leftFlank = Map.PlotDirection(fx, fy, (dir + 5) % 6)
     local rightFlank = Map.PlotDirection(fx, fy, (dir + 1) % 6)
-    if (leftFlank ~= nil and ctx.enemyPlots[leftFlank:GetPlotIndex()])
+    if
+        (leftFlank ~= nil and ctx.enemyPlots[leftFlank:GetPlotIndex()])
         or (rightFlank ~= nil and ctx.enemyPlots[rightFlank:GetPlotIndex()])
     then
         return cost, true
@@ -754,13 +755,13 @@ function Pathfinder.findPath(unit, toPlot)
                 turns = current.turns + (current.mpRemaining < maxMoves and 1 or 0),
                 mpRemaining = current.mpRemaining,
                 maxMoves = maxMoves,
-            }, nil
+            },
+                nil
         end
 
-        if current.g > (gScore[current.plotIndex] or math.huge) then
-            -- Superseded by a better path found later; skip.
-            -- (Binary heap can't decrease-key, so we push duplicates.)
-        else
+        -- Skip entries superseded by a better path found later.
+        -- (Binary heap can't decrease-key, so we push duplicates.)
+        if current.g <= (gScore[current.plotIndex] or math.huge) then
             local cx, cy = current.plot:GetX(), current.plot:GetY()
             for _, dir in ipairs(NEIGHBOR_DIRS) do
                 local neighbor = Map.PlotDirection(cx, cy, dir)

@@ -84,13 +84,15 @@ globals = {
     "CivDetails", "Civilopedia", "CivilopediaCategory",
 
     -- InGame modules
-    "Cursor", "HexGeom",
+    "Cursor", "HexGeom", "Pathfinder",
     "PlotComposers", "PlotSections", "PlotSectionRiver", "PlotSectionUnits",
     "ScannerCore", "ScannerHandler", "ScannerInput", "ScannerNav",
     "ScannerSearch", "ScannerSnap",
     "ScannerBackendCities", "ScannerBackendImprovements",
-    "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendUnits",
+    "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendTerrain",
+    "ScannerBackendUnits",
     "SurveyorCore",
+    "CitySpeech",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
 
     -- User-preference module (Shared/)
@@ -153,7 +155,7 @@ files["tests/"] = {
         "ResourceTypes", "ImprovementTypes", "RouteTypes", "YieldTypes",
         "DomainTypes", "ActivityTypes",
         -- Mod modules the test suites exercise directly.
-        "UnitSpeech",
+        "UnitSpeech", "Pathfinder", "ScannerBackendTerrain",
     },
     -- Test suites are tables of test_* functions returned via `return M`;
     -- setup helpers and per-test locals are often declared but only used
@@ -241,6 +243,7 @@ exclude_files = {
     "src/dlc/UI/InGame/Menus/SaveMenu.lua",
     "src/dlc/UI/InGame/Popups/",
     "src/dlc/UI/InGame/CivilopediaScreen.lua",
+    "src/dlc/UI/InGame/PlayerChange.lua",
     "third_party/",
     ".luacheckcache/",
 }

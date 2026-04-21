@@ -194,10 +194,12 @@ local function topUnitAt(plot)
     local n = plot:GetNumUnits()
     for i = 0, n - 1 do
         local u = plot:GetUnit(i)
-        if u ~= nil
+        if
+            u ~= nil
             and not u:IsInvisible(team, isDebug)
             and not u:IsCargo()
-            and u:GetDomainType() ~= DomainTypes.DOMAIN_AIR then
+            and u:GetDomainType() ~= DomainTypes.DOMAIN_AIR
+        then
             if u:IsCombatUnit() then
                 return u
             end

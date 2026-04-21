@@ -221,7 +221,8 @@ function CitySpeech.development(city)
             turnsLeft = city:GetProductionTurnsLeft()
         end
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING", Text.key(prodKey), turnsLeft)
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PROGRESS", city:GetProduction(), city:GetProductionNeeded())
+        parts[#parts + 1] =
+            Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PROGRESS", city:GetProduction(), city:GetProductionNeeded())
     end
 
     local prodRate = city:GetYieldRate(YieldTypes.YIELD_PRODUCTION)

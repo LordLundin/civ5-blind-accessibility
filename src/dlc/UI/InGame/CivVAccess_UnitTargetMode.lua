@@ -49,13 +49,6 @@ local function speakInterrupt(text)
     SpeechPipeline.speakInterrupt(text)
 end
 
--- Move the cursor one direction and speak the plot glance. Cursor.move
--- already composes the glance string (cube direction + plot body) and
--- returns "" at the map edge, so we just forward the string to speech.
-local function moveCursor(dir)
-    speakInterrupt(Cursor.move(dir))
-end
-
 local function cursorPlot()
     local cx, cy = Cursor.position()
     if cx == nil then

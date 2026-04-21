@@ -8,14 +8,15 @@ end
 
 civvaccess_shared = civvaccess_shared or {}
 
-Locale = Locale or {
-    ConvertTextKey = function(key)
-        return key
-    end,
-    Lookup = function(key)
-        return key
-    end,
-}
+Locale = Locale
+    or {
+        ConvertTextKey = function(key)
+            return key
+        end,
+        Lookup = function(key)
+            return key
+        end,
+    }
 if Locale.Lookup == nil then
     Locale.Lookup = function(key)
         return key
