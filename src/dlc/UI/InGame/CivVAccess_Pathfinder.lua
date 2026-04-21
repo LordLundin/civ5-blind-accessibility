@@ -667,8 +667,10 @@ local function scoreOf(turns, mpRemaining, maxMoves)
 end
 
 -- Public entry point. Returns (result, nil) on success where result is
--- { mpCost, turns, maxMoves } with mpCost in 60ths; (nil, reason) on
--- failure.
+-- { mpCost, turns, mpRemaining, maxMoves } with mpCost and mpRemaining
+-- in 60ths; (nil, reason) on failure. mpRemaining is the MP left after
+-- the final step on the arrival turn (0 if the last step clamped under
+-- partial-MP or triggered end-turn).
 function Pathfinder.findPath(unit, toPlot)
     if unit == nil then
         return nil, "no_target"
@@ -752,6 +754,7 @@ function Pathfinder.findPath(unit, toPlot)
             return {
                 mpCost = math.max(0, current.g - startOffset),
                 turns = current.turns + (current.mpRemaining < maxMoves and 1 or 0),
+                mpRemaining = current.mpRemaining,
                 maxMoves = maxMoves,
             }, nil
         end

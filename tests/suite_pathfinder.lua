@@ -234,6 +234,30 @@ function M.test_straight_line_open_grass_three_hexes()
     T.truthy(result ~= nil, "expected path, got nil: " .. tostring(reason))
     T.eq(result.turns, 2, "3 grass hexes with 2 MP per turn should take 2 turns")
     T.eq(result.mpCost, 180, "3 * 60 MP = 180 in 60ths")
+    T.eq(result.mpRemaining, 60, "arrives with 1 MP left on turn 2 after one grass step")
+end
+
+-- mpRemaining reports MP left on the arrival turn. Distinct from mpCost
+-- (total spent): a 4-MP unit that walks onto a single grass tile has
+-- mpCost=60 (spent 1 MP on the step) and mpRemaining=180 (3 MP left
+-- that turn). Used by UnitTargetMode to speak "arrives with X unspent".
+function M.test_mpRemaining_reflects_arrival_turn_leftover()
+    setup()
+    local plots = installGrid(4)
+    local unit = mkUnit(plots[0][0], { maxMoves = 240 })
+    local result = Pathfinder.findPath(unit, plots[1][0])
+    T.eq(result.mpCost, 60, "single grass step costs 60")
+    T.eq(result.mpRemaining, 180, "4-MP unit has 3 MP left after one grass step")
+    T.eq(result.turns, 1)
+
+    -- End-turn step zeroes MP on arrival.
+    setup()
+    local plots2 = installGrid(4)
+    plots2[0][0]._riverCrossings[plots2[1][0]] = true
+    plots2[1][0]._riverCrossings[plots2[0][0]] = true
+    local unit2 = mkUnit(plots2[0][0], {})
+    local result2 = Pathfinder.findPath(unit2, plots2[1][0])
+    T.eq(result2.mpRemaining, 0, "river-crossing arrival lands on 0 MP")
 end
 
 -- 2. Hills add 1 MP. With a 3-MP unit the surcharge exposes itself as

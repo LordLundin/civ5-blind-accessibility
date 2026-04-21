@@ -77,10 +77,11 @@ local function movePathPreview(actor, targetPlot)
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
     end
     local mpText = formatMP(result.mpCost)
+    local leftText = formatMP(result.mpRemaining or 0)
     if result.turns <= 1 then
-        return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN", mpText)
+        return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN", mpText, leftText)
     end
-    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, result.turns)
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, result.turns, leftText)
 end
 
 local function rangedPreview(actor, defender, targetX, targetY)
