@@ -86,5 +86,6 @@ T.register("scanner_snapshot", require("scanner_snapshot_test"))
 T.register("scanner_search_filter", require("scanner_search_filter_test"))
 T.register("scanner_navigation", require("scanner_navigation_test"))
 T.register("scanner_announcement", require("scanner_announcement_test"))
+T.register("pathfinder", require("suite_pathfinder"))
 
 os.exit(T.run() and 0 or 1)

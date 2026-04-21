@@ -12,7 +12,7 @@
 --
 -- Preview math clones base-game EnemyUnitPanel.lua:655-707 (bidirectional
 -- GetCombatDamage for melee, GetRangeCombatDamage for ranged). The move-
--- to preview speaks the direction from the unit to the cursor.
+-- to preview runs Pathfinder.findPath and speaks MP cost + turn count.
 
 UnitTargetMode = {}
 
@@ -47,6 +47,34 @@ local function cursorPlot()
         return nil
     end
     return Map.GetPlot(cx, cy), cx, cy
+end
+
+-- Format a 60ths MP value as the engine does: integer when whole,
+-- one decimal when fractional. Road/railroad costs (e.g. 20/60 MP)
+-- need the decimal; plain terrain (60/60, 120/60) reads cleaner as
+-- "1" / "2" than "1.0" / "2.0".
+local function formatMP(mp60ths)
+    local whole = mp60ths / 60
+    local rounded = math.floor(whole * 10 + 0.5) / 10
+    if rounded == math.floor(rounded) then
+        return tostring(math.floor(rounded))
+    end
+    return string.format("%.1f", rounded)
+end
+
+local function movePathPreview(actor, targetPlot)
+    local result, reason = Pathfinder.findPath(actor, targetPlot)
+    if result == nil then
+        if reason == "same_plot" then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
+    end
+    local mpText = formatMP(result.mpCost)
+    if result.turns <= 1 then
+        return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN", mpText)
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, result.turns)
 end
 
 local function rangedPreview(actor, defender, targetX, targetY)
@@ -122,14 +150,9 @@ local function buildPreview(self)
     elseif isMoveMode(mode) then
         -- War-declaration on move is surfaced by the engine's popup at
         -- commit time (routed through GenericPopupAccess), so no pre-
-        -- commit detection here.
-        local ax, ay = actor:GetX(), actor:GetY()
-        local dir = HexGeom.directionString(ax, ay, tx, ty)
-        if dir == "" then
-            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
-        else
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_TO", dir)
-        end
+        -- commit detection here. Pathfinder reports MP cost and turn
+        -- count; same-plot cursor falls through to EMPTY as before.
+        parts[#parts + 1] = movePathPreview(actor, plot)
     else
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
     end

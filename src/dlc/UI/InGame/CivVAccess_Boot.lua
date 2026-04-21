@@ -16,6 +16,7 @@ include("CivVAccess_PlotSectionUnits")
 include("CivVAccess_PlotSectionRiver")
 include("CivVAccess_PlotComposers")
 include("CivVAccess_HexGeom")
+include("CivVAccess_Pathfinder")
 include("CivVAccess_Cursor")
 -- Surveyor strings before the core so Text.key lookups during module load
 -- resolve. BaselineHandler pulls SurveyorCore.getBindings() at create time

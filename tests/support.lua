@@ -84,6 +84,9 @@ function T.fakePlot(opts)
         _workingCity = opts.workingCity,
         _defenseMod = opts.defenseMod or 0,
         _buildTurns = opts.buildTurns or {},
+        _isWater = opts.water or false,
+        _plotType = opts.plotType or PlotTypes.PLOT_LAND,
+        _riverCrossings = opts.riverCrossings or {},
     }
     function p:GetX()
         return self._x
@@ -184,6 +187,22 @@ function T.fakePlot(opts)
     function p:GetBuildTurnsLeft(buildId, _player, _extra1, _extra2)
         return self._buildTurns[buildId] or 0
     end
+    function p:IsWater()
+        return self._isWater
+    end
+    function p:GetPlotType()
+        return self._plotType
+    end
+    function p:GetRouteType()
+        return self._route
+    end
+    -- Pathfinder consults IsRiverCrossingToPlot rather than the per-edge
+    -- Is*OfRiver flags because the edge-to-neighbor mapping depends on
+    -- parity (odd-row offsets shift NE/NW edges). Tests register crossings
+    -- as a (otherPlot -> true) map keyed on the neighbor object identity.
+    function p:IsRiverCrossingToPlot(other)
+        return self._riverCrossings[other] or false
+    end
     return p
 end
 
@@ -201,6 +220,10 @@ function T.fakeUnit(opts)
         _damage = opts.damage or 0,
         _isCombatUnit = (opts.combat ~= false),
         _unitType = opts.unitType or -1,
+        _maxMoves = opts.maxMoves or 120,
+        _movesLeft = opts.movesLeft or opts.maxMoves or 120,
+        _promotions = opts.promotions or {},
+        _plot = opts.plot,
     }
     function u:GetOwner()
         return self._owner
@@ -237,6 +260,15 @@ function T.fakeUnit(opts)
     end
     function u:GetUnitType()
         return self._unitType
+    end
+    function u:MaxMoves()
+        return self._maxMoves
+    end
+    function u:MovesLeft()
+        return self._movesLeft
+    end
+    function u:IsHasPromotion(id)
+        return self._promotions[id] or false
     end
     return u
 end
@@ -313,6 +345,9 @@ function T.fakeTeam(opts)
         _atWar = opts.atWar or {},
         _defensivePact = opts.defensivePact or {},
         _hasMet = opts.hasMet or {},
+        _techs = opts.techs or {},
+        _openBorders = opts.openBorders or {},
+        _canEmbark = opts.canEmbark or false,
     }
     function team:IsAtWar(other)
         return self._atWar[other] or false
@@ -322,6 +357,15 @@ function T.fakeTeam(opts)
     end
     function team:IsHasMet(other)
         return self._hasMet[other] or false
+    end
+    function team:IsHasTech(tech)
+        return self._techs[tech] or false
+    end
+    function team:IsAllowsOpenBordersToTeam(other)
+        return self._openBorders[other] or false
+    end
+    function team:CanEmbark()
+        return self._canEmbark
     end
     return team
 end
