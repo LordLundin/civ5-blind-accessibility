@@ -366,6 +366,27 @@ function M.test_engineering_skips_river_penalty()
     T.eq(result.turns, 1, "Engineering bypasses the river end-turn")
 end
 
+-- River end-turn after the unit already drained its MP on prior tiles.
+-- 2-MP unit, 3-hex path (grass, grass, river): steps 1-2 exhaust turn 1,
+-- so the river step can't land until turn 2 (where it ends that turn
+-- too). Regression test for an early advance() version that skipped the
+-- "waiting" turn when endsTurn fired at mpRemaining == 0.
+function M.test_river_ends_turn_even_after_mp_drained()
+    setup()
+    local plots = installGrid(4)
+    -- River between (2, 0) and (3, 0). A 2-MP unit taking the east
+    -- corridor exhausts its turn 1 MP on hexes 1 and 2, then has to
+    -- wait out the turn boundary before the river crossing (which
+    -- itself eats turn 2). Baseline 3-hex grass path also takes 2
+    -- turns, so both paths are equal-turn; the distinguishing signal
+    -- is that the MP-exhausted river case must NOT round down to 1.
+    plots[2][0]._riverCrossings[plots[3][0]] = true
+    plots[3][0]._riverCrossings[plots[2][0]] = true
+    local unit = mkUnit(plots[0][0], {})
+    local result = Pathfinder.findPath(unit, plots[3][0])
+    T.eq(result.turns, 2, "river at the end of an MP-exhausted path should take two turns")
+end
+
 function M.test_amphibious_promotion_skips_river_penalty()
     setup()
     local plots = installGrid(4)

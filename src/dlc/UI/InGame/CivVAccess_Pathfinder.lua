@@ -479,14 +479,20 @@ end
 -- ===== A* search =====
 
 -- g(n) = turns consumed * maxMoves + (maxMoves - mpRemaining). Each
--- transition advances (turns, mpRemaining) per this rule:
+-- transition advances (turns, mpRemaining):
+--   mpRem==0 entering a step -> the unit ran out of MP on the prior
+--     tile, so it has to wait. Bump turn, replenish, then apply the
+--     step to the new turn.
 --   endsTurn  -> turns+=1, mpRemaining = maxMoves (unused MP wasted)
---   within   -> mpRemaining -= mpCost
---   overflow -> remaining is wasted, turn++, cost debited against the
---     new turn. For heavy terrain vs. low-MP units the debit can roll
---     over further turns (e.g. a 1-MP settler entering a 3-MP marsh
---     spans multiple turn boundaries before the move settles).
+--   within    -> mpRemaining -= mpCost
+--   overflow  -> remaining is wasted, turn++, cost debited against
+--     the new turn; can roll across multiple turn boundaries for a
+--     1-MP settler entering a 3-MP marsh.
 local function advance(turns, mpRemaining, mpCost, endsTurn, maxMoves)
+    if mpRemaining == 0 then
+        turns = turns + 1
+        mpRemaining = maxMoves
+    end
     if endsTurn then
         return turns + 1, maxMoves
     end
