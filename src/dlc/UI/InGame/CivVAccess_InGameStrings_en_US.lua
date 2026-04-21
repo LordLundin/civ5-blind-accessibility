@@ -243,6 +243,27 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_SPLASH"] = "World Congress"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_END_GAME"] = "End of Game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DECLARE_WAR"] = "Declare War"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_GREETING"] = "City-State Greeting"
+-- Great-work splash (archaeology / wonder / cultural-victory completion).
+-- Title is either the great work's artist or the "written artifact" label;
+-- description and quote come from GameInfo.GreatWorks.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GREAT_WORK_POPUP"] = "Great Work"
+-- Choose-family popup screen names. Each popup's body text (what you're
+-- picking among) is spoken as preamble from live engine controls; the
+-- display name here is just the screen header.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_GOODY_HUT_REWARD"] = "Choose Goody Hut Reward"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_FREE_ITEM"] = "Choose Free Great Person"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_FAITH_GREAT_PERSON"] = "Choose Faith Great Person"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_MAYA_BONUS"] = "Choose Maya Bonus"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_PANTHEON"] = "Choose Pantheon"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_IDEOLOGY"] = "Choose Ideology"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_ARCHAEOLOGY"] = "Choose Archaeology Result"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_ADMIRAL_NEW_PORT"] = "Choose Admiral New Port"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_TRADE_UNIT_NEW_HOME"] = "Choose Trade Unit New Home"
+-- Confirm-overlay sub-handler pushed on top of a Choose* picker when the
+-- player activates an item. Display name only; the actual prompt text
+-- (e.g. "Are you sure you wish to found X?") comes from Controls.ConfirmText
+-- as a function preamble.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_CONFIRM"] = "Confirm"
 -- NotificationLogPopup (BUTTONPOPUP_NOTIFICATION_LOG). Split into Active /
 -- Dismissed tabs by the engine's per-notification dismissed flag. Item
 -- label inlines the turn so the user can place each entry in history
