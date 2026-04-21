@@ -1,14 +1,13 @@
 -- Lua-side A* pathfinder for target-mode move preview. The engine's
 -- own pathfinder is off-limits from Lua (Unit:GeneratePath is NYI;
--- Plot:MovementCost access-violates CvGameCore_Expansion2.dll). See
--- CivVAccess_PlotComposers.lua:143-172 for the full incident log.
+-- Plot:MovementCost access-violates CvGameCore_Expansion2.dll).
 --
 -- Rules ported from CvUnitMovement::GetCostsForMove (Community Patch
 -- fork of the Firaxis DLL drop). MP costs are in 60ths, matching the
 -- engine's MOVE_DENOMINATOR. Deliberately scope-limited: no HP damage
 -- modelling and no canal/city-bridge naval transit. Stacking and
 -- enemy-occupant blocking are enforced via the per-tile checks at the
--- top of stepCost. See the implementation plan for deferred items.
+-- top of stepCost.
 
 Pathfinder = {}
 
@@ -79,18 +78,11 @@ end
 
 -- ===== GameInfo lookup helpers =====
 
-local function typeId(key)
-    if GameInfoTypes == nil then
-        return nil
-    end
-    return GameInfoTypes[key]
-end
-
 local function teamHasTech(pTeam, techKey)
-    if pTeam == nil or pTeam.IsHasTech == nil then
+    if pTeam == nil then
         return false
     end
-    local tid = typeId(techKey)
+    local tid = GameInfoTypes and GameInfoTypes[techKey]
     if tid == nil then
         return false
     end
@@ -98,10 +90,7 @@ local function teamHasTech(pTeam, techKey)
 end
 
 local function unitHasPromotion(unit, promoKey)
-    if unit == nil or unit.IsHasPromotion == nil then
-        return false
-    end
-    local pid = typeId(promoKey)
+    local pid = GameInfoTypes and GameInfoTypes[promoKey]
     if pid == nil then
         return false
     end
@@ -138,7 +127,11 @@ local function collectTraitFlags(player)
     end
     local leaderTypeName = leaderRow.Type
     local ok, iter = pcall(GameInfo.Leader_Traits)
-    if not ok or iter == nil then
+    if not ok then
+        Log.warn("Pathfinder.collectTraitFlags: GameInfo.Leader_Traits() raised: " .. tostring(iter))
+        return flags
+    end
+    if iter == nil then
         return flags
     end
     for row in iter do
@@ -186,17 +179,18 @@ end
 
 -- ===== ZoC and Great-Wall precompute =====
 
--- Enemy combat units project ZoC onto all six neighboring plots.
--- Entering a ZoC-tile from a non-ZoC tile ends the turn per the
--- engine's movement rules. One sweep of every at-war combat unit on
--- a tile we can see marks the set; A* does an O(1) lookup per step.
--- Loop bound is inclusive of MAX_CIV_PLAYERS so the barbarian player
--- (slot above majors+minors) is included; ScannerBackendUnits.lua
+-- Plots containing an at-war visible enemy combat unit. The engine's
+-- IsSlowedByZOC checks the two plots flanking the step direction
+-- (CvUnitMovement.cpp: eRight = (dir + 1) % 6, eLeft = (dir + 5) % 6)
+-- and fires only if one of them holds such a unit, so precompute the
+-- "has enemy" set here and let stepCost do the per-edge flanking
+-- lookup. Loop bound is inclusive of MAX_CIV_PLAYERS so the barbarian
+-- player (slot above majors+minors) is included; ScannerBackendUnits.lua
 -- documents the same trap.
-local function buildZoCPlots(ctx)
-    local zoc = {}
+local function buildEnemyPlots(ctx)
+    local enemy = {}
     if Players == nil or GameDefines == nil or GameDefines.MAX_CIV_PLAYERS == nil then
-        return zoc
+        return enemy
     end
     for pid = 0, GameDefines.MAX_CIV_PLAYERS do
         local p = Players[pid]
@@ -211,45 +205,31 @@ local function buildZoCPlots(ctx)
                         -- model a unit you can't see as projecting ZoC
                         -- onto your path planning.
                         if plot ~= nil and plot:IsVisible(ctx.team, ctx.isDebug) then
-                            local ux, uy = plot:GetX(), plot:GetY()
-                            for _, dir in ipairs(NEIGHBOR_DIRS) do
-                                local n = Map.PlotDirection(ux, uy, dir)
-                                if n ~= nil then
-                                    zoc[n:GetPlotIndex()] = true
-                                end
-                            end
+                            enemy[plot:GetPlotIndex()] = true
                         end
                     end
                 end
             end
         end
     end
-    return zoc
+    return enemy
 end
 
 -- Plots owned by an at-war civ that has built the Great Wall wonder
 -- trigger an end-turn on entry. The full sweep walks every plot on
--- the map, so we cache by (turn, team) on civvaccess_shared and reuse
--- across rapid Space-key previews; turn changes invalidate naturally.
--- The wonder's ObsoleteTech is TECH_DYNAMITE in base XML; the engine
+-- the map; on a target-mode preview this fires once per findPath call
+-- (user-triggered, one per Space-key press), which is fine. The
+-- wonder's ObsoleteTech is TECH_DYNAMITE in base XML; the engine
 -- decrements the border-obstacle counter on the WALL OWNER's team
 -- when it researches Dynamite (CvTeam.cpp:742, CvUnitMovement.cpp:172).
 -- The attacker's tech level is irrelevant -- only the defender's.
 local function buildGreatWallPlots(ctx)
-    civvaccess_shared = civvaccess_shared or {}
-    local turn = (Game and Game.GetGameTurn) and Game.GetGameTurn() or 0
-    local cache = civvaccess_shared.pathfinderGreatWall
-    if cache ~= nil and cache.turn == turn and cache.team == ctx.team then
-        return cache.walls
-    end
     local walls = {}
     if Players == nil or GameDefines == nil or GameDefines.MAX_CIV_PLAYERS == nil then
-        civvaccess_shared.pathfinderGreatWall = { turn = turn, team = ctx.team, walls = walls }
         return walls
     end
-    local gwClass = typeId("BUILDINGCLASS_GREAT_WALL")
+    local gwClass = GameInfoTypes and GameInfoTypes["BUILDINGCLASS_GREAT_WALL"]
     if gwClass == nil then
-        civvaccess_shared.pathfinderGreatWall = { turn = turn, team = ctx.team, walls = walls }
         return walls
     end
     for pid = 0, GameDefines.MAX_CIV_PLAYERS do
@@ -257,8 +237,7 @@ local function buildGreatWallPlots(ctx)
         if p ~= nil and p.IsAlive and p:IsAlive() and p:GetTeam() ~= ctx.team then
             if p.GetBuildingClassCount and p:GetBuildingClassCount(gwClass) > 0 then
                 local otherTeam = p:GetTeam()
-                local ownerTeamObj = Teams and Teams[otherTeam] or nil
-                local obsolete = teamHasTech(ownerTeamObj, "TECH_DYNAMITE")
+                local obsolete = teamHasTech(Teams[otherTeam], "TECH_DYNAMITE")
                 if not obsolete and ctx.pTeam ~= nil and ctx.pTeam:IsAtWar(otherTeam) then
                     if Map ~= nil and Map.GetNumPlots and Map.GetPlotByIndex then
                         for i = 0, Map.GetNumPlots() - 1 do
@@ -272,7 +251,6 @@ local function buildGreatWallPlots(ctx)
             end
         end
     end
-    civvaccess_shared.pathfinderGreatWall = { turn = turn, team = ctx.team, walls = walls }
     return walls
 end
 
@@ -299,7 +277,7 @@ local function buildCtx(unit)
         or (unit.IsRiverCrossingNoPenalty ~= nil and unit:IsRiverCrossingNoPenalty())
     ctx.flatMovementCost = unitHasPromotion(unit, "PROMOTION_FLAT_MOVEMENT_COST")
     ctx.roughEndsTurn = unitHasPromotion(unit, "PROMOTION_ROUGH_TERRAIN_ENDS_TURN")
-    local trait = collectTraitFlags(Players and Players[ctx.player] or nil)
+    local trait = collectTraitFlags(Players[ctx.player])
     ctx.fasterInHills = trait.fasterInHills
     ctx.canCrossMountains = trait.crossesMountains
     ctx.embarkedAllWater = trait.embarkedAllWater
@@ -313,8 +291,20 @@ local function buildCtx(unit)
     ctx.fasterAlongRiver = trait.fasterAlongRiver
     ctx.canCrossOceans = ctx.hasAstronomy or ctx.embarkedAllWater
     ctx.canEmbark = ctx.canEmbark or ctx.embarkedAllWater
-    ctx.zocPlots = buildZoCPlots(ctx)
+    ctx.enemyPlots = buildEnemyPlots(ctx)
     ctx.greatWallPlots = buildGreatWallPlots(ctx)
+    -- Shoshone FasterAlongRiver and Iroquois MoveFriendlyWoodsAsRoad
+    -- simulate a ROUTE_ROAD overlay. Engine's fake-route path uses
+    -- ROUTE_ROAD's actual FlatMovementCost; read it once here rather
+    -- than hard-coding 10, so XML changes (Community Patch, modders)
+    -- still resolve to the correct trait cost.
+    local roadId = GameInfoTypes and GameInfoTypes["ROUTE_ROAD"]
+    local roadRow = roadId ~= nil and GameInfo and GameInfo.Routes and GameInfo.Routes[roadId] or nil
+    if roadRow ~= nil and roadRow.FlatMovementCost ~= nil then
+        ctx.traitRouteFallback = roadRow.FlatMovementCost * (ctx.maxMoves / MOVE_DENOM)
+    else
+        ctx.traitRouteFallback = math.huge
+    end
     return ctx
 end
 
@@ -381,7 +371,7 @@ end
 -- Order of checks mirrors CvUnitMovement::GetCostsForMove: legality
 -- gates first, then end-turn triggers, then finally base cost with
 -- route / river adjustments.
-local function stepCost(fromPlot, toPlot, ctx)
+local function stepCost(fromPlot, toPlot, dir, ctx)
     if not ctx.isDebug and not toPlot:IsRevealed(ctx.team, ctx.isDebug) then
         return nil
     end
@@ -483,11 +473,8 @@ local function stepCost(fromPlot, toPlot, ctx)
                     return ctx.maxMoves, true
                 end
                 -- Foreign non-war city: permit if they've granted OB.
-                local cityTeamObj = Teams and Teams[cityTeam] or nil
-                if cityTeamObj ~= nil
-                    and cityTeamObj.IsAllowsOpenBordersToTeam
-                    and cityTeamObj:IsAllowsOpenBordersToTeam(ctx.team)
-                then
+                local cityTeamObj = Teams[cityTeam]
+                if cityTeamObj ~= nil and cityTeamObj:IsAllowsOpenBordersToTeam(ctx.team) then
                     return MOVE_DENOM, false
                 end
                 return nil
@@ -510,9 +497,8 @@ local function stepCost(fromPlot, toPlot, ctx)
                 -- the right to enter our territory." We're about to enter
                 -- THEIR territory, so we ask whether they granted us that
                 -- right -- not whether we granted them ours.
-                local theirTeam = Teams and Teams[otherTeam] or nil
+                local theirTeam = Teams[otherTeam]
                 local openBorders = theirTeam ~= nil
-                    and theirTeam.IsAllowsOpenBordersToTeam
                     and theirTeam:IsAllowsOpenBordersToTeam(ctx.team)
                 if not atWar and not openBorders then
                     return nil
@@ -589,7 +575,6 @@ local function stepCost(fromPlot, toPlot, ctx)
     -- entirely -- they return iMoveDenominator in the engine before the
     -- route path ever evaluates.
     if (hasRoute or traitRoute) and not ctx.flatMovementCost then
-        local traitFallback = 10 * (ctx.maxMoves / MOVE_DENOM)
         local function endpointCost(routeType, pillaged)
             if pillaged then
                 return math.huge
@@ -605,11 +590,11 @@ local function stepCost(fromPlot, toPlot, ctx)
         local fromRouteCost = endpointCost(fromRoute, fromPillaged)
         local toRouteCost = endpointCost(toRoute, toPillaged)
         if traitRoute then
-            if fromRouteCost > traitFallback then
-                fromRouteCost = traitFallback
+            if fromRouteCost > ctx.traitRouteFallback then
+                fromRouteCost = ctx.traitRouteFallback
             end
-            if toRouteCost > traitFallback then
-                toRouteCost = traitFallback
+            if toRouteCost > ctx.traitRouteFallback then
+                toRouteCost = ctx.traitRouteFallback
             end
         end
         if fromRouteCost < math.huge and toRouteCost < math.huge then
@@ -620,12 +605,25 @@ local function stepCost(fromPlot, toPlot, ctx)
         end
     end
 
-    local fromIdx = fromPlot:GetPlotIndex()
-    if ctx.zocPlots[toIdx] and not ctx.zocPlots[fromIdx] then
+    -- ZoC: engine's IsSlowedByZOC checks the two plots perpendicular to
+    -- the step direction (eLeft = (dir+5)%6, eRight = (dir+1)%6, both
+    -- taken from fromPlot). If either holds an at-war visible enemy
+    -- combat unit, the step consumes all remaining MP. The flanking
+    -- plot itself doesn't have to be passable -- a mountain neighbor
+    -- can still host a unit that projects ZoC.
+    local fx, fy = fromPlot:GetX(), fromPlot:GetY()
+    local leftFlank = Map.PlotDirection(fx, fy, (dir + 5) % 6)
+    local rightFlank = Map.PlotDirection(fx, fy, (dir + 1) % 6)
+    if (leftFlank ~= nil and ctx.enemyPlots[leftFlank:GetPlotIndex()])
+        or (rightFlank ~= nil and ctx.enemyPlots[rightFlank:GetPlotIndex()])
+    then
         return cost, true
     end
 
-    if ctx.roughEndsTurn and isRoughTerrain(toPlot) then
+    -- PROMOTION_ROUGH_TERRAIN_ENDS_TURN only fires when the destination
+    -- has no route; engine GetCostsForMove gates on `!bRouteTo`, so a
+    -- forest or hill with a road leaves the unit free to continue.
+    if ctx.roughEndsTurn and isRoughTerrain(toPlot) and not (toRoute >= 0 and not toPillaged) then
         return cost, true
     end
 
@@ -767,7 +765,7 @@ function Pathfinder.findPath(unit, toPlot)
             for _, dir in ipairs(NEIGHBOR_DIRS) do
                 local neighbor = Map.PlotDirection(cx, cy, dir)
                 if neighbor ~= nil then
-                    local cost, endsTurn = stepCost(current.plot, neighbor, ctx)
+                    local cost, endsTurn = stepCost(current.plot, neighbor, dir, ctx)
                     if cost ~= nil then
                         local newTurns, newMP = advance(current.turns, current.mpRemaining, cost, endsTurn, maxMoves)
                         local newG = scoreOf(newTurns, newMP, maxMoves)
@@ -792,13 +790,3 @@ function Pathfinder.findPath(unit, toPlot)
 
     return nil, "unreachable"
 end
-
--- Internal: exposed for unit tests that want to exercise stepCost with
--- a hand-crafted ctx (explicit promotion / trait flags) rather than
--- driving everything through buildCtx's GameInfo indirection.
-Pathfinder._internal = {
-    buildCtx = buildCtx,
-    stepCost = stepCost,
-    tileBaseCost = tileBaseCost,
-    MOVE_DENOM = MOVE_DENOM,
-}

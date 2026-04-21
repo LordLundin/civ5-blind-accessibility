@@ -24,30 +24,14 @@ local PROMOTION_ROUGH_TERRAIN_ENDS_TURN = 23
 local PROMOTION_FLAT_MOVEMENT_COST = 24
 local BUILDINGCLASS_GREAT_WALL = 30
 
+-- Reset per-test scenario data only. Engine globals (Map, Game,
+-- DirectionTypes, PlotTypes, DomainTypes, GameDefines.MOVE_DENOMINATOR,
+-- etc.) come from CivVAccess_Polyfill.lua via run.lua; tests should not
+-- re-stub them. MAX_CIV_PLAYERS is not in the polyfill (game-sim-wide
+-- constant, only the ZoC/GW sweeps read it) so set it here.
 local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_Pathfinder.lua")
 
-    -- Pathfinder caches Great Wall plots on civvaccess_shared keyed by
-    -- (turn, team). Tests run sequentially in one Lua state with stub
-    -- Map fixtures swapped between cases, so cached plot indices from
-    -- a prior case would resolve against the wrong grid here. Wipe.
-    civvaccess_shared = {}
-
-    Game.GetActivePlayer = function()
-        return 0
-    end
-    Game.GetActiveTeam = function()
-        return 0
-    end
-    Game.IsDebugMode = function()
-        return false
-    end
-    Game.GetGameTurn = function()
-        return 0
-    end
-
-    GameDefines = GameDefines or {}
-    GameDefines.MOVE_DENOMINATOR = 60
     GameDefines.MAX_CIV_PLAYERS = 4
 
     GameInfoTypes = {
@@ -86,18 +70,6 @@ local function setup()
 
     Players = {}
     Teams = {}
-    Map.PlotDirection = function()
-        return nil
-    end
-    Map.GetPlot = function()
-        return nil
-    end
-    Map.GetNumPlots = function()
-        return 0
-    end
-    Map.GetPlotByIndex = function()
-        return nil
-    end
 end
 
 -- Install a hex-offset grid. `configure(col, row, plot)` may return a
@@ -218,6 +190,22 @@ local function mkUnit(plot, opts)
         end,
     }
     return unit
+end
+
+-- Shared corridor for ZoC tests. Row 0 is open; everything else is
+-- impassable mountain. Tests park a ZoC-projecting unit at (0, 1),
+-- which is a flanking plot for the A→B step from (0, 0) to (1, 0).
+-- The flanking plot itself stays mountain: ZoC projects from the
+-- unit's location regardless of the host plot's passability, and
+-- leaving it impassable prevents the pathfinder from detouring around
+-- the ZoC (which would happen if the trigger tile were walkable).
+local function installCorridor()
+    return installGrid(4, function(col, row, p)
+        if row ~= 0 then
+            p._isMountain = true
+        end
+        return p
+    end)
 end
 
 -- ===== Tests =====
@@ -587,22 +575,12 @@ function M.test_great_wall_tile_ends_turn()
     T.eq(result.turns, 2, "entering Great Wall tile ends turn, next hex = turn 2")
 end
 
--- 11. ZoC-adjacent entry ends turn. Use a 4-MP cavalry-shaped unit
--- over a two-hex corridor so the baseline finishes in one turn, and
--- the ZoC end-turn on entering (1, 0) from (0, 0) forces a second
--- turn even though only two hexes worth of MP are needed. Everything
--- off row 0 is a mountain (the enemy plot excepted) to block detours.
+-- 11. ZoC drains remaining MP when a flanking plot holds an at-war
+-- enemy combat unit. A 4-MP unit on the corridor baseline reaches
+-- (2, 0) in one turn; with an enemy at (0, 1) flanking the first E
+-- step, ZoC fires on step (0,0)->(1,0), zeroing MP. Step two must
+-- then wait out the turn boundary, pushing arrival to turn 2.
 function M.test_zoc_entry_ends_turn()
-    local function installCorridor()
-        return installGrid(4, function(col, row, p)
-            if row ~= 0 and not (col == 1 and row == 1) then
-                -- Block every tile off row 0 except the enemy's plot.
-                p._isMountain = true
-            end
-            return p
-        end)
-    end
-
     setup()
     local plotsBase = installCorridor()
     local unitBase = mkUnit(plotsBase[0][0], { maxMoves = 240 })
@@ -612,10 +590,8 @@ function M.test_zoc_entry_ends_turn()
 
     setup()
     local plots = installCorridor()
-    local enemyPlot = plots[1][1]
-    enemyPlot._isMountain = false
     local enemyUnit = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
-    enemyUnit._plot = enemyPlot
+    enemyUnit._plot = plots[0][1]
     Players[1] = {
         _team = 1,
         GetTeam = function()
@@ -816,20 +792,10 @@ end
 -- projects onto the corridor; expect the same end-turn surcharge as a
 -- regular enemy.
 function M.test_barbarian_zoc_projects()
-    local function installCorridor()
-        return installGrid(4, function(col, row, p)
-            if row ~= 0 and not (col == 1 and row == 1) then
-                p._isMountain = true
-            end
-            return p
-        end)
-    end
-
     setup()
     local plots = installCorridor()
-    plots[1][1]._isMountain = false
     local barbUnit = T.fakeUnit({ owner = 4, team = 4, combat = true, invisible = false })
-    barbUnit._plot = plots[1][1]
+    barbUnit._plot = plots[0][1]
     Players[4] = {
         GetTeam = function() return 4 end,
         IsAlive = function() return true end,
@@ -856,20 +822,10 @@ end
 -- inflate turn count. Without this check the path would gain a phantom
 -- ZoC end-turn whenever a city-state or AI peer parks near the route.
 function M.test_zoc_skips_non_war_units()
-    local function installCorridor()
-        return installGrid(4, function(col, row, p)
-            if row ~= 0 and not (col == 1 and row == 1) then
-                p._isMountain = true
-            end
-            return p
-        end)
-    end
-
     setup()
     local plots = installCorridor()
-    plots[1][1]._isMountain = false
     local neutralUnit = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
-    neutralUnit._plot = plots[1][1]
+    neutralUnit._plot = plots[0][1]
     Players[1] = {
         GetTeam = function() return 1 end,
         IsAlive = function() return true end,
@@ -894,21 +850,11 @@ end
 -- 17. Enemies in fog don't project ZoC. The engine doesn't surface a
 -- ZoC end-turn for a unit you can't see, so neither should the preview.
 function M.test_zoc_skips_fogged_enemies()
-    local function installCorridor()
-        return installGrid(4, function(col, row, p)
-            if row ~= 0 and not (col == 1 and row == 1) then
-                p._isMountain = true
-            end
-            return p
-        end)
-    end
-
     setup()
     local plots = installCorridor()
-    plots[1][1]._isMountain = false
-    plots[1][1]._isVisible = false
+    plots[0][1]._isVisible = false
     local enemyUnit = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
-    enemyUnit._plot = plots[1][1]
+    enemyUnit._plot = plots[0][1]
     Players[1] = {
         GetTeam = function() return 1 end,
         IsAlive = function() return true end,
