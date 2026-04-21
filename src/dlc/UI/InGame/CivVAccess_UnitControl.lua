@@ -422,6 +422,7 @@ local function onUnitMoveCompleted()
     local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)
     if cx == tx and cy == ty or movesLeft <= 0 then
         speakQueued(UnitSpeech.moveResult(unit, tx, ty))
+        Cursor.jumpTo(cx, cy)
         clearPending()
     end
 end
