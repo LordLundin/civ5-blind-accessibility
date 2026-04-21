@@ -30,11 +30,7 @@ local function isOwn(city)
 end
 
 local function isMet(city)
-    local activeTeam = Teams[activeTeamId()]
-    if activeTeam == nil then
-        return false
-    end
-    return activeTeam:IsHasMet(city:GetTeam())
+    return Teams[activeTeamId()]:IsHasMet(city:GetTeam())
 end
 
 -- Minor civ trait -> short mod-authored token. MinorCivTraits.Type
@@ -209,22 +205,23 @@ function CitySpeech.development(city)
     end
     local parts = {}
 
+    -- Production branch: empty queue -> "not producing" with no progress
+    -- fraction (GetProductionNeeded returns INT32_MAX as a sentinel when
+    -- nothing is queued, so speaking it leaks a 2.1-billion number).
+    -- Processes (Wealth/Research/etc.) are perpetual, so they skip turns
+    -- and progress as well -- only the name carries meaning.
     local prodKey = city:GetProductionNameKey()
     if prodKey == nil or prodKey == "" then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_NOT_PRODUCING")
+    elseif city:IsProductionProcess() then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING_PROCESS", Text.key(prodKey))
     else
         local turnsLeft = 0
-        if city:IsProduction() and not city:IsProductionProcess() then
-            if city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
-                turnsLeft = city:GetProductionTurnsLeft()
-            end
+        if city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
+            turnsLeft = city:GetProductionTurnsLeft()
         end
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING", Text.key(prodKey), turnsLeft)
-    end
-
-    local needProd = city:GetProductionNeeded()
-    if needProd > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PROGRESS", city:GetProduction(), needProd)
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PROGRESS", city:GetProduction(), city:GetProductionNeeded())
     end
 
     local prodRate = city:GetYieldRate(YieldTypes.YIELD_PRODUCTION)
@@ -233,15 +230,10 @@ function CitySpeech.development(city)
     end
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PER_TURN", prodRate)
 
-    local foodDiff100 = city:FoodDifferenceTimes100()
-    if city:IsFoodProduction() or foodDiff100 == 0 then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING")
-    elseif foodDiff100 < 0 then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_STARVING")
-    else
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", city:GetFoodTurnsLeft())
-    end
-
+    -- Food progress + per-turn first, growth timing last. Speaking
+    -- "grows in N turns" before the food fraction buried the numbers that
+    -- produced it; the turn count reads more naturally as a summary at
+    -- the end of the food block.
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS", city:GetFood(), city:GrowthThreshold())
 
     local foodDiff = city:FoodDifference()
@@ -249,6 +241,15 @@ function CitySpeech.development(city)
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_FOOD_LOSING", -foodDiff)
     else
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_FOOD_PER_TURN", foodDiff)
+    end
+
+    local foodDiff100 = city:FoodDifferenceTimes100()
+    if city:IsFoodProduction() or foodDiff100 == 0 then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING")
+    elseif foodDiff100 < 0 then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_STARVING")
+    else
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", city:GetFoodTurnsLeft())
     end
 
     return table.concat(parts, ", ")
@@ -301,8 +302,8 @@ function CitySpeech.politics(city)
         local cityX, cityY = city:GetX(), city:GetY()
         for _, v in ipairs(spies) do
             if v.CityX == cityX and v.CityY == cityY then
-                local name = Locale.Lookup(v.Name)
-                local rank = Locale.Lookup(v.Rank)
+                local name = Text.key(v.Name)
+                local rank = Text.key(v.Rank)
                 if v.IsDiplomat then
                     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_DIPLOMAT", name, rank)
                 else

@@ -576,9 +576,33 @@ function M.test_development_producing_item_with_turns()
 end
 
 function M.test_development_not_producing_when_empty_key()
+    -- GetProductionNeeded returns INT32_MAX as a sentinel when nothing is
+    -- queued; the output must not leak that number as "0 of 2147483647".
     setup()
-    local city = mkCity({ productionKey = "", productionNeeded = 0 })
-    T.truthy(CitySpeech.development(city):find("not producing", 1, true), "empty production key -> not producing")
+    local city = mkCity({ productionKey = "", productionNeeded = 2147483647, production = 0 })
+    local out = CitySpeech.development(city)
+    T.truthy(out:find("not producing", 1, true), "empty production key -> not producing: " .. out)
+    T.falsy(out:find("production", 1, true), "no progress fraction when not producing: " .. out)
+    T.falsy(out:find("2147483647", 1, true), "INT_MAX sentinel must not leak: " .. out)
+end
+
+function M.test_development_process_omits_turns_and_progress()
+    -- Processes (Wealth / Research / etc.) are perpetual; their production
+    -- name carries the signal and the absence of a turn count distinguishes
+    -- them from buildable items. INT_MAX on productionNeeded mirrors what
+    -- the engine returns for processes.
+    setup()
+    local city = mkCity({
+        productionKey = "TXT_KEY_PROCESS_WEALTH",
+        isProductionProcess = true,
+        productionNeeded = 2147483647,
+        production = 0,
+    })
+    local out = CitySpeech.development(city)
+    -- Comma after the process name asserts the producing line has no
+    -- turn count appended (the comma is the parts-join separator).
+    T.truthy(out:find("producing TXT_KEY_PROCESS_WEALTH,", 1, true), "process name without turns: " .. out)
+    T.falsy(out:find("production", 1, true), "no progress fraction for process: " .. out)
 end
 
 function M.test_development_stopped_growing_when_food_diff_zero()

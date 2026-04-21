@@ -163,9 +163,9 @@ end
 function M.test_number_keys_dispatch_to_city_info()
     setup()
     local h = BaselineHandler.create()
-    findBinding(h, 49, 0).fn() -- VK_1
-    findBinding(h, 50, 0).fn() -- VK_2
-    findBinding(h, 51, 0).fn() -- VK_3
+    findBinding(h, Keys.VK_1, 0).fn()
+    findBinding(h, Keys.VK_2, 0).fn()
+    findBinding(h, Keys.VK_3, 0).fn()
     T.eq(Cursor._calls[1], "cityIdentity")
     T.eq(Cursor._calls[2], "cityDevelopment")
     T.eq(Cursor._calls[3], "cityPolitics")

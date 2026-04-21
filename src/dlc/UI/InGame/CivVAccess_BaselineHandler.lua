@@ -9,14 +9,6 @@ BaselineHandler = {}
 local MOD_NONE = 0
 local MOD_SHIFT = 1
 
--- Windows VK codes for the top-row digit keys. Civ V's Keys enum may
--- or may not expose these under a friendly name across vanilla / G&K
--- / BNW builds; InputRouter.dispatch compares the raw wParam so the
--- numeric codes bind correctly regardless. 0x31..0x33 are VK_1..VK_3.
-local VK_1 = 49
-local VK_2 = 50
-local VK_3 = 51
-
 local function speak(s)
     if s == nil or s == "" then
         return
@@ -58,13 +50,13 @@ function BaselineHandler.create()
         bind(Keys.X, MOD_NONE, function()
             speak(Cursor.combat())
         end, "Combat details"),
-        bind(VK_1, MOD_NONE, function()
+        bind(Keys.VK_1, MOD_NONE, function()
             speak(Cursor.cityIdentity())
         end, "City identity and combat"),
-        bind(VK_2, MOD_NONE, function()
+        bind(Keys.VK_2, MOD_NONE, function()
             speak(Cursor.cityDevelopment())
         end, "City production and growth"),
-        bind(VK_3, MOD_NONE, function()
+        bind(Keys.VK_3, MOD_NONE, function()
             speak(Cursor.cityPolitics())
         end, "City diplomacy"),
     }
