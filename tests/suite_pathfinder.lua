@@ -236,15 +236,18 @@ function M.test_straight_line_open_grass_three_hexes()
     T.eq(result.mpCost, 180, "3 * 60 MP = 180 in 60ths")
 end
 
--- 2. Hills add 1 MP. Two-hex path grass -> hill takes 2 turns (hill
--- exceeds the 60 MP left after step 1), while a two-hex grass-grass
--- path finishes this turn. The difference isolates the hill surcharge.
+-- 2. Hills add 1 MP. With a 3-MP unit the surcharge exposes itself as
+-- a turn difference: grass-grass-grass fits in one turn (3*60 = 180),
+-- but grass-hill-grass overflows (60+120 exactly drains 3 MP, forcing
+-- the third grass into turn 2). A 2-MP unit doesn't witness this --
+-- partial-MP lets it clamp the hill step and finish in turn 1 -- so
+-- the test deliberately uses 3 MP to isolate the surcharge.
 function M.test_hills_surcharge_forces_extra_turn()
     setup()
     local plotsGrass = installGrid(4)
-    local unitGrass = mkUnit(plotsGrass[0][0], {})
-    local resultGrass = Pathfinder.findPath(unitGrass, plotsGrass[2][0])
-    T.eq(resultGrass.turns, 1, "grass-grass should fit in one turn")
+    local unitGrass = mkUnit(plotsGrass[0][0], { maxMoves = 180 })
+    local resultGrass = Pathfinder.findPath(unitGrass, plotsGrass[3][0])
+    T.eq(resultGrass.turns, 1, "three grass at 3 MP should fit in one turn")
 
     setup()
     local plotsHills = installGrid(4, function(col, row, p)
@@ -253,9 +256,29 @@ function M.test_hills_surcharge_forces_extra_turn()
         end
         return p
     end)
-    local unitHills = mkUnit(plotsHills[0][0], {})
-    local resultHills = Pathfinder.findPath(unitHills, plotsHills[2][0])
-    T.eq(resultHills.turns, 2, "grass-hill should take two turns with 2 MP unit")
+    local unitHills = mkUnit(plotsHills[0][0], { maxMoves = 180 })
+    local resultHills = Pathfinder.findPath(unitHills, plotsHills[3][0])
+    T.eq(resultHills.turns, 2, "grass-hill-grass should spill into turn two at 3 MP")
+end
+
+-- Partial-MP rule. A 2-MP unit with 60 MP left stepping into a forest
+-- (raw cost 120) pays its remaining 60 and arrives in the current turn,
+-- not the next one -- matching CvUnitMovement's min(iCost, iMoves)
+-- clamp. Old wait-for-full-MP semantics would report 2 turns and 120
+-- cost; engine-correct is 1 turn and 60 cost.
+function M.test_partial_mp_clamps_overflow_step()
+    setup()
+    local plots = installGrid(4, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._feature = FEAT_FOREST
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], { maxMoves = 120, movesLeft = 60 })
+    local result = Pathfinder.findPath(unit, plots[1][0])
+    T.truthy(result ~= nil, "forest target must be reachable with partial MP")
+    T.eq(result.turns, 1, "partial-MP lets the unit arrive this turn")
+    T.eq(result.mpCost, 60, "cost clamps to remaining 60, not the forest's 120")
 end
 
 -- 3. Inca FasterInHills trait cancels the surcharge. Same grid as (2)
@@ -618,8 +641,18 @@ function M.test_embarkation_ends_turn_without_flat_cost()
     T.eq(result2.turns, 2, "embark + second water hex spans two turns")
 end
 
-function M.test_embarkation_flat_cost_promotion()
+function M.test_embarkation_flat_cost_trait()
     setup()
+    GameInfo.Leaders = { [0] = { Type = "LEADER_TEST" } }
+    GameInfo.Traits = { TRAIT_TEST = { EmbarkedToLandFlatCost = true } }
+    GameInfo.Leader_Traits = function()
+        local rows = { { LeaderType = "LEADER_TEST", TraitType = "TRAIT_TEST" } }
+        local i = 0
+        return function()
+            i = i + 1
+            return rows[i]
+        end
+    end
     local plots = installGrid(4, function(col, row, p)
         if col >= 1 then
             p._isWater = true
@@ -627,12 +660,57 @@ function M.test_embarkation_flat_cost_promotion()
         end
         return p
     end)
+    local unit = mkUnit(plots[0][0], { canEmbark = true })
+    Players[0].GetLeaderType = function()
+        return 0
+    end
+    local result = Pathfinder.findPath(unit, plots[2][0])
+    T.eq(result.turns, 1, "EmbarkedToLandFlatCost trait keeps embark + water step in one turn")
+end
+
+-- PROMOTION_FLAT_MOVEMENT_COST (Flight) is per-tile 1 MP that bypasses
+-- the route discount. Engine: CvUnitMovement.cpp:165 returns
+-- iMoveDenominator before the route branch ever sees this unit. So a
+-- helicopter-shaped unit crosses forest at 60 (not 120) AND road at 60
+-- (not the road's 20) -- the promotion flattens terrain without
+-- stacking route speedups on top.
+function M.test_flat_movement_cost_per_tile_ignores_terrain_and_route()
+    setup()
+    local plots = installGrid(4, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._feature = FEAT_FOREST
+        end
+        if col == 2 and row == 0 then
+            p._route = ROUTE_ROAD
+        end
+        if col == 3 and row == 0 then
+            p._route = ROUTE_ROAD
+        end
+        return p
+    end)
     local unit = mkUnit(plots[0][0], {
-        canEmbark = true,
+        maxMoves = 240,
         promotions = { [PROMOTION_FLAT_MOVEMENT_COST] = true },
     })
-    local result = Pathfinder.findPath(unit, plots[2][0])
-    T.eq(result.turns, 1, "flat-cost promotion keeps embark + water step in one turn")
+    local forestResult = Pathfinder.findPath(unit, plots[1][0])
+    T.eq(forestResult.mpCost, 60, "flat-cost flattens forest's 120 to 60")
+
+    setup()
+    local plots2 = installGrid(4, function(col, row, p)
+        if col == 2 and row == 0 then
+            p._route = ROUTE_ROAD
+        end
+        if col == 3 and row == 0 then
+            p._route = ROUTE_ROAD
+        end
+        return p
+    end)
+    local unit2 = mkUnit(plots2[2][0], {
+        maxMoves = 240,
+        promotions = { [PROMOTION_FLAT_MOVEMENT_COST] = true },
+    })
+    local roadResult = Pathfinder.findPath(unit2, plots2[3][0])
+    T.eq(roadResult.mpCost, 60, "flat-cost ignores road's 20, stays at 60")
 end
 
 -- 13. Polynesia's EmbarkedAllWater trait permits water entry before
@@ -843,10 +921,16 @@ function M.test_woods_as_road_does_not_waive_river_crossing()
             return rows[i]
         end
     end
+    -- Force the corridor through the river-forest tile by walling off
+    -- row-1 / row-(-1) with mountains. Without this block, the detour
+    -- via a non-river forest step at (0,1) avoids the river entirely
+    -- and makes the test vacuous.
     local plots = installGrid(4, function(col, row, p)
         if col == 1 and row == 0 then
             p._feature = FEAT_FOREST
             p._owner = 0
+        elseif row ~= 0 then
+            p._isMountain = true
         end
         return p
     end)
@@ -858,20 +942,42 @@ function M.test_woods_as_road_does_not_waive_river_crossing()
     T.eq(result.turns, 2, "river-into-friendly-forest must still cost a turn for Iroquois without Engineering")
 end
 
--- 19. A tile occupied by a visible enemy unit can't be transited or
--- landed on by a move-to preview (the engine treats that as an attack).
-function M.test_enemy_occupied_destination_unreachable()
+-- 19. A tile occupied by a visible enemy COMBAT unit can't be transited
+-- or landed on by a move-to preview (the engine treats that as an
+-- attack, a different code path than move). Non-combat enemies do not
+-- block -- see the civilian-transit test for that branch.
+function M.test_enemy_combat_occupied_destination_unreachable()
     setup()
+    local enemyCombat = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
     local plots = installGrid(2, function(col, row, p)
         if col == 1 and row == 0 then
-            p._hasVisibleEnemy = true
+            p._units = { enemyCombat }
         end
         return p
     end)
     local unit = mkUnit(plots[0][0], {})
     local result, reason = Pathfinder.findPath(unit, plots[1][0])
-    T.truthy(result == nil, "enemy-occupied destination must not return a path")
+    T.truthy(result == nil, "combat-enemy destination must not return a path")
     T.eq(reason, "unreachable")
+end
+
+-- Non-combat enemies (workers, Great People) get captured by a move
+-- rather than attacked, so a tile holding only civilians is a valid
+-- intermediate and destination for move-preview. Without this, the
+-- user hears "no path" for a perfectly legal capture.
+function M.test_enemy_civilian_permits_capture_transit()
+    setup()
+    local enemyCiv = T.fakeUnit({ owner = 1, team = 1, combat = false, invisible = false })
+    local plots = installGrid(2, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._units = { enemyCiv }
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], {})
+    local result = Pathfinder.findPath(unit, plots[1][0])
+    T.truthy(result ~= nil, "non-combat enemy must not block move-preview")
+    T.eq(result.mpCost, 60, "straight grass step cost, capture doesn't surcharge")
 end
 
 -- 20. Friendly stacking limit. A non-start plot already holding a
@@ -975,6 +1081,122 @@ function M.test_unreachable_target_returns_reason()
     local result, reason = Pathfinder.findPath(unit, plots[2][0])
     T.truthy(result == nil, "surrounded target must be unreachable")
     T.eq(reason, "unreachable")
+end
+
+-- Impassable feature (FEATURE_ICE for a naval unit). The engine reads
+-- GameInfo.Features.Impassable via IsTeamImpassable; Lua's no-arg
+-- Plot:IsImpassable() covers mountains only, so the pathfinder has to
+-- consult the feature XML directly. Natural wonders hit the same path.
+function M.test_impassable_feature_blocks_ship()
+    setup()
+    local FEAT_ICE = 2
+    GameInfo.Features[FEAT_ICE] = { Type = "FEATURE_ICE", Movement = 1, Impassable = true }
+    local plots = installGrid(4, function(col, row, p)
+        p._isWater = true
+        p._terrain = TERRAIN_COAST
+        if col == 1 and row == 0 then
+            p._feature = FEAT_ICE
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], { domain = DomainTypes.DOMAIN_SEA, maxMoves = 240 })
+    local result = Pathfinder.findPath(unit, plots[2][0])
+    T.truthy(result ~= nil, "detour around ice must exist")
+    T.truthy(result.mpCost > 120, "path must detour, not go through ice; got " .. tostring(result.mpCost))
+end
+
+-- Great Wall is obsoleted when the WALL OWNER researches Dynamite, not
+-- the attacker. CvTeam.cpp:742 decrements the border-obstacle counter
+-- on the wall owner's team when the tech completes; attackers with or
+-- without Dynamite pass through unaffected as long as the defender has
+-- it. The pathfinder skips building the wall set for obsoleted owners.
+function M.test_great_wall_obsolete_after_owner_dynamite()
+    setup()
+    local TECH_DYNAMITE = 12
+    GameInfoTypes.TECH_DYNAMITE = TECH_DYNAMITE
+    local plots = installGrid(4, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._owner = 1
+        end
+        return p
+    end)
+    Players[1] = {
+        _team = 1,
+        GetTeam = function() return 1 end,
+        IsAlive = function() return true end,
+        GetBuildingClassCount = function(_, cls)
+            return cls == BUILDINGCLASS_GREAT_WALL and 1 or 0
+        end,
+        Units = function() return function() return nil end end,
+    }
+    Teams[1] = T.fakeTeam({
+        atWar = { [0] = true },
+        techs = { [TECH_DYNAMITE] = true },
+    })
+    local unit = mkUnit(plots[0][0], {})
+    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
+    local result = Pathfinder.findPath(unit, plots[2][0])
+    T.truthy(result ~= nil, "GW-obsolete enemy tile must be transitable")
+    T.eq(result.turns, 1, "owner's Dynamite turns GW off; no end-turn surcharge")
+    T.eq(result.mpCost, 120, "straight 2-hex grass cost with GW neutralized")
+end
+
+-- Asymmetric routes: one endpoint road, other railroad. Engine takes
+-- MAX of the two endpoint costs (slower dominates) per
+-- CvUnitMovement.cpp:93. Old code read the destination only and
+-- under-charged when the faster route was at `to`.
+function M.test_route_cost_uses_max_of_endpoints()
+    setup()
+    local ROUTE_RAIL = 1
+    GameInfo.Routes[ROUTE_RAIL] = { Type = "ROUTE_RAILROAD", FlatMovementCost = 1 }
+    local plots = installGrid(4, function(col, row, p)
+        if col == 0 and row == 0 then
+            p._route = ROUTE_ROAD
+        end
+        if col == 1 and row == 0 then
+            p._route = ROUTE_RAIL
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], {})
+    local result = Pathfinder.findPath(unit, plots[1][0])
+    -- Road=10, Rail=1 for 2-MP unit -> per-step max(10, 1) * 2 = 20.
+    T.eq(result.mpCost, 20, "road+rail endpoints must pick slower road cost, not rail")
+end
+
+-- Naval transit through a friendly non-team city. The DOMAIN_SEA branch
+-- used to return nil for any non-war non-team city, blocking a naval
+-- unit from transiting a coastal ally's city under Open Borders even
+-- though the engine permits it.
+function M.test_naval_open_borders_city_transit()
+    setup()
+    local city = T.fakeCity({ owner = 1 })
+    city.GetTeam = function() return 1 end
+    local plots = installGrid(4, function(col, row, p)
+        p._isWater = true
+        p._terrain = TERRAIN_COAST
+        if col == 1 and row == 0 then
+            p._isWater = false
+            p._terrain = TERRAIN_GRASS
+            p._isCity = true
+            p._city = city
+            p._owner = 1
+        end
+        return p
+    end)
+    Players[1] = {
+        _team = 1,
+        GetTeam = function() return 1 end,
+        IsAlive = function() return true end,
+        GetBuildingClassCount = function() return 0 end,
+        Units = function() return function() return nil end end,
+    }
+    Teams[1] = T.fakeTeam({ openBorders = { [0] = true } })
+    local unit = mkUnit(plots[0][0], { domain = DomainTypes.DOMAIN_SEA, maxMoves = 240 })
+    Teams[1] = T.fakeTeam({ openBorders = { [0] = true } })
+    local result = Pathfinder.findPath(unit, plots[1][0])
+    T.truthy(result ~= nil, "OB-friendly city should be naval-reachable")
+    T.eq(result.turns, 1, "city transit fits in one turn")
 end
 
 return M

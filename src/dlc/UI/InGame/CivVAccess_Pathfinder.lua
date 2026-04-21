@@ -231,6 +231,10 @@ end
 -- trigger an end-turn on entry. The full sweep walks every plot on
 -- the map, so we cache by (turn, team) on civvaccess_shared and reuse
 -- across rapid Space-key previews; turn changes invalidate naturally.
+-- The wonder's ObsoleteTech is TECH_DYNAMITE in base XML; the engine
+-- decrements the border-obstacle counter on the WALL OWNER's team
+-- when it researches Dynamite (CvTeam.cpp:742, CvUnitMovement.cpp:172).
+-- The attacker's tech level is irrelevant -- only the defender's.
 local function buildGreatWallPlots(ctx)
     civvaccess_shared = civvaccess_shared or {}
     local turn = (Game and Game.GetGameTurn) and Game.GetGameTurn() or 0
@@ -253,7 +257,9 @@ local function buildGreatWallPlots(ctx)
         if p ~= nil and p.IsAlive and p:IsAlive() and p:GetTeam() ~= ctx.team then
             if p.GetBuildingClassCount and p:GetBuildingClassCount(gwClass) > 0 then
                 local otherTeam = p:GetTeam()
-                if ctx.pTeam ~= nil and ctx.pTeam:IsAtWar(otherTeam) then
+                local ownerTeamObj = Teams and Teams[otherTeam] or nil
+                local obsolete = teamHasTech(ownerTeamObj, "TECH_DYNAMITE")
+                if not obsolete and ctx.pTeam ~= nil and ctx.pTeam:IsAtWar(otherTeam) then
                     if Map ~= nil and Map.GetNumPlots and Map.GetPlotByIndex then
                         for i = 0, Map.GetNumPlots() - 1 do
                             local plot = Map.GetPlotByIndex(i)
@@ -297,7 +303,12 @@ local function buildCtx(unit)
     ctx.fasterInHills = trait.fasterInHills
     ctx.canCrossMountains = trait.crossesMountains
     ctx.embarkedAllWater = trait.embarkedAllWater
-    ctx.embarkedFlatCost = trait.embarkedFlatCost or ctx.flatMovementCost
+    -- PROMOTION_FLAT_MOVEMENT_COST (helicopter Flight) is per-tile only
+    -- in CvUnitMovement.cpp:165 and does NOT waive the embark state-change
+    -- end-turn -- the embark branch returns INT_MAX unless a specific
+    -- embark/disembark-flat flag is set. Only trait-driven flat embark is
+    -- modeled here.
+    ctx.embarkedFlatCost = trait.embarkedFlatCost
     ctx.woodsAsRoad = trait.woodsAsRoad
     ctx.fasterAlongRiver = trait.fasterAlongRiver
     ctx.canCrossOceans = ctx.hasAstronomy or ctx.embarkedAllWater
@@ -333,9 +344,11 @@ end
 
 -- Base tile cost in 60ths. Feature Movement (if > 0) overrides the
 -- terrain's Movement. Hills adds a full MP unless the Inca's
--- FasterInHills trait is set.
+-- FasterInHills trait is set. PROMOTION_FLAT_MOVEMENT_COST returns
+-- MOVE_DENOM here and also bypasses the route discount downstream, so
+-- helicopters pay 1 MP per tile regardless of terrain or roads.
 local function tileBaseCost(plot, ctx)
-    if ctx.ignoresTerrain then
+    if ctx.ignoresTerrain or ctx.flatMovementCost then
         return MOVE_DENOM
     end
     local cost = MOVE_DENOM
@@ -373,11 +386,22 @@ local function stepCost(fromPlot, toPlot, ctx)
         return nil
     end
 
-    -- Move-preview is for non-combat motion. Tiles holding a visible
-    -- enemy unit would resolve as an attack at commit time, so they
-    -- aren't valid intermediates or destinations for this preview.
-    if toPlot.IsVisibleEnemyUnit and toPlot:IsVisibleEnemyUnit(ctx.player) then
-        return nil
+    -- Move-preview is for non-combat motion. A visible enemy COMBAT unit
+    -- on the tile would resolve the move as an attack, so reject --
+    -- previewing attack cost isn't this code path's job. Non-combat
+    -- enemies (workers, Great People, civilians) get captured by the
+    -- move, which is a legitimate preview path.
+    if toPlot.GetNumUnits and toPlot:GetNumUnits() > 0 then
+        for i = 0, toPlot:GetNumUnits() - 1 do
+            local u = toPlot:GetUnit(i)
+            if u ~= nil
+                and u.GetOwner and u:GetOwner() ~= ctx.player
+                and u.IsCombatUnit and u:IsCombatUnit()
+                and not u:IsInvisible(ctx.team, ctx.isDebug)
+            then
+                return nil
+            end
+        end
     end
 
     -- Friendly stacking limit. GetNumFriendlyUnitsOfType counts units
@@ -400,6 +424,22 @@ local function stepCost(fromPlot, toPlot, ctx)
             return ctx.maxMoves, true
         else
             return nil
+        end
+    end
+
+    -- Impassable features: FEATURE_ICE blocks naval and embarked land;
+    -- natural wonders (FEATURE_VOLCANO, FEATURE_CRATER, ...) block every
+    -- non-hover unit. GameInfo.Features[fid].Impassable is the XML flag,
+    -- and CvPlot::isImpassable(TeamTypes) reads it via IsTeamImpassable.
+    -- Lua's no-arg Plot:IsImpassable() covers mountains only, so we have
+    -- to check the feature XML ourselves.
+    if not ctx.isHover then
+        local fidImp = toPlot:GetFeatureType()
+        if fidImp ~= nil and fidImp >= 0 and GameInfo and GameInfo.Features then
+            local frowImp = GameInfo.Features[fidImp]
+            if frowImp ~= nil and frowImp.Impassable then
+                return nil
+            end
         end
     end
 
@@ -441,6 +481,14 @@ local function stepCost(fromPlot, toPlot, ctx)
                 end
                 if ctx.pTeam ~= nil and ctx.pTeam:IsAtWar(cityTeam) then
                     return ctx.maxMoves, true
+                end
+                -- Foreign non-war city: permit if they've granted OB.
+                local cityTeamObj = Teams and Teams[cityTeam] or nil
+                if cityTeamObj ~= nil
+                    and cityTeamObj.IsAllowsOpenBordersToTeam
+                    and cityTeamObj:IsAllowsOpenBordersToTeam(ctx.team)
+                then
+                    return MOVE_DENOM, false
                 end
                 return nil
             end
@@ -534,18 +582,41 @@ local function stepCost(fromPlot, toPlot, ctx)
     local base = tileBaseCost(toPlot, ctx)
 
     local cost = base
-    if hasRoute or traitRoute then
-        local routeCost = math.huge
-        local routeRow = GameInfo and GameInfo.Routes and GameInfo.Routes[toRoute] or nil
-        if routeRow ~= nil and routeRow.FlatMovementCost ~= nil then
-            routeCost = routeRow.FlatMovementCost * (ctx.maxMoves / MOVE_DENOM)
-        elseif traitRoute then
-            -- No underlying road; fall back to vanilla road's flat cost of
-            -- 10 per MP so the trait still delivers a road-equivalent speedup.
-            routeCost = 10 * (ctx.maxMoves / MOVE_DENOM)
+    -- Route discount: both endpoints must offer a route (either a real
+    -- one or the trait overlay), and the engine takes MAX of the two
+    -- endpoints' costs (slower route dominates), per
+    -- CvUnitMovement.cpp:93. Flat-movement units ignore this branch
+    -- entirely -- they return iMoveDenominator in the engine before the
+    -- route path ever evaluates.
+    if (hasRoute or traitRoute) and not ctx.flatMovementCost then
+        local traitFallback = 10 * (ctx.maxMoves / MOVE_DENOM)
+        local function endpointCost(routeType, pillaged)
+            if pillaged then
+                return math.huge
+            end
+            if routeType >= 0 then
+                local row = GameInfo and GameInfo.Routes and GameInfo.Routes[routeType] or nil
+                if row ~= nil and row.FlatMovementCost ~= nil then
+                    return row.FlatMovementCost * (ctx.maxMoves / MOVE_DENOM)
+                end
+            end
+            return math.huge
         end
-        if routeCost < cost then
-            cost = routeCost
+        local fromRouteCost = endpointCost(fromRoute, fromPillaged)
+        local toRouteCost = endpointCost(toRoute, toPillaged)
+        if traitRoute then
+            if fromRouteCost > traitFallback then
+                fromRouteCost = traitFallback
+            end
+            if toRouteCost > traitFallback then
+                toRouteCost = traitFallback
+            end
+        end
+        if fromRouteCost < math.huge and toRouteCost < math.huge then
+            local routeCost = math.max(fromRouteCost, toRouteCost)
+            if routeCost < cost then
+                cost = routeCost
+            end
         end
     end
 
@@ -564,34 +635,31 @@ end
 -- ===== A* search =====
 
 -- g(n) = turns consumed * maxMoves + (maxMoves - mpRemaining). Each
--- transition advances (turns, mpRemaining):
---   mpRem==0 entering a step -> the unit ran out of MP on the prior
---     tile, so it has to wait. Bump turn, replenish, then apply the
---     step to the new turn.
---   endsTurn  -> turns+=1, mpRemaining = maxMoves (unused MP wasted)
---   within    -> mpRemaining -= mpCost
---   overflow  -> remaining is wasted, turn++, cost debited against
---     the new turn; can roll across multiple turn boundaries for a
---     1-MP settler entering a 3-MP marsh.
+-- transition advances (turns, mpRemaining). Mirrors the engine's
+-- MovementCostNoZOC + CvAStar turn accounting (CvUnitMovement.cpp:407
+-- and CvAStar.cpp:1388 in Community-Patch-DLL):
+--   mpRem==0 entering a step -> unit ran out of MP on the prior tile
+--     and has to wait. Bump turn, replenish, then apply the step.
+--   endsTurn -> mpRemaining zeroed. The turn bump is deferred to the
+--     NEXT step's mpRem==0 check, same as the engine.
+--   cost <= mpRem -> mpRemaining -= cost, same turn.
+--   cost > mpRem (partial-MP rule) -> unit spends everything it has
+--     this turn and lands on the plot with 0 MP. The engine's
+--     `min(iCost, iMovesRemaining)` clamp: entering a 3-MP marsh with
+--     60 MP left costs 60, not 180, and the turn counter advances on
+--     the NEXT step -- not this one.
 local function advance(turns, mpRemaining, mpCost, endsTurn, maxMoves)
     if mpRemaining == 0 then
         turns = turns + 1
         mpRemaining = maxMoves
     end
     if endsTurn then
-        return turns + 1, maxMoves
+        return turns, 0
     end
-    if mpCost <= mpRemaining then
-        return turns, mpRemaining - mpCost
+    if mpCost >= mpRemaining then
+        return turns, 0
     end
-    local newTurns = turns + 1
-    local newRemaining = maxMoves - mpCost
-    if newRemaining < 0 then
-        local extra = math.ceil(-newRemaining / maxMoves)
-        newTurns = newTurns + extra
-        newRemaining = newRemaining + extra * maxMoves
-    end
-    return newTurns, newRemaining
+    return turns, mpRemaining - mpCost
 end
 
 local function scoreOf(turns, mpRemaining, maxMoves)
