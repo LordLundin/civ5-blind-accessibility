@@ -31,8 +31,12 @@ end
 
 function BaselineHandler.create()
     local bindings = {
-        -- Letter keys in Civ V's Keys enum are `Keys.<letter>` (no VK_
-        -- prefix); only special keys use VK_ (VK_LEFT, VK_ESCAPE, etc.).
+        -- In Civ V's Keys enum, printable ASCII keys (letters and top-row
+        -- digits) are registered under their literal character. Letters are
+        -- valid Lua identifiers so `Keys.Q` works; digits aren't, so the
+        -- top-row number keys require bracket form: `Keys["1"]`. Only the
+        -- non-printable / special keys use the VK_ prefix (VK_ESCAPE, VK_LEFT,
+        -- VK_NUMPAD1, etc.).
         bind(Keys.Q, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHWEST), "Move cursor NW"),
         bind(Keys.E, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHEAST), "Move cursor NE"),
         bind(Keys.A, MOD_NONE, moveDir(DirectionTypes.DIRECTION_WEST), "Move cursor W"),
@@ -51,13 +55,13 @@ function BaselineHandler.create()
         bind(Keys.X, MOD_NONE, function()
             speak(Cursor.combat())
         end, "Combat details"),
-        bind(Keys.VK_1, MOD_NONE, function()
+        bind(Keys["1"], MOD_NONE, function()
             speak(Cursor.cityIdentity())
         end, "City identity and combat"),
-        bind(Keys.VK_2, MOD_NONE, function()
+        bind(Keys["2"], MOD_NONE, function()
             speak(Cursor.cityDevelopment())
         end, "City production and growth"),
-        bind(Keys.VK_3, MOD_NONE, function()
+        bind(Keys["3"], MOD_NONE, function()
             speak(Cursor.cityPolitics())
         end, "City diplomacy"),
         bind(Keys.N, MOD_CTRL, function()

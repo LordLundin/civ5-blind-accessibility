@@ -192,8 +192,13 @@ Mouse = Mouse or {
     eMClick = 3,
 }
 
--- Civ V's Keys enum: letter keys are `Keys.<letter>` (no VK_ prefix),
--- special keys use VK_. Grow this list as new bindings appear.
+-- Civ V's Keys enum: printable ASCII keys are registered under their
+-- literal character. Letters are valid Lua identifiers so `Keys.A` works;
+-- top-row digits aren't, so they require bracket form: `Keys["1"]`.
+-- Non-printable / special keys use the VK_ prefix. Grow this list as new
+-- bindings appear, and mirror the engine's real name -- do not invent
+-- VK_-prefixed aliases for printable keys (the engine won't have them,
+-- so tests would pass while the in-game binding silently resolves to nil).
 Keys = Keys
     or {
         VK_BACK = 8,
@@ -209,9 +214,9 @@ Keys = Keys
         VK_UP = 38,
         VK_RIGHT = 39,
         VK_DOWN = 40,
-        VK_1 = 49,
-        VK_2 = 50,
-        VK_3 = 51,
+        ["1"] = 49,
+        ["2"] = 50,
+        ["3"] = 51,
         A = 65,
         C = 67,
         D = 68,
