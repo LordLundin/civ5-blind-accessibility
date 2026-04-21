@@ -22,6 +22,18 @@ include("CivVAccess_Cursor")
 -- so the core must be loaded before BaselineHandler is included.
 include("CivVAccess_SurveyorStrings_en_US")
 include("CivVAccess_SurveyorCore")
+-- BaseMenu family, in the canonical Items / TypeAheadSearch / Help / Tabs
+-- / Core / Install / EditMode order used by the other menu-backed Contexts
+-- (GameMenuAccess, CivilopediaAccess, SaveMenuAccess, GenericPopupAccess).
+-- UnitActionMenu drives a modal via BaseMenu.create; TypeAheadSearch also
+-- serves ScannerSearch further down.
+include("CivVAccess_BaseMenuItems")
+include("CivVAccess_TypeAheadSearch")
+include("CivVAccess_BaseMenuHelp")
+include("CivVAccess_BaseMenuTabs")
+include("CivVAccess_BaseMenuCore")
+include("CivVAccess_BaseMenuInstall")
+include("CivVAccess_BaseMenuEditMode")
 -- Unit-control modules. UnitSpeech (pure formatters) first so the menu
 -- and target-mode modules can reference it; UnitControl last because it
 -- ties the others into the listener / bindings surface.
@@ -30,11 +42,6 @@ include("CivVAccess_UnitActionMenu")
 include("CivVAccess_UnitTargetMode")
 include("CivVAccess_UnitControl")
 include("CivVAccess_BaselineHandler")
--- TypeAheadSearch is the tier/position match primitive ScannerSearch
--- calls when Ctrl+F commits. Menu-backed handlers include it on their
--- own, but the scanner runs without going through BaseMenu.install, so
--- Boot pulls it in before ScannerSearch.
-include("CivVAccess_TypeAheadSearch")
 -- Scanner modules. Strings first so Text.key lookups by Nav / Handler
 -- find mod-authored keys. Core registers the backend registry that
 -- every ScannerBackend* module self-registers into at load time.
