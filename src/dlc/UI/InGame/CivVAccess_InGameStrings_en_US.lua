@@ -184,6 +184,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_LIBERATION_PREVIEW"] = "liberation p
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_SPY"] = "spy {1_Name}, {2_Rank}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DIPLOMAT"] = "diplomat {1_Name}, {2_Rank}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_NO_POLITICS"] = "no political information"
+-- Spoken when Scanner becomes the top handler: on boot, after a popup
+-- closes, after a sub-handler (ScannerInput, UnitActionMenu) pops. Gives
+-- the user a consistent audible landmark that the hex-viewer cursor is
+-- live again -- functioning as the "closed" confirmation that popup
+-- dismissal would otherwise need case-by-case.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAP_MODE"] = "map mode"
 -- Type-ahead search feedback (see FrontEnd strings for the authoring
 -- rationale). Mirrored here because TypeAheadSearch runs from in-game
 -- BaseMenu contexts whose string table is sandboxed from the FrontEnd copy.

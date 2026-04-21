@@ -56,10 +56,13 @@ function BaseMenu.install(ContextPtr, spec)
                 Log.error("BaseMenu '" .. handler.name .. "' prior ShowHide: " .. tostring(err))
             end
         end
-        -- reactivate=false: we're about to push this same handler back on;
-        -- firing onActivate on whatever is underneath would spuriously
-        -- announce a screen the user is about to be pulled off of.
-        HandlerStack.removeByName(handler.name, false)
+        -- On show (bIsHide=false): reactivate=false so the handler we're
+        -- about to re-push doesn't spuriously announce whatever is beneath
+        -- it mid-transition. On hide: reactivate=true so the newly-exposed
+        -- handler (Scanner when a popup closes, parent menu when a nested
+        -- popup closes) announces itself and the user hears which mode
+        -- they landed back in.
+        HandlerStack.removeByName(handler.name, bIsHide)
         if bIsHide then
             handler._initialized = false
             pendingPush = false

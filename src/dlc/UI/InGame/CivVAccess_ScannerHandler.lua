@@ -36,6 +36,13 @@ function ScannerHandler.create()
     local h = {
         name = "Scanner",
         capturesAllInput = false,
+        -- Scanner is the top of the hex-viewer stack on the map. Speaking
+        -- "map mode" on activation gives the user an audible landmark when
+        -- a popup / sub-handler closes and the map cursor becomes live
+        -- again; at boot, the BOOT_INGAME speakInterrupt overrides this.
+        onActivate = function()
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAP_MODE"))
+        end,
         bindings = {
             -- Item axis (no modifier). Overrides the base game's
             -- world-camera zoom, which has no value to blind players.
