@@ -238,6 +238,7 @@ Hotkeys this mod binds on top of the engine defaults. Each must be a conscious c
 | `Shift+End` | Scanner in-game | Toggle auto-move-cursor (off by default) — when on, every successful cycle jumps the cursor to the entry's plot | No engine binding on `Shift+End`. Session-scoped on `civvaccess_shared.scannerAutoMove`; first consumer of what will become the persistent settings layer. |
 | `Ctrl+F` | Scanner in-game | Open the type-ahead search input handler; on Enter the scanner shows a filtered snapshot of matching entries | Replaces `Build Fort`, a worker-mission build that only fires when a worker is selected on a fort-eligible plot. Search is scanner's discoverability path; Fort is mouse-first and contextual, losing it is acceptable. |
 | `Backspace` | Scanner in-game | Return the hex cursor to the cell saved by the most recent scanner-driven jump (Home or auto-move) | Replaces `Cancel current action` / `Stop automation`. Both are mouse-first unit-command flows that do not fit a keyboard-driven blind player's loop; the scanner's jump/return loop is a primary navigation pattern and the natural reassignment target. |
+| `Ctrl+N` | Baseline in-game | Open the notification log (`BUTTONPOPUP_NOTIFICATION_LOG`) with an accessible two-tab wrapper (Active / Dismissed) over the engine's per-player notification list | No engine binding on `Ctrl+N`. The engine's own DiploCorner menu exposes the log via mouse only (no hotkey); our Ctrl+N gives a keyboard path to the complete notification history, which is the only surface that lists dismissed entries. |
 
 ---
 

@@ -8,6 +8,7 @@ BaselineHandler = {}
 
 local MOD_NONE = 0
 local MOD_SHIFT = 1
+local MOD_CTRL = 2
 
 local function speak(s)
     if s == nil or s == "" then
@@ -59,6 +60,12 @@ function BaselineHandler.create()
         bind(Keys.VK_3, MOD_NONE, function()
             speak(Cursor.cityPolitics())
         end, "City diplomacy"),
+        bind(Keys.N, MOD_CTRL, function()
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_NOTIFICATION_LOG,
+                Data1 = Game.GetActivePlayer(),
+            })
+        end, "Open notification log"),
     }
     local helpEntries = {
         {
@@ -92,6 +99,10 @@ function BaselineHandler.create()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_POL",
             description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_POL",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_KEY_OPEN",
+            description = "TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_DESC_OPEN",
         },
     }
     local surveyor = SurveyorCore.getBindings()

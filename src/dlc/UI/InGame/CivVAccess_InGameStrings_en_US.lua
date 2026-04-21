@@ -243,6 +243,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_SPLASH"] = "World Congress"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_END_GAME"] = "End of Game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DECLARE_WAR"] = "Declare War"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_GREETING"] = "City-State Greeting"
+-- NotificationLogPopup (BUTTONPOPUP_NOTIFICATION_LOG). Split into Active /
+-- Dismissed tabs by the engine's per-notification dismissed flag. Item
+-- label inlines the turn so the user can place each entry in history
+-- without a separate key.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_NOTIFICATION_LOG"] = "Notification Log"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE"] = "Active"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED"] = "Dismissed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY"] = "No notifications."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turn {2_Turn}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_KEY_OPEN"] = "Control plus N"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_DESC_OPEN"] = "Open the notification log"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB"] = "Actions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_MODS_TAB"] = "Mods"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_NO_MODS"] = "No mods activated."
