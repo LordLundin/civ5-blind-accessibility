@@ -118,6 +118,8 @@ local function collectTraitFlags(player)
         crossesMountains = false,
         embarkedAllWater = false,
         embarkedFlatCost = false,
+        woodsAsRoad = false,
+        fasterAlongRiver = false,
     }
     if player == nil or player.GetLeaderType == nil then
         return flags
@@ -153,6 +155,12 @@ local function collectTraitFlags(player)
                 end
                 if traitRow.EmbarkedToLandFlatCost then
                     flags.embarkedFlatCost = true
+                end
+                if traitRow.MoveFriendlyWoodsAsRoad then
+                    flags.woodsAsRoad = true
+                end
+                if traitRow.FasterAlongRiver then
+                    flags.fasterAlongRiver = true
                 end
             end
         end
@@ -274,6 +282,8 @@ local function buildCtx(unit)
     ctx.canCrossMountains = trait.crossesMountains
     ctx.embarkedAllWater = trait.embarkedAllWater
     ctx.embarkedFlatCost = trait.embarkedFlatCost or ctx.flatMovementCost
+    ctx.woodsAsRoad = trait.woodsAsRoad
+    ctx.fasterAlongRiver = trait.fasterAlongRiver
     ctx.canCrossOceans = ctx.hasAstronomy or ctx.embarkedAllWater
     ctx.canEmbark = ctx.canEmbark or ctx.embarkedAllWater
     ctx.zocPlots = buildZoCPlots(ctx)
@@ -441,22 +451,52 @@ local function stepCost(fromPlot, toPlot, ctx)
     local toPillaged = toPlot.IsRoutePillaged and toPlot:IsRoutePillaged() or false
     local hasRoute = fromRoute >= 0 and toRoute >= 0 and not fromPillaged and not toPillaged
 
+    -- Trait overlays that make a tile move *as if* it had a road. Iroquois
+    -- MoveFriendlyWoodsAsRoad covers forest / jungle in owned territory;
+    -- Shoshone-style FasterAlongRiver covers non-crossing steps between
+    -- two river-adjacent plots. Either flag lets the route discount apply
+    -- even without a built route underneath.
     local riverCrossing = false
     if fromPlot.IsRiverCrossingToPlot ~= nil then
         riverCrossing = fromPlot:IsRiverCrossingToPlot(toPlot)
     end
-    if riverCrossing and not ctx.hasEngineering and not ctx.isRiverCrossingNoPenalty and not hasRoute then
+    local traitRoute = false
+    if ctx.woodsAsRoad and toPlot:GetOwner() == ctx.player then
+        local fid = toPlot:GetFeatureType()
+        if fid ~= nil and fid >= 0 and GameInfo and GameInfo.Features then
+            local frow = GameInfo.Features[fid]
+            if frow ~= nil and (frow.Type == "FEATURE_FOREST" or frow.Type == "FEATURE_JUNGLE") then
+                traitRoute = true
+            end
+        end
+    end
+    if
+        ctx.fasterAlongRiver
+        and not riverCrossing
+        and fromPlot.IsRiverSide
+        and toPlot.IsRiverSide
+        and fromPlot:IsRiverSide()
+        and toPlot:IsRiverSide()
+    then
+        traitRoute = true
+    end
+
+    if riverCrossing and not ctx.hasEngineering and not ctx.isRiverCrossingNoPenalty and not hasRoute and not traitRoute then
         return ctx.maxMoves, true
     end
 
     local base = tileBaseCost(toPlot, ctx)
 
     local cost = base
-    if hasRoute then
+    if hasRoute or traitRoute then
         local routeCost = math.huge
         local routeRow = GameInfo and GameInfo.Routes and GameInfo.Routes[toRoute] or nil
         if routeRow ~= nil and routeRow.FlatMovementCost ~= nil then
             routeCost = routeRow.FlatMovementCost * (ctx.maxMoves / MOVE_DENOM)
+        elseif traitRoute then
+            -- No underlying road; fall back to vanilla road's flat cost of
+            -- 10 per MP so the trait still delivers a road-equivalent speedup.
+            routeCost = 10 * (ctx.maxMoves / MOVE_DENOM)
         end
         if routeCost < cost then
             cost = routeCost
@@ -588,7 +628,14 @@ function Pathfinder.findPath(unit, toPlot)
                         if newG < (gScore[nIdx] or math.huge) then
                             gScore[nIdx] = newG
                             cameFrom[nIdx] = current.plotIndex
-                            local h = HexGeom.cubeDistance(neighbor:GetX(), neighbor:GetY(), tx, ty) * MOVE_DENOM
+                            -- h = distance * 2 (60ths) matches the minimum
+                            -- per-tile cost of a vanilla railroad at 2 MP
+                            -- (FlatMovementCost=1, baseMoves=2), which keeps
+                            -- the heuristic admissible for every vanilla
+                            -- unit. Using MOVE_DENOM (60) here was non-
+                            -- admissible on railroad-heavy paths and A*
+                            -- could return a suboptimal turn count.
+                            local h = HexGeom.cubeDistance(neighbor:GetX(), neighbor:GetY(), tx, ty) * 2
                             heapPush(heap, {
                                 plot = neighbor,
                                 plotIndex = nIdx,
