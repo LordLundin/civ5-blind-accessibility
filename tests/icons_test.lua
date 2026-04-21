@@ -36,7 +36,7 @@ function M.test_yield_icons_resolve()
     T.eq(filtered("ICON_PRODUCTION"), "production")
     T.eq(filtered("ICON_CULTURE"), "culture")
     T.eq(filtered("ICON_SCIENCE"), "science")
-    T.eq(filtered("ICON_RESEARCH"), "research")
+    T.eq(filtered("ICON_RESEARCH"), "science")
     T.eq(filtered("ICON_FAITH"), "faith")
     T.eq(filtered("ICON_TOURISM"), "tourism")
 end
@@ -53,17 +53,17 @@ end
 function M.test_combat_icons_resolve()
     setup()
     T.eq(filtered("ICON_STRENGTH"), "combat strength")
-    T.eq(filtered("ICON_RANGE_STRENGTH"), "ranged strength")
-    T.eq(filtered("ICON_MOVES"), "movement")
+    T.eq(filtered("ICON_RANGE_STRENGTH"), "ranged combat strength")
+    T.eq(filtered("ICON_MOVES"), "moves")
 end
 
 -- Happiness (positive / negative split) -----------------------------------
 
 function M.test_happiness_icons_split_positive_and_negative()
     setup()
-    T.eq(filtered("ICON_HAPPINESS_1"), "happy")
-    T.eq(filtered("ICON_HAPPINESS_3"), "unhappy")
-    T.eq(filtered("ICON_HAPPINESS_4"), "unhappy")
+    T.eq(filtered("ICON_HAPPINESS_1"), "happiness")
+    T.eq(filtered("ICON_HAPPINESS_3"), "unhappiness")
+    T.eq(filtered("ICON_HAPPINESS_4"), "unhappiness")
 end
 
 -- Resources ---------------------------------------------------------------
@@ -102,10 +102,10 @@ end
 -- Ensures the user never hears a typo'd icon stripped to silence and
 -- never hears the typo token itself spelled out.
 
-function M.test_typo_happines_4_maps_to_unhappy()
+function M.test_typo_happines_4_maps_to_unhappiness()
     setup()
-    T.eq(filtered("ICON_HAPPINES_4"), "unhappy")
-    T.eq(filtered("ICON_HAPPINESS_4"), "unhappy")
+    T.eq(filtered("ICON_HAPPINES_4"), "unhappiness")
+    T.eq(filtered("ICON_HAPPINESS_4"), "unhappiness")
 end
 
 function M.test_typo_strenght_maps_to_combat_strength()
@@ -165,7 +165,7 @@ end
 
 function M.test_tech_cost_speaks_cleanly()
     setup()
-    T.eq(TextFilter.filter("120 [ICON_RESEARCH]"), "120 research")
+    T.eq(TextFilter.filter("120 [ICON_RESEARCH]"), "120 science")
 end
 
 function M.test_unit_faith_cost_speaks_cleanly()
