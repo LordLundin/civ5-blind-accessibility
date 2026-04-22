@@ -359,4 +359,66 @@ function M.test_install_reader_ctrl_keys_on_picker_tab_use_default_behavior()
     T.eq(#buildCalls, 0, "picker-tab Ctrl+Down does not trigger article nav")
 end
 
+-- readerOnAltLeft / readerOnAltRight pass-through: caller-supplied hooks
+-- land on the reader tab only (picker-tab Alt+Left/Right is a no-op).
+-- Civilopedia uses these for article-history back/forward.
+
+local function installFixtureWithAltHooks(onLeft, onRight)
+    local session = PickerReader.create()
+    local builder = function(handler, id)
+        return {
+            items = { BaseMenuItems.Text({ labelText = "leaf " .. id }) },
+            autoDrillToLevel = 1,
+        }
+    end
+    local pickerItems = {
+        session.Entry({ id = "A", labelText = "Alpha", buildReader = builder }),
+        session.Entry({ id = "B", labelText = "Bravo", buildReader = builder }),
+    }
+    local ctx = makeContextPtr()
+    local handler = session.install(ctx, {
+        name = "InstalledPedia",
+        displayName = "Installed Pedia",
+        pickerTabName = "TXT_KEY_INSTALL_PICKER_TAB",
+        readerTabName = "TXT_KEY_INSTALL_READER_TAB",
+        pickerItems = pickerItems,
+        readerOnAltLeft = onLeft,
+        readerOnAltRight = onRight,
+    })
+    ctx._sh(false, false)
+    return handler
+end
+
+function M.test_install_reader_alt_hooks_fire_on_reader_tab()
+    setup()
+    local leftCalls, rightCalls = 0, 0
+    local handler = installFixtureWithAltHooks(function()
+        leftCalls = leftCalls + 1
+    end, function()
+        rightCalls = rightCalls + 1
+    end)
+    -- Activate Alpha to land on the reader tab.
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(handler._tabIndex, 2, "on reader tab")
+    InputRouter.dispatch(Keys.VK_LEFT, 4, WM_KEYDOWN) -- mods=MOD_ALT
+    InputRouter.dispatch(Keys.VK_RIGHT, 4, WM_KEYDOWN)
+    T.eq(leftCalls, 1, "readerOnAltLeft fired on reader tab")
+    T.eq(rightCalls, 1, "readerOnAltRight fired on reader tab")
+end
+
+function M.test_install_reader_alt_hooks_do_not_fire_on_picker_tab()
+    setup()
+    local leftCalls, rightCalls = 0, 0
+    local handler = installFixtureWithAltHooks(function()
+        leftCalls = leftCalls + 1
+    end, function()
+        rightCalls = rightCalls + 1
+    end)
+    T.eq(handler._tabIndex, 1, "on picker tab")
+    InputRouter.dispatch(Keys.VK_LEFT, 4, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_RIGHT, 4, WM_KEYDOWN)
+    T.eq(leftCalls, 0, "readerOnAltLeft does not fire from picker tab")
+    T.eq(rightCalls, 0, "readerOnAltRight does not fire from picker tab")
+end
+
 return M

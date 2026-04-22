@@ -313,6 +313,7 @@ function PickerReader.create()
             deferActivate = config.deferActivate,
             shouldActivate = config.shouldActivate,
             onShow = config.onShow,
+            helpExtras = config.helpExtras,
             tabs = {
                 {
                     name = config.pickerTabName,
@@ -342,6 +343,13 @@ function PickerReader.create()
                     onCtrlDown = function(h)
                         navigateAdjacent(h, 1)
                     end,
+                    -- Alt+Left / Alt+Right: caller-provided. Used by
+                    -- Civilopedia to walk the base pedia's article-history
+                    -- list. Scoped to the reader tab only so the picker
+                    -- tab's tree browsing isn't confused by back/forward
+                    -- semantics that don't apply there.
+                    onAltLeft = config.readerOnAltLeft,
+                    onAltRight = config.readerOnAltRight,
                 },
             },
             escAtLevelOne = function(handler)

@@ -811,13 +811,31 @@ function Civilopedia._harvestInto(leaves, handler, currentCat)
     harvestRelationships(leaves, handler, currentCat)
 end
 
--- Rebuild the reader tab in place after a link is followed. Matches the
--- PickerReader Entry.activate path: SelectArticle -> setItems -> programmatic
--- switchToTab (force=true) so the reader re-announces even though it's
--- already the active tab. Also updates the PickerReader session's stored
--- selection id via the shared makeEntryID so Shift+Tab back to the picker
--- lands on the article we followed to, not the one the user originally
--- opened from -- tuple-entryID categories (WorldCongress) included.
+-- Shared tail of every in-reader navigation: update the picker cursor via
+-- makeEntryID (so Shift+Tab back lands on the article we moved to), re-
+-- harvest the current article's leaves, setItems on the reader tab, then
+-- programmatic switchToTab(force=true) to re-announce even though the
+-- reader is already the active tab. Callers are responsible for having
+-- already driven SelectArticle (add-to-list for follow-link, skip-add for
+-- history step) before calling this.
+local function rebuildReaderFromCurrent(handler, cat, entryID)
+    if type(handler.setPickerReaderSelection) == "function" then
+        handler.setPickerReaderSelection(makeEntryID(cat, entryID))
+    end
+    local leaves = {}
+    Civilopedia._harvestInto(leaves, handler, cat)
+    if #leaves == 0 then
+        leaves[1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_ARTICLE"),
+        })
+    end
+    handler.setItems(leaves, READER_TAB_IDX)
+    handler.switchToTab(READER_TAB_IDX)
+end
+
+-- Follow an embedded relationship link to another article. Activation
+-- pushes the target onto the base pedia's history list (addToList=1) so
+-- subsequent Alt+Left can step back to the article the link was on.
 function followLink(handler, targetCat, targetID)
     if
         CivilopediaCategory ~= nil
@@ -836,18 +854,78 @@ function followLink(handler, targetCat, targetID)
             )
         end
     end
-    if type(handler.setPickerReaderSelection) == "function" then
-        handler.setPickerReaderSelection(makeEntryID(targetCat, targetID))
+    rebuildReaderFromCurrent(handler, targetCat, targetID)
+end
+
+-- History back/forward. The base pedia's Back / Forward buttons step a
+-- (currentTopic, endTopic, listOfTopicsViewed) triple maintained by every
+-- addToList=1 SelectArticle call, then re-SelectArticle the target with
+-- addToList=0 (skip-add) to avoid polluting history with the navigation
+-- itself. Our picker-driven buildReader and link-follow paths both pass
+-- addToList=1, so history is populated automatically; these two functions
+-- just walk the cursor and drive the re-harvest.
+--
+-- At the boundary (no-more-history either way) we speak a short "no
+-- previous / no next" message rather than staying silent: the user has
+-- no other channel to discover that their key did nothing.
+function Civilopedia.goBack(handler)
+    if currentTopic == nil or currentTopic <= 1 then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"))
+        return
     end
-    local leaves = {}
-    Civilopedia._harvestInto(leaves, handler, targetCat)
-    if #leaves == 0 then
-        leaves[1] = BaseMenuItems.Text({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_ARTICLE"),
-        })
+    currentTopic = currentTopic - 1
+    local article = listOfTopicsViewed[currentTopic]
+    if article == nil then
+        Log.warn("Civilopedia.goBack: listOfTopicsViewed[" .. tostring(currentTopic) .. "] is nil")
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"))
+        return
     end
-    handler.setItems(leaves, READER_TAB_IDX)
-    handler.switchToTab(READER_TAB_IDX)
+    local cat = article.entryCategory
+    SetSelectedCategory(cat)
+    if CivilopediaCategory[cat] ~= nil and type(CivilopediaCategory[cat].SelectArticle) == "function" then
+        local ok, err = pcall(CivilopediaCategory[cat].SelectArticle, article.entryID, 0)
+        if not ok then
+            Log.warn(
+                "Civilopedia.goBack SelectArticle("
+                    .. tostring(cat)
+                    .. ", "
+                    .. tostring(article.entryID)
+                    .. ") failed: "
+                    .. tostring(err)
+            )
+        end
+    end
+    rebuildReaderFromCurrent(handler, cat, article.entryID)
+end
+
+function Civilopedia.goForward(handler)
+    if currentTopic == nil or endTopic == nil or currentTopic >= endTopic then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"))
+        return
+    end
+    currentTopic = currentTopic + 1
+    local article = listOfTopicsViewed[currentTopic]
+    if article == nil then
+        Log.warn("Civilopedia.goForward: listOfTopicsViewed[" .. tostring(currentTopic) .. "] is nil")
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"))
+        return
+    end
+    local cat = article.entryCategory
+    SetSelectedCategory(cat)
+    if CivilopediaCategory[cat] ~= nil and type(CivilopediaCategory[cat].SelectArticle) == "function" then
+        local ok, err = pcall(CivilopediaCategory[cat].SelectArticle, article.entryID, 0)
+        if not ok then
+            Log.warn(
+                "Civilopedia.goForward SelectArticle("
+                    .. tostring(cat)
+                    .. ", "
+                    .. tostring(article.entryID)
+                    .. ") failed: "
+                    .. tostring(err)
+            )
+        end
+    end
+    rebuildReaderFromCurrent(handler, cat, article.entryID)
 end
 
 -- Public API ------------------------------------------------------------

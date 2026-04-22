@@ -2907,6 +2907,47 @@ function M.test_tab_nameFn_empty_result_skips_tab_name_announcement()
     T.truthy(sawItem, "first item still announced after empty nameFn")
 end
 
+function M.test_tab_onAltLeft_onAltRight_hooks_fire_on_active_tab()
+    setup()
+    local cbA = Polyfill.makeCheckBox()
+    local cbB = Polyfill.makeCheckBox()
+    populateControls({ CA = cbA, CB = cbB })
+    local leftCalls = 0
+    local rightCalls = 0
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        tabs = {
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) },
+            },
+            {
+                name = "TAB_B",
+                onAltLeft = function(handler)
+                    leftCalls = leftCalls + 1
+                end,
+                onAltRight = function(handler)
+                    rightCalls = rightCalls + 1
+                end,
+                items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) },
+            },
+        },
+    })
+    HandlerStack.push(h)
+    -- Alt on the unhooked tab A: no default behavior, silent no-op.
+    InputRouter.dispatch(Keys.VK_LEFT, 4, WM_KEYDOWN) -- mods=MOD_ALT
+    InputRouter.dispatch(Keys.VK_RIGHT, 4, WM_KEYDOWN)
+    T.eq(leftCalls, 0, "onAltLeft not called on unhooked tab")
+    T.eq(rightCalls, 0, "onAltRight not called on unhooked tab")
+    -- Switch to hooked tab B and fire both directions.
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_LEFT, 4, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_RIGHT, 4, WM_KEYDOWN)
+    T.eq(leftCalls, 1, "onAltLeft fired once on hooked tab")
+    T.eq(rightCalls, 1, "onAltRight fired once on hooked tab")
+end
+
 function M.test_tab_onCtrlUp_hook_overrides_sibling_group_jump()
     setup()
     local cbA = Polyfill.makeCheckBox()

@@ -138,6 +138,12 @@ globals = {
     "g_GameOptionsManager", "g_DropDownOptionsManager",
     "g_VictoryCondtionsManager", "g_fCountdownTimer",
     "sortedList",
+
+    -- Civilopedia article-history triple: promoted to globals in our
+    -- CivilopediaScreen.lua override so the accessibility wiring can read
+    -- the current article during Alt+Left / Alt+Right navigation and
+    -- write the cursor as it steps through history.
+    "currentTopic", "endTopic", "listOfTopicsViewed",
 }
 
 -- Per-directory overrides.

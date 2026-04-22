@@ -66,6 +66,7 @@ BaseMenu = {}
 
 local MOD_SHIFT = 1
 local MOD_CTRL = 2
+local MOD_ALT = 4
 
 -- Spec-validation guard. Logs the failure through the mod's log wrapper
 -- before erroring so the message reaches Lua.log uniformly (a bare assert()
@@ -486,6 +487,32 @@ local function onCtrlDown(self)
     jumpSiblingGroup(self, 1, false)
 end
 
+-- Alt+Left/Right are tab-hook-only: silently no-op when the active tab does
+-- not define onAltLeft / onAltRight. No sensible default behavior at the
+-- BaseMenu level, so unhooked screens leave the chord free. Civilopedia's
+-- reader tab uses these for article-history back/forward.
+local function onAltLeft(self)
+    local hook = BaseMenuTabs.hook(self, "onAltLeft")
+    if hook == nil then
+        return
+    end
+    local ok, err = pcall(hook, self)
+    if not ok then
+        Log.error("BaseMenu '" .. self.name .. "' onAltLeft hook: " .. tostring(err))
+    end
+end
+
+local function onAltRight(self)
+    local hook = BaseMenuTabs.hook(self, "onAltRight")
+    if hook == nil then
+        return
+    end
+    local ok, err = pcall(hook, self)
+    if not ok then
+        Log.error("BaseMenu '" .. self.name .. "' onAltRight hook: " .. tostring(err))
+    end
+end
+
 -- Search interface / input dispatch ---------------------------------------
 --
 -- Build a searchable view of the menu's current level for TypeAheadSearch.
@@ -674,6 +701,22 @@ function BaseMenu.create(spec)
             description = "Adjust increase (big)",
             fn = function()
                 onRight(self, true)
+            end,
+        },
+        {
+            key = Keys.VK_LEFT,
+            mods = MOD_ALT,
+            description = "Tab hook (alt+left)",
+            fn = function()
+                onAltLeft(self)
+            end,
+        },
+        {
+            key = Keys.VK_RIGHT,
+            mods = MOD_ALT,
+            description = "Tab hook (alt+right)",
+            fn = function()
+                onAltRight(self)
             end,
         },
         {

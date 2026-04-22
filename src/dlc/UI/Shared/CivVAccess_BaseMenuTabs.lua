@@ -49,6 +49,14 @@ function BaseMenuTabs.normalize(specTabs)
             tab.onCtrlDown == nil or type(tab.onCtrlDown) == "function",
             "tab " .. i .. ".onCtrlDown must be a function if provided"
         )
+        check(
+            tab.onAltLeft == nil or type(tab.onAltLeft) == "function",
+            "tab " .. i .. ".onAltLeft must be a function if provided"
+        )
+        check(
+            tab.onAltRight == nil or type(tab.onAltRight) == "function",
+            "tab " .. i .. ".onAltRight must be a function if provided"
+        )
         tabs[i] = {
             name = tab.name,
             showPanel = tab.showPanel,
@@ -57,6 +65,8 @@ function BaseMenuTabs.normalize(specTabs)
             nameFn = tab.nameFn,
             onCtrlUp = tab.onCtrlUp,
             onCtrlDown = tab.onCtrlDown,
+            onAltLeft = tab.onAltLeft,
+            onAltRight = tab.onAltRight,
             _items = tab.items,
         }
     end
@@ -64,7 +74,9 @@ function BaseMenuTabs.normalize(specTabs)
 end
 
 -- Per-tab hook dispatch. PickerReader's reader tab overrides Ctrl+Up/Down to
--- mean "prev/next article" rather than the default "prev/next sibling group".
+-- mean "prev/next article" (vs. the default "prev/next sibling group"), and
+-- Civilopedia's reader tab adds Alt+Left/Right for history back/forward (the
+-- Alt chord has no BaseMenu default; unhooked tabs leave it a silent no-op).
 -- Returns nil on tabless menus and on tabs without the named hook.
 function BaseMenuTabs.hook(self, name)
     if self.tabs == nil then

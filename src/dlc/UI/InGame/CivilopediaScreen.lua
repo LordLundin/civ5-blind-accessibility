@@ -53,14 +53,19 @@ local numCategories = 16;
 
 local selectedCategory = CategoryHomePage;
 -- Exposed as globals (dropped `local`) so the CivVAccess accessibility
--- include at the end of this file can read them. Both are set once and
--- mutated in place by PopulateList / SelectArticle; promoting to globals
--- is a no-op for the engine's own code and a prerequisite for our picker
--- to enumerate articles in the game's own left-sidebar order.
+-- include at the end of this file can read them. CivilopediaCategory and
+-- sortedList are set once and mutated in place by PopulateList /
+-- SelectArticle; promoting to globals is a no-op for the engine's own
+-- code and a prerequisite for our picker to enumerate articles in the
+-- game's own left-sidebar order. currentTopic / endTopic /
+-- listOfTopicsViewed are the article-history triple maintained by the
+-- base pedia's Back / Forward buttons; exposing them lets our Alt+Left
+-- / Alt+Right reader-tab bindings read the current article from the
+-- history list after stepping the cursor.
 CivilopediaCategory = {};
-local currentTopic = 0;
-local endTopic = 0;
-local listOfTopicsViewed = {};
+currentTopic = 0;
+endTopic = 0;
+listOfTopicsViewed = {};
 
 sortedList = {};
 local otherSortedList = {};

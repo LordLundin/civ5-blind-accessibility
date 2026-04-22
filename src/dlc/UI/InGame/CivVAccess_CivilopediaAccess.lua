@@ -54,4 +54,16 @@ session.install(ContextPtr, {
     priorShowHide = priorShowHide,
     priorInput = priorInput,
     pickerItems = pickerItems,
+    readerOnAltLeft = Civilopedia.goBack,
+    readerOnAltRight = Civilopedia.goForward,
+    -- Alt+Left/Right is reader-tab-scoped (see PickerReader install) but
+    -- the help list is handler-level, so the entry surfaces in help from
+    -- either tab. Description is worded as "article history" so the user
+    -- can infer it doesn't apply while browsing categories.
+    helpExtras = {
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ALT_LEFT_RIGHT",
+            description = "TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_HISTORY",
+        },
+    },
 })
