@@ -48,6 +48,9 @@ local function buildPreamble()
     if body ~= nil and body ~= "" then
         parts[#parts + 1] = body
     end
+    if #parts == 0 then
+        return nil
+    end
     return table.concat(parts, ". ")
 end
 
