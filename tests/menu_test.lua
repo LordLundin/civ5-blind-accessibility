@@ -1334,6 +1334,80 @@ function M.test_preamble_function_returning_empty_is_skipped()
     T.eq(#speaks, 2, "empty preamble not spoken")
 end
 
+-- silentFirstOpen: fresh-show announces only displayName. Preamble and the
+-- first item are not spoken; F1 / readHeader remains the opt-in path. For
+-- screens that overlap with external narration (tutorial advisor voice
+-- clips, civ leader intros on the load screen).
+function M.test_silent_first_open_speaks_only_display_name()
+    setup()
+    setCtrls({ "A", "B" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "body text",
+        items = buttonSpec({ "A", "B" }),
+        silentFirstOpen = true,
+    })
+    HandlerStack.push(h)
+    T.eq(#speaks, 1, "only displayName spoken on fresh show")
+    T.eq(speaks[1].text, "Screen")
+    T.eq(speaks[1].interrupt, true)
+end
+
+function M.test_silent_first_open_still_initializes_cursor()
+    setup()
+    setCtrls({ "A", "B", "C" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = buttonSpec({ "A", "B", "C" }),
+        silentFirstOpen = true,
+    })
+    HandlerStack.push(h)
+    T.eq(h._level, 1, "level initialized")
+    T.eq(h._indices[1], 1, "cursor on first navigable item")
+    T.eq(h._initialized, true, "flagged initialized")
+end
+
+function M.test_silent_first_open_readHeader_speaks_preamble()
+    setup()
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "body text",
+        items = buttonSpec({ "A" }),
+        silentFirstOpen = true,
+    })
+    HandlerStack.push(h)
+    -- Reset pipeline state so the displayName speakInterrupt from the
+    -- push doesn't dedupe the one readHeader is about to fire.
+    SpeechPipeline._reset()
+    SpeechPipeline._speakAction = function(text, interrupt)
+        speaks[#speaks + 1] = { text = text, interrupt = interrupt }
+    end
+    speaks = {}
+    h.readHeader()
+    T.eq(#speaks, 2, "readHeader speaks displayName + preamble")
+    T.eq(speaks[1].text, "Screen")
+    T.eq(speaks[2].text, "body text")
+end
+
+function M.test_silent_first_open_rejects_non_boolean()
+    setup()
+    setCtrls({ "A" })
+    local ok, err = pcall(function()
+        BaseMenu.create({
+            name = "T",
+            displayName = "Screen",
+            items = buttonSpec({ "A" }),
+            silentFirstOpen = "yes",
+        })
+    end)
+    T.truthy(not ok, "non-boolean rejected")
+    T.truthy(tostring(err):find("silentFirstOpen"), "error mentions the field")
+end
+
 function M.test_refresh_respeaks_when_function_preamble_changes()
     setup()
     setCtrls({ "A" })

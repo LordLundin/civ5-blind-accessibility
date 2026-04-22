@@ -14,12 +14,12 @@
 -- our preamble would speak, so reading the preamble on push produces a
 -- double-narration. AdvisorSoundConnections is not exposed through
 -- GameInfo, so we can't reliably detect "voice will play" per-tutorial.
--- Resolution: on fresh show we speak only the dynamic screen name (the
--- live advisor title, e.g. "Economic Advisor") and nothing else. The body
--- text stays reachable through F1 (readHeader) so the user can opt in.
--- Tradeoff: a tutorial added without voice (mod content, unusual base
--- case) will be silent until the user presses F1 -- matches the stated
--- preference for silence-plus-F1 over spam.
+-- Resolution: silentFirstOpen = true. On fresh show BaseMenu speaks only
+-- the dynamic displayName (the live advisor title) and nothing else. The
+-- body text stays reachable through F1 (readHeader) so the user can opt
+-- in. Tradeoff: a tutorial added without voice (mod content, unusual
+-- base case) will be silent until the user presses F1 -- matches the
+-- stated preference for silence-plus-F1 over spam.
 --
 -- DontShowAgainCheckbox has no click callback wired in base code: base
 -- AdvisorClose() reads its state synchronously at dismiss time and calls
@@ -69,7 +69,11 @@ local function controlText(control)
     local ok, text = pcall(function()
         return control:GetText()
     end)
-    if not ok or text == nil then
+    if not ok then
+        Log.warn("AdvisorsAccess: GetText failed: " .. tostring(text))
+        return ""
+    end
+    if text == nil then
         return ""
     end
     return tostring(text)
@@ -79,9 +83,9 @@ end
 -- writes the per-advisor title ("Military Advisor", "Economic Advisor", etc.)
 -- into AdvisorTitleText on every OnAdvisorDisplayShow, so reading it live
 -- gives the right value for the tutorial currently on screen. Falls back to
--- the static "Tutorial Advisor" string when the label is blank (shouldn't
--- happen during a real tutorial, but keeps the spec's non-empty-string
--- requirement satisfied at install time before any tutorial has fired).
+-- the static "Tutorial Advisor" string when the label is blank, which keeps
+-- the spec's non-empty-string requirement satisfied at install time before
+-- any tutorial has fired.
 local function readAdvisorTitle()
     local live = controlText(Controls.AdvisorTitleText)
     if live ~= "" then
@@ -110,45 +114,41 @@ local freshShow = false
 
 local handler = BaseMenu.install(ContextPtr, {
     name = "Advisors",
-    -- Spec requires a non-empty displayName; the live advisor title is
-    -- written into handler.displayName on every fresh-show via the
-    -- onActivate wrap below. This initial value is a safety fallback and
-    -- should not normally be heard.
+    -- Install-time placeholder; onShow writes the live advisor title into
+    -- handler.displayName before each push so the user hears "Economic
+    -- Advisor" / "Military Advisor" / etc.
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_ADVISOR_TUTORIAL"),
     preamble = buildPreamble,
+    silentFirstOpen = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
     onShow = function(h)
-        -- Force onActivate's fresh-show path on every show, so SetHide(false)
-        -- on an already-visible Context (should the engine ever fire ShowHide
-        -- for the re-show case) still resets level / cursor / search.
+        -- Update the live title and force onActivate's fresh-show path on
+        -- every show (so SetHide(false) on an already-visible Context --
+        -- should the engine ever fire ShowHide for the re-show case --
+        -- still resets cursor / search / initialized).
+        h.displayName = readAdvisorTitle()
         h._initialized = false
         freshShow = true
     end,
     items = {
         BaseMenuItems.Button({
             controlName = "Question1String",
-            labelFn = function(c)
-                return controlText(c)
-            end,
+            labelFn = controlText,
             activate = function()
                 OnQuestion1Clicked()
             end,
         }),
         BaseMenuItems.Button({
             controlName = "Question2String",
-            labelFn = function(c)
-                return controlText(c)
-            end,
+            labelFn = controlText,
             activate = function()
                 OnQuestion2Clicked()
             end,
         }),
         BaseMenuItems.Button({
             controlName = "Question3String",
-            labelFn = function(c)
-                return controlText(c)
-            end,
+            labelFn = controlText,
             activate = function()
                 OnQuestion3Clicked()
             end,
@@ -180,33 +180,6 @@ local handler = BaseMenu.install(ContextPtr, {
     },
 })
 
--- Wrap onActivate so fresh show announces only the dynamic advisor title.
--- BaseMenu's default fresh-show path speaks displayName + preamble + first
--- item, which would overlap with the game's advisor voice clip. The
--- minimal path still initializes level / cursor state so arrow-key
--- navigation works from the first navigable item; the preamble stays
--- reachable through F1 / readHeader. Re-activations (sub-menu pop,
--- etc.) delegate to the original behavior.
-local originalOnActivate = handler.onActivate
-handler.onActivate = function()
-    if not handler._initialized then
-        handler.displayName = readAdvisorTitle()
-        handler._level = 1
-        handler._indices = { 1 }
-        local items = handler._items or {}
-        for i, item in ipairs(items) do
-            if item:isNavigable() then
-                handler._indices[1] = i
-                break
-            end
-        end
-        handler._initialized = true
-        SpeechPipeline.speakInterrupt(handler.displayName)
-        return
-    end
-    originalOnActivate()
-end
-
 Events.AdvisorDisplayShow.Add(function()
     -- Context hidden when the listener runs means base OnAdvisorDisplayShow
     -- has not yet reached its AdvisorOpen() call, or AdvisorOpen's
@@ -221,9 +194,9 @@ Events.AdvisorDisplayShow.Add(function()
         return
     end
     -- Context was already visible: base overwrote the tutorial text in
-    -- place without a SetHide transition. Re-announce the new advisor title
-    -- and reset the cursor to the first navigable item. The wrapped
-    -- onActivate picks up the new title via readAdvisorTitle().
+    -- place without a SetHide transition. Re-announce under the new
+    -- advisor by mirroring onShow's state reset and re-running onActivate.
+    handler.displayName = readAdvisorTitle()
     handler._initialized = false
     local ok, err = pcall(handler.onActivate)
     if not ok then

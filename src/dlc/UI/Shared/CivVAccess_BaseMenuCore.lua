@@ -61,6 +61,13 @@
 --   initialIndex      optional 1-based cursor at level 1 to land on at
 --                     first onActivate. Used by Pulldown to open its child
 --                     sub-menu pre-positioned on the current selection.
+--   silentFirstOpen   when true, the first-open announce speaks only
+--                     displayName and skips preamble / tab-name / first-
+--                     item. For screens that overlap with external
+--                     narration (tutorial advisor voice clips, civ
+--                     leader intro) where reading the same content
+--                     through Tolk would double-narrate. Preamble stays
+--                     reachable via F1 / readHeader.
 
 BaseMenu = {}
 
@@ -617,6 +624,10 @@ function BaseMenu.create(spec)
             or type(spec.preamble) == "function",
         "spec.preamble must be a non-empty string or a function if provided"
     )
+    check(
+        spec.silentFirstOpen == nil or type(spec.silentFirstOpen) == "boolean",
+        "spec.silentFirstOpen must be a boolean if provided"
+    )
 
     local self = {
         name = spec.name,
@@ -632,6 +643,13 @@ function BaseMenu.create(spec)
         -- open time; falls through to the first-valid default.
         _initialIndex = spec.initialIndex,
         _focusParkControl = spec.focusParkControl,
+        -- When true, the first-open announce speaks only displayName and
+        -- skips preamble / tab-name / first-item. For screens that overlap
+        -- with an external narration (tutorial advisor voice clips, civ
+        -- leader intro on the load screen) where reading the same content
+        -- through Tolk would double-narrate. Preamble stays reachable via
+        -- F1 / readHeader.
+        _silentFirstOpen = spec.silentFirstOpen == true,
         -- _initialized gates the first-open setup (reset cursor, speak
         -- displayName + preamble + tab + item). Re-activations from a sub
         -- pop preserve cursor and just re-announce the current item.
@@ -849,6 +867,12 @@ function BaseMenu.create(spec)
             end
             self._initialized = true
             SpeechPipeline.speakInterrupt(self.displayName)
+            -- silentFirstOpen: defer preamble / tab / first-item speech to
+            -- F1 (readHeader). State setup above still ran so arrow-key
+            -- nav starts on the first navigable item.
+            if self._silentFirstOpen then
+                return
+            end
             local preambleText = resolvePreamble(self)
             if preambleText ~= nil and preambleText ~= "" then
                 SpeechPipeline.speakQueued(preambleText)
