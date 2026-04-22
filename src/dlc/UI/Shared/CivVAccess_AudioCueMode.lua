@@ -21,7 +21,7 @@ AudioCueMode.MODE_SPEECH_PLUS_CUE = 1
 AudioCueMode.MODE_CUE_ONLY        = 2
 
 local PREF_KEY     = "AudioCueMode"
-local DEFAULT_MODE = AudioCueMode.MODE_CUE_ONLY
+local DEFAULT_MODE = AudioCueMode.MODE_SPEECH_PLUS_CUE
 
 local function readMode()
     if civvaccess_shared.audioCueMode == nil then
