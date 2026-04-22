@@ -165,8 +165,7 @@ function M.test_movement_bindings_dispatch_to_cursor_with_correct_direction()
 end
 
 function M.test_plain_s_reads_unit_at_tile()
-    -- Plain S now reads the top unit on the cursor tile (military first,
-    -- civilian fallback). Orient moved to Shift+S.
+    -- Plain S reads the top unit on the cursor tile (military first, civilian fallback).
     setup()
     local h = BaselineHandler.create()
     findBinding(h, Keys.S, 0).fn()
@@ -174,8 +173,6 @@ function M.test_plain_s_reads_unit_at_tile()
 end
 
 function M.test_shift_s_orients()
-    -- Shift+S carries the orient-from-capital announcement that plain S
-    -- used to own. Keeps the vocabulary intact; just moves the modifier.
     setup()
     local h = BaselineHandler.create()
     findBinding(h, Keys.S, 1).fn()
