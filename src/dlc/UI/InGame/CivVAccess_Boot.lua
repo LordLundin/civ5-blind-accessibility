@@ -60,6 +60,7 @@ include("CivVAccess_ScannerSearch")
 include("CivVAccess_ScannerInput")
 include("CivVAccess_ScannerNav")
 include("CivVAccess_ScannerHandler")
+include("CivVAccess_NotificationAnnounce")
 
 -- Boot fires any time a new in-game Context loads, which may include the
 -- pre-game setup flow, not just a real loaded game. Civ V runs the entire
@@ -78,6 +79,7 @@ local function onInGameBoot()
     TickPump.install(ContextPtr)
     Cursor.init()
     UnitControl.installListeners()
+    NotificationAnnounce.install()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
 end
 
