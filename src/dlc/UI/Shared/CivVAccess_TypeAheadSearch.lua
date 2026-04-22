@@ -27,6 +27,16 @@
 --   getLabel(i)            string (nil to skip)
 --   moveTo(i)              set cursor + announce (search cycles pass the
 --                          original index here)
+--   groupOf(i)             optional; integer priority group for the item
+--                          (smaller = higher priority). When set, groups
+--                          are the outermost axis of the merged result
+--                          order, overriding the usual
+--                          inSegment -> tier -> length ordering. Used by
+--                          consumers that mix heterogeneous kinds in one
+--                          flat corpus (e.g. Civilopedia searching articles
+--                          and categories together, with articles ranked
+--                          above categories when they share a prefix). Nil
+--                          preserves the original single-group behavior.
 --
 -- Unicode / diacritics: unlike the C# implementation, this module does not
 -- normalize accented characters. Lua 5.1 has no built-in NFD and the mod's
@@ -218,13 +228,14 @@ local function isAllSameChar(s)
 end
 
 -- In-place stable insertion sort by (sortLength asc, position asc).
-local function sortTier(indices, names, positions, sortLengths, inSegment)
+local function sortTier(indices, names, positions, sortLengths, inSegment, groups)
     for i = 2, #positions do
         local pos = positions[i]
         local idx = indices[i]
         local name = names[i]
         local len = sortLengths[i]
         local seg = inSegment[i]
+        local grp = groups[i]
         local j = i - 1
         while j >= 1 and (sortLengths[j] > len or (sortLengths[j] == len and positions[j] > pos)) do
             positions[j + 1] = positions[j]
@@ -232,6 +243,7 @@ local function sortTier(indices, names, positions, sortLengths, inSegment)
             names[j + 1] = names[j]
             sortLengths[j + 1] = sortLengths[j]
             inSegment[j + 1] = inSegment[j]
+            groups[j + 1] = groups[j]
             j = j - 1
         end
         positions[j + 1] = pos
@@ -239,13 +251,17 @@ local function sortTier(indices, names, positions, sortLengths, inSegment)
         names[j + 1] = name
         sortLengths[j + 1] = len
         inSegment[j + 1] = seg
+        groups[j + 1] = grp
     end
 end
 
 -- Run a search against itemCount items. nameByIndex(i) returns the label or
 -- nil to skip. moveTo(origIndex) is the callback invoked on every announced
 -- result (receives the original 1-based index of the selected item).
-function Instance:search(itemCount, nameByIndex, moveTo)
+-- groupOf(origIndex) is optional; when provided, it returns an integer priority
+-- group (smaller = higher priority) used as the outermost sort axis. When nil,
+-- results use the default inSegment -> tier -> length ordering.
+function Instance:search(itemCount, nameByIndex, moveTo, groupOf)
     self._moveTo = moveTo
     local buf = self._buffer
 
@@ -276,7 +292,8 @@ function Instance:search(itemCount, nameByIndex, moveTo)
     end
     local lowerBuffer = string.lower(trimmed)
 
-    -- Tier buckets.
+    -- Tier buckets. Each bucket additionally stores per-entry groups when
+    -- groupOf is supplied; nil entries stay on the default (group 0) axis.
     local tiers = {}
     for t = 0, TIER_COUNT - 1 do
         tiers[t] = {
@@ -285,9 +302,11 @@ function Instance:search(itemCount, nameByIndex, moveTo)
             positions = {},
             sortLengths = {},
             inSegment = {},
+            groups = {},
         }
     end
 
+    local maxGroup = 0
     for i = 1, itemCount do
         local name = nameByIndex(i)
         if name ~= nil and #name > 0 then
@@ -301,6 +320,14 @@ function Instance:search(itemCount, nameByIndex, moveTo)
                 local nameLen = comma and (comma - 1) or #name
                 bucket.sortLengths[#bucket.sortLengths + 1] = nameLen
                 bucket.inSegment[#bucket.inSegment + 1] = (pos < nameLen) and 0 or 1
+                local g = 0
+                if groupOf ~= nil then
+                    g = groupOf(i) or 0
+                    if g > maxGroup then
+                        maxGroup = g
+                    end
+                end
+                bucket.groups[#bucket.groups + 1] = g
             end
         end
     end
@@ -308,19 +335,24 @@ function Instance:search(itemCount, nameByIndex, moveTo)
     for t = 0, TIER_COUNT - 1 do
         local b = tiers[t]
         if #b.indices > 1 then
-            sortTier(b.indices, b.names, b.positions, b.sortLengths, b.inSegment)
+            sortTier(b.indices, b.names, b.positions, b.sortLengths, b.inSegment, b.groups)
         end
     end
 
-    -- Merge: pre-comma matches across all tiers come before post-comma.
+    -- Merge: pre-comma matches across all tiers come before post-comma. When
+    -- groupOf is set, group is the outermost axis: all group-0 results
+    -- (articles, say) come before any group-1 (categories), even if a
+    -- category matches at a stronger tier.
     local outIdx, outNames = {}, {}
-    for inSeg = 0, 1 do
-        for t = 0, TIER_COUNT - 1 do
-            local b = tiers[t]
-            for i = 1, #b.indices do
-                if b.inSegment[i] == inSeg then
-                    outIdx[#outIdx + 1] = b.indices[i]
-                    outNames[#outNames + 1] = b.names[i]
+    for g = 0, maxGroup do
+        for inSeg = 0, 1 do
+            for t = 0, TIER_COUNT - 1 do
+                local b = tiers[t]
+                for i = 1, #b.indices do
+                    if b.groups[i] == g and b.inSegment[i] == inSeg then
+                        outIdx[#outIdx + 1] = b.indices[i]
+                        outNames[#outNames + 1] = b.names[i]
+                    end
                 end
             end
         end
@@ -410,7 +442,7 @@ function Instance:handleChar(c, searchable)
         return false
     end
     self:addChar(c)
-    self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo)
+    self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo, searchable.groupOf)
     return true
 end
 
@@ -445,11 +477,11 @@ function Instance:handleKey(vk, ctrl, alt, searchable)
                 SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
                 return true
             end
-            self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo)
+            self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo, searchable.groupOf)
             return true
         elseif vk == KEY_SPACE and not ctrl and not alt then
             self:addChar(" ")
-            self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo)
+            self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo, searchable.groupOf)
             return true
         end
         return false
@@ -465,7 +497,7 @@ function Instance:handleKey(vk, ctrl, alt, searchable)
             SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
             return true
         end
-        self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo)
+        self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo, searchable.groupOf)
         return true
     end
     return false

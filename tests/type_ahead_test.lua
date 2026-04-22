@@ -454,4 +454,101 @@ function M.test_handle_key_inactive_without_buffer_ignored()
     T.falsy(s:handleKey(8, false, false, sb), "Backspace ignored when inactive without buffer")
 end
 
+-- groupOf optional hook ---------------------------------------------------
+--
+-- Civilopedia uses this to mix articles and categories in one flat search
+-- corpus: articles are group 0, categories are group 1, so articles always
+-- rank above categories when they share a prefix. These tests pin the
+-- "articles win" behavior regardless of tier strength and confirm the nil
+-- path preserves the original ordering exactly.
+
+local function searchableWithGroup(items, groupFn)
+    return {
+        itemCount = function()
+            return #items
+        end,
+        getLabel = function(i)
+            return items[i]
+        end,
+        moveTo = function() end,
+        groupOf = groupFn,
+    }
+end
+
+function M.test_group_zero_ranks_above_group_one_across_tiers()
+    setup()
+    -- "Tech" is a tier-0 match (start, whole word). "Technocracy" is a tier-1
+    -- match (start, prefix). Without groupOf, Tech sorts first by tier.
+    -- With groupOf tagging Tech as group 2 and Technocracy as group 1, the
+    -- article outranks the category even though the category is a stronger
+    -- tier match.
+    local items = { "Tech", "Technocracy" }
+    local sb = searchableWithGroup(items, function(i)
+        return (i == 1) and 2 or 1
+    end)
+    local s = TypeAheadSearch.new()
+    s:handleChar("t", sb)
+    T.eq(s._resultIndices[1], 2, "Technocracy (group 1) ranks above Tech (group 2)")
+    T.eq(s._resultIndices[2], 1, "Tech still appears as a lower-ranked fallback")
+end
+
+function M.test_group_ordering_outranks_in_segment()
+    setup()
+    -- Without groupOf, a pre-comma match beats a post-comma match. With
+    -- groupOf putting the post-comma-match entry in a higher priority
+    -- group, it wins despite the in-segment-0 item. "apple" appears at
+    -- position 0 (pre-comma) in item 1 and position 8 (post-comma) in item 2.
+    local items = { "Pre, apple", "banana, apple" }
+    local sb = searchableWithGroup(items, function(i)
+        return (i == 2) and 0 or 1
+    end)
+    local s = TypeAheadSearch.new()
+    s:handleChar("a", sb)
+    T.eq(s._resultIndices[1], 2, "group 0 wins even though group 1's match is pre-comma")
+end
+
+function M.test_nil_group_of_preserves_default_ordering()
+    setup()
+    -- No groupOf -> results come back in the original inSegment/tier order.
+    -- "Apple" and "Apricot" are tier-1 matches for "a"; their original index
+    -- order (1, 2) is preserved by the length-asc / position-asc sort because
+    -- both have the same length-5 sort length... actually different
+    -- lengths: "Apple" is 5, "Apricot" is 7, so Apple comes first on length.
+    local s = TypeAheadSearch.new()
+    s:search(#SEARCH_ITEMS, labelAt, function() end)
+    -- Typing nothing yields no-match; typing "a" triggers the real search.
+    s:handleChar("a", searchable(SEARCH_ITEMS))
+    T.eq(s._resultIndices[1], 1, "Apple first (shorter name)")
+    T.eq(s._resultIndices[2], 2, "Apricot second")
+end
+
+function M.test_group_returning_nil_treated_as_zero()
+    setup()
+    -- groupOf may legitimately return nil for some indices (e.g. a consumer
+    -- tags only the lower-priority subset). nils coalesce to group 0 so the
+    -- unlabeled items still rank with the default high-priority cohort.
+    local items = { "apple", "apricot" }
+    local sb = searchableWithGroup(items, function(i)
+        return (i == 1) and 2 or nil
+    end)
+    local s = TypeAheadSearch.new()
+    s:handleChar("a", sb)
+    T.eq(s._resultIndices[1], 2, "nil group (treated as 0) ranks above explicit group 2")
+    T.eq(s._resultIndices[2], 1)
+end
+
+function M.test_handle_char_passes_group_of_from_searchable()
+    setup()
+    -- End-to-end through handleChar: the wired-up searchable's groupOf
+    -- reaches the merge step. Without the wiring, Tech would sort first by
+    -- tier alone.
+    local items = { "Tech", "Technocracy" }
+    local sb = searchableWithGroup(items, function(i)
+        return (i == 1) and 2 or 1
+    end)
+    local s = TypeAheadSearch.new()
+    s:handleChar("t", sb)
+    T.eq(s._resultIndices[1], 2, "handleChar routes groupOf to search")
+end
+
 return M
