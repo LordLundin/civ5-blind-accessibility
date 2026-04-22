@@ -104,6 +104,19 @@ local function setup()
     end
     SpeechPipeline = SpeechPipeline or {}
     SpeechPipeline.speakInterrupt = function(_) end
+    -- BaselineHandler's Ctrl+N and F10 bindings fire Events.SerialEventGameMessagePopup
+    -- with ButtonPopupTypes.BUTTONPOPUP_*. Stub both so the bindings can be
+    -- invoked without NPEing on the missing engine globals; a per-test
+    -- capture reads the last fired popup.
+    ButtonPopupTypes = {
+        BUTTONPOPUP_NOTIFICATION_LOG = 1,
+        BUTTONPOPUP_ADVISOR_COUNSEL = 2,
+    }
+    Events = Events or {}
+    Events._lastPopup = nil
+    Events.SerialEventGameMessagePopup = function(info)
+        Events._lastPopup = info
+    end
     -- UnitControl and Turn stubbed with empty-bindings getBindings so
     -- BaselineHandler's concat step doesn't need the real modules. Their
     -- own behavior is covered in their own test suites (live listener
@@ -191,6 +204,23 @@ function M.test_number_keys_dispatch_to_city_info()
     T.eq(Cursor._calls[1], "cityIdentity")
     T.eq(Cursor._calls[2], "cityDevelopment")
     T.eq(Cursor._calls[3], "cityPolitics")
+end
+
+function M.test_f10_fires_advisor_counsel_popup()
+    -- F10 is rebound from the engine's strategic-view toggle to the advisor
+    -- counsel popup because blind players don't use the visual map mode and
+    -- the engine's native V hotkey is swallowed by Baseline's letter-
+    -- capturing wall. F10 stays in passthroughKeys so Ctrl+F10 (select
+    -- capital) still reaches the engine via InputRouter's keycode-only
+    -- passthrough match.
+    setup()
+    local h = BaselineHandler.create()
+    local binding = findBinding(h, Keys.VK_F10, 0)
+    T.truthy(binding, "F10 binding present")
+    binding.fn()
+    T.truthy(Events._lastPopup, "popup event fired")
+    T.eq(Events._lastPopup.Type, ButtonPopupTypes.BUTTONPOPUP_ADVISOR_COUNSEL)
+    T.eq(Events._lastPopup.Data1, 1)
 end
 
 function M.test_shift_letter_cluster_dispatches_to_surveyor()

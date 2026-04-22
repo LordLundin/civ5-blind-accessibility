@@ -304,6 +304,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY"] = "No notifications.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turn {2_Turn}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_KEY_OPEN"] = "Control plus N"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_DESC_OPEN"] = "Open the notification log"
+-- AdvisorCounselPopup (BUTTONPOPUP_ADVISOR_COUNSEL). Four tabs, one per
+-- advisor. Page item prefixes the counsel body with "i/N" when the advisor
+-- has more than one page, so the user hears their position before the
+-- paragraph. Empty-advisor fallback when Game.GetAdvisorCounsel() returns
+-- nothing for that slot (early-game Science is the usual case). F10 help
+-- entry covers the BaselineHandler binding that opens the popup.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_EMPTY"] = "No counsel."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_PAGE_ITEM"] = "{1_Num}/{2_Num}, {3_Text}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY"] = "F10"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "Open the advisor counsel"
 -- Collapse announcement emitted when three or more notifications arrive
 -- inside a six-frame window. The actual summaries are still available via
 -- Ctrl+N so no content is lost.

@@ -16,6 +16,16 @@
 -- then layers over). Popups above Baseline set their own capturesAllInput
 -- without a passthrough list, so F-keys and Escape are correctly
 -- swallowed while any dialog or menu is up.
+--
+-- F10 is both passed through AND bound: the plain-F10 binding wins at the
+-- bindings-loop stage (InputRouter matches key + mods) and fires the
+-- advisor counsel popup, overriding the engine's strategic-view toggle
+-- which is useless to blind players. Ctrl+F10 has no mods=2 binding here
+-- so it falls through the bindings loop, hits the passthrough check on
+-- keycode alone, and reaches the engine's select-capital binding intact.
+-- Rebinding F10 is the accessibility path because the engine's native
+-- hotkey for advisor counsel is KB_V, which Baseline swallows as an
+-- unbound letter.
 
 BaselineHandler = {}
 
@@ -86,6 +96,17 @@ function BaselineHandler.create()
                 Data1 = 1,
             })
         end, "Open notification log"),
+        bind(Keys.VK_F10, MOD_NONE, function()
+            -- Engine's native hotkey for this popup is KB_V, which Baseline
+            -- swallows as an unbound letter; F10 (strategic view) is
+            -- repurposed since blind players have no use for the visual
+            -- toggle. Data1 = 1 gives InGameUtmost priority, matching the
+            -- Ctrl+N notification-log pattern.
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_ADVISOR_COUNSEL,
+                Data1 = 1,
+            })
+        end, "Open advisor counsel"),
     }
     local helpEntries = {
         {
@@ -123,6 +144,10 @@ function BaselineHandler.create()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_KEY_OPEN",
             description = "TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_DESC_OPEN",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY",
+            description = "TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC",
         },
     }
     local surveyor = SurveyorCore.getBindings()
