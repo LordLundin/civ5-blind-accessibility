@@ -653,53 +653,11 @@ local function loadRecommendationsBackend()
     loadModule("src/dlc/UI/InGame/CivVAccess_ScannerBackendRecommendations.lua")
 end
 
--- Stub the selection and options globals the backend reads. Each test
--- overrides the bits it cares about; defaults here model the "a Settler
--- is selected, the player already has one city, and tile recommendations
--- are enabled" happy path.
-local function installRecGlobals(opts)
-    opts = opts or {}
-    UI = UI or {}
-    UI.CanSelectionListFound = function()
-        return opts.canFound ~= false
-    end
-    UI.CanSelectionListWork = function()
-        return opts.canWork == true
-    end
-    OptionsManager = OptionsManager or {}
-    OptionsManager.IsNoTileRecommendations = function()
-        return opts.hideRecs == true
-    end
-end
-
--- A recommendation-aware player stub. settlerPlots / workerRecs mirror
--- the engine's return shapes: settler list is raw plot handles; worker
--- list is { plot, buildType } tables.
-local function installRecPlayer(opts)
-    opts = opts or {}
-    local p = {}
-    function p:GetNumCities()
-        return opts.numCities or 0
-    end
-    function p:GetRecommendedFoundCityPlots()
-        return opts.settlerPlots or {}
-    end
-    function p:GetRecommendedWorkerPlots()
-        return opts.workerRecs or {}
-    end
-    function p:CanFound(x, y)
-        if opts.cantFoundAt then
-            for _, v in ipairs(opts.cantFoundAt) do
-                if v[1] == x and v[2] == y then
-                    return false
-                end
-            end
-        end
-        return opts.canFoundDefault ~= false
-    end
-    Players[0] = p
-    return p
-end
+-- installRecGlobals / installRecPlayer live on T in tests/support.lua;
+-- shared with the cursor suite. Local aliases keep this file's call
+-- sites terse.
+local installRecGlobals = T.installRecGlobals
+local installRecPlayer = T.installRecPlayer
 
 function M.test_recs_empty_when_options_hide()
     setup()

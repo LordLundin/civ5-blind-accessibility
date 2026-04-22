@@ -407,6 +407,62 @@ function T.installMap(plots)
     end
 end
 
+-- Install the UI / OptionsManager globals that the recommendations
+-- pipeline reads. Shared by the scanner backend suite and the cursor
+-- plot-section suite. Defaults are "everything off"; tests opt in to
+-- the gates they care about by passing canFound / canWork / hideRecs.
+function T.installRecGlobals(opts)
+    opts = opts or {}
+    UI = UI or {}
+    UI.CanSelectionListFound = function()
+        return opts.canFound == true
+    end
+    UI.CanSelectionListWork = function()
+        return opts.canWork == true
+    end
+    OptionsManager = OptionsManager or {}
+    OptionsManager.IsNoTileRecommendations = function()
+        return opts.hideRecs == true
+    end
+end
+
+-- Install a Players[0] stub with the rec-specific methods (cities,
+-- rec lists, CanFound, GetNumResourceAvailable). Returns the stub so
+-- tests can monkey-patch further. `cantFoundAt` is a list of {x, y}
+-- pairs that should fail CanFound; everywhere else returns true.
+function T.installRecPlayer(opts)
+    opts = opts or {}
+    local p = {
+        _numCities = opts.numCities or 0,
+        _settlerPlots = opts.settlerPlots or {},
+        _workerRecs = opts.workerRecs or {},
+        _cantFoundAt = opts.cantFoundAt or {},
+        _resources = opts.resources or {},
+    }
+    function p:GetNumCities()
+        return self._numCities
+    end
+    function p:GetRecommendedFoundCityPlots()
+        return self._settlerPlots
+    end
+    function p:GetRecommendedWorkerPlots()
+        return self._workerRecs
+    end
+    function p:CanFound(x, y)
+        for _, v in ipairs(self._cantFoundAt) do
+            if v[1] == x and v[2] == y then
+                return false
+            end
+        end
+        return true
+    end
+    function p:GetNumResourceAvailable(resId)
+        return self._resources[resId] or 0
+    end
+    Players[0] = p
+    return p
+end
+
 -- Build a ScanEntry with test-friendly defaults. `opts.backend` overrides
 -- the placeholder `{ name = "test" }` for suites that exercise Nav's
 -- backend-dispatch paths (ValidateEntry / FormatName).

@@ -26,7 +26,6 @@ function Recommendations.settlerActive(player)
     return UI ~= nil
         and UI.CanSelectionListFound ~= nil
         and UI.CanSelectionListFound()
-        and player ~= nil
         and player:GetNumCities() > 0
 end
 

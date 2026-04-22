@@ -224,12 +224,55 @@ PlotSections.route = pillagedSection(
 -- plot the engine currently flags with a settler / worker anchor.
 -- Two tokens: the prefix-formatted name and the reason tooltip (the
 -- composer joins them with ", ", producing "recommendation: X, Y").
--- Settler priority over worker when both match (rare; happens only
--- when a mixed Settler+Worker selection stack produces both rec
--- lists). Non-recommended plots return {}.
+-- Settler priority over worker when both match; if the settler path
+-- is gated out (CanFound now false, for instance) the worker path
+-- still gets a chance, so a plot that both a Settler-in-stack and a
+-- Worker-in-stack consider recommended still announces the worker's
+-- build when settling is blocked. Non-recommended plots return {}.
+
+local function settlerRecTokens(player, plot, x, y)
+    if not Recommendations.settlerActive(player) then
+        return nil
+    end
+    if not Recommendations.settlerContains(player, x, y) then
+        return nil
+    end
+    if not player:CanFound(x, y) then
+        return nil
+    end
+    local name = Text.key("TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE")
+    local tokens = { Text.format("TXT_KEY_CIVVACCESS_RECOMMENDATION_PREFIX", name) }
+    local reason = Recommendations.settlerReason(plot, player)
+    if reason ~= nil and reason ~= "" then
+        tokens[#tokens + 1] = reason
+    end
+    return tokens
+end
+
+local function workerRecTokens(player, plot, x, y)
+    if not Recommendations.workerActive() then
+        return nil
+    end
+    local rec = Recommendations.workerRecAt(player, x, y)
+    if rec == nil then
+        return nil
+    end
+    local row = GameInfo.Builds and GameInfo.Builds[rec.buildType]
+    if row == nil or row.Description == nil then
+        return nil
+    end
+    local name = Text.key(row.Description)
+    local tokens = { Text.format("TXT_KEY_CIVVACCESS_RECOMMENDATION_PREFIX", name) }
+    local reason = Recommendations.workerReason(plot, rec.buildType)
+    if reason ~= nil and reason ~= "" then
+        tokens[#tokens + 1] = reason
+    end
+    return tokens
+end
+
 PlotSections.recommendation = {
     Read = function(plot)
-        if Recommendations == nil or not Recommendations.allowed() then
+        if not Recommendations.allowed() then
             return {}
         end
         local player = Players[Game.GetActivePlayer()]
@@ -237,34 +280,6 @@ PlotSections.recommendation = {
             return {}
         end
         local x, y = plot:GetX(), plot:GetY()
-        if Recommendations.settlerActive(player) and Recommendations.settlerContains(player, x, y) then
-            if not player:CanFound(x, y) then
-                return {}
-            end
-            local name = Text.key("TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE")
-            local tokens = { Text.format("TXT_KEY_CIVVACCESS_RECOMMENDATION_PREFIX", name) }
-            local reason = Recommendations.settlerReason(plot, player)
-            if reason ~= nil and reason ~= "" then
-                tokens[#tokens + 1] = reason
-            end
-            return tokens
-        end
-        if Recommendations.workerActive() then
-            local rec = Recommendations.workerRecAt(player, x, y)
-            if rec ~= nil then
-                local row = GameInfo.Builds and GameInfo.Builds[rec.buildType]
-                if row == nil or row.Description == nil then
-                    return {}
-                end
-                local name = Text.key(row.Description)
-                local tokens = { Text.format("TXT_KEY_CIVVACCESS_RECOMMENDATION_PREFIX", name) }
-                local reason = Recommendations.workerReason(plot, rec.buildType)
-                if reason ~= nil and reason ~= "" then
-                    tokens[#tokens + 1] = reason
-                end
-                return tokens
-            end
-        end
-        return {}
+        return settlerRecTokens(player, plot, x, y) or workerRecTokens(player, plot, x, y) or {}
     end,
 }

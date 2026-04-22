@@ -1206,63 +1206,20 @@ end
 
 -- ===== Recommendation section =====
 
--- Install the global stubs the recommendation path reads: OptionsManager
--- for the hide toggle, UI for the selected-unit gate. Defaults match
--- "a Settler is selected and recommendations are enabled"; per-test
--- overrides flip flags.
-local function installRecGlobals(opts)
-    opts = opts or {}
-    UI.CanSelectionListFound = function()
-        return opts.canFound == true
-    end
-    UI.CanSelectionListWork = function()
-        return opts.canWork == true
-    end
-    OptionsManager = OptionsManager or {}
-    OptionsManager.IsNoTileRecommendations = function()
-        return opts.hideRecs == true
-    end
-end
-
--- A player stub with the recommendation-specific methods. Returns the
--- Players[0] entry after installing so tests can monkey-patch further.
-local function installRecPlayer(opts)
-    opts = opts or {}
-    local p = {
-        _numCities = opts.numCities or 0,
-        _settlerPlots = opts.settlerPlots or {},
-        _workerRecs = opts.workerRecs or {},
-        _cantFoundAt = opts.cantFoundAt or {},
-        _resources = opts.resources or {},
-    }
-    function p:GetNumCities()
-        return self._numCities
-    end
-    function p:GetRecommendedFoundCityPlots()
-        return self._settlerPlots
-    end
-    function p:GetRecommendedWorkerPlots()
-        return self._workerRecs
-    end
-    function p:CanFound(x, y)
-        for _, v in ipairs(self._cantFoundAt) do
-            if v[1] == x and v[2] == y then
-                return false
-            end
-        end
-        return true
-    end
-    function p:GetNumResourceAvailable(resId)
-        return self._resources[resId] or 0
-    end
-    Players[0] = p
-    return p
-end
+-- installRecGlobals / installRecPlayer are shared fixtures from
+-- tests/support.lua; aliased locally so the call sites stay terse
+-- and match the scanner suite's naming.
+local installRecGlobals = T.installRecGlobals
+local installRecPlayer = T.installRecPlayer
 
 function M.test_recommendation_section_silent_without_globals()
-    -- Existing glance tests don't install UI.CanSelectionList* or
-    -- OptionsManager; the section must stay silent when those names
-    -- aren't bound, or every pre-existing glance test would regress.
+    -- Recommendations.allowed() reads OptionsManager.IsNoTileRecommendations,
+    -- which is not in the polyfill and only shows up in tests that install
+    -- it explicitly. When missing (every pre-existing cursor glance test),
+    -- allowed() returns false and the section stays silent. This is what
+    -- keeps the recommendation section from perturbing any of the older
+    -- glance cases; without it, every fixture would need a nil-OptionsManager
+    -- carve-out.
     setup()
     local p = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true })
     T.eq(#PlotSections.recommendation.Read(p), 0)
@@ -1429,6 +1386,37 @@ function M.test_recommendation_worker_strategic_resource_beats_yield()
     })
     local tokens = PlotSections.recommendation.Read(target)
     T.eq(tokens[2], "TXT_KEY_RECOMMEND_WORKER_STRATEGIC", "strategic-on-plot must beat the yield-delta tail")
+end
+
+function M.test_recommendation_worker_fires_when_settler_cant_found()
+    -- Regression: a plot that appears in BOTH rec lists (a mixed
+    -- Settler+Worker stack is selected) used to silently swallow the
+    -- worker announcement once the settler's CanFound turned false --
+    -- the settler branch early-returned {} instead of falling through.
+    -- The fallthrough must now reach the worker path.
+    setup()
+    installRecGlobals({ canFound = true, canWork = true })
+    GameInfo.Builds = { [7] = { Description = "TXT_KEY_BUILD_FARM" } }
+    local target = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true })
+    function target:CalculateYield()
+        return 0
+    end
+    function target:GetYieldWithBuild(_build, y, _path, _player)
+        if y == YieldTypes.YIELD_FOOD then
+            return 1
+        end
+        return 0
+    end
+    installRecPlayer({
+        numCities = 1,
+        settlerPlots = { target },
+        workerRecs = { { plot = target, buildType = 7 } },
+        cantFoundAt = { { 0, 0 } }, -- settler side is gated out
+    })
+    local tokens = PlotSections.recommendation.Read(target)
+    T.eq(#tokens, 2, "worker rec must survive the settler's CanFound=false gate")
+    T.truthy(tokens[1]:find("TXT_KEY_BUILD_FARM", 1, true), "expected build name in prefix: " .. tokens[1])
+    T.eq(tokens[2], "TXT_KEY_BUILD_FOOD_REC")
 end
 
 function M.test_recommendation_section_wires_into_glance()
