@@ -66,6 +66,20 @@ function M.test_color_token_with_digits_stripped()
     T.eq(TextFilter.filter("[COLOR_PLAYER_GOLD_TEXT_1]gold[ENDCOLOR]"), "gold")
 end
 
+-- Slash-closing tags used in tutorial / advisor copy alongside [COLOR_*].
+-- The catch-all bracket stripper rejects the slash, so these need their own
+-- rule; without it, users hear "[/COLOR]" read verbatim at the end of a
+-- highlighted phrase.
+function M.test_slash_color_close_stripped()
+    setup()
+    T.eq(TextFilter.filter("press [COLOR_ADVISOR_HIGHLIGHT_TEXT]Found City[/COLOR] button"), "press Found City button")
+end
+
+function M.test_slash_red_close_stripped()
+    setup()
+    T.eq(TextFilter.filter("[COLOR_WARNING_TEXT]danger[/RED]"), "danger")
+end
+
 function M.test_style_token_stripped_by_catchall()
     setup()
     T.eq(TextFilter.filter("[STYLE_HEADER]Title"), "Title")

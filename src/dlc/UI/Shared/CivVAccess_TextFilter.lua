@@ -98,6 +98,9 @@ function TextFilter.filter(text)
     s = substituteIcons(s)
     s = s:gsub("%[COLOR_[A-Z0-9_]+%]", "")
     s = s:gsub("%[ENDCOLOR%]", "")
+    -- Closing tags: [/COLOR] and [/RED] appear in tutorial and advisor copy.
+    -- The catch-all below excludes the slash, so these would leak through.
+    s = s:gsub("%[/[A-Z_0-9]+%]", "")
     -- Catch-all for remaining uppercase bracket tokens ([STYLE_*], [TAB], [BULLET], ...).
     s = s:gsub("%[([A-Z_0-9]+)%]", "")
     -- Emdash (U+2014, UTF-8 E2 80 94) -> space; screen readers say "dash".

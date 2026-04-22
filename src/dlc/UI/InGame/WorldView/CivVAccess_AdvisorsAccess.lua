@@ -1,12 +1,25 @@
 -- Advisors (tutorial banner) accessibility. Fired by Events.AdvisorDisplayShow
 -- from TutorialEngine.ProcessActiveTutorialQueue with eventInfo =
 -- {IDName, Advisor, TitleText, BodyText, ActivateButtonText, Concept1/2/3,
--- Modal}. Body is short tutorial advice (e.g. "This looks like a good place
--- to start a city..."). Up to three Question buttons drill into a Concept
--- (each opens BUTTONPOPUP_ADVISOR_INFO, a separate Context not yet wired);
--- an optional Activate button fires a generic help popup; a Don't-show-
--- again checkbox and Thank-you dismiss complete the layout. Question4String
--- exists in the XML but the base lua never wires it, so we omit it too.
+-- Modal}. Body is short tutorial advice ("This is a good place to start a
+-- city..."). Up to three Question buttons drill into a Concept (each opens
+-- BUTTONPOPUP_ADVISOR_INFO, a separate Context not yet wired); an optional
+-- Activate button fires a generic help popup; a Don't-show-again checkbox
+-- and Thank-you dismiss complete the layout. Question4String exists in the
+-- XML but base lua never wires it, so we omit it too.
+--
+-- Speech overlap: the engine plays a pre-recorded advisor voice clip for
+-- every tutorial listed in Sounds/XML/AdvisorSoundConnections.xml (covers
+-- essentially every base-game tutorial). That clip narrates the same text
+-- our preamble would speak, so reading the preamble on push produces a
+-- double-narration. AdvisorSoundConnections is not exposed through
+-- GameInfo, so we can't reliably detect "voice will play" per-tutorial.
+-- Resolution: on fresh show we speak only the dynamic screen name (the
+-- live advisor title, e.g. "Economic Advisor") and nothing else. The body
+-- text stays reachable through F1 (readHeader) so the user can opt in.
+-- Tradeoff: a tutorial added without voice (mod content, unusual base
+-- case) will be silent until the user presses F1 -- matches the stated
+-- preference for silence-plus-F1 over spam.
 --
 -- DontShowAgainCheckbox has no click callback wired in base code: base
 -- AdvisorClose() reads its state synchronously at dismiss time and calls
@@ -62,17 +75,23 @@ local function controlText(control)
     return tostring(text)
 end
 
--- Preamble order: advisor title ("Science Advisor" etc., set live by base
--- SetAdvisorDisplay), then tutorial header ("Found Your First City"), then
--- body ("This looks like a good place..."). AdvisorTitleText lives inside
--- a hidden grid so it does not render, but GetText returns the populated
--- value and the user hears which advisor is speaking.
+-- The screen name tracks whoever is currently speaking. base SetAdvisorDisplay
+-- writes the per-advisor title ("Military Advisor", "Economic Advisor", etc.)
+-- into AdvisorTitleText on every OnAdvisorDisplayShow, so reading it live
+-- gives the right value for the tutorial currently on screen. Falls back to
+-- the static "Tutorial Advisor" string when the label is blank (shouldn't
+-- happen during a real tutorial, but keeps the spec's non-empty-string
+-- requirement satisfied at install time before any tutorial has fired).
+local function readAdvisorTitle()
+    local live = controlText(Controls.AdvisorTitleText)
+    if live ~= "" then
+        return live
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_SCREEN_ADVISOR_TUTORIAL")
+end
+
 local function buildPreamble()
     local parts = {}
-    local advisor = controlText(Controls.AdvisorTitleText)
-    if advisor ~= "" then
-        parts[#parts + 1] = advisor
-    end
     local header = controlText(Controls.AdvisorHeaderText)
     if header ~= "" then
         parts[#parts + 1] = header
@@ -81,13 +100,20 @@ local function buildPreamble()
     if body ~= "" then
         parts[#parts + 1] = body
     end
-    return table.concat(parts, ". ")
+    if #parts == 0 then
+        return nil
+    end
+    return TextFilter.filter(table.concat(parts, ". "))
 end
 
 local freshShow = false
 
 local handler = BaseMenu.install(ContextPtr, {
     name = "Advisors",
+    -- Spec requires a non-empty displayName; the live advisor title is
+    -- written into handler.displayName on every fresh-show via the
+    -- onActivate wrap below. This initial value is a safety fallback and
+    -- should not normally be heard.
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_ADVISOR_TUTORIAL"),
     preamble = buildPreamble,
     priorInput = priorInput,
@@ -154,6 +180,33 @@ local handler = BaseMenu.install(ContextPtr, {
     },
 })
 
+-- Wrap onActivate so fresh show announces only the dynamic advisor title.
+-- BaseMenu's default fresh-show path speaks displayName + preamble + first
+-- item, which would overlap with the game's advisor voice clip. The
+-- minimal path still initializes level / cursor state so arrow-key
+-- navigation works from the first navigable item; the preamble stays
+-- reachable through F1 / readHeader. Re-activations (sub-menu pop,
+-- etc.) delegate to the original behavior.
+local originalOnActivate = handler.onActivate
+handler.onActivate = function()
+    if not handler._initialized then
+        handler.displayName = readAdvisorTitle()
+        handler._level = 1
+        handler._indices = { 1 }
+        local items = handler._items or {}
+        for i, item in ipairs(items) do
+            if item:isNavigable() then
+                handler._indices[1] = i
+                break
+            end
+        end
+        handler._initialized = true
+        SpeechPipeline.speakInterrupt(handler.displayName)
+        return
+    end
+    originalOnActivate()
+end
+
 Events.AdvisorDisplayShow.Add(function()
     -- Context hidden when the listener runs means base OnAdvisorDisplayShow
     -- has not yet reached its AdvisorOpen() call, or AdvisorOpen's
@@ -168,8 +221,9 @@ Events.AdvisorDisplayShow.Add(function()
         return
     end
     -- Context was already visible: base overwrote the tutorial text in
-    -- place without a SetHide transition. Re-announce the new preamble and
-    -- reset the cursor to the first navigable item.
+    -- place without a SetHide transition. Re-announce the new advisor title
+    -- and reset the cursor to the first navigable item. The wrapped
+    -- onActivate picks up the new title via readAdvisorTitle().
     handler._initialized = false
     local ok, err = pcall(handler.onActivate)
     if not ok then
