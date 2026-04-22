@@ -62,6 +62,41 @@ SpeechEngine = {
     stop = function() end,
 }
 
+-- Audio: capturing stub for the proxy's miniaudio binding so PlotAudio and
+-- Cursor suites can assert bed / fog / stinger / cancel_all call ordering
+-- without touching real audio. Stays here (not in the polyfill) for the
+-- same reason SpeechEngine is test-owned: suites want a monkey-patch seam.
+-- `load` returns an incrementing id so every sound-name maps to a distinct
+-- handle; `_reset` wipes the call log between tests.
+audio = {
+    _calls = {},
+    _loadCounter = 0,
+}
+function audio.load(name)
+    audio._loadCounter = audio._loadCounter + 1
+    audio._calls[#audio._calls + 1] = { op = "load", name = name, id = audio._loadCounter }
+    return audio._loadCounter
+end
+function audio.play(id)
+    audio._calls[#audio._calls + 1] = { op = "play", id = id }
+end
+function audio.play_delayed(id, ms)
+    audio._calls[#audio._calls + 1] = { op = "play_delayed", id = id, ms = ms }
+end
+function audio.cancel_all()
+    audio._calls[#audio._calls + 1] = { op = "cancel_all" }
+end
+function audio.set_master_volume(v)
+    audio._calls[#audio._calls + 1] = { op = "set_master_volume", v = v }
+end
+function audio.set_volume(id, v)
+    audio._calls[#audio._calls + 1] = { op = "set_volume", id = id, v = v }
+end
+function audio._reset()
+    audio._calls = {}
+    audio._loadCounter = 0
+end
+
 T.register("text_filter", require("text_filter_test"))
 T.register("speech_pipeline", require("speech_pipeline_test"))
 T.register("text", require("text_test"))
@@ -77,6 +112,7 @@ T.register("help", require("help_test"))
 T.register("picker_reader", require("picker_reader_test"))
 T.register("icons", require("icons_test"))
 T.register("cursor", require("cursor_test"))
+T.register("plot_audio", require("plot_audio_test"))
 T.register("hexgeom", require("hexgeom_test"))
 T.register("surveyor", require("surveyor_test"))
 T.register("unit_speech", require("suite_unit_speech"))

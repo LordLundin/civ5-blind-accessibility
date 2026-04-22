@@ -30,7 +30,9 @@ if not exist "%OUT%" mkdir "%OUT%"
 if not exist "%STAGE%" mkdir "%STAGE%"
 
 echo Building lua51_Win32.dll (x86)...
-cl /nologo /O2 /W3 /LD /MT /D_CRT_SECURE_NO_WARNINGS ^
+rem /bigobj: miniaudio's single-header implementation produces far more
+rem sections than the default COFF limit allows.
+cl /nologo /O2 /W3 /LD /MT /bigobj /D_CRT_SECURE_NO_WARNINGS ^
     /Fo"%OUT%\proxy.obj" ^
     /Fe"%OUT%\lua51_Win32.dll" ^
     "%SRC%proxy.c" ^

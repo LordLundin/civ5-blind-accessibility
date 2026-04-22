@@ -32,11 +32,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$repoRoot  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$buildBat  = Join-Path $repoRoot 'src\proxy\build_proxy.bat'
-$stageDir  = Join-Path $repoRoot 'build\proxy\stage'
-$dlcSrcDir = Join-Path $repoRoot 'src\dlc'
-$dlcName   = 'DLC_CivVAccess'
+$repoRoot    = Split-Path -Parent $MyInvocation.MyCommand.Path
+$buildBat    = Join-Path $repoRoot 'src\proxy\build_proxy.bat'
+$stageDir    = Join-Path $repoRoot 'build\proxy\stage'
+$dlcSrcDir   = Join-Path $repoRoot 'src\dlc'
+$soundsSrcDir = Join-Path $repoRoot 'sounds'
+$dlcName     = 'DLC_CivVAccess'
 $legacyDlcDirs = @('CivVAccess')
 $legacyModDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
 
@@ -176,6 +177,16 @@ function Invoke-Deploy {
     Write-Host "Deploying DLC payload to:"
     Write-Host "  $dlcDir"
     Copy-Item -Path (Join-Path $dlcSrcDir '*') -Destination $dlcDir -Recurse -Force
+
+    # Sound assets for the per-hex audio cue layer. The proxy's miniaudio
+    # binding reads these at runtime by bare filename from this directory.
+    if (Test-Path $soundsSrcDir) {
+        $soundsDst = Join-Path $dlcDir 'Sounds'
+        New-Item -ItemType Directory -Path $soundsDst -Force | Out-Null
+        Write-Host "Deploying sound assets to:"
+        Write-Host "  $soundsDst"
+        Copy-Item -Path (Join-Path $soundsSrcDir '*.wav') -Destination $soundsDst -Force
+    }
 
     # Clean up any orphan legacy install so the mod loader doesn't pick up
     # stale entries from previous non-DLC deploys.

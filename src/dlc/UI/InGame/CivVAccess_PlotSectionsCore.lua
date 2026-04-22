@@ -98,9 +98,17 @@ local FEATURE_SUPPRESSES_TERRAIN = {
 -- right suppression rules in one place. Output order is feature, hills,
 -- terrain; the feature leads because it's the distinguishing-fact-first
 -- choice ("jungle, hills" reads faster than "hills, jungle").
+-- ctx.cueOnly suppresses tokens the audio cue layer already carries:
+-- base terrain, mountain, lake, and non-wonder feature names. Hills and
+-- natural-wonder names always speak (no audio representation in the v1
+-- palette). See AudioCueMode / PlotAudio and the audio-cues plan.
 PlotSections.terrainShape = {
-    Read = function(plot)
+    Read = function(plot, ctx)
+        ctx = ctx or {}
         if plot:IsLake() then
+            if ctx.cueOnly then
+                return {}
+            end
             return { Text.key("TXT_KEY_CIVVACCESS_LAKE") }
         end
         local fid = plot:GetFeatureType()
@@ -109,19 +117,24 @@ PlotSections.terrainShape = {
             return { Text.key(fRow.Description) }
         end
         if plot:IsMountain() then
+            if ctx.cueOnly then
+                return {}
+            end
             return { Text.key("TXT_KEY_CIVVACCESS_MOUNTAIN") }
         end
         local tokens = {}
-        if fRow then
+        if fRow and not ctx.cueOnly then
             tokens[#tokens + 1] = Text.key(fRow.Description)
         end
         if plot:IsHills() then
             tokens[#tokens + 1] = Text.key("TXT_KEY_CIVVACCESS_HILLS")
         end
-        if not (fRow and FEATURE_SUPPRESSES_TERRAIN[fRow.Type]) then
-            local tName = lookupName("Terrains", plot:GetTerrainType())
-            if tName ~= nil then
-                tokens[#tokens + 1] = tName
+        if not ctx.cueOnly then
+            if not (fRow and FEATURE_SUPPRESSES_TERRAIN[fRow.Type]) then
+                local tName = lookupName("Terrains", plot:GetTerrainType())
+                if tName ~= nil then
+                    tokens[#tokens + 1] = tName
+                end
             end
         end
         return tokens

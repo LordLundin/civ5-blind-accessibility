@@ -81,12 +81,23 @@ end
 -- not touched while unexplored, so an Arabia → unexplored → Arabia walk
 -- doesn't re-fire the prefix on re-entry.
 local function announceForMove(plot)
+    local cueEnabled = AudioCueMode.isCueEnabled()
+    local cueOnly    = AudioCueMode.isCueOnly()
+
+    if cueEnabled then
+        PlotAudio.emit(plot)
+    end
+
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
     if not plot:IsRevealed(team, debug) then
+        -- Unexplored always speaks regardless of mode: the cue palette has
+        -- no "unexplored" sound, and silence would be indistinguishable
+        -- from a broken cue pipeline.
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED") .. "."
     end
+
     local spoken, identity = PlotSections.ownerIdentity(plot)
-    local glance = PlotComposers.glance(plot)
+    local glance = PlotComposers.glance(plot, { cueOnly = cueOnly })
     local prefix = ""
     if identity ~= _lastOwnerIdentity then
         _lastOwnerIdentity = identity

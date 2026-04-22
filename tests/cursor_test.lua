@@ -12,7 +12,18 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionUnits.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionRiver.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotComposers.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_AudioCueMode.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_PlotAudio.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_Cursor.lua")
+
+    -- Reset audio stub and shared state so prior suites / cases don't leak
+    -- cue handles or mode overrides into the cursor cases. Default the mode
+    -- to MODE_SPEECH here so the pre-existing glance tests see the full
+    -- speech output they expect; cases that exercise cue / cue-only override
+    -- via AudioCueMode.setMode.
+    audio._reset()
+    civvaccess_shared.plotAudioHandles = nil
+    civvaccess_shared.audioCueMode = AudioCueMode.MODE_SPEECH
 
     Game.GetActivePlayer = function()
         return 0
@@ -201,6 +212,65 @@ function M.test_terrainShape_lake_speaks_alone()
     local out = PlotSections.terrainShape.Read(p, {})
     T.eq(#out, 1)
     T.eq(out[1], "lake")
+end
+
+-- ===== terrainShape cue-only filtering =====
+-- ctx.cueOnly drops tokens the audio cue layer covers (terrain, mountain,
+-- lake, non-wonder features) and keeps what has no audio representation
+-- (hills, natural wonders).
+
+function M.test_terrainShape_cueOnly_suppresses_base_terrain()
+    setup()
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local p = T.fakePlot({ terrain = 1 })
+    T.eq(#PlotSections.terrainShape.Read(p, { cueOnly = true }), 0,
+         "terrain name is carried by bed cue; must not speak in cue-only")
+end
+
+function M.test_terrainShape_cueOnly_suppresses_mountain()
+    setup()
+    local p = T.fakePlot({ mountain = true })
+    T.eq(#PlotSections.terrainShape.Read(p, { cueOnly = true }), 0,
+         "mountain has its own bed; must not speak in cue-only")
+end
+
+function M.test_terrainShape_cueOnly_suppresses_lake()
+    setup()
+    local p = T.fakePlot({ lake = true })
+    T.eq(#PlotSections.terrainShape.Read(p, { cueOnly = true }), 0,
+         "lake is covered by the water bed; must not speak in cue-only")
+end
+
+function M.test_terrainShape_cueOnly_suppresses_non_wonder_feature()
+    -- Every non-wonder feature maps to either a bed (jungle, marsh, ...)
+    -- or a stinger (forest, fallout). None of them should speak in cue-only.
+    setup()
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    GameInfo.Features[6] = { Description = "Forest", Type = "FEATURE_FOREST" }
+    local p = T.fakePlot({ terrain = 1, feature = 6 })
+    T.eq(#PlotSections.terrainShape.Read(p, { cueOnly = true }), 0,
+         "feature name is carried by the stinger/bed; must not speak in cue-only")
+end
+
+function M.test_terrainShape_cueOnly_keeps_hills()
+    -- Hills have no audio representation in v1.
+    setup()
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local p = T.fakePlot({ terrain = 1, hills = true })
+    local out = PlotSections.terrainShape.Read(p, { cueOnly = true })
+    T.eq(#out, 1)
+    T.eq(out[1], "hills")
+end
+
+function M.test_terrainShape_cueOnly_keeps_natural_wonder()
+    -- The palette has no wonder sound, so identity must speak.
+    setup()
+    GameInfo.Terrains[6] = { Description = "Snow" }
+    GameInfo.Features[5] = { Description = "Mt. Fuji", Type = "FEATURE_FUJI", NaturalWonder = true }
+    local p = T.fakePlot({ terrain = 6, feature = 5, mountain = true })
+    local out = PlotSections.terrainShape.Read(p, { cueOnly = true })
+    T.eq(#out, 1)
+    T.eq(out[1], "Mt. Fuji")
 end
 
 -- ===== Resource section =====
@@ -927,6 +997,210 @@ function M.test_cursor_city_info_keys_delegate_to_city_speech()
     T.eq(Cursor.cityIdentity(), "CITY_IDENTITY")
     T.eq(Cursor.cityDevelopment(), "CITY_DEV")
     T.eq(Cursor.cityPolitics(), "CITY_POL")
+end
+
+-- ===== AudioCueMode gating of announceForMove =====
+-- Three modes: speech-only (current behavior), speech+cue (both fire),
+-- cue-only (silence except for natural wonders + unexplored). The audio
+-- stub from run.lua captures cue calls so tests can distinguish cue-emitted
+-- from cue-suppressed moves; PlotAudio.loadAll runs in setupModeMove so
+-- emit has handles to dispatch with.
+local function setupModeMove(mode)
+    setup()
+    GameInfo.Terrains[1] = { Type = "TERRAIN_GRASS", Description = "Plains" }
+    local start = T.fakePlot({ x = 0, y = 0, terrain = 1 })
+    local dest  = T.fakePlot({ x = 1, y = 0, terrain = 1 })
+    local byXY = { ["0,0"] = start, ["1,0"] = dest }
+    Map.GetPlot = function(x, y)
+        return byXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return byXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    local seed = T.fakeUnit({})
+    seed._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return seed
+    end
+    Cursor.init()
+    PlotAudio.loadAll()
+    AudioCueMode.setMode(mode)
+    audio._reset()
+    return start, dest
+end
+
+local function hasOp(calls, op)
+    for _, c in ipairs(calls) do
+        if c.op == op then
+            return true
+        end
+    end
+    return false
+end
+
+function M.test_speech_mode_move_produces_no_audio_calls()
+    -- MODE_SPEECH preserves the mod's original behavior for users who
+    -- don't want audio cues. Not even cancel_all fires, to avoid touching
+    -- the mixer when audio is off entirely.
+    setupModeMove(AudioCueMode.MODE_SPEECH)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.eq(#audio._calls, 0, "speech mode must not touch audio")
+    T.truthy(out:find("Plains", 1, true), "speech mode still speaks the glance: " .. out)
+end
+
+function M.test_speech_plus_cue_mode_fires_both()
+    -- MODE_SPEECH_PLUS_CUE: audio cue layered under normal speech. The
+    -- default mode once config lands; verify cue dispatch and speech text
+    -- both present on the same move.
+    setupModeMove(AudioCueMode.MODE_SPEECH_PLUS_CUE)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(hasOp(audio._calls, "cancel_all"), "cue must cancel prior audio on move")
+    T.truthy(hasOp(audio._calls, "play"), "cue must play a bed")
+    T.truthy(out:find("Plains", 1, true), "speech still fires in speech+cue: " .. out)
+end
+
+function M.test_cue_only_mode_suppresses_terrain_name_in_speech()
+    -- Cue-only: the base terrain name is already carried by the bed cue
+    -- and must not speak. The glance still runs (so hills, units, owner
+    -- prefix, resources, etc. still speak) -- just with the sound-covered
+    -- tokens filtered out.
+    setupModeMove(AudioCueMode.MODE_CUE_ONLY)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(hasOp(audio._calls, "play"), "cue must still play in cue-only")
+    T.truthy(not out:find("Plains", 1, true),
+             "terrain name must be suppressed in cue-only: " .. out)
+end
+
+function M.test_cue_only_mode_keeps_hills_in_speech()
+    -- Hills have no audio representation in the v1 palette, so they must
+    -- still speak even in cue-only.
+    setup()
+    GameInfo.Terrains[1] = { Type = "TERRAIN_GRASS", Description = "Plains" }
+    local start = T.fakePlot({ x = 0, y = 0, terrain = 1 })
+    local dest  = T.fakePlot({ x = 1, y = 0, terrain = 1, hills = true })
+    local byXY = { ["0,0"] = start, ["1,0"] = dest }
+    Map.GetPlot = function(x, y)
+        return byXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return byXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    local seed = T.fakeUnit({})
+    seed._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return seed
+    end
+    Cursor.init()
+    PlotAudio.loadAll()
+    AudioCueMode.setMode(AudioCueMode.MODE_CUE_ONLY)
+
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(out:find("hills", 1, true), "hills must speak in cue-only: " .. out)
+    T.truthy(not out:find("Plains", 1, true), "terrain still suppressed: " .. out)
+end
+
+function M.test_cue_only_mode_keeps_units_in_speech()
+    -- Units have no audio representation; the whole point of moving the
+    -- cursor onto an enemy tile is to hear who's there. Assert on the HP
+    -- suffix -- it's outside the engine's unit-name template (which the
+    -- test harness can't expand) and only appears when a unit spoke.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    GameInfo.Terrains[1] = { Type = "TERRAIN_GRASS", Description = "Plains" }
+    local start = T.fakePlot({ x = 0, y = 0, terrain = 1 })
+    local damaged = T.fakeUnit({ owner = 0, nameKey = "Warrior", damage = 40 })
+    local dest = T.fakePlot({ x = 1, y = 0, terrain = 1, units = { damaged } })
+    local byXY = { ["0,0"] = start, ["1,0"] = dest }
+    Map.GetPlot = function(x, y)
+        return byXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return byXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    local seed = T.fakeUnit({})
+    seed._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return seed
+    end
+    Cursor.init()
+    PlotAudio.loadAll()
+    AudioCueMode.setMode(AudioCueMode.MODE_CUE_ONLY)
+
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(out:find("60 hp", 1, true), "unit must still speak in cue-only: " .. out)
+end
+
+function M.test_cue_only_mode_speaks_natural_wonder()
+    -- Natural wonders are the sole speech exception in cue-only: the cue
+    -- palette has no wonder bed, so identity must ride on speech or the
+    -- player won't know which wonder they found.
+    setup()
+    GameInfo.Terrains[1] = { Type = "TERRAIN_GRASS", Description = "Plains" }
+    GameInfo.Features[9] = { Type = "FEATURE_FUJI", Description = "Mt. Fuji", NaturalWonder = true }
+    local start  = T.fakePlot({ x = 0, y = 0, terrain = 1 })
+    local wonder = T.fakePlot({ x = 1, y = 0, terrain = 1, feature = 9, mountain = true })
+    local byXY = { ["0,0"] = start, ["1,0"] = wonder }
+    Map.GetPlot = function(x, y)
+        return byXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return byXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    local seed = T.fakeUnit({})
+    seed._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return seed
+    end
+    Cursor.init()
+    PlotAudio.loadAll()
+    AudioCueMode.setMode(AudioCueMode.MODE_CUE_ONLY)
+    audio._reset()
+
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(out:find("Mt. Fuji", 1, true), "cue-only must speak wonder identity: " .. out)
+end
+
+function M.test_cue_only_mode_speaks_unexplored()
+    -- Unexplored tiles have no audio representation in the v1 palette, so
+    -- speech fires regardless of mode; silence would be ambiguous with a
+    -- broken cue pipeline.
+    setup()
+    local start   = T.fakePlot({ x = 0, y = 0 })
+    local fogged  = T.fakePlot({ x = 1, y = 0, revealed = false })
+    local byXY = { ["0,0"] = start, ["1,0"] = fogged }
+    Map.GetPlot = function(x, y)
+        return byXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return byXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    local seed = T.fakeUnit({})
+    seed._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return seed
+    end
+    Cursor.init()
+    PlotAudio.loadAll()
+    AudioCueMode.setMode(AudioCueMode.MODE_CUE_ONLY)
+    audio._reset()
+
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(out:lower():find("unexplored", 1, true), "unexplored must speak regardless of mode: " .. out)
 end
 
 return M

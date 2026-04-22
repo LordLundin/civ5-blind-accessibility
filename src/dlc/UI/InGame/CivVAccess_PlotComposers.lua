@@ -25,19 +25,30 @@ end
 -- The Cursor gates on IsRevealed before calling in; this composer only
 -- handles the revealed-but-fogged distinction, prepending a "fog" marker so
 -- the user knows the data is stale before hearing it.
-function PlotComposers.glance(plot)
+--
+-- opts.cueOnly suppresses tokens the audio cue layer already carries: the
+-- fog marker (fog wash covers it), the route section (road stinger covers
+-- it), and base terrain / mountain / lake / non-wonder feature names
+-- (terrain/feature beds cover those). Hills, wonders, units, resources,
+-- improvements, rivers, and the city banner stay -- they have no audio
+-- representation in the v1 palette and the user needs them as words.
+function PlotComposers.glance(plot, opts)
+    opts = opts or {}
+    local cueOnly = opts.cueOnly or false
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
     local visible = plot:IsVisible(team, debug)
-    local ctx = {}
+    local ctx = { cueOnly = cueOnly }
     local tokens = {}
-    if not visible then
+    if not visible and not cueOnly then
         tokens[#tokens + 1] = Text.key("TXT_KEY_CIVVACCESS_FOG")
     end
     if visible then
         readSection(PlotSectionUnits, plot, ctx, tokens)
     end
     readSection(PlotSections.city, plot, ctx, tokens)
-    readSection(PlotSections.route, plot, ctx, tokens)
+    if not cueOnly then
+        readSection(PlotSections.route, plot, ctx, tokens)
+    end
     readSection(PlotSections.terrainShape, plot, ctx, tokens)
     readSection(PlotSections.resource, plot, ctx, tokens)
     readSection(PlotSections.improvement, plot, ctx, tokens)

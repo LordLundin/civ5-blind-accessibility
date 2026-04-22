@@ -82,3 +82,34 @@ function Prefs.setBool(key, v)
         Log.error("Prefs.setBool(" .. tostring(key) .. ") threw: " .. tostring(err))
     end
 end
+
+function Prefs.getInt(key, default)
+    local h = handle()
+    if h == nil then
+        return default
+    end
+    local ok, v = pcall(function()
+        return h.GetValue(key)
+    end)
+    if not ok then
+        Log.error("Prefs.getInt(" .. tostring(key) .. ") threw: " .. tostring(v))
+        return default
+    end
+    if v == nil then
+        return default
+    end
+    return v
+end
+
+function Prefs.setInt(key, v)
+    local h = handle()
+    if h == nil then
+        return
+    end
+    local ok, err = pcall(function()
+        h.SetValue(key, v)
+    end)
+    if not ok then
+        Log.error("Prefs.setInt(" .. tostring(key) .. ") threw: " .. tostring(err))
+    end
+end

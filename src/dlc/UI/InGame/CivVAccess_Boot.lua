@@ -1,6 +1,7 @@
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_UserPrefs")
+include("CivVAccess_AudioCueMode")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
 include("CivVAccess_Text")
@@ -17,6 +18,7 @@ include("CivVAccess_PlotSectionRiver")
 include("CivVAccess_PlotComposers")
 include("CivVAccess_HexGeom")
 include("CivVAccess_Pathfinder")
+include("CivVAccess_PlotAudio")
 include("CivVAccess_Cursor")
 -- Surveyor strings before the core so Text.key lookups during module load
 -- resolve. BaselineHandler pulls SurveyorCore.getBindings() at create time
@@ -72,6 +74,7 @@ include("CivVAccess_NotificationAnnounce")
 -- signal; defer the in-game boot actions to it.
 local function onInGameBoot()
     Log.info("in-game boot")
+    PlotAudio.loadAll()
     HandlerStack.removeByName("Baseline")
     HandlerStack.push(BaselineHandler.create())
     -- Scanner sits directly above Baseline. capturesAllInput=false so

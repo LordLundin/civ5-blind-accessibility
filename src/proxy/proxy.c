@@ -9,12 +9,26 @@
  * the engine at boot; the proxy does not activate any mod.
  */
 #pragma comment(lib, "User32.lib")
+#pragma comment(lib, "Ole32.lib")
 
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+
+/* === miniaudio single-header library ===
+   Only WAV decoding is enabled; we disable encoding / generation / null backend
+   and the non-WAV decoders to keep the DLL size down. Implementation macro
+   lives here (proxy.c is the only TU in this DLL). */
+#define MA_NO_ENCODING
+#define MA_NO_GENERATION
+#define MA_NO_NULL
+#define MA_NO_MP3
+#define MA_NO_FLAC
+#define MA_NO_VORBIS
+#define MINIAUDIO_IMPLEMENTATION
+#include "../../third_party/miniaudio/miniaudio.h"
 
 /* === Lua constants === */
 #define LUA_GLOBALSINDEX (-10002)
@@ -196,6 +210,10 @@ typedef void (__cdecl *pfn_lua_getfield)(lua_State *, int, const char *);
 typedef void (__cdecl *pfn_lua_setfield)(lua_State *, int, const char *);
 typedef int (__cdecl *pfn_lua_type)(lua_State *, int);
 typedef void (__cdecl *pfn_lua_createtable)(lua_State *, int, int);
+typedef ptrdiff_t lua_Integer;
+typedef void (__cdecl *pfn_lua_pushinteger)(lua_State *, lua_Integer);
+typedef lua_Integer (__cdecl *pfn_lua_tointeger)(lua_State *, int);
+typedef double (__cdecl *pfn_lua_tonumber)(lua_State *, int);
 
 #define ORIG_luaL_register  ((pfn_luaL_register)orig[I_luaL_register])
 #define ORIG_luaL_checklstring ((pfn_luaL_checklstring)orig[I_luaL_checklstring])
@@ -209,6 +227,9 @@ typedef void (__cdecl *pfn_lua_createtable)(lua_State *, int, int);
 #define ORIG_lua_setfield   ((pfn_lua_setfield)orig[I_lua_setfield])
 #define ORIG_lua_type       ((pfn_lua_type)orig[I_lua_type])
 #define ORIG_lua_createtable ((pfn_lua_createtable)orig[I_lua_createtable])
+#define ORIG_lua_pushinteger ((pfn_lua_pushinteger)orig[I_lua_pushinteger])
+#define ORIG_lua_tointeger   ((pfn_lua_tointeger)orig[I_lua_tointeger])
+#define ORIG_lua_tonumber    ((pfn_lua_tonumber)orig[I_lua_tonumber])
 
 /* === Tolk === */
 static HMODULE hTolk = NULL;
@@ -345,6 +366,206 @@ static void register_civvaccess_shared(lua_State *L) {
     proxy_log("register_civvaccess_shared: L=%p done\n", (void*)L);
 }
 
+/* === Audio (miniaudio) ===
+   Per-hex terrain cues. Spike surface: audio.load(name) preloads a WAV from
+   <gameDir>/Assets/DLC/DLC_CivVAccess/Sounds/<name>.wav and returns an integer
+   handle; audio.play(handle) rewinds and plays the preloaded sound. The
+   engine is lazy-initialized on first load to keep DllMain free of heavy
+   work, and is deliberately NOT uninited on DLL detach -- miniaudio's audio
+   thread must not be joined under the loader lock. */
+
+#define AUDIO_BANK_SIZE      32
+#define AUDIO_BANK_NAME_MAX  64
+
+static int       g_audioInit = 0;
+static ma_engine g_audioEngine;
+static ma_sound  g_audioBank[AUDIO_BANK_SIZE];
+static int       g_audioBankInUse[AUDIO_BANK_SIZE];
+static char      g_audioBankName[AUDIO_BANK_SIZE][AUDIO_BANK_NAME_MAX];
+static char      g_soundsDir[MAX_PATH];
+
+static int ensure_audio(void) {
+    ma_result r;
+    if (g_audioInit) return 1;
+    if (g_soundsDir[0] == 0) {
+        proxy_log("ensure_audio: g_soundsDir empty, cannot init\n");
+        return 0;
+    }
+    r = ma_engine_init(NULL, &g_audioEngine);
+    if (r != MA_SUCCESS) {
+        proxy_log("ensure_audio: ma_engine_init FAILED r=%d\n", (int)r);
+        return 0;
+    }
+    /* Master volume default. The engine slider from the game UI does not
+       reach us -- our mixer runs outside the engine's audio pipeline -- so
+       this is the user-perceived master until a mod-side volume control
+       lands in the future config menu. */
+    ma_engine_set_volume(&g_audioEngine, 0.2f);
+    g_audioInit = 1;
+    proxy_log("ensure_audio: engine initialized, master=0.2, soundsDir=%s\n", g_soundsDir);
+    return 1;
+}
+
+static int la_load(lua_State *L) {
+    const char *name = ORIG_luaL_checklstring(L, 1, NULL);
+    int i, slot = -1, n;
+    char path[MAX_PATH];
+    ma_result r;
+
+    if (!ensure_audio()) { ORIG_lua_pushnil(L); return 1; }
+
+    /* Dedup: repeated loads of the same name return the existing slot so
+       callers can freely call audio.load at different points in boot
+       (spike + PlotAudio.loadAll + future config menu) without burning
+       bank slots or creating multiple decoded copies of the same WAV. */
+    for (i = 0; i < AUDIO_BANK_SIZE; i++) {
+        if (g_audioBankInUse[i] && strcmp(g_audioBankName[i], name) == 0) {
+            ORIG_lua_pushinteger(L, i);
+            return 1;
+        }
+    }
+
+    for (i = 0; i < AUDIO_BANK_SIZE; i++) {
+        if (!g_audioBankInUse[i]) { slot = i; break; }
+    }
+    if (slot < 0) {
+        proxy_log("la_load: bank full, cannot load name=%s\n", name);
+        ORIG_lua_pushnil(L);
+        return 1;
+    }
+
+    n = _snprintf(path, MAX_PATH - 1, "%s\\%s.wav", g_soundsDir, name);
+    if (n < 0 || n >= MAX_PATH) {
+        proxy_log("la_load: path overflow name=%s\n", name);
+        ORIG_lua_pushnil(L);
+        return 1;
+    }
+    path[MAX_PATH - 1] = '\0';
+
+    r = ma_sound_init_from_file(&g_audioEngine, path,
+                                MA_SOUND_FLAG_DECODE, NULL, NULL,
+                                &g_audioBank[slot]);
+    if (r != MA_SUCCESS) {
+        proxy_log("la_load: ma_sound_init_from_file FAILED name=%s path=%s r=%d\n",
+                  name, path, (int)r);
+        ORIG_lua_pushnil(L);
+        return 1;
+    }
+    g_audioBankInUse[slot] = 1;
+    strncpy(g_audioBankName[slot], name, AUDIO_BANK_NAME_MAX - 1);
+    g_audioBankName[slot][AUDIO_BANK_NAME_MAX - 1] = '\0';
+    proxy_log("la_load: name=%s slot=%d path=%s\n", name, slot, path);
+
+    ORIG_lua_pushinteger(L, slot);
+    return 1;
+}
+
+/* Re-arms a bank slot so the next start fires cleanly regardless of whether
+   the sound finished naturally, is currently playing, or has a pending
+   future-start scheduled. Stop is a no-op on an already-stopped sound, and
+   clearing the start time to 0 (in the past) tells miniaudio "start now" on
+   the next ma_sound_start unless a later set_start_time overrides it. */
+static void audio_rearm_slot(int slot) {
+    ma_sound_stop(&g_audioBank[slot]);
+    ma_sound_seek_to_pcm_frame(&g_audioBank[slot], 0);
+    ma_sound_set_start_time_in_milliseconds(&g_audioBank[slot], 0);
+}
+
+static int la_play(lua_State *L) {
+    lua_Integer slot = ORIG_lua_tointeger(L, 1);
+    ma_result r;
+
+    if (!g_audioInit) return 0;
+    if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
+        proxy_log("la_play: invalid slot=%d\n", (int)slot);
+        return 0;
+    }
+    audio_rearm_slot((int)slot);
+    r = ma_sound_start(&g_audioBank[slot]);
+    if (r != MA_SUCCESS) {
+        proxy_log("la_play: ma_sound_start FAILED slot=%d r=%d\n",
+                  (int)slot, (int)r);
+    }
+    return 0;
+}
+
+static int la_play_delayed(lua_State *L) {
+    lua_Integer slot = ORIG_lua_tointeger(L, 1);
+    lua_Integer ms   = ORIG_lua_tointeger(L, 2);
+    ma_uint64 now;
+    ma_result r;
+
+    if (!g_audioInit) return 0;
+    if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
+        proxy_log("la_play_delayed: invalid slot=%d\n", (int)slot);
+        return 0;
+    }
+    if (ms < 0) ms = 0;
+    audio_rearm_slot((int)slot);
+    now = ma_engine_get_time_in_milliseconds(&g_audioEngine);
+    ma_sound_set_start_time_in_milliseconds(&g_audioBank[slot],
+                                            now + (ma_uint64)ms);
+    r = ma_sound_start(&g_audioBank[slot]);
+    if (r != MA_SUCCESS) {
+        proxy_log("la_play_delayed: start FAILED slot=%d ms=%d r=%d\n",
+                  (int)slot, (int)ms, (int)r);
+    }
+    return 0;
+}
+
+static int la_cancel_all(lua_State *L) {
+    int i;
+    (void)L;
+    if (!g_audioInit) return 0;
+    for (i = 0; i < AUDIO_BANK_SIZE; i++) {
+        if (g_audioBankInUse[i]) ma_sound_stop(&g_audioBank[i]);
+    }
+    return 0;
+}
+
+static int la_set_master_volume(lua_State *L) {
+    double v = ORIG_lua_tonumber(L, 1);
+    if (!g_audioInit) return 0;
+    if (v < 0.0) v = 0.0;
+    if (v > 1.0) v = 1.0;
+    ma_engine_set_volume(&g_audioEngine, (float)v);
+    proxy_log("la_set_master_volume: %.3f\n", v);
+    return 0;
+}
+
+static int la_set_volume(lua_State *L) {
+    lua_Integer slot = ORIG_lua_tointeger(L, 1);
+    double v = ORIG_lua_tonumber(L, 2);
+    if (!g_audioInit) return 0;
+    if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
+        proxy_log("la_set_volume: invalid slot=%d\n", (int)slot);
+        return 0;
+    }
+    if (v < 0.0) v = 0.0;
+    if (v > 1.0) v = 1.0;
+    /* Per-sound volume is persistent: set once here, every subsequent
+       play of this slot inherits it. Multiplied by the engine master. */
+    ma_sound_set_volume(&g_audioBank[slot], (float)v);
+    return 0;
+}
+
+static const luaL_Reg audio_funcs[] = {
+    {"load",              la_load},
+    {"play",              la_play},
+    {"play_delayed",      la_play_delayed},
+    {"cancel_all",        la_cancel_all},
+    {"set_master_volume", la_set_master_volume},
+    {"set_volume",        la_set_volume},
+    {NULL, NULL}
+};
+
+static void register_audio(lua_State *L) {
+    int top = ORIG_lua_gettop(L);
+    ORIG_luaL_register(L, "audio", audio_funcs);
+    ORIG_lua_settop(L, top);
+    proxy_log("register_audio: L=%p done\n", (void*)L);
+}
+
 /* === Hooked exports === */
 
 __declspec(dllexport) lua_State * __cdecl luaL_newstate(void) {
@@ -369,7 +590,8 @@ __declspec(dllexport) void __cdecl luaL_openlibs(lua_State *L) {
     ((fn)orig[I_luaL_openlibs])(L);
     register_tolk(L);
     register_civvaccess_shared(L);
-    proxy_log("luaL_openlibs: tolk + civvaccess_shared registered in globals\n");
+    register_audio(L);
+    proxy_log("luaL_openlibs: tolk + civvaccess_shared + audio registered in globals\n");
 }
 
 __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
@@ -404,10 +626,23 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
         ORIG_lua_settop(L, -2);
     }
 
+    /* === audio injection (mirrors tolk) === */
+    ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "audio");
+    if (ORIG_lua_type(L, -1) == LUA_TNIL) {
+        ORIG_lua_settop(L, -2);
+        register_audio(L);
+        ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "audio");
+    }
+    if (ORIG_lua_type(L, -1) != LUA_TNIL) {
+        ORIG_lua_setfield(L, -2, "audio");
+    } else {
+        ORIG_lua_settop(L, -2);
+    }
+
     /* Front-end and in-game bootstrap both happen inside Lua now, via the
        DLC's override of selected base-game UI files (see src/dlc/UI/).
-       The proxy's only job in this hook is the tolk + civvaccess_shared
-       injection performed above. */
+       The proxy's only job in this hook is the tolk / civvaccess_shared /
+       audio injection performed above. */
 
     return ((fn)orig[I_lua_setfenv])(L, index);
 }
@@ -448,6 +683,19 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID reserved) {
             }
         }
         proxy_log("Resolved %d Lua API functions\n", I_COUNT);
+
+        /* Resolve sounds directory: <gameDir>\Assets\DLC\DLC_CivVAccess\Sounds.
+           The proxy DLL sits in the game install dir (next to lua51_original.dll),
+           so strip the DLL filename and append the DLC-relative path. */
+        GetModuleFileNameA(hinstDLL, path, MAX_PATH);
+        s = strrchr(path, '\\');
+        if (s) {
+            *(s + 1) = '\0';
+            _snprintf(g_soundsDir, MAX_PATH - 1,
+                      "%sAssets\\DLC\\DLC_CivVAccess\\Sounds", path);
+            g_soundsDir[MAX_PATH - 1] = '\0';
+            proxy_log("Sounds dir: %s\n", g_soundsDir);
+        }
 
         /* Load Tolk */
         GetModuleFileNameA(hinstDLL, path, MAX_PATH);
