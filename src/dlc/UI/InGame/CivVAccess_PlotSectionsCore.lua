@@ -83,9 +83,6 @@ PlotSections.city = {
 -- everything including hills / mountain -- Natural_Wonder_Placement
 -- rewrites the core tile (most to mountain via ChangeCoreTileToMountain),
 -- so the wonder name stands alone.
---
--- Shape chosen so a later sound-cue pass can extend values from bool to a
--- table carrying per-feature sound keys alongside the suppress flag.
 local FEATURE_SUPPRESSES_TERRAIN = {
     FEATURE_JUNGLE = true,
     FEATURE_MARSH = true,

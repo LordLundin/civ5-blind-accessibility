@@ -23,15 +23,11 @@ AudioCueMode.MODE_CUE_ONLY        = 2
 local PREF_KEY     = "AudioCueMode"
 local DEFAULT_MODE = AudioCueMode.MODE_SPEECH_PLUS_CUE
 
-local function readMode()
+function AudioCueMode.getMode()
     if civvaccess_shared.audioCueMode == nil then
         civvaccess_shared.audioCueMode = Prefs.getInt(PREF_KEY, DEFAULT_MODE)
     end
     return civvaccess_shared.audioCueMode
-end
-
-function AudioCueMode.getMode()
-    return readMode()
 end
 
 function AudioCueMode.setMode(m)
@@ -46,17 +42,17 @@ function AudioCueMode.setMode(m)
 end
 
 function AudioCueMode.isSpeechEnabled()
-    local m = readMode()
+    local m = AudioCueMode.getMode()
     return m == AudioCueMode.MODE_SPEECH
         or m == AudioCueMode.MODE_SPEECH_PLUS_CUE
 end
 
 function AudioCueMode.isCueEnabled()
-    local m = readMode()
+    local m = AudioCueMode.getMode()
     return m == AudioCueMode.MODE_SPEECH_PLUS_CUE
         or m == AudioCueMode.MODE_CUE_ONLY
 end
 
 function AudioCueMode.isCueOnly()
-    return readMode() == AudioCueMode.MODE_CUE_ONLY
+    return AudioCueMode.getMode() == AudioCueMode.MODE_CUE_ONLY
 end

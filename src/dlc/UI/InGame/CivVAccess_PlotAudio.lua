@@ -116,7 +116,11 @@ function PlotAudio.cueForPlot(plot)
             stingers[#stingers + 1] = stinger
         end
     end
-    local rid = plot:GetRouteType()
+    -- Fog-respecting: on a revealed-but-not-visible plot where a route was
+    -- built or pillaged while the player wasn't looking, we must match what
+    -- speech says about the tile. The route section uses the Revealed*
+    -- variant; so do we, with the same team/debug values.
+    local rid = plot:GetRevealedRouteType(team, debug)
     if rid ~= nil and rid >= 0 then
         stingers[#stingers + 1] = "road"
     end
@@ -126,7 +130,7 @@ end
 
 function PlotAudio.loadAll()
     if civvaccess_shared.plotAudioHandles ~= nil then return end
-    if audio == nil or audio.load == nil then
+    if audio == nil then
         Log.warn("PlotAudio.loadAll: audio binding missing")
         return
     end
@@ -143,7 +147,7 @@ function PlotAudio.loadAll()
         end
     end
     civvaccess_shared.plotAudioHandles = handles
-    if handles.fog ~= nil and audio.set_volume ~= nil then
+    if handles.fog ~= nil then
         audio.set_volume(handles.fog, FOG_VOLUME)
     end
     Log.info("PlotAudio.loadAll: loaded " .. tostring(loaded)
