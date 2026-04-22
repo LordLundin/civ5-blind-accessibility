@@ -12,6 +12,10 @@ include("CivVAccess_HandlerStack")
 include("CivVAccess_InputRouter")
 include("CivVAccess_TickPump")
 include("CivVAccess_Nav")
+-- Recommendations Core defines the Recommendations.* helpers that the
+-- PlotSections.recommendation Read function invokes, so load it before
+-- PlotSectionsCore. The scanner backend further down also uses it.
+include("CivVAccess_RecommendationsCore")
 include("CivVAccess_PlotSectionsCore")
 include("CivVAccess_PlotSectionUnits")
 include("CivVAccess_PlotSectionRiver")

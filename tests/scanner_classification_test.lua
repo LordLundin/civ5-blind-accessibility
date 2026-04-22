@@ -649,6 +649,7 @@ end
 -- ===== Recommendations backend =====
 
 local function loadRecommendationsBackend()
+    loadModule("src/dlc/UI/InGame/CivVAccess_RecommendationsCore.lua")
     loadModule("src/dlc/UI/InGame/CivVAccess_ScannerBackendRecommendations.lua")
 end
 
@@ -746,7 +747,7 @@ function M.test_recs_settler_emits_city_site_entries()
     T.eq(#out, 2)
     T.eq(out[1].category, "recommendations")
     T.eq(out[1].subcategory, "all", "all-direct emission: entries target the implicit `all` sub")
-    T.eq(out[1].itemName, "TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE")
+    T.eq(out[1].itemName, "City site", "settler itemName resolves through Text.key to 'City site'")
     T.eq(out[1].data.kind, "settler")
     T.eq(out[1].plotIndex, 0)
     T.eq(out[2].plotIndex, 1)

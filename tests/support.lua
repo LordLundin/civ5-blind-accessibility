@@ -156,6 +156,9 @@ function T.fakePlot(opts)
     function p:GetOwner()
         return self._owner
     end
+    function p:IsOwned()
+        return self._owner >= 0
+    end
     function p:GetNumUnits()
         return #self._units
     end
@@ -178,6 +181,9 @@ function T.fakePlot(opts)
         return self._isNEOfRiver
     end
     function p:CalculateYield(yid, _disp)
+        return self._yields[yid] or 0
+    end
+    function p:GetYield(yid)
         return self._yields[yid] or 0
     end
     function p:GetWorkingCity()

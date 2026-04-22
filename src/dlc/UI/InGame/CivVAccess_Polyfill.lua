@@ -182,6 +182,21 @@ YieldTypes = YieldTypes
         YIELD_SCIENCE = 3,
         YIELD_CULTURE = 4,
         YIELD_FAITH = 5,
+        NUM_YIELD_TYPES = 6,
+    }
+if YieldTypes.NUM_YIELD_TYPES == nil then
+    YieldTypes.NUM_YIELD_TYPES = 6
+end
+
+-- ResourceUsageTypes: the engine enum used by Game.GetResourceUsageType
+-- and GameInfo.Resources[id].ResourceUsage. Values mirror the engine's
+-- ordering exactly so mod code that compares against
+-- .RESOURCEUSAGE_BONUS etc. behaves the same offline.
+ResourceUsageTypes = ResourceUsageTypes
+    or {
+        RESOURCEUSAGE_BONUS = 0,
+        RESOURCEUSAGE_STRATEGIC = 1,
+        RESOURCEUSAGE_LUXURY = 2,
     }
 
 DomainTypes = DomainTypes or {

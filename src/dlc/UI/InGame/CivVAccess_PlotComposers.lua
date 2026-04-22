@@ -53,6 +53,10 @@ function PlotComposers.glance(plot, opts)
     readSection(PlotSections.resource, plot, ctx, tokens)
     readSection(PlotSections.improvement, plot, ctx, tokens)
     readSection(PlotSectionRiver, plot, ctx, tokens)
+    -- Recommendation tail: tells the user what the engine's anchor would
+    -- say on this plot if they could see it. Last so it reads as a
+    -- separate "btw, here's a suggestion" after the factual description.
+    readSection(PlotSections.recommendation, plot, ctx, tokens)
     return table.concat(tokens, ", ")
 end
 

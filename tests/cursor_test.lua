@@ -8,6 +8,7 @@ local T = require("support")
 local M = {}
 
 local function setup()
+    dofile("src/dlc/UI/InGame/CivVAccess_RecommendationsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionUnits.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionRiver.lua")
@@ -1201,6 +1202,257 @@ function M.test_cue_only_mode_speaks_unexplored()
 
     local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
     T.truthy(out:lower():find("unexplored", 1, true), "unexplored must speak regardless of mode: " .. out)
+end
+
+-- ===== Recommendation section =====
+
+-- Install the global stubs the recommendation path reads: OptionsManager
+-- for the hide toggle, UI for the selected-unit gate. Defaults match
+-- "a Settler is selected and recommendations are enabled"; per-test
+-- overrides flip flags.
+local function installRecGlobals(opts)
+    opts = opts or {}
+    UI.CanSelectionListFound = function()
+        return opts.canFound == true
+    end
+    UI.CanSelectionListWork = function()
+        return opts.canWork == true
+    end
+    OptionsManager = OptionsManager or {}
+    OptionsManager.IsNoTileRecommendations = function()
+        return opts.hideRecs == true
+    end
+end
+
+-- A player stub with the recommendation-specific methods. Returns the
+-- Players[0] entry after installing so tests can monkey-patch further.
+local function installRecPlayer(opts)
+    opts = opts or {}
+    local p = {
+        _numCities = opts.numCities or 0,
+        _settlerPlots = opts.settlerPlots or {},
+        _workerRecs = opts.workerRecs or {},
+        _cantFoundAt = opts.cantFoundAt or {},
+        _resources = opts.resources or {},
+    }
+    function p:GetNumCities()
+        return self._numCities
+    end
+    function p:GetRecommendedFoundCityPlots()
+        return self._settlerPlots
+    end
+    function p:GetRecommendedWorkerPlots()
+        return self._workerRecs
+    end
+    function p:CanFound(x, y)
+        for _, v in ipairs(self._cantFoundAt) do
+            if v[1] == x and v[2] == y then
+                return false
+            end
+        end
+        return true
+    end
+    function p:GetNumResourceAvailable(resId)
+        return self._resources[resId] or 0
+    end
+    Players[0] = p
+    return p
+end
+
+function M.test_recommendation_section_silent_without_globals()
+    -- Existing glance tests don't install UI.CanSelectionList* or
+    -- OptionsManager; the section must stay silent when those names
+    -- aren't bound, or every pre-existing glance test would regress.
+    setup()
+    local p = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true })
+    T.eq(#PlotSections.recommendation.Read(p), 0)
+end
+
+function M.test_recommendation_section_silent_when_options_hide()
+    setup()
+    installRecGlobals({ canFound = true, hideRecs = true })
+    installRecPlayer({ numCities = 1, settlerPlots = { T.fakePlot({ x = 0, y = 0 }) } })
+    local p = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true })
+    T.eq(#PlotSections.recommendation.Read(p), 0, "IsNoTileRecommendations must suppress the section")
+end
+
+function M.test_recommendation_section_silent_without_first_city()
+    setup()
+    installRecGlobals({ canFound = true })
+    installRecPlayer({ numCities = 0, settlerPlots = { T.fakePlot({ x = 0, y = 0 }) } })
+    local p = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true })
+    T.eq(#PlotSections.recommendation.Read(p), 0, "settler recs suppressed before the first city")
+end
+
+function M.test_recommendation_section_silent_on_unrecommended_plot()
+    setup()
+    installRecGlobals({ canFound = true })
+    installRecPlayer({
+        numCities = 1,
+        settlerPlots = { T.fakePlot({ x = 7, y = 7 }) },
+    })
+    local p = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true })
+    T.eq(#PlotSections.recommendation.Read(p), 0, "plot not in rec list must stay silent")
+end
+
+function M.test_recommendation_section_silent_when_plot_unfoundable()
+    -- Defensive: a rec plot that's become unfoundable since the list
+    -- was produced. Mirrors GenericWorldAnchor.lua's CanFound guard.
+    setup()
+    installRecGlobals({ canFound = true })
+    local p = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true })
+    installRecPlayer({
+        numCities = 1,
+        settlerPlots = { p },
+        cantFoundAt = { { 0, 0 } },
+    })
+    T.eq(#PlotSections.recommendation.Read(p), 0)
+end
+
+function M.test_recommendation_settler_prefix_and_reason_tokens()
+    -- Two-token output: prefix + reason. Composer joins with ", "
+    -- so the final glance reads "recommendation: City site, <tooltip>".
+    -- Food path fires when no nearby resources and food/plot > 1.2.
+    setup()
+    installRecGlobals({ canFound = true })
+    local target = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true })
+    installRecPlayer({ numCities = 1, settlerPlots = { target } })
+    -- 5x5 area of grass plots, each yielding 2 food. Average per plot
+    -- = 2.0 > the 1.2 threshold, so the FOOD key fires.
+    Map.GetPlotXY = function(_, _, _, _)
+        local fp = T.fakePlot({ yields = { [YieldTypes.YIELD_FOOD] = 2 }, owner = -1 })
+        -- Not owned, no resource, so the resource branches are no-ops.
+        function fp:IsOwned()
+            return false
+        end
+        return fp
+    end
+    Map.PlotDistance = function(x1, y1, x2, y2)
+        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
+    end
+    local tokens = PlotSections.recommendation.Read(target)
+    T.eq(#tokens, 2)
+    T.truthy(tokens[1]:find("recommendation", 1, true), "first token carries the prefix: " .. tokens[1])
+    T.truthy(tokens[1]:find("City site", 1, true), "first token carries the settler name: " .. tokens[1])
+    T.eq(tokens[2], "TXT_KEY_RECOMMEND_SETTLER_FOOD", "food path picks the food reason key")
+end
+
+function M.test_recommendation_settler_luxury_beats_food()
+    -- Luxury ranks ahead of any yield category in HandleSettlerRecommendation's
+    -- priority ladder. We mirror that exactly -- if the priority changes,
+    -- we'd silently drift from the game's tooltip text.
+    setup()
+    installRecGlobals({ canFound = true })
+    local target = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true })
+    local player = installRecPlayer({ numCities = 1, settlerPlots = { target } })
+    player._resources = { [50] = 0 } -- luxury resource the player doesn't have yet
+    Game.GetResourceUsageType = function(resId)
+        if resId == 50 then
+            return ResourceUsageTypes.RESOURCEUSAGE_LUXURY
+        end
+        return ResourceUsageTypes.RESOURCEUSAGE_BONUS
+    end
+    Map.GetPlotXY = function(_, _, dx, dy)
+        local fp = T.fakePlot({ yields = { [YieldTypes.YIELD_FOOD] = 5 } })
+        function fp:IsOwned()
+            return false
+        end
+        -- Put a luxury on one neighbour only; food yields are high everywhere.
+        if dx == 1 and dy == 0 then
+            fp._resource = 50
+        end
+        return fp
+    end
+    Map.PlotDistance = function(x1, y1, x2, y2)
+        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
+    end
+    local tokens = PlotSections.recommendation.Read(target)
+    T.eq(tokens[2], "TXT_KEY_RECOMMEND_SETTLER_LUXURIES", "luxury must beat food even with high food yield")
+end
+
+function M.test_recommendation_worker_emits_build_name_and_reason()
+    setup()
+    installRecGlobals({ canWork = true })
+    GameInfo.Builds = {
+        [7] = { Description = "TXT_KEY_BUILD_FARM" },
+    }
+    local target = T.fakePlot({ x = 2, y = 2, revealed = true, visible = true })
+    installRecPlayer({
+        numCities = 1,
+        workerRecs = { { plot = target, buildType = 7 } },
+    })
+    -- No resource on plot, no custom Recommendation, so the yield
+    -- delta branch runs. Food delta +1 triggers the FOOD_REC key.
+    function target:CalculateYield(y)
+        return 0
+    end
+    function target:GetYieldWithBuild(_build, y, _path, _player)
+        if y == YieldTypes.YIELD_FOOD then
+            return 1
+        end
+        return 0
+    end
+    local tokens = PlotSections.recommendation.Read(target)
+    T.eq(#tokens, 2)
+    T.truthy(tokens[1]:find("TXT_KEY_BUILD_FARM", 1, true), "worker name is the build's Description: " .. tokens[1])
+    T.eq(tokens[2], "TXT_KEY_BUILD_FOOD_REC")
+end
+
+function M.test_recommendation_worker_strategic_resource_beats_yield()
+    -- Plot-resource hookup ranks ahead of the yield-delta tail in
+    -- HandleWorkerRecommendation's ladder: a strategic on the plot
+    -- always wins, regardless of what food/prod/gold the build adds.
+    setup()
+    installRecGlobals({ canWork = true })
+    GameInfo.Builds = {
+        [7] = { Description = "TXT_KEY_BUILD_MINE" },
+    }
+    GameInfo.Resources = {
+        [30] = { ResourceUsage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC },
+    }
+    local target = T.fakePlot({
+        x = 2,
+        y = 2,
+        revealed = true,
+        visible = true,
+        resource = 30,
+    })
+    function target:CalculateYield()
+        return 0
+    end
+    function target:GetYieldWithBuild()
+        return 5 -- would otherwise trigger a yield-delta key
+    end
+    installRecPlayer({
+        numCities = 1,
+        workerRecs = { { plot = target, buildType = 7 } },
+    })
+    local tokens = PlotSections.recommendation.Read(target)
+    T.eq(tokens[2], "TXT_KEY_RECOMMEND_WORKER_STRATEGIC", "strategic-on-plot must beat the yield-delta tail")
+end
+
+function M.test_recommendation_section_wires_into_glance()
+    -- End-to-end: a recommendation on the cursor's plot produces a
+    -- glance string that contains the prefix. Protects against a future
+    -- edit that drops the readSection(PlotSections.recommendation, ...)
+    -- line from PlotComposers.glance.
+    setup()
+    installRecGlobals({ canFound = true })
+    GameInfo.Terrains = { [1] = { Description = "Plains" } }
+    local target = T.fakePlot({ x = 0, y = 0, revealed = true, visible = true, terrain = 1 })
+    installRecPlayer({ numCities = 1, settlerPlots = { target } })
+    Game.GetResourceUsageType = function()
+        return ResourceUsageTypes.RESOURCEUSAGE_BONUS
+    end
+    Map.GetPlotXY = function()
+        return nil -- zero-plot area produces no yield categories; only the prefix fires
+    end
+    Map.PlotDistance = function(x1, y1, x2, y2)
+        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
+    end
+    local out = PlotComposers.glance(target)
+    T.truthy(out:find("recommendation", 1, true), "glance must include the recommendation prefix: " .. out)
+    T.truthy(out:find("City site", 1, true), "glance must include the rec name: " .. out)
 end
 
 return M

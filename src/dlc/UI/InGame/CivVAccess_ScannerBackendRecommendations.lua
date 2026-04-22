@@ -3,7 +3,13 @@
 -- Player:GetRecommendedFoundCityPlots / GetRecommendedWorkerPlots APIs
 -- the engine uses in GenericWorldAnchor.lua.
 --
--- Gating mirrors InGame.lua's anchor-fire pipeline exactly:
+-- All the gating, list, membership, and reason logic lives in
+-- CivVAccess_RecommendationsCore.lua (Recommendations.*) because the
+-- plot-section path (cursor-land "recommendation: X" announcement)
+-- needs the same helpers. This file is just the scanner shape: map
+-- those helpers onto ScanEntry tuples.
+--
+-- Gating mirrors InGame.lua's anchor-fire pipeline:
 --   * OptionsManager.IsNoTileRecommendations()  player-toggleable hide
 --   * UI.CanSelectionListFound() + player has     settler-rec emit gate
 --     at least one city
@@ -14,36 +20,16 @@
 --                                                 guard in HandleSettlerRecommendation)
 --
 -- Category declares subcategories = {}; entries target the implicit
--- `all` sub. Settler recs and worker recs cannot coexist in one
--- selection frame (a unit is either a Founder or a Worker, not both),
--- so a sub-split would add navigation with no payoff.
+-- `all` sub. Settler and worker recs rarely coexist in one selection
+-- frame (the engine only populates each kind behind its matching
+-- UI.CanSelectionList* gate), and splitting would add a navigation
+-- step with no payoff when only one kind is live.
 
 ScannerBackendRecommendations = {
     name = "recommendations",
 }
 
 local CITY_SITE_KEY = "TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE"
-
--- Both gates also short-circuit when OptionsManager isn't present (the
--- test harness doesn't stub it by default); returning false keeps Scan
--- empty rather than crashing offline.
-local function recsAllowed()
-    return OptionsManager ~= nil
-        and OptionsManager.IsNoTileRecommendations ~= nil
-        and not OptionsManager.IsNoTileRecommendations()
-end
-
-local function settlerGateOpen(player)
-    return UI ~= nil
-        and UI.CanSelectionListFound ~= nil
-        and UI.CanSelectionListFound()
-        and player ~= nil
-        and player:GetNumCities() > 0
-end
-
-local function workerGateOpen()
-    return UI ~= nil and UI.CanSelectionListWork ~= nil and UI.CanSelectionListWork()
-end
 
 local function buildItemName(buildType)
     local row = GameInfo.Builds and GameInfo.Builds[buildType]
@@ -55,12 +41,8 @@ local function buildItemName(buildType)
 end
 
 local function emitSettlerEntries(player, out)
-    local plots = player:GetRecommendedFoundCityPlots()
-    if type(plots) ~= "table" then
-        return
-    end
     local cityLabel = Text.key(CITY_SITE_KEY)
-    for _, plot in ipairs(plots) do
+    for _, plot in ipairs(Recommendations.settlerPlots(player)) do
         if plot ~= nil then
             local x, y = plot:GetX(), plot:GetY()
             if player:CanFound(x, y) then
@@ -79,11 +61,7 @@ local function emitSettlerEntries(player, out)
 end
 
 local function emitWorkerEntries(player, out)
-    local recs = player:GetRecommendedWorkerPlots()
-    if type(recs) ~= "table" then
-        return
-    end
-    for _, rec in ipairs(recs) do
+    for _, rec in ipairs(Recommendations.workerPlots(player)) do
         local plot = rec and rec.plot
         local buildType = rec and rec.buildType
         if plot ~= nil and buildType ~= nil then
@@ -105,17 +83,17 @@ end
 
 function ScannerBackendRecommendations.Scan(activePlayer, _activeTeam)
     local out = {}
-    if not recsAllowed() then
+    if not Recommendations.allowed() then
         return out
     end
     local player = Players and Players[activePlayer]
     if player == nil then
         return out
     end
-    if settlerGateOpen(player) then
+    if Recommendations.settlerActive(player) then
         emitSettlerEntries(player, out)
     end
-    if workerGateOpen() then
+    if Recommendations.workerActive() then
         emitWorkerEntries(player, out)
     end
     return out
@@ -128,35 +106,8 @@ end
 -- assessment drops the plot from the rec list; for workers because the
 -- recommended build on a plot can change (e.g. Farm -> Pasture when a
 -- cattle resource is revealed by tech).
-local function findSettlerPlot(player, x, y)
-    local plots = player:GetRecommendedFoundCityPlots()
-    if type(plots) ~= "table" then
-        return false
-    end
-    for _, plot in ipairs(plots) do
-        if plot ~= nil and plot:GetX() == x and plot:GetY() == y then
-            return true
-        end
-    end
-    return false
-end
-
-local function findWorkerPlot(player, x, y, buildType)
-    local recs = player:GetRecommendedWorkerPlots()
-    if type(recs) ~= "table" then
-        return false
-    end
-    for _, rec in ipairs(recs) do
-        local plot = rec and rec.plot
-        if plot ~= nil and plot:GetX() == x and plot:GetY() == y and rec.buildType == buildType then
-            return true
-        end
-    end
-    return false
-end
-
 function ScannerBackendRecommendations.ValidateEntry(entry, _cursorPlotIndex)
-    if not recsAllowed() then
+    if not Recommendations.allowed() then
         return false
     end
     local plot = Map.GetPlotByIndex(entry.plotIndex)
@@ -169,18 +120,18 @@ function ScannerBackendRecommendations.ValidateEntry(entry, _cursorPlotIndex)
     end
     local x, y = plot:GetX(), plot:GetY()
     if entry.data.kind == "settler" then
-        if not settlerGateOpen(player) then
+        if not Recommendations.settlerActive(player) then
             return false
         end
         if not player:CanFound(x, y) then
             return false
         end
-        return findSettlerPlot(player, x, y)
+        return Recommendations.settlerContains(player, x, y)
     elseif entry.data.kind == "worker" then
-        if not workerGateOpen() then
+        if not Recommendations.workerActive() then
             return false
         end
-        return findWorkerPlot(player, x, y, entry.data.buildType)
+        return Recommendations.workerContains(player, x, y, entry.data.buildType)
     end
     return false
 end

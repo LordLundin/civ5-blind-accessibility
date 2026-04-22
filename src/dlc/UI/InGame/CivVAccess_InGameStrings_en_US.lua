@@ -11,6 +11,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization V accessibi
 -- like "embarked warrior"). Upgrade / level / promotion-available are mod-
 -- authored because base strings bundle them into tooltip markup we'd have
 -- to strip anyway.
+-- Tile recommendation announcement prefix. Paired with the rec's name
+-- (settler "City site" / worker build description) in the glance, then
+-- the composer follows with the rec's reason tooltip as a separate
+-- comma-joined token.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RECOMMENDATION_PREFIX"] = "recommendation: {1_Name}"
+-- Settler recs have no per-build name (unlike worker recs, which reuse
+-- the build's Description); every settler-rec plot groups under this
+-- label as one item with many instances. Used by the scanner category
+-- and by the cursor glance section, so it lives in the shared InGame
+-- strings file rather than the scanner-only strings file.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE"] = "City site"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_EMBARKED_PREFIX"] = "embarked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION"] = "{1_Cur}/{2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION"] = "{1_Cur}/{2_Max} moves"

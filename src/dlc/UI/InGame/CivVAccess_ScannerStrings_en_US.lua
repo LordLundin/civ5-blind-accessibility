@@ -20,10 +20,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_ENEMY"] = "Enemy U
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_IMPROVEMENTS"] = "Improvements"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_SPECIAL"] = "Special"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_RECOMMENDATIONS"] = "Recommendations"
--- Settler recs have no per-build name (unlike worker recs, which reuse
--- the build's Description); every settler-rec plot groups under this
--- label as one item with many instances.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE"] = "City site"
+-- The city-site rec name lives in InGameStrings_en_US because both the
+-- scanner and the cursor glance reference it; keeping it here would hide
+-- it from the offline test harness, which only loads InGameStrings.
 
 -- ===== Subcategory labels without a clean game key =====
 -- Ranged / Siege / Naval / Air / Great People / Strategic / Luxury /
