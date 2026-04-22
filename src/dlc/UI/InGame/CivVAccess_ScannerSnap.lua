@@ -35,6 +35,14 @@
 -- first produced each item. Pruning an item from a named sub also
 -- removes it from `all` by identity; ScannerSnap.pruneInstance does the
 -- bookkeeping.
+--
+-- Two emission modes for backends:
+--   1. Named-sub: entry.subcategory is one of the category's declared
+--      named subs. The item lands in that sub AND gets shared into
+--      `all` by reference.
+--   2. All-direct: the category has `subcategories = {}` and entries
+--      emit `subcategory = "all"`. The item lands in `all` only; there
+--      is no named-sib share step because there are no siblings.
 
 ScannerSnap = {}
 
@@ -145,8 +153,14 @@ function ScannerSnap.build(entries, cursorX, cursorY)
                         sub.items[#sub.items + 1] = item
                         -- Share the ref into `all` so pruning a named
                         -- sub's item also removes the entry from `all`.
-                        local all = cat.subcategories[1]
-                        all.items[#all.items + 1] = item
+                        -- Skipped when the backend already emitted
+                        -- directly into `all` (all-direct mode for
+                        -- categories with no named subs) -- the item
+                        -- is already on `all.items` from the line above.
+                        if sub.key ~= "all" then
+                            local all = cat.subcategories[1]
+                            all.items[#all.items + 1] = item
+                        end
                     end
                     item.instances[#item.instances + 1] = instance
                 end

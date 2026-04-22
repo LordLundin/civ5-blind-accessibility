@@ -160,6 +160,43 @@ function M.test_prune_instance_keeps_item_when_other_instances_remain()
     T.eq(#cat.subcategories[1].items, 1, "item should still be in `all` too")
 end
 
+function M.test_all_direct_category_lands_item_in_all_once()
+    -- Category with no named subs (recommendations): an entry whose
+    -- subcategory is "all" should produce exactly one item in `all`.
+    -- Regression for an earlier share-step that unconditionally also
+    -- appended to all.items and double-listed the item.
+    setup()
+    local p = mkPlot(0, 0, 0)
+    T.installMap({ p })
+    local snap = ScannerSnap.build({ T.mkEntry("recommendations", "all", "City site", 0) }, 0, 0)
+    local cat = findCat(snap, "recommendations")
+    T.truthy(cat ~= nil, "recommendations category must be present in the snapshot")
+    local allSub = cat.subcategories[1]
+    T.eq(allSub.key, "all")
+    T.eq(#allSub.items, 1, "item must appear once in `all`, not duplicated by the share step")
+    T.eq(allSub.items[1].name, "City site")
+    T.eq(#allSub.items[1].instances, 1)
+end
+
+function M.test_all_direct_category_prune_removes_from_all()
+    -- Pruning the only instance in an all-direct category's `all` sub
+    -- must drop the item. No named sibling to clean up, but the walk
+    -- still has to handle a one-sub category without error.
+    setup()
+    local p = mkPlot(0, 0, 0)
+    T.installMap({ p })
+    local snap = ScannerSnap.build({ T.mkEntry("recommendations", "all", "City site", 0) }, 0, 0)
+    local catIdx = 0
+    for i, c in ipairs(snap.categories) do
+        if c.key == "recommendations" then
+            catIdx = i
+        end
+    end
+    ScannerSnap.pruneInstance(snap, catIdx, 1, 1, 1)
+    local cat = snap.categories[catIdx]
+    T.eq(#cat.subcategories[1].items, 0, "empty item must drop from `all`")
+end
+
 function M.test_unknown_category_logged_and_dropped()
     setup()
     local warned = 0

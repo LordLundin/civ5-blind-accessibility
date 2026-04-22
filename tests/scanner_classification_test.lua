@@ -646,4 +646,243 @@ function M.test_terrain_unrevealed_plot_skipped()
     T.eq(#ScannerBackendTerrain.Scan(0, 0), 0, "nothing emits from a fogged plot")
 end
 
+-- ===== Recommendations backend =====
+
+local function loadRecommendationsBackend()
+    loadModule("src/dlc/UI/InGame/CivVAccess_ScannerBackendRecommendations.lua")
+end
+
+-- Stub the selection and options globals the backend reads. Each test
+-- overrides the bits it cares about; defaults here model the "a Settler
+-- is selected, the player already has one city, and tile recommendations
+-- are enabled" happy path.
+local function installRecGlobals(opts)
+    opts = opts or {}
+    UI = UI or {}
+    UI.CanSelectionListFound = function()
+        return opts.canFound ~= false
+    end
+    UI.CanSelectionListWork = function()
+        return opts.canWork == true
+    end
+    OptionsManager = OptionsManager or {}
+    OptionsManager.IsNoTileRecommendations = function()
+        return opts.hideRecs == true
+    end
+end
+
+-- A recommendation-aware player stub. settlerPlots / workerRecs mirror
+-- the engine's return shapes: settler list is raw plot handles; worker
+-- list is { plot, buildType } tables.
+local function installRecPlayer(opts)
+    opts = opts or {}
+    local p = {}
+    function p:GetNumCities()
+        return opts.numCities or 0
+    end
+    function p:GetRecommendedFoundCityPlots()
+        return opts.settlerPlots or {}
+    end
+    function p:GetRecommendedWorkerPlots()
+        return opts.workerRecs or {}
+    end
+    function p:CanFound(x, y)
+        if opts.cantFoundAt then
+            for _, v in ipairs(opts.cantFoundAt) do
+                if v[1] == x and v[2] == y then
+                    return false
+                end
+            end
+        end
+        return opts.canFoundDefault ~= false
+    end
+    Players[0] = p
+    return p
+end
+
+function M.test_recs_empty_when_options_hide()
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = true, hideRecs = true })
+    installRecPlayer({ numCities = 1, settlerPlots = { makePlotAt(0, 0, 0) } })
+    mapFromPlots({ makePlotAt(0, 0, 0) })
+    T.eq(#ScannerBackendRecommendations.Scan(0, 0), 0, "IsNoTileRecommendations must zero the output")
+end
+
+function M.test_recs_empty_when_no_selection()
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = false, canWork = false })
+    installRecPlayer({ numCities = 3, settlerPlots = { makePlotAt(0, 0, 0) } })
+    mapFromPlots({ makePlotAt(0, 0, 0) })
+    T.eq(
+        #ScannerBackendRecommendations.Scan(0, 0),
+        0,
+        "without a Founder or Worker selected, the backend must emit nothing"
+    )
+end
+
+function M.test_recs_settler_needs_first_city()
+    -- Engine suppresses the settler anchors until the player founds
+    -- their first city, on the theory that turn-1 Settler placement is
+    -- self-evident and recs would just spam. We must match.
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = true })
+    installRecPlayer({ numCities = 0, settlerPlots = { makePlotAt(0, 0, 0) } })
+    mapFromPlots({ makePlotAt(0, 0, 0) })
+    T.eq(#ScannerBackendRecommendations.Scan(0, 0), 0, "settler recs must stay silent before the first city")
+end
+
+function M.test_recs_settler_emits_city_site_entries()
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = true })
+    local p1 = makePlotAt(3, 4, 0)
+    local p2 = makePlotAt(5, 6, 1)
+    installRecPlayer({ numCities = 1, settlerPlots = { p1, p2 } })
+    mapFromPlots({ p1, p2 })
+    local out = ScannerBackendRecommendations.Scan(0, 0)
+    T.eq(#out, 2)
+    T.eq(out[1].category, "recommendations")
+    T.eq(out[1].subcategory, "all", "all-direct emission: entries target the implicit `all` sub")
+    T.eq(out[1].itemName, "TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE")
+    T.eq(out[1].data.kind, "settler")
+    T.eq(out[1].plotIndex, 0)
+    T.eq(out[2].plotIndex, 1)
+end
+
+function M.test_recs_settler_skips_unfoundable_plots()
+    -- Mirrors HandleSettlerRecommendation's CanFound guard: if the rec
+    -- list still mentions a plot that's no longer foundable (e.g. a
+    -- rival just dropped a city nearby), we drop it silently -- the
+    -- engine does exactly this.
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = true })
+    local p1 = makePlotAt(3, 4, 0)
+    local p2 = makePlotAt(5, 6, 1)
+    installRecPlayer({
+        numCities = 1,
+        settlerPlots = { p1, p2 },
+        cantFoundAt = { { 5, 6 } },
+    })
+    mapFromPlots({ p1, p2 })
+    local out = ScannerBackendRecommendations.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].plotIndex, 0)
+end
+
+function M.test_recs_worker_emits_build_description()
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = false, canWork = true })
+    GameInfo.Builds = {
+        [7] = { Description = "TXT_KEY_BUILD_FARM" },
+        [11] = { Description = "TXT_KEY_BUILD_MINE" },
+    }
+    local p1 = makePlotAt(2, 2, 0)
+    local p2 = makePlotAt(3, 3, 1)
+    installRecPlayer({
+        numCities = 2,
+        workerRecs = {
+            { plot = p1, buildType = 7 },
+            { plot = p2, buildType = 11 },
+        },
+    })
+    mapFromPlots({ p1, p2 })
+    local out = ScannerBackendRecommendations.Scan(0, 0)
+    T.eq(#out, 2)
+    local byBuild = {}
+    for _, e in ipairs(out) do
+        byBuild[e.data.buildType] = e
+    end
+    T.eq(byBuild[7].itemName, "TXT_KEY_BUILD_FARM", "worker itemName must be GameInfo.Builds[buildType].Description via Text.key")
+    T.eq(byBuild[11].itemName, "TXT_KEY_BUILD_MINE")
+    T.eq(byBuild[7].data.kind, "worker")
+    T.eq(byBuild[7].subcategory, "all")
+end
+
+function M.test_recs_validate_drops_when_selection_lost()
+    -- Unit deselection flips CanSelectionListFound off mid-snapshot;
+    -- every queued entry must invalidate and prune away.
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = true })
+    local p = makePlotAt(3, 4, 0)
+    installRecPlayer({ numCities = 1, settlerPlots = { p } })
+    mapFromPlots({ p })
+    local entries = ScannerBackendRecommendations.Scan(0, 0)
+    T.eq(#entries, 1)
+    -- Now simulate the deselect.
+    UI.CanSelectionListFound = function()
+        return false
+    end
+    T.falsy(
+        ScannerBackendRecommendations.ValidateEntry(entries[1], nil),
+        "entry must invalidate once CanSelectionListFound returns false"
+    )
+end
+
+function M.test_recs_validate_drops_when_plot_leaves_list()
+    -- A settler rec can disappear from the engine's list even while
+    -- the unit stays selected (strategic reassessment, new info after
+    -- exploration). ValidateEntry has to catch that by checking fresh
+    -- list membership, not just CanFound.
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = true })
+    local p = makePlotAt(3, 4, 0)
+    local player = installRecPlayer({ numCities = 1, settlerPlots = { p } })
+    mapFromPlots({ p })
+    local entries = ScannerBackendRecommendations.Scan(0, 0)
+    T.eq(#entries, 1)
+    player.GetRecommendedFoundCityPlots = function()
+        return {}
+    end
+    T.falsy(
+        ScannerBackendRecommendations.ValidateEntry(entries[1], nil),
+        "entry must invalidate when the plot falls out of GetRecommendedFoundCityPlots"
+    )
+end
+
+function M.test_recs_validate_worker_drops_on_build_change()
+    -- A Farm rec on a plot that now recommends Pasture is stale even
+    -- though the plot itself is still in the rec list. The equality
+    -- check is on (plot, buildType) together, not plot alone.
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = false, canWork = true })
+    GameInfo.Builds = {
+        [7] = { Description = "TXT_KEY_BUILD_FARM" },
+        [12] = { Description = "TXT_KEY_BUILD_PASTURE" },
+    }
+    local p = makePlotAt(2, 2, 0)
+    local player = installRecPlayer({ numCities = 2, workerRecs = { { plot = p, buildType = 7 } } })
+    mapFromPlots({ p })
+    local entries = ScannerBackendRecommendations.Scan(0, 0)
+    T.eq(#entries, 1)
+    player.GetRecommendedWorkerPlots = function()
+        return { { plot = p, buildType = 12 } }
+    end
+    T.falsy(
+        ScannerBackendRecommendations.ValidateEntry(entries[1], nil),
+        "Farm entry must invalidate once the recommendation flips to a different build"
+    )
+end
+
+function M.test_recs_validate_keeps_live_entry()
+    setup()
+    loadRecommendationsBackend()
+    installRecGlobals({ canFound = true })
+    local p = makePlotAt(3, 4, 0)
+    installRecPlayer({ numCities = 1, settlerPlots = { p } })
+    mapFromPlots({ p })
+    local entries = ScannerBackendRecommendations.Scan(0, 0)
+    T.truthy(
+        ScannerBackendRecommendations.ValidateEntry(entries[1], nil),
+        "a still-in-list, still-foundable settler entry must stay valid"
+    )
+end
+
 return M

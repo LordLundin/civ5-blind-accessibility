@@ -10,6 +10,12 @@
 -- items are shared, not copied. Snapshot building (ScannerSnap) owns
 -- the merge; this file just declares the named subcategories.
 --
+-- Categories with no meaningful split declare `subcategories = {}` and
+-- backends emit entries with `subcategory = "all"` directly. Snap adds
+-- them once into the implicit `all` sub without the named-sib share
+-- step. Sub-cycle in Nav then degenerates to a no-op on those
+-- categories (only one sub with items).
+--
 -- ScanEntry shape (emitted by every backend's Scan):
 --   plotIndex   number      Map.GetPlotByIndex index.
 --   backend     table       ScannerCore-registered backend; Snap uses
@@ -120,6 +126,17 @@ ScannerCore.CATEGORIES = {
             { key = "features", label = "TXT_KEY_TERRAIN_FEATURES_HEADING2_TITLE" },
             { key = "elevation", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ELEVATION" },
         },
+    },
+    {
+        -- Settler and worker tile recommendations sourced from
+        -- Player:GetRecommendedFoundCityPlots and GetRecommendedWorkerPlots.
+        -- No named subs: settler and worker recs never coexist in one
+        -- selection frame (the engine gates each kind on its matching
+        -- UI.CanSelectionList* check), so a split would add a navigation
+        -- step with no disambiguation payoff.
+        key = "recommendations",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_RECOMMENDATIONS",
+        subcategories = {},
     },
 }
 

@@ -39,6 +39,7 @@ function M.test_category_order_fixed()
         "improvements",
         "special",
         "terrain",
+        "recommendations",
     }
     local actual = catKeys()
     T.eq(#actual, #expected)
@@ -124,6 +125,16 @@ function M.test_terrain_subs()
     T.eq(subs[1], "base")
     T.eq(subs[2], "features")
     T.eq(subs[3], "elevation")
+end
+
+function M.test_recommendations_has_no_named_subs()
+    -- Recommendations is the lone "all-direct" category. The empty
+    -- named-subs list is load-bearing: backends emit into the implicit
+    -- `all` sub, and Snap skips the named-sib share step only when
+    -- there are no named sibs to share into.
+    setup()
+    local subs = subKeys("recommendations")
+    T.eq(#subs, 0, "recommendations must declare no named subs")
 end
 
 function M.test_all_category_labels_resolve_to_text_keys()
