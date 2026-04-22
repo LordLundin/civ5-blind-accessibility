@@ -16,11 +16,11 @@
 
 AudioCueMode = AudioCueMode or {}
 
-AudioCueMode.MODE_SPEECH          = 0
+AudioCueMode.MODE_SPEECH = 0
 AudioCueMode.MODE_SPEECH_PLUS_CUE = 1
-AudioCueMode.MODE_CUE_ONLY        = 2
+AudioCueMode.MODE_CUE_ONLY = 2
 
-local PREF_KEY     = "AudioCueMode"
+local PREF_KEY = "AudioCueMode"
 local DEFAULT_MODE = AudioCueMode.MODE_SPEECH_PLUS_CUE
 
 function AudioCueMode.getMode()
@@ -31,9 +31,7 @@ function AudioCueMode.getMode()
 end
 
 function AudioCueMode.setMode(m)
-    if m ~= AudioCueMode.MODE_SPEECH
-       and m ~= AudioCueMode.MODE_SPEECH_PLUS_CUE
-       and m ~= AudioCueMode.MODE_CUE_ONLY then
+    if m ~= AudioCueMode.MODE_SPEECH and m ~= AudioCueMode.MODE_SPEECH_PLUS_CUE and m ~= AudioCueMode.MODE_CUE_ONLY then
         Log.warn("AudioCueMode.setMode: invalid mode " .. tostring(m))
         return
     end
@@ -43,14 +41,12 @@ end
 
 function AudioCueMode.isSpeechEnabled()
     local m = AudioCueMode.getMode()
-    return m == AudioCueMode.MODE_SPEECH
-        or m == AudioCueMode.MODE_SPEECH_PLUS_CUE
+    return m == AudioCueMode.MODE_SPEECH or m == AudioCueMode.MODE_SPEECH_PLUS_CUE
 end
 
 function AudioCueMode.isCueEnabled()
     local m = AudioCueMode.getMode()
-    return m == AudioCueMode.MODE_SPEECH_PLUS_CUE
-        or m == AudioCueMode.MODE_CUE_ONLY
+    return m == AudioCueMode.MODE_SPEECH_PLUS_CUE or m == AudioCueMode.MODE_CUE_ONLY
 end
 
 function AudioCueMode.isCueOnly()

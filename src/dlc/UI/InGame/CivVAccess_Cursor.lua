@@ -82,7 +82,7 @@ end
 -- doesn't re-fire the prefix on re-entry.
 local function announceForMove(plot)
     local cueEnabled = AudioCueMode.isCueEnabled()
-    local cueOnly    = AudioCueMode.isCueOnly()
+    local cueOnly = AudioCueMode.isCueOnly()
 
     if cueEnabled then
         PlotAudio.emit(plot)

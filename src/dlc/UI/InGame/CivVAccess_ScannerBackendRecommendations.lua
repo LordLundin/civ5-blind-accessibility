@@ -34,7 +34,9 @@ local CITY_SITE_KEY = "TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE"
 local function buildItemName(buildType)
     local row = GameInfo.Builds and GameInfo.Builds[buildType]
     if row == nil or row.Description == nil then
-        Log.warn("ScannerBackendRecommendations: worker rec has no GameInfo.Builds row for buildType " .. tostring(buildType))
+        Log.warn(
+            "ScannerBackendRecommendations: worker rec has no GameInfo.Builds row for buildType " .. tostring(buildType)
+        )
         return nil
     end
     return Text.key(row.Description)

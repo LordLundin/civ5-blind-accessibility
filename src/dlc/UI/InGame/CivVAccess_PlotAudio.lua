@@ -33,52 +33,64 @@ local FOG_VOLUME = 0.5
 -- base terrain per Feature_TerrainBooleans, so the underlying terrain is
 -- recoverable from the feature bed alone.
 local PROMOTABLE_FEATURES = {
-    FEATURE_JUNGLE       = "jungle",
-    FEATURE_MARSH        = "marsh",
+    FEATURE_JUNGLE = "jungle",
+    FEATURE_MARSH = "marsh",
     FEATURE_FLOOD_PLAINS = "floodplain",
-    FEATURE_OASIS        = "oasis",
-    FEATURE_ICE          = "ice",
-    FEATURE_ATOLL        = "atoll",
+    FEATURE_OASIS = "oasis",
+    FEATURE_ICE = "ice",
+    FEATURE_ATOLL = "atoll",
 }
 
 -- Features that layer a stinger over the bed. Forest spawns on multiple
 -- base terrains; fallout on anything. Neither can serve as a bed.
 local STINGER_FEATURES = {
-    FEATURE_FOREST  = "forest",
+    FEATURE_FOREST = "forest",
     FEATURE_FALLOUT = "fallout",
 }
 
 -- Base terrain beds. Coast and ocean collapse into one water bed; lake is
 -- routed here via plot:IsLake() since lake is not its own terrain type.
 local TERRAIN_BEDS = {
-    TERRAIN_GRASS  = "grassland",
+    TERRAIN_GRASS = "grassland",
     TERRAIN_PLAINS = "plains",
     TERRAIN_DESERT = "desert",
     TERRAIN_TUNDRA = "tundra",
-    TERRAIN_SNOW   = "snow",
-    TERRAIN_COAST  = "water",
-    TERRAIN_OCEAN  = "water",
+    TERRAIN_SNOW = "snow",
+    TERRAIN_COAST = "water",
+    TERRAIN_OCEAN = "water",
 }
 
 local function allSoundNames()
     local set = { mountain = true, fog = true, road = true }
-    for _, v in pairs(PROMOTABLE_FEATURES) do set[v] = true end
-    for _, v in pairs(STINGER_FEATURES)    do set[v] = true end
-    for _, v in pairs(TERRAIN_BEDS)        do set[v] = true end
+    for _, v in pairs(PROMOTABLE_FEATURES) do
+        set[v] = true
+    end
+    for _, v in pairs(STINGER_FEATURES) do
+        set[v] = true
+    end
+    for _, v in pairs(TERRAIN_BEDS) do
+        set[v] = true
+    end
     local list = {}
-    for n in pairs(set) do list[#list + 1] = n end
+    for n in pairs(set) do
+        list[#list + 1] = n
+    end
     return list
 end
 
 local function featureRow(plot)
     local fid = plot:GetFeatureType()
-    if fid == nil or fid < 0 then return nil end
+    if fid == nil or fid < 0 then
+        return nil
+    end
     return GameInfo.Features[fid]
 end
 
 function PlotAudio.cueForPlot(plot)
-    if plot == nil then return nil end
-    local team  = Game.GetActiveTeam()
+    if plot == nil then
+        return nil
+    end
+    local team = Game.GetActiveTeam()
     local debug = Game.IsDebugMode()
     if not plot:IsRevealed(team, debug) then
         return nil
@@ -94,7 +106,7 @@ function PlotAudio.cueForPlot(plot)
     end
 
     if bed == nil then
-        local tid  = plot:GetTerrainType()
+        local tid = plot:GetTerrainType()
         local tRow = tid ~= nil and tid >= 0 and GameInfo.Terrains[tid] or nil
         bed = tRow and TERRAIN_BEDS[tRow.Type] or nil
         if bed == nil and (plot:IsLake() or plot:IsWater()) then
@@ -129,7 +141,9 @@ function PlotAudio.cueForPlot(plot)
 end
 
 function PlotAudio.loadAll()
-    if civvaccess_shared.plotAudioHandles ~= nil then return end
+    if civvaccess_shared.plotAudioHandles ~= nil then
+        return
+    end
     if audio == nil then
         Log.warn("PlotAudio.loadAll: audio binding missing")
         return
@@ -150,8 +164,7 @@ function PlotAudio.loadAll()
     if handles.fog ~= nil then
         audio.set_volume(handles.fog, FOG_VOLUME)
     end
-    Log.info("PlotAudio.loadAll: loaded " .. tostring(loaded)
-             .. ", missed " .. tostring(missed))
+    Log.info("PlotAudio.loadAll: loaded " .. tostring(loaded) .. ", missed " .. tostring(missed))
 end
 
 local function handleFor(name)
@@ -160,19 +173,29 @@ local function handleFor(name)
 end
 
 function PlotAudio.emit(plot)
-    if audio == nil then return end
+    if audio == nil then
+        return
+    end
     local cue = PlotAudio.cueForPlot(plot)
     audio.cancel_all()
-    if cue == nil then return end
+    if cue == nil then
+        return
+    end
 
     local bedH = handleFor(cue.bed)
-    if bedH ~= nil then audio.play(bedH) end
+    if bedH ~= nil then
+        audio.play(bedH)
+    end
     if cue.fog then
         local fogH = handleFor("fog")
-        if fogH ~= nil then audio.play(fogH) end
+        if fogH ~= nil then
+            audio.play(fogH)
+        end
     end
     for _, name in ipairs(cue.stingers) do
         local h = handleFor(name)
-        if h ~= nil then audio.play_delayed(h, STINGER_OFFSET_MS) end
+        if h ~= nil then
+            audio.play_delayed(h, STINGER_OFFSET_MS)
+        end
     end
 end

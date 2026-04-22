@@ -245,7 +245,7 @@ function M.test_emit_cancel_all_fires_before_any_play()
     setup()
     terrain(0, "TERRAIN_GRASS")
     PlotAudio.loadAll()
-    audio._reset()  -- discard the load calls so op indices are predictable
+    audio._reset() -- discard the load calls so op indices are predictable
 
     local p = T.fakePlot({ terrain = 0, revealed = true, visible = true })
     PlotAudio.emit(p)

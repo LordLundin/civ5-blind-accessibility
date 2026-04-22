@@ -190,7 +190,8 @@ local function forceEndTurn()
     -- when the blocker is NONE or UNITS. Calling DoControl on any other
     -- blocker is a silent no-op, so we read first and fall back to the
     -- regular announce-and-open path when we know force wouldn't help.
-    if blockerType == EndTurnBlockingTypes.NO_ENDTURN_BLOCKING_TYPE
+    if
+        blockerType == EndTurnBlockingTypes.NO_ENDTURN_BLOCKING_TYPE
         or blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_UNITS
     then
         Game.DoControl(GameInfoTypes.CONTROL_FORCEENDTURN)

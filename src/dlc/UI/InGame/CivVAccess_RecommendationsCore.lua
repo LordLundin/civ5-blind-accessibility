@@ -23,10 +23,7 @@ function Recommendations.allowed()
 end
 
 function Recommendations.settlerActive(player)
-    return UI ~= nil
-        and UI.CanSelectionListFound ~= nil
-        and UI.CanSelectionListFound()
-        and player:GetNumCities() > 0
+    return UI ~= nil and UI.CanSelectionListFound ~= nil and UI.CanSelectionListFound() and player:GetNumCities() > 0
 end
 
 function Recommendations.workerActive()

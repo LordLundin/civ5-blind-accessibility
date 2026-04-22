@@ -143,9 +143,5 @@ function NotificationAnnounce.install()
     civvaccess_shared.notificationAnnounceInstalled = true
     local snapshotted = snapshotExisting()
     Events.NotificationAdded.Add(NotificationAnnounce._onAdded)
-    Log.info(
-        "NotificationAnnounce: installed, snapshotted "
-            .. tostring(snapshotted)
-            .. " existing notifications"
-    )
+    Log.info("NotificationAnnounce: installed, snapshotted " .. tostring(snapshotted) .. " existing notifications")
 end

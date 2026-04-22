@@ -756,7 +756,11 @@ function M.test_recs_worker_emits_build_description()
     for _, e in ipairs(out) do
         byBuild[e.data.buildType] = e
     end
-    T.eq(byBuild[7].itemName, "TXT_KEY_BUILD_FARM", "worker itemName must be GameInfo.Builds[buildType].Description via Text.key")
+    T.eq(
+        byBuild[7].itemName,
+        "TXT_KEY_BUILD_FARM",
+        "worker itemName must be GameInfo.Builds[buildType].Description via Text.key"
+    )
     T.eq(byBuild[11].itemName, "TXT_KEY_BUILD_MINE")
     T.eq(byBuild[7].data.kind, "worker")
     T.eq(byBuild[7].subcategory, "all")

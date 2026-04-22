@@ -224,22 +224,31 @@ function M.test_terrainShape_cueOnly_suppresses_base_terrain()
     setup()
     GameInfo.Terrains[1] = { Description = "Plains" }
     local p = T.fakePlot({ terrain = 1 })
-    T.eq(#PlotSections.terrainShape.Read(p, { cueOnly = true }), 0,
-         "terrain name is carried by bed cue; must not speak in cue-only")
+    T.eq(
+        #PlotSections.terrainShape.Read(p, { cueOnly = true }),
+        0,
+        "terrain name is carried by bed cue; must not speak in cue-only"
+    )
 end
 
 function M.test_terrainShape_cueOnly_suppresses_mountain()
     setup()
     local p = T.fakePlot({ mountain = true })
-    T.eq(#PlotSections.terrainShape.Read(p, { cueOnly = true }), 0,
-         "mountain has its own bed; must not speak in cue-only")
+    T.eq(
+        #PlotSections.terrainShape.Read(p, { cueOnly = true }),
+        0,
+        "mountain has its own bed; must not speak in cue-only"
+    )
 end
 
 function M.test_terrainShape_cueOnly_suppresses_lake()
     setup()
     local p = T.fakePlot({ lake = true })
-    T.eq(#PlotSections.terrainShape.Read(p, { cueOnly = true }), 0,
-         "lake is covered by the water bed; must not speak in cue-only")
+    T.eq(
+        #PlotSections.terrainShape.Read(p, { cueOnly = true }),
+        0,
+        "lake is covered by the water bed; must not speak in cue-only"
+    )
 end
 
 function M.test_terrainShape_cueOnly_suppresses_non_wonder_feature()
@@ -249,8 +258,11 @@ function M.test_terrainShape_cueOnly_suppresses_non_wonder_feature()
     GameInfo.Terrains[1] = { Description = "Plains" }
     GameInfo.Features[6] = { Description = "Forest", Type = "FEATURE_FOREST" }
     local p = T.fakePlot({ terrain = 1, feature = 6 })
-    T.eq(#PlotSections.terrainShape.Read(p, { cueOnly = true }), 0,
-         "feature name is carried by the stinger/bed; must not speak in cue-only")
+    T.eq(
+        #PlotSections.terrainShape.Read(p, { cueOnly = true }),
+        0,
+        "feature name is carried by the stinger/bed; must not speak in cue-only"
+    )
 end
 
 function M.test_terrainShape_cueOnly_keeps_hills()
@@ -1025,7 +1037,7 @@ local function setupModeMove(mode)
     setup()
     GameInfo.Terrains[1] = { Type = "TERRAIN_GRASS", Description = "Plains" }
     local start = T.fakePlot({ x = 0, y = 0, terrain = 1 })
-    local dest  = T.fakePlot({ x = 1, y = 0, terrain = 1 })
+    local dest = T.fakePlot({ x = 1, y = 0, terrain = 1 })
     local byXY = { ["0,0"] = start, ["1,0"] = dest }
     Map.GetPlot = function(x, y)
         return byXY[x .. "," .. y]
@@ -1086,8 +1098,7 @@ function M.test_cue_only_mode_suppresses_terrain_name_in_speech()
     setupModeMove(AudioCueMode.MODE_CUE_ONLY)
     local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
     T.truthy(hasOp(audio._calls, "play"), "cue must still play in cue-only")
-    T.truthy(not out:find("Plains", 1, true),
-             "terrain name must be suppressed in cue-only: " .. out)
+    T.truthy(not out:find("Plains", 1, true), "terrain name must be suppressed in cue-only: " .. out)
 end
 
 function M.test_cue_only_mode_keeps_hills_in_speech()
@@ -1096,7 +1107,7 @@ function M.test_cue_only_mode_keeps_hills_in_speech()
     setup()
     GameInfo.Terrains[1] = { Type = "TERRAIN_GRASS", Description = "Plains" }
     local start = T.fakePlot({ x = 0, y = 0, terrain = 1 })
-    local dest  = T.fakePlot({ x = 1, y = 0, terrain = 1, hills = true })
+    local dest = T.fakePlot({ x = 1, y = 0, terrain = 1, hills = true })
     local byXY = { ["0,0"] = start, ["1,0"] = dest }
     Map.GetPlot = function(x, y)
         return byXY[x .. "," .. y]
@@ -1162,7 +1173,7 @@ function M.test_cue_only_mode_speaks_natural_wonder()
     setup()
     GameInfo.Terrains[1] = { Type = "TERRAIN_GRASS", Description = "Plains" }
     GameInfo.Features[9] = { Type = "FEATURE_FUJI", Description = "Mt. Fuji", NaturalWonder = true }
-    local start  = T.fakePlot({ x = 0, y = 0, terrain = 1 })
+    local start = T.fakePlot({ x = 0, y = 0, terrain = 1 })
     local wonder = T.fakePlot({ x = 1, y = 0, terrain = 1, feature = 9, mountain = true })
     local byXY = { ["0,0"] = start, ["1,0"] = wonder }
     Map.GetPlot = function(x, y)
@@ -1193,8 +1204,8 @@ function M.test_cue_only_mode_speaks_unexplored()
     -- speech fires regardless of mode; silence would be ambiguous with a
     -- broken cue pipeline.
     setup()
-    local start   = T.fakePlot({ x = 0, y = 0 })
-    local fogged  = T.fakePlot({ x = 1, y = 0, revealed = false })
+    local start = T.fakePlot({ x = 0, y = 0 })
+    local fogged = T.fakePlot({ x = 1, y = 0, revealed = false })
     local byXY = { ["0,0"] = start, ["1,0"] = fogged }
     Map.GetPlot = function(x, y)
         return byXY[x .. "," .. y]

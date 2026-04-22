@@ -308,8 +308,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_BURST"] = "{1_Count} new not
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "Turn ended"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control plus space"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] =
-    "End turn, or announce and open the first blocker"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] = "End turn, or announce and open the first blocker"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] = "Control plus shift plus space"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
     "End turn past the units-need-orders prompt; other blockers still announce and open"
