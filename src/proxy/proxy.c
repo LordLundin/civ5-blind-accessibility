@@ -400,9 +400,9 @@ static int ensure_audio(void) {
        reach us -- our mixer runs outside the engine's audio pipeline -- so
        this is the user-perceived master until a mod-side volume control
        lands in the future config menu. */
-    ma_engine_set_volume(&g_audioEngine, 0.2f);
+    ma_engine_set_volume(&g_audioEngine, 0.1f);
     g_audioInit = 1;
-    proxy_log("ensure_audio: engine initialized, master=0.2, soundsDir=%s\n", g_soundsDir);
+    proxy_log("ensure_audio: engine initialized, master=0.1, soundsDir=%s\n", g_soundsDir);
     return 1;
 }
 
