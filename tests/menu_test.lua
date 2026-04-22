@@ -2744,6 +2744,19 @@ function M.test_search_clears_on_drill()
     T.falsy(handler._search:isSearchActive(), "search cleared on drill")
 end
 
+function M.test_setIndex_clears_active_search()
+    setup()
+    local ctx, h = installForSearch({
+        { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
+    })
+    keydown(ctx, vkLetter("a"))
+    T.truthy(h._search:isSearchActive(), "search started by typing a")
+    h.setIndex(2)
+    T.falsy(h._search:isSearchActive(), "programmatic setIndex cleared stale search")
+    T.eq(h._indices[1], 2, "cursor moved to requested slot")
+end
+
 function M.test_search_ignored_when_ctrl_held()
     setup()
     local ctx, h = installForSearch({

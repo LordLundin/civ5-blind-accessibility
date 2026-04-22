@@ -972,12 +972,15 @@ function BaseMenu.create(spec)
     -- doing their own speech, e.g. folder drill-in, own the
     -- announcement). No-op on nil; silent when idx is out of range
     -- (setItems already clamps invalid slots on the next navigation key).
+    -- Clears any active type-ahead search because a programmatic cursor
+    -- jump invalidates results tied to the previous position.
     function self.setIndex(idx)
         if idx == nil then
             return
         end
         self._level = 1
         self._indices = { idx }
+        resetSearch(self)
     end
 
     -- Re-speak the displayName + current preamble. Resolves a function

@@ -199,7 +199,9 @@ if not civvaccess_shared.loadScreenReadyListenerInstalled then
         -- Land on the Begin button (item 1) and run the re-activation
         -- path of onActivate, which speakInterrupts the current item's
         -- announce. The user hears "Begin Game" / "Continue" the moment
-        -- Enter will fire.
+        -- Enter will fire. setIndex clears any live type-ahead search so
+        -- a buffer the user typed during the load doesn't route the
+        -- next Up/Down through stale match results.
         h.setIndex(1)
         local ok, err = pcall(h.onActivate)
         if not ok then
