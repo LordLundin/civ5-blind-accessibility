@@ -118,8 +118,9 @@ local STAT_FRAMES = {
 }
 
 -- Text frames: single-Label frames holding prose. Headers are dropped at
--- harvest time (per d1a2ee0 -- "Summary:", "Strategy:", etc. add nothing
--- the body doesn't already convey) so no headerKey is needed here.
+-- harvest time; the header words ("Summary:", "Strategy:", etc.) add
+-- nothing the body prose doesn't already convey, so no headerKey is
+-- needed here.
 local TEXT_FRAMES = {
     { frame = "HomePageBlurbFrame", label = "HomePageBlurbLabel" },
     { frame = "GameInfoFrame", label = "GameInfoLabel" },
