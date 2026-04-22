@@ -932,29 +932,24 @@ end
 
 -- Flat search corpus -----------------------------------------------------
 --
--- Typing in the picker should search article titles across the whole
--- pedia regardless of which category the user is inside. Without the
--- flat corpus, "camel archer" at the top of the tree matches nothing
--- (the 16 top-level items are category Groups) and a user has no way
--- to know an article exists without drilling into its category first.
+-- Without this, "camel archer" typed at the top of the picker matches
+-- nothing: the 16 top-level items are category Groups, so article names
+-- are unreachable by search until the user has drilled into the right
+-- category. Blind users have no way to know an article even exists from
+-- the top level. Flat search breaks that by making every Entry across
+-- the whole tree type-ahead-reachable from anywhere in the picker.
 --
--- Corpus contents:
---   - Every article Entry in the picker tree. Group 0 (highest priority).
---   - Every category Group's label + Home Page intro. Group 1.
---   - Every per-category Intro Entry ("<category name> intro"). Group 1.
--- Group 1 items are the deliberate-fallback layer: they match when no
--- article name matches, but never beat an article when both would.
+-- Group 0 is the article layer; group 1 is the category/intro fallback
+-- layer. When both would match, articles always win (the groupOf axis
+-- in TypeAheadSearch dominates tier), so "tech" lands on a Technology
+-- article instead of the Tech category, while still allowing the user
+-- to reach the category when no article shares the prefix.
 --
--- moveTo(i) teleports the picker cursor: writes handler._level and
--- handler._indices to the target's path, then speaks the label. Arrow
--- nav resumes from wherever the cursor landed (Civ V's cached=false
--- Groups lazily re-materialize their children on the next currentItems
--- call, which is what itemsAtLevel already does for normal drill-in).
---
--- Build is one-shot per session: walking the tree materializes every
--- section Group (cached=false) once, which we want so arrow nav from a
--- teleported position sees the same child set search resolved against.
--- Cached on the shared session state via the closure.
+-- moveTo teleports the picker cursor by writing handler._level and
+-- handler._indices to the target's path, then speaking the label.
+-- Arrow nav then resumes from the landed position: Civ V's cached=false
+-- section Groups lazily rebuild their children on the next
+-- currentItems call (itemsAtLevel handles that for normal drill-in).
 
 local function isIntroId(id)
     return type(id) == "string" and id:sub(-#":intro") == ":intro"
@@ -1017,15 +1012,15 @@ local function buildFlatCorpus(pickerItems)
     return flat
 end
 
--- Teleport the handler cursor to `path` (sequence of 1-based indices from
--- the top of the picker tree). Walks the tree to resolve the target leaf,
--- announces its label. Intermediate Groups are materialized during the walk
--- so subsequent arrow nav sees the same child set the search resolved
--- against.
-local function teleportToPath(handler, path, label)
-    local items = handler.tabs and handler.tabs[handler._tabIndex]
-    items = items and items._items or {}
-    local cursor = items
+-- Teleport the handler cursor to `path` inside `rootItems` (sequence of
+-- 1-based indices from the top of the picker tree). rootItems is the
+-- picker tab's items captured at corpus-build time so the path always
+-- resolves against the tree search was computed against, even if the
+-- handler's active tab somehow changed between search and move.
+-- Intermediate Groups are materialized during the walk so subsequent
+-- arrow nav sees the same child set search resolved against.
+local function teleportToPath(handler, rootItems, path, label)
+    local cursor = rootItems
     for depth, idx in ipairs(path) do
         if depth == #path then
             break
@@ -1044,10 +1039,11 @@ local function teleportToPath(handler, path, label)
     end
 end
 
--- Build a searchable over the flat corpus. Caches on first call so repeat
--- keystrokes do not re-walk the picker tree.
+-- Build a searchable over the flat corpus. Re-walks the picker tree on
+-- every invocation (every keystroke) — acceptable at pedia scale (a few
+-- hundred articles) and ensures fresh labels if the tree ever changes.
 function Civilopedia.buildFlatSearchable(handler)
-    local pickerItems = handler.tabs and handler.tabs[1] and handler.tabs[1]._items or {}
+    local pickerItems = handler.tabs[handler._tabIndex]._items
     local flat = buildFlatCorpus(pickerItems)
     return {
         itemCount = function()
@@ -1069,7 +1065,7 @@ function Civilopedia.buildFlatSearchable(handler)
             if entry == nil then
                 return
             end
-            teleportToPath(handler, entry.path, entry.label)
+            teleportToPath(handler, pickerItems, entry.path, entry.label)
         end,
     }
 end

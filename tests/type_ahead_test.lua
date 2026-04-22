@@ -479,16 +479,17 @@ function M.test_group_zero_ranks_above_group_one_across_tiers()
     setup()
     -- "Tech" is a tier-0 match (start, whole word). "Technocracy" is a tier-1
     -- match (start, prefix). Without groupOf, Tech sorts first by tier.
-    -- With groupOf tagging Tech as group 2 and Technocracy as group 1, the
+    -- With groupOf tagging Tech as group 1 and Technocracy as group 0 (the
+    -- production Civilopedia assignment: articles=0, categories=1), the
     -- article outranks the category even though the category is a stronger
     -- tier match.
     local items = { "Tech", "Technocracy" }
     local sb = searchableWithGroup(items, function(i)
-        return (i == 1) and 2 or 1
+        return (i == 1) and 1 or 0
     end)
     local s = TypeAheadSearch.new()
     s:handleChar("t", sb)
-    T.eq(s._resultIndices[1], 2, "Technocracy (group 1) ranks above Tech (group 2)")
+    T.eq(s._resultIndices[1], 2, "Technocracy (group 0) ranks above Tech (group 1)")
     T.eq(s._resultIndices[2], 1, "Tech still appears as a lower-ranked fallback")
 end
 
@@ -541,10 +542,11 @@ function M.test_handle_char_passes_group_of_from_searchable()
     setup()
     -- End-to-end through handleChar: the wired-up searchable's groupOf
     -- reaches the merge step. Without the wiring, Tech would sort first by
-    -- tier alone.
+    -- tier alone. Uses production-matching group values (articles=0,
+    -- categories=1) so the test aligns with the Civilopedia assignment.
     local items = { "Tech", "Technocracy" }
     local sb = searchableWithGroup(items, function(i)
-        return (i == 1) and 2 or 1
+        return (i == 1) and 1 or 0
     end)
     local s = TypeAheadSearch.new()
     s:handleChar("t", sb)
