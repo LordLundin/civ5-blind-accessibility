@@ -1223,11 +1223,27 @@ pushProductionQueue = function()
     -- in) rebuilds the item list against the current queue: setItems clamps
     -- cursor to the old numeric index, then _stableTag lookup steers it
     -- back onto the same role item when queue length shifted the fixed-
-    -- position entries. First open (_initialized=false) skips the rebuild
-    -- since the items we just built are already fresh.
+    -- position entries.
+    --
+    -- Deferred to next tick because Game.CityPushOrder's queue mutation
+    -- isn't observable through city:GetOrderQueueLength() until the engine
+    -- ticks past the current frame; a synchronous rebuild right after the
+    -- popup hides reads qLen=0 and produces the same empty-queue list.
+    -- origOnActivate still runs first so the cursor item announces now
+    -- from the old list -- fixed-position entries (choose / purchase /
+    -- toggle) carry identical labels across the rebuild, and the user's
+    -- cursor can only sit on one of those when returning from the popup.
+    -- First open (_initialized=false) skips the rebuild because
+    -- pushProductionQueue built items fresh against the live queue a
+    -- moment earlier.
     local origOnActivate = handler.onActivate
     handler.onActivate = function()
-        if handler._initialized then
+        local wasInitialized = handler._initialized
+        origOnActivate()
+        if not wasInitialized then
+            return
+        end
+        TickPump.runOnce(function()
             local oldIdx = (handler._indices and handler._indices[1]) or 1
             local oldTag = items[oldIdx] and items[oldIdx]._stableTag
             items = buildProductionQueueItems()
@@ -1240,8 +1256,7 @@ pushProductionQueue = function()
                     end
                 end
             end
-        end
-        origOnActivate()
+        end)
     end
 
     HandlerStack.push(handler)
