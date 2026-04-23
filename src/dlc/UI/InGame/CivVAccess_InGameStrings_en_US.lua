@@ -306,6 +306,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_CONFIRM"] = "Confirm"
 -- label inlines the turn so the user can place each entry in history
 -- without a separate key.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_NOTIFICATION_LOG"] = "Notification Log"
+-- LeagueProjectPopup (BUTTONPOPUP_LEAGUE_PROJECT_COMPLETED). Each contributor
+-- entry is one navigable Text item: rank, civ name, contribution score, tier
+-- earned. Tier maps from base's iTier int (0..3) to the bronze/silver/gold
+-- vocabulary the project rewards-table uses; "no reward" covers iTier == 0
+-- (contributed too little to qualify for any tier).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_PROJECT"] = "League Project Completed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROJECT_ENTRY"] = "{1_Rank}, {2_Name}, {3_Score} production, {4_Tier}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROJECT_TIER_GOLD"] = "gold tier reward"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROJECT_TIER_SILVER"] = "silver tier reward"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROJECT_TIER_BRONZE"] = "bronze tier reward"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROJECT_TIER_NONE"] = "no reward"
+-- VoteResultsPopup (BUTTONPOPUP_VOTE_RESULTS). Each entry is rank, voter,
+-- who they voted for, and the votes they themselves received.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_VOTE_RESULTS"] = "Vote Results"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] = "{1_Rank}, {2_Name} voted for {3_Cast}, received {4_Votes} votes"
 -- Advisors tutorial banner (Events.AdvisorDisplayShow). Static screen
 -- name; the per-tutorial title, body, and advisor type are spoken through
 -- the preamble from live Controls. "Tutorial Advisor" distinguishes this
