@@ -317,6 +317,25 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_DESC_OPEN"] = "Open the
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_EMPTY"] = "No counsel."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY"] = "F10"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "Open the advisor counsel"
+-- CityView hub. Preamble is spoken on open (and via F1). Yield names lead
+-- each token so distinguishing information is at the front -- "food 3"
+-- not "3 food" -- per the concise-announcement rule.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_VIEW"] = "City"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CONNECTED"] = "connected"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNEMPLOYED"] = "{1_Num} unemployed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FOOD"] = "food {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_PRODUCTION"] = "production {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLD"] = "gold {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE"] = "science {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH"] = "faith {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM"] = "tourism {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE"] = "culture {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT"] = "Period"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_NEXT"] = "Next city"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_PREV"] = "Comma"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_PREV"] = "Previous city"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_NEXT_CITY"] = "no next city"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_PREV_CITY"] = "no previous city"
 -- Collapse announcement emitted when three or more notifications arrive
 -- inside a six-frame window. The actual summaries are still available via
 -- Ctrl+N so no content is lost.
