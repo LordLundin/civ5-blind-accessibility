@@ -516,6 +516,343 @@ local function activateUnemployed()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SLACKER_ASSIGNED"))
 end
 
+-- ===== Buildings sub-handler (§3.7) =====
+--
+-- Flat list of non-wonder buildings constructed in this city. Enter opens
+-- a drill-in action menu with Sell (when sellable and not puppet) and Back.
+-- Sell pushes a modal confirm that speaks the engine's TXT_KEY_SELL_BUILDING_INFO
+-- so blind and sighted users land on the same confirmation wording.
+-- Y / Enter confirms and fires Network.SendSellBuilding, then pops back
+-- to the hub so the Buildings list rebuilds; N / Esc cancels.
+--
+-- The engine's inline SellBuildingConfirm overlay is NOT driven here --
+-- we bypass it and go straight to the network message. A sighted observer
+-- wouldn't see a confirmation; acceptable because sighted users open the
+-- CityView via mouse, and this path only fires from our keyboard flow.
+
+local function makeSellConfirmHandler(buildingID, buildingName)
+    local function dismiss(reactivate)
+        HandlerStack.removeByName("CityView.SellConfirm", reactivate ~= false)
+    end
+    local function pressYes()
+        local city = UI.GetHeadSelectedCity()
+        if city ~= nil and isTurnActive() then
+            Network.SendSellBuilding(city:GetID(), buildingID)
+        end
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SELL_DONE"))
+        -- Pop the modal, the drill-in, and the Buildings sub back to the
+        -- hub; the hub's onActivate rebuilds items so the sold building
+        -- drops from the list.
+        if hubHandler ~= nil then
+            HandlerStack.popAbove(hubHandler)
+        else
+            dismiss()
+        end
+    end
+    local function pressNo()
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SELL_CANCELLED"))
+        dismiss()
+    end
+    return {
+        name = "CityView.SellConfirm",
+        capturesAllInput = true,
+        bindings = {
+            { key = Keys.Y, mods = 0, description = "Confirm", fn = pressYes },
+            { key = Keys.VK_RETURN, mods = 0, description = "Confirm", fn = pressYes },
+            { key = Keys.N, mods = 0, description = "Cancel", fn = pressNo },
+            { key = Keys.VK_ESCAPE, mods = 0, description = "Cancel", fn = pressNo },
+        },
+        helpEntries = {},
+        onActivate = function(_self)
+            local city = UI.GetHeadSelectedCity()
+            if city == nil then
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SELL_CONFIRM"))
+                return
+            end
+            local refund = city:GetSellBuildingRefund(buildingID)
+            local row = GameInfo.Buildings[buildingID]
+            local maint = (row ~= nil and row.GoldMaintenance) or 0
+            SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_SELL_BUILDING_INFO", refund, maint))
+            SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SELL_YES"))
+        end,
+    }
+end
+
+local function pushBuildingActions(city, buildingID, buildingName)
+    local items = {}
+    if city:IsBuildingSellable(buildingID) and not city:IsPuppet() then
+        local refund = city:GetSellBuildingRefund(buildingID)
+        local sellItem = BaseMenuItems.Text({
+            labelText = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_SELL", refund),
+        })
+        sellItem.activate = function(_self, _menu)
+            Events.AudioPlay2DSound("AS2D_IF_SELECT")
+            if not isTurnActive() then
+                return
+            end
+            HandlerStack.push(makeSellConfirmHandler(buildingID, buildingName))
+        end
+        items[#items + 1] = sellItem
+    end
+    local backItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_BACK") })
+    backItem.activate = function(_self, _menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        HandlerStack.removeByName("CityView.BuildingActions", true)
+    end
+    items[#items + 1] = backItem
+
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView.BuildingActions",
+        displayName = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_ACTIONS", buildingName),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
+local function pushBuildings()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+    local buildings = {}
+    for building in GameInfo.Buildings() do
+        if city:IsHasBuilding(building.ID) and not isWonderBuilding(building) then
+            local name = Locale.ConvertTextKey(building.Description)
+            local help = building.Help and Locale.ConvertTextKey(building.Help) or ""
+            buildings[#buildings + 1] = { id = building.ID, name = name, help = help }
+        end
+    end
+    table.sort(buildings, function(a, b)
+        return Locale.Compare(a.name, b.name) == -1
+    end)
+
+    local items = {}
+    if #buildings == 0 then
+        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDINGS_EMPTY") })
+    else
+        for _, b in ipairs(buildings) do
+            local capturedID = b.id
+            local capturedName = b.name
+            local item = BaseMenuItems.Text({
+                labelText = b.name,
+                tooltipText = (b.help ~= "") and b.help or nil,
+            })
+            item.activate = function(_self, _menu)
+                Events.AudioPlay2DSound("AS2D_IF_SELECT")
+                local liveCity = UI.GetHeadSelectedCity()
+                if liveCity == nil then
+                    return
+                end
+                pushBuildingActions(liveCity, capturedID, capturedName)
+            end
+            items[#items + 1] = item
+        end
+    end
+
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView.Buildings",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
+local function cityHasAnyNonWonderBuilding(city)
+    for building in GameInfo.Buildings() do
+        if city:IsHasBuilding(building.ID) and not isWonderBuilding(building) then
+            return true
+        end
+    end
+    return false
+end
+
+-- ===== Specialists sub-handler (§3.6) =====
+--
+-- One item per specialist slot across every specialist-capable building
+-- in the city, grouped by building in the label (plan-mandated shape).
+-- labelFn flips "empty" / "filled" on the next read, so the state stays
+-- current across Enter-driven add / remove without rebuilding the list.
+-- A Manual Specialist Control toggle lands at the bottom; its checkbox
+-- state mirrors pCity:IsNoAutoAssignSpecialists().
+--
+-- Add / remove mirror CityView's AddSpecialist / RemoveSpecialist helpers
+-- (CityView.lua:2341-2385): auto-flip TASK_NO_AUTO_ASSIGN_SPECIALISTS on
+-- first action, then fire TASK_ADD_SPECIALIST / TASK_REMOVE_SPECIALIST.
+-- Post-action announcement compares the pre / post unemployed pool count
+-- across a one-tick delay: -1 / +1 delta = pool source (short form);
+-- 0 delta = engine pulled / placed a tile worker (long form explaining
+-- the tile reassignment, which is otherwise invisible to the user).
+
+local function cityHasAnySpecialistSlots(city)
+    for building in GameInfo.Buildings() do
+        if city:IsHasBuilding(building.ID) and city:GetNumSpecialistsAllowedByBuilding(building.ID) > 0 then
+            return true
+        end
+    end
+    return false
+end
+
+local function pushSpecialists()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+
+    local specBuildings = {}
+    for building in GameInfo.Buildings() do
+        if city:IsHasBuilding(building.ID) then
+            local slots = city:GetNumSpecialistsAllowedByBuilding(building.ID)
+            if slots > 0 then
+                specBuildings[#specBuildings + 1] = {
+                    id = building.ID,
+                    name = Locale.ConvertTextKey(building.Description),
+                    slots = slots,
+                    specialistType = building.SpecialistType,
+                }
+            end
+        end
+    end
+    table.sort(specBuildings, function(a, b)
+        return Locale.Compare(a.name, b.name) == -1
+    end)
+
+    local items = {}
+    for _, sb in ipairs(specBuildings) do
+        local specialistInfo = GameInfo.Specialists[sb.specialistType]
+        if specialistInfo ~= nil then
+            local specID = specialistInfo.ID
+            local specName = Locale.ConvertTextKey(specialistInfo.Description)
+            local bID, bName = sb.id, sb.name
+            for slotIdx = 1, sb.slots do
+                local capturedSlot = slotIdx
+                local item = BaseMenuItems.Text({
+                    labelFn = function()
+                        local c = UI.GetHeadSelectedCity()
+                        if c == nil then
+                            return ""
+                        end
+                        local count = c:GetNumSpecialistsInBuilding(bID)
+                        local stateKey = (capturedSlot <= count)
+                                and "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_STATE"
+                            or "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_EMPTY"
+                        return Text.format(
+                            "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_SLOT",
+                            bName,
+                            specName,
+                            capturedSlot,
+                            Text.key(stateKey)
+                        )
+                    end,
+                })
+                item.activate = function(_self, _menu)
+                    Events.AudioPlay2DSound("AS2D_IF_SELECT")
+                    local c = UI.GetHeadSelectedCity()
+                    if c == nil or not isTurnActive() then
+                        return
+                    end
+                    if not c:IsNoAutoAssignSpecialists() then
+                        Game.SelectedCitiesGameNetMessage(
+                            GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                            TaskTypes.TASK_NO_AUTO_ASSIGN_SPECIALISTS,
+                            -1,
+                            -1,
+                            true
+                        )
+                    end
+                    local countBefore = c:GetNumSpecialistsInBuilding(bID)
+                    local unemployedBefore = c:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST)
+                    local isFilled = (capturedSlot <= countBefore)
+                    if isFilled then
+                        Game.SelectedCitiesGameNetMessage(
+                            GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                            TaskTypes.TASK_REMOVE_SPECIALIST,
+                            specID,
+                            bID
+                        )
+                    else
+                        if not c:IsCanAddSpecialistToBuilding(bID) then
+                            SpeechPipeline.speakInterrupt(
+                                Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_CANNOT_ADD")
+                            )
+                            return
+                        end
+                        Game.SelectedCitiesGameNetMessage(
+                            GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                            TaskTypes.TASK_ADD_SPECIALIST,
+                            specID,
+                            bID
+                        )
+                    end
+                    TickPump.runOnce(function()
+                        local c2 = UI.GetHeadSelectedCity()
+                        if c2 == nil then
+                            return
+                        end
+                        local unemployedAfter = c2:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST)
+                        local delta = unemployedAfter - unemployedBefore
+                        local key
+                        if isFilled then
+                            key = (delta == 0) and "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED_TO_TILE"
+                                or "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED"
+                        else
+                            key = (delta == 0) and "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_FROM_TILE"
+                                or "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED"
+                        end
+                        SpeechPipeline.speakInterrupt(Text.key(key))
+                    end)
+                end
+                items[#items + 1] = item
+            end
+        end
+    end
+
+    if #items == 0 then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_EMPTY"),
+        })
+    end
+
+    local manualItem = BaseMenuItems.Text({
+        labelFn = function()
+            local c = UI.GetHeadSelectedCity()
+            local on = (c ~= nil) and c:IsNoAutoAssignSpecialists()
+            local state = Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
+            return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_MANUAL_SPECIALIST", state)
+        end,
+    })
+    manualItem.activate = function(self, menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        local c = UI.GetHeadSelectedCity()
+        if c == nil or not isTurnActive() then
+            return
+        end
+        local newVal = not c:IsNoAutoAssignSpecialists()
+        Game.SelectedCitiesGameNetMessage(
+            GameMessageTypes.GAMEMESSAGE_DO_TASK,
+            TaskTypes.TASK_NO_AUTO_ASSIGN_SPECIALISTS,
+            -1,
+            -1,
+            newVal
+        )
+        -- Speak the item's updated label on the next tick so the labelFn
+        -- reads the post-commit state.
+        TickPump.runOnce(function()
+            SpeechPipeline.speakInterrupt(manualItem:announce(menu))
+        end)
+    end
+    items[#items + 1] = manualItem
+
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView.Specialists",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
 -- ===== Hub item list =====
 --
 -- Rebuilt on every hub activation (initial push + sub-handler pop). The
@@ -526,24 +863,32 @@ end
 -- Specialists (Phase 3) / Great works (Phase 4) / Great people /
 -- Unemployed / Rename (Phase 6) / Raze (Phase 6).
 
-local function buildHubItems(city)
+-- Hub items are all non-conditional except Ranged strike (Phase 8) and
+-- Raze (Phase 6), per plan §3. Empty states are handled inside each
+-- sub-handler rather than hidden at the hub, so a blind user always
+-- finds the same entry in the same position regardless of city state.
+local function buildHubItems(_city)
     local items = {}
-    if cityHasAnyWonder(city) then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS") },
-            pushWonders
-        )
-    end
+    items[#items + 1] = makeHubItem(
+        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") },
+        pushBuildings
+    )
+    items[#items + 1] = makeHubItem(
+        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS") },
+        pushWonders
+    )
     items[#items + 1] = makeHubItem(
         { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS") },
         pushWorkerFocus
     )
-    if cityHasAnyGreatPersonProgress(city) then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE") },
-            pushGreatPeople
-        )
-    end
+    items[#items + 1] = makeHubItem(
+        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS") },
+        pushSpecialists
+    )
+    items[#items + 1] = makeHubItem(
+        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE") },
+        pushGreatPeople
+    )
     items[#items + 1] = makeHubItem(
         { labelFn = unemployedLabel },
         activateUnemployed

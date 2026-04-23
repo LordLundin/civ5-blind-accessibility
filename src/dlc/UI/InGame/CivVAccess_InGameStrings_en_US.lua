@@ -356,6 +356,34 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_CHANGED"] = "{1_Label} sel
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_RESET_DONE"] = "tile assignments reset"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_UNEMPLOYED"] = "no unemployed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SLACKER_ASSIGNED"] = "assigned"
+-- Buildings sub-handler (§3.7). Drill-in opens on Enter over any building
+-- entry; Sell is conditional on pCity:IsBuildingSellable and not-puppet, so
+-- a non-sellable entry lands the user on a drill-in with just Back. The
+-- sell-confirm modal speaks the engine's own TXT_KEY_SELL_BUILDING_INFO
+-- so blind and sighted players see / hear the same confirmation text.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"] = "Buildings"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_BUILDINGS_EMPTY"] = "No buildings."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_ACTIONS"] = "{1_Name} actions"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_SELL"] = "Sell for {1_Gold} gold"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_BACK"] = "Back"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SELL_CONFIRM"] = "Sell confirmation"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SELL_YES"] = "Y to confirm, N to cancel"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SELL_DONE"] = "sold"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SELL_CANCELLED"] = "cancelled"
+-- Specialists sub-handler (§3.6). One item per slot across specialist-
+-- capable buildings. Labels use labelFn so Enter-driven add/remove flips
+-- the "empty" / "filled" suffix on the next navigate without rebuilding.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"] = "Specialists"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_EMPTY"] = "No specialist slots."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_SLOT"] = "{1_Building} {2_Specialist} slot {3_N}, {4_State}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_EMPTY"] = "empty"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_STATE"] = "filled"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED"] = "filled"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED"] = "unfilled"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_FROM_TILE"] = "filled, worker unassigned from tile"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED_TO_TILE"] = "unfilled, worker assigned to tile"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_CANNOT_ADD"] = "cannot add specialist"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_MANUAL_SPECIALIST"] = "Manual specialist control, {1_State}"
 -- Collapse announcement emitted when three or more notifications arrive
 -- inside a six-frame window. The actual summaries are still available via
 -- Ctrl+N so no content is lost.
