@@ -1633,6 +1633,68 @@ local function pushHexMap()
     end
 end
 
+-- ===== Ranged strike (§3.5) =====
+--
+-- Gated at the hub on pCity:CanRangeStrikeNow() (same predicate vanilla
+-- uses in CityBannerManager.lua:37). Activation closes the city screen,
+-- puts the engine into INTERFACEMODE_CITY_RANGE_ATTACK, and pushes the
+-- InGame-Context target picker (CityRangeStrikeMode). Deferring via
+-- TickPump avoids mutating the city screen's state mid-activate of a
+-- BaseMenu hub item; the queued callback runs after the menu's activate
+-- flow has returned.
+--
+-- Re-resolves the city via ownerID/cityID inside the deferred callback
+-- because Events.SerialEventExitCityScreen calls UI.ClearSelectedCities,
+-- so UI.GetHeadSelectedCity returns nil by the time we need to push.
+-- The engine's CITY_RANGE_ATTACK mode requires a selected city, so we
+-- re-select explicitly before setting the interface mode.
+
+local function pushRangedStrike()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil or not city:CanRangeStrikeNow() then
+        return
+    end
+    local ownerID = city:GetOwner()
+    local cityID = city:GetID()
+    TickPump.runOnce(function()
+        -- Between the hub Enter that queued this callback and the tick
+        -- that drains it, the user could have pressed Esc on the hub (which
+        -- closes the city screen via the same path we were about to take).
+        -- If the screen is already down, honor that -- don't re-enter the
+        -- attack flow for a user who just cancelled out.
+        if not UI.IsCityScreenUp() then
+            return
+        end
+        Events.SerialEventExitCityScreen()
+        local owner = Players[ownerID]
+        if owner == nil then
+            Log.warn("CityRangeStrike: owner vanished between hub activate and deferred push")
+            return
+        end
+        local cityRef = owner:GetCityByID(cityID)
+        if cityRef == nil then
+            Log.warn("CityRangeStrike: city vanished between hub activate and deferred push")
+            return
+        end
+        -- Order mirrors CityBannerManager.lua:1017-1021 so any listener on
+        -- the mode change sees the engine in the same state vanilla's banner
+        -- click produces.
+        UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK)
+        UI.ClearSelectionList()
+        UI.SelectCity(cityRef)
+        Events.InitCityRangeStrike(ownerID, cityID)
+        local bridge = civvaccess_shared.modules or {}
+        local mode = bridge.CityRangeStrikeMode
+        if mode == nil or type(mode.enter) ~= "function" then
+            Log.error("CityRangeStrike: modules.CityRangeStrikeMode not published; aborting")
+            UI.ClearSelectedCities()
+            UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION)
+            return
+        end
+        mode.enter(cityRef)
+    end)
+end
+
 -- ===== Rename (§3.13) =====
 --
 -- Hub-level item. Fires vanilla's BUTTONPOPUP_RENAME_CITY, which opens the
@@ -1704,12 +1766,11 @@ end
 
 -- ===== Hub item list =====
 --
--- Rebuilt on every hub activation (initial push + sub-handler pop). The
--- canonical order from the plan is preserved even when conditional items
--- are absent, so adding the later phases' items later won't reshuffle the
--- already-present ones: Production / Hex / Ranged Strike (not yet wired) /
--- Buildings / Wonders / Worker focus / Specialists / Great works /
--- Great people / Unemployed / Rename / Raze.
+-- Rebuilt on every hub activation (initial push + sub-handler pop). Order
+-- from the plan: Production / Hex / Ranged Strike / Buildings / Wonders /
+-- Worker focus / Specialists / Great works / Great people / Unemployed /
+-- Rename / Raze. Conditional items drop out when their gating predicate
+-- is false without reshuffling the surviving ones.
 
 -- Hub items are gated per plan §3: an item is present only when its sub-
 -- handler would land the user on at least one real entry, so arrowing
@@ -1726,6 +1787,12 @@ local function buildHubItems(city)
         { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") },
         pushHexMap
     )
+    if city:CanRangeStrikeNow() then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE") },
+            pushRangedStrike
+        )
+    end
     if cityHasAnyNonWonderBuilding(city) then
         items[#items + 1] = makeHubItem(
             { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") },

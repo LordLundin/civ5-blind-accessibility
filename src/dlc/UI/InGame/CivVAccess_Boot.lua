@@ -48,6 +48,7 @@ include("CivVAccess_UnitSpeech")
 include("CivVAccess_CitySpeech")
 include("CivVAccess_UnitActionMenu")
 include("CivVAccess_UnitTargetMode")
+include("CivVAccess_CityRangeStrikeMode")
 include("CivVAccess_UnitControl")
 -- Turn must load before BaselineHandler so its getBindings() is available
 -- when BaselineHandler.create concatenates the binding surface.
@@ -87,6 +88,7 @@ civvaccess_shared.modules.ScannerNav = ScannerNav
 civvaccess_shared.modules.ScannerHandler = ScannerHandler
 civvaccess_shared.modules.SurveyorCore = SurveyorCore
 civvaccess_shared.modules.PlotComposers = PlotComposers
+civvaccess_shared.modules.CityRangeStrikeMode = CityRangeStrikeMode
 
 -- Boot fires any time a new in-game Context loads, which may include the
 -- pre-game setup flow, not just a real loaded game. Civ V runs the entire
