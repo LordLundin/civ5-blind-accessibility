@@ -646,3 +646,23 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_URANIUM"] = "uranium"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_WHALES"] = "whales"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_WHEAT"] = "wheat"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_WINE"] = "wine"
+-- ChooseProduction popup. Wrapped BaseMenu with two tabs (Produce, Purchase)
+-- and five groups per tab (Units, Buildings, Wonders, Other, Current queue).
+-- Append-mode commit speaks post-commit queue length so the player hears the
+-- fill state as they chain picks; queue-full closes the popup.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_PRODUCTION"] = "Choose Production"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TAB_PRODUCE"] = "Produce"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TAB_PURCHASE"] = "Purchase"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_GROUP_QUEUE"] = "Current queue"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PUPPET"] = "puppet"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT"] = "added, slot {1_Slot} in queue"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_FULL"] = "queue full"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_EMPTY"] = "queue is empty"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PREAMBLE_QUEUE_COUNT"] = "queue has {1_N} of {2_Max}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TURNS"] = "{1_Num} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_GOLD"] = "{1_Num} gold"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_FAITH"] = "{1_Num} faith"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_BUILDING"] = "building {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED"] = "purchased {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT"] = "{1_Name}, {2_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT_PROCESS"] = "{1_Name}"

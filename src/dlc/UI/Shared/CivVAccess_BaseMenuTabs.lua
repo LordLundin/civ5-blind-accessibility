@@ -222,8 +222,12 @@ end
 -- text the caller should speakQueued (or nil/"" to skip); caller handles
 -- the displayName + preamble + first-item speech around it.
 function BaseMenuTabs.openInitial(self, nav)
-    self._tabIndex = 1
-    local tab = self.tabs[1]
+    local idx = self._initialTabIndex or 1
+    if idx < 1 or idx > #self.tabs then
+        idx = 1
+    end
+    self._tabIndex = idx
+    local tab = self.tabs[idx]
     if type(tab.showPanel) == "function" then
         local ok, err = pcall(tab.showPanel)
         if not ok then

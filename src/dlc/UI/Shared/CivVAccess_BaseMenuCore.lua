@@ -635,6 +635,10 @@ function BaseMenu.create(spec)
         spec.silentFirstOpen == nil or type(spec.silentFirstOpen) == "boolean",
         "spec.silentFirstOpen must be a boolean if provided"
     )
+    check(
+        spec.initialTabIndex == nil or (type(spec.initialTabIndex) == "number" and spec.initialTabIndex >= 1),
+        "spec.initialTabIndex must be a positive number if provided"
+    )
     check(spec.onAltLeft == nil or type(spec.onAltLeft) == "function", "spec.onAltLeft must be a function if provided")
     check(
         spec.onAltRight == nil or type(spec.onAltRight) == "function",
@@ -654,6 +658,11 @@ function BaseMenu.create(spec)
         -- current selection. Ignored if the target index is not navigable at
         -- open time; falls through to the first-valid default.
         _initialIndex = spec.initialIndex,
+        -- Optional 1-based tab index the first onActivate lands on. Used by
+        -- ChooseProductionPopup where Option2 on the popupInfo picks Purchase
+        -- as the opening tab. Out-of-range values fall back to tab 1 in
+        -- openInitial. Clears are done via setInitialTabIndex(nil).
+        _initialTabIndex = spec.initialTabIndex,
         _focusParkControl = spec.focusParkControl,
         -- When true, the first-open announce speaks only displayName and
         -- skips preamble / tab-name / first-item. For screens that overlap
@@ -999,6 +1008,13 @@ function BaseMenu.create(spec)
     -- uses.
     function self.setInitialIndex(idx)
         self._initialIndex = idx
+    end
+
+    -- Update the tab index openInitial lands on at next first-open. Pass nil
+    -- to clear back to the default (tab 1). Out-of-range values fall through
+    -- to tab 1 at openInitial time.
+    function self.setInitialTabIndex(idx)
+        self._initialTabIndex = idx
     end
 
     -- Set the live level-1 cursor position. Does not announce (callers

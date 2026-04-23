@@ -127,5 +127,6 @@ T.register("scanner_announcement", require("scanner_announcement_test"))
 T.register("pathfinder", require("suite_pathfinder"))
 T.register("notification_announce", require("notification_announce_test"))
 T.register("turn", require("turn_test"))
+T.register("choose_production", require("choose_production_test"))
 
 os.exit(T.run() and 0 or 1)
