@@ -853,6 +853,148 @@ local function pushSpecialists()
     }))
 end
 
+-- ===== Great works sub-handler (§3.12) =====
+--
+-- Flat list with one item per great-work slot across every great-work-
+-- capable building in the city. labelFn re-reads slot occupancy on every
+-- navigate so a swap in the Culture Overview (separate accessibility pass)
+-- is reflected on re-enter without a rebuild. Per-building synthetic
+-- theming-bonus item appended after its building's slots when
+-- pCity:GetThemingBonus(bClass) > 0 -- the label carries the bonus and
+-- engine's theming tooltip so the rule is audible inline.
+--
+-- Enter on filled non-artifact slot fires BUTTONPOPUP_GREAT_WORK_COMPLETED_ACTIVE_PLAYER,
+-- matching vanilla's left-click callback at CityView.lua:393. Artifact
+-- slots, empty slots, and theming items are no-op (vanilla wires no
+-- callback either; the content is spoken in the label).
+
+local GW_SLOT_TYPE_KEY = {
+    GREAT_WORK_SLOT_LITERATURE = "TXT_KEY_CIVVACCESS_CITYVIEW_GW_SLOT_WRITING",
+    GREAT_WORK_SLOT_ART_ARTIFACT = "TXT_KEY_CIVVACCESS_CITYVIEW_GW_SLOT_ART",
+    GREAT_WORK_SLOT_MUSIC = "TXT_KEY_CIVVACCESS_CITYVIEW_GW_SLOT_MUSIC",
+}
+
+local function isGreatWorkBuilding(building)
+    return (building.GreatWorkCount or 0) > 0 and building.GreatWorkSlotType ~= nil
+end
+
+local function cityHasAnyGreatWorkSlots(city)
+    for building in GameInfo.Buildings() do
+        if isGreatWorkBuilding(building) and city:IsHasBuilding(building.ID) then
+            return true
+        end
+    end
+    return false
+end
+
+local function pushGreatWorks()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+
+    local gwBuildings = {}
+    for building in GameInfo.Buildings() do
+        if isGreatWorkBuilding(building) and city:IsHasBuilding(building.ID) then
+            local bclass = GameInfo.BuildingClasses[building.BuildingClass]
+            if bclass ~= nil then
+                gwBuildings[#gwBuildings + 1] = {
+                    name = Locale.ConvertTextKey(building.Description),
+                    bClassID = bclass.ID,
+                    slotCount = building.GreatWorkCount,
+                    slotType = building.GreatWorkSlotType,
+                }
+            end
+        end
+    end
+    table.sort(gwBuildings, function(a, b)
+        return Locale.Compare(a.name, b.name) == -1
+    end)
+
+    local items = {}
+    for _, b in ipairs(gwBuildings) do
+        local slotTypeLabel = Text.key(GW_SLOT_TYPE_KEY[b.slotType] or "")
+        for slotI = 0, b.slotCount - 1 do
+            local buildingName = b.name
+            local displaySlot = slotI + 1
+            local bClassID = b.bClassID
+            local slotZero = slotI
+            local item = BaseMenuItems.Text({
+                labelFn = function()
+                    local c = UI.GetHeadSelectedCity()
+                    if c == nil then
+                        return ""
+                    end
+                    local gwIndex = c:GetBuildingGreatWork(bClassID, slotZero)
+                    if gwIndex >= 0 then
+                        local workDesc = Game.GetGreatWorkTooltip(gwIndex, c:GetOwner())
+                        return Text.format(
+                            "TXT_KEY_CIVVACCESS_CITYVIEW_GW_SLOT_FILLED",
+                            buildingName,
+                            slotTypeLabel,
+                            displaySlot,
+                            workDesc
+                        )
+                    end
+                    return Text.format(
+                        "TXT_KEY_CIVVACCESS_CITYVIEW_GW_SLOT_EMPTY",
+                        buildingName,
+                        slotTypeLabel,
+                        displaySlot
+                    )
+                end,
+            })
+            item.activate = function(_self, _menu)
+                Events.AudioPlay2DSound("AS2D_IF_SELECT")
+                local c = UI.GetHeadSelectedCity()
+                if c == nil then
+                    return
+                end
+                local gwIndex = c:GetBuildingGreatWork(bClassID, slotZero)
+                if gwIndex < 0 then
+                    return
+                end
+                local gwType = Game.GetGreatWorkType(gwIndex)
+                local gw = GameInfo.GreatWorks[gwType]
+                if gw == nil or gw.GreatWorkClassType == "GREAT_WORK_ARTIFACT" then
+                    return
+                end
+                Events.SerialEventGameMessagePopup({
+                    Type = ButtonPopupTypes.BUTTONPOPUP_GREAT_WORK_COMPLETED_ACTIVE_PLAYER,
+                    Data1 = gwIndex,
+                    Priority = PopupPriority.Current,
+                })
+            end
+            items[#items + 1] = item
+        end
+        local themeBonus = city:GetThemingBonus(b.bClassID)
+        if themeBonus > 0 then
+            local themeTip = city:GetThemingTooltip(b.bClassID) or ""
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = Text.format(
+                    "TXT_KEY_CIVVACCESS_CITYVIEW_GW_THEMING_BONUS",
+                    b.name,
+                    themeBonus,
+                    themeTip
+                ),
+            })
+        end
+    end
+
+    if #items == 0 then
+        items[#items + 1] =
+            BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_GW_EMPTY_LIST") })
+    end
+
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView.GreatWorks",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS"),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
 -- ===== Hub item list =====
 --
 -- Rebuilt on every hub activation (initial push + sub-handler pop). The
@@ -890,6 +1032,12 @@ local function buildHubItems(city)
         items[#items + 1] = makeHubItem(
             { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS") },
             pushSpecialists
+        )
+    end
+    if cityHasAnyGreatWorkSlots(city) then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS") },
+            pushGreatWorks
         )
     end
     if cityHasAnyGreatPersonProgress(city) then
