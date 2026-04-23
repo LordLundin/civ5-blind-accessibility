@@ -66,12 +66,7 @@ local function statusTokens(city)
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_BLOCKADED")
     end
     local owner = Players[city:GetOwner()]
-    if
-        owner ~= nil
-        and not city:IsCapital()
-        and owner:IsCapitalConnectedToCity(city)
-        and not city:IsBlockaded()
-    then
+    if owner ~= nil and not city:IsCapital() and owner:IsCapitalConnectedToCity(city) and not city:IsBlockaded() then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_CONNECTED")
     end
     return parts
@@ -261,15 +256,8 @@ end
 -- state (unemployed count, focus selection) without rebuilding the item.
 
 local function makeHubItem(spec, activateFn)
-    local item = BaseMenuItems.Text(spec)
-    item.activate = function(self, menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        local ok, err = pcall(activateFn, self, menu)
-        if not ok then
-            Log.error("CityView hub activate failed: " .. tostring(err))
-        end
-    end
-    return item
+    spec.onActivate = activateFn
+    return BaseMenuItems.Text(spec)
 end
 
 local function sortByLocalizedName(list)
@@ -415,14 +403,14 @@ end
 -- CityView.lua:2619).
 
 local FOCUS_TYPES = {
-    { focus = CityAIFocusTypes.NO_CITY_AI_FOCUS_TYPE,           key = "TXT_KEY_CITYVIEW_FOCUS_BALANCED_TEXT" },
-    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_FOOD,         key = "TXT_KEY_CITYVIEW_FOCUS_FOOD_TEXT" },
-    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_PRODUCTION,   key = "TXT_KEY_CITYVIEW_FOCUS_PROD_TEXT" },
-    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_GOLD,         key = "TXT_KEY_CITYVIEW_FOCUS_GOLD_TEXT" },
-    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_SCIENCE,      key = "TXT_KEY_CITYVIEW_FOCUS_RESEARCH_TEXT" },
-    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_CULTURE,      key = "TXT_KEY_CITYVIEW_FOCUS_CULTURE_TEXT" },
+    { focus = CityAIFocusTypes.NO_CITY_AI_FOCUS_TYPE, key = "TXT_KEY_CITYVIEW_FOCUS_BALANCED_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_FOOD, key = "TXT_KEY_CITYVIEW_FOCUS_FOOD_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_PRODUCTION, key = "TXT_KEY_CITYVIEW_FOCUS_PROD_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_GOLD, key = "TXT_KEY_CITYVIEW_FOCUS_GOLD_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_SCIENCE, key = "TXT_KEY_CITYVIEW_FOCUS_RESEARCH_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_CULTURE, key = "TXT_KEY_CITYVIEW_FOCUS_CULTURE_TEXT" },
     { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_GREAT_PEOPLE, key = "TXT_KEY_CITYVIEW_FOCUS_GREAT_PERSON_TEXT" },
-    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_FAITH,        key = "TXT_KEY_CITYVIEW_FOCUS_FAITH_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_FAITH, key = "TXT_KEY_CITYVIEW_FOCUS_FAITH_TEXT" },
 }
 
 local function pushWorkerFocus()
@@ -437,18 +425,17 @@ local function pushWorkerFocus()
                 end
                 return Text.key(labelKey)
             end,
+            onActivate = function()
+                local city = UI.GetHeadSelectedCity()
+                if city == nil or not isTurnActive() then
+                    return
+                end
+                Network.SendSetCityAIFocus(city:GetID(), focusType)
+                SpeechPipeline.speakInterrupt(
+                    Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_CHANGED", Text.key(labelKey))
+                )
+            end,
         })
-        item.activate = function(self, _menu)
-            Events.AudioPlay2DSound("AS2D_IF_SELECT")
-            local city = UI.GetHeadSelectedCity()
-            if city == nil or not isTurnActive() then
-                return
-            end
-            Network.SendSetCityAIFocus(city:GetID(), focusType)
-            SpeechPipeline.speakInterrupt(
-                Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_CHANGED", Text.key(labelKey))
-            )
-        end
         items[#items + 1] = item
     end
 
@@ -459,36 +446,34 @@ local function pushWorkerFocus()
             local state = Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
             return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_AVOID_GROWTH", state)
         end,
+        onActivate = function(self, menu)
+            local city = UI.GetHeadSelectedCity()
+            if city == nil or not isTurnActive() then
+                return
+            end
+            Network.SendSetCityAvoidGrowth(city:GetID(), not city:IsForcedAvoidGrowth())
+            -- The Network call is async; speak the item's label after
+            -- (labelFn reads IsForcedAvoidGrowth which won't flip until the
+            -- engine applies the task). Tolerable: the engine applies
+            -- locally in single-player before the next announce, and
+            -- multiplayer briefly shows the previous state until the commit
+            -- -- same delay a sighted player sees on the checkbox.
+            SpeechPipeline.speakInterrupt(self:announce(menu))
+        end,
     })
-    avoidItem.activate = function(self, menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        local city = UI.GetHeadSelectedCity()
-        if city == nil or not isTurnActive() then
-            return
-        end
-        Network.SendSetCityAvoidGrowth(city:GetID(), not city:IsForcedAvoidGrowth())
-        -- The Network call is async; speak the item's label after (labelFn
-        -- reads IsForcedAvoidGrowth which won't flip until the engine
-        -- applies the task). Tolerable: the engine applies locally in
-        -- single-player before the next announce, and multiplayer briefly
-        -- shows the previous state until the commit -- same delay a sighted
-        -- player sees on the checkbox.
-        SpeechPipeline.speakInterrupt(avoidItem:announce(menu))
-    end
     items[#items + 1] = avoidItem
 
     local resetItem = BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_RESET"),
+        onActivate = function()
+            local city = UI.GetHeadSelectedCity()
+            if city == nil or not isTurnActive() then
+                return
+            end
+            Network.SendDoTask(city:GetID(), TaskTypes.TASK_CHANGE_WORKING_PLOT, 0, -1, false, false, false, false)
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_RESET_DONE"))
+        end,
     })
-    resetItem.activate = function(self, _menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        local city = UI.GetHeadSelectedCity()
-        if city == nil or not isTurnActive() then
-            return
-        end
-        Network.SendDoTask(city:GetID(), TaskTypes.TASK_CHANGE_WORKING_PLOT, 0, -1, false, false, false, false)
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_RESET_DONE"))
-    end
     items[#items + 1] = resetItem
 
     pushCitySub("WorkerFocus", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"), items)
@@ -590,28 +575,24 @@ local function pushBuildingActions(city, buildingID, buildingName)
         local refund = city:GetSellBuildingRefund(buildingID)
         local sellItem = BaseMenuItems.Text({
             labelText = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_SELL", refund),
+            onActivate = function()
+                if not isTurnActive() then
+                    return
+                end
+                HandlerStack.push(makeSellConfirmHandler(buildingID))
+            end,
         })
-        sellItem.activate = function(_self, _menu)
-            Events.AudioPlay2DSound("AS2D_IF_SELECT")
-            if not isTurnActive() then
-                return
-            end
-            HandlerStack.push(makeSellConfirmHandler(buildingID))
-        end
         items[#items + 1] = sellItem
     end
-    local backItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_BACK") })
-    backItem.activate = function(_self, _menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        HandlerStack.removeByName("CityView.BuildingActions", true)
-    end
+    local backItem = BaseMenuItems.Text({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_BACK"),
+        onActivate = function()
+            HandlerStack.removeByName("CityView.BuildingActions", true)
+        end,
+    })
     items[#items + 1] = backItem
 
-    pushCitySub(
-        "BuildingActions",
-        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_ACTIONS", buildingName),
-        items
-    )
+    pushCitySub("BuildingActions", Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_ACTIONS", buildingName), items)
 end
 
 local function pushBuildings()
@@ -640,15 +621,14 @@ local function pushBuildings()
                 labelText = b.name,
                 tooltipText = (b.help ~= "") and b.help or nil,
                 pediaName = b.name,
+                onActivate = function()
+                    local liveCity = UI.GetHeadSelectedCity()
+                    if liveCity == nil then
+                        return
+                    end
+                    pushBuildingActions(liveCity, capturedID, capturedName)
+                end,
             })
-            item.activate = function(_self, _menu)
-                Events.AudioPlay2DSound("AS2D_IF_SELECT")
-                local liveCity = UI.GetHeadSelectedCity()
-                if liveCity == nil then
-                    return
-                end
-                pushBuildingActions(liveCity, capturedID, capturedName)
-            end
             items[#items + 1] = item
         end
     end
@@ -741,64 +721,63 @@ local function pushSpecialists()
                         )
                     end,
                     pediaName = specName,
-                })
-                item.activate = function(_self, _menu)
-                    Events.AudioPlay2DSound("AS2D_IF_SELECT")
-                    local c = UI.GetHeadSelectedCity()
-                    if c == nil or not isTurnActive() then
-                        return
-                    end
-                    if not c:IsNoAutoAssignSpecialists() then
-                        Game.SelectedCitiesGameNetMessage(
-                            GameMessageTypes.GAMEMESSAGE_DO_TASK,
-                            TaskTypes.TASK_NO_AUTO_ASSIGN_SPECIALISTS,
-                            -1,
-                            -1,
-                            true
-                        )
-                    end
-                    local countBefore = c:GetNumSpecialistsInBuilding(bID)
-                    local unemployedBefore = c:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST)
-                    local isFilled = (capturedSlot <= countBefore)
-                    if isFilled then
-                        Game.SelectedCitiesGameNetMessage(
-                            GameMessageTypes.GAMEMESSAGE_DO_TASK,
-                            TaskTypes.TASK_REMOVE_SPECIALIST,
-                            specID,
-                            bID
-                        )
-                    else
-                        if not c:IsCanAddSpecialistToBuilding(bID) then
-                            SpeechPipeline.speakInterrupt(
-                                Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_CANNOT_ADD")
+                    onActivate = function()
+                        local c = UI.GetHeadSelectedCity()
+                        if c == nil or not isTurnActive() then
+                            return
+                        end
+                        if not c:IsNoAutoAssignSpecialists() then
+                            Game.SelectedCitiesGameNetMessage(
+                                GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                                TaskTypes.TASK_NO_AUTO_ASSIGN_SPECIALISTS,
+                                -1,
+                                -1,
+                                true
                             )
-                            return
                         end
-                        Game.SelectedCitiesGameNetMessage(
-                            GameMessageTypes.GAMEMESSAGE_DO_TASK,
-                            TaskTypes.TASK_ADD_SPECIALIST,
-                            specID,
-                            bID
-                        )
-                    end
-                    TickPump.runOnce(function()
-                        local c2 = UI.GetHeadSelectedCity()
-                        if c2 == nil then
-                            return
-                        end
-                        local unemployedAfter = c2:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST)
-                        local delta = unemployedAfter - unemployedBefore
-                        local key
+                        local countBefore = c:GetNumSpecialistsInBuilding(bID)
+                        local unemployedBefore = c:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST)
+                        local isFilled = (capturedSlot <= countBefore)
                         if isFilled then
-                            key = (delta == 0) and "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED_TO_TILE"
-                                or "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED"
+                            Game.SelectedCitiesGameNetMessage(
+                                GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                                TaskTypes.TASK_REMOVE_SPECIALIST,
+                                specID,
+                                bID
+                            )
                         else
-                            key = (delta == 0) and "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_FROM_TILE"
-                                or "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED"
+                            if not c:IsCanAddSpecialistToBuilding(bID) then
+                                SpeechPipeline.speakInterrupt(
+                                    Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_CANNOT_ADD")
+                                )
+                                return
+                            end
+                            Game.SelectedCitiesGameNetMessage(
+                                GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                                TaskTypes.TASK_ADD_SPECIALIST,
+                                specID,
+                                bID
+                            )
                         end
-                        SpeechPipeline.speakInterrupt(Text.key(key))
-                    end)
-                end
+                        TickPump.runOnce(function()
+                            local c2 = UI.GetHeadSelectedCity()
+                            if c2 == nil then
+                                return
+                            end
+                            local unemployedAfter = c2:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST)
+                            local delta = unemployedAfter - unemployedBefore
+                            local key
+                            if isFilled then
+                                key = (delta == 0) and "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED_TO_TILE"
+                                    or "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED"
+                            else
+                                key = (delta == 0) and "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_FROM_TILE"
+                                    or "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED"
+                            end
+                            SpeechPipeline.speakInterrupt(Text.key(key))
+                        end)
+                    end,
+                })
                 items[#items + 1] = item
             end
         end
@@ -817,27 +796,26 @@ local function pushSpecialists()
             local state = Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
             return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_MANUAL_SPECIALIST", state)
         end,
+        onActivate = function(self, menu)
+            local c = UI.GetHeadSelectedCity()
+            if c == nil or not isTurnActive() then
+                return
+            end
+            local newVal = not c:IsNoAutoAssignSpecialists()
+            Game.SelectedCitiesGameNetMessage(
+                GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                TaskTypes.TASK_NO_AUTO_ASSIGN_SPECIALISTS,
+                -1,
+                -1,
+                newVal
+            )
+            -- Speak the item's updated label on the next tick so the
+            -- labelFn reads the post-commit state.
+            TickPump.runOnce(function()
+                SpeechPipeline.speakInterrupt(self:announce(menu))
+            end)
+        end,
     })
-    manualItem.activate = function(self, menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        local c = UI.GetHeadSelectedCity()
-        if c == nil or not isTurnActive() then
-            return
-        end
-        local newVal = not c:IsNoAutoAssignSpecialists()
-        Game.SelectedCitiesGameNetMessage(
-            GameMessageTypes.GAMEMESSAGE_DO_TASK,
-            TaskTypes.TASK_NO_AUTO_ASSIGN_SPECIALISTS,
-            -1,
-            -1,
-            newVal
-        )
-        -- Speak the item's updated label on the next tick so the labelFn
-        -- reads the post-commit state.
-        TickPump.runOnce(function()
-            SpeechPipeline.speakInterrupt(manualItem:announce(menu))
-        end)
-    end
     items[#items + 1] = manualItem
 
     pushCitySub("Specialists", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"), items)
@@ -935,47 +913,40 @@ local function pushGreatWorks()
                 -- Museum, etc.), per plan §4.1 -- the great work itself has
                 -- no Civilopedia page, only its container does.
                 pediaName = buildingName,
+                onActivate = function()
+                    local c = UI.GetHeadSelectedCity()
+                    if c == nil then
+                        return
+                    end
+                    local gwIndex = c:GetBuildingGreatWork(bClassID, slotZero)
+                    if gwIndex < 0 then
+                        return
+                    end
+                    local gwType = Game.GetGreatWorkType(gwIndex)
+                    local gw = GameInfo.GreatWorks[gwType]
+                    if gw == nil or gw.GreatWorkClassType == "GREAT_WORK_ARTIFACT" then
+                        return
+                    end
+                    Events.SerialEventGameMessagePopup({
+                        Type = ButtonPopupTypes.BUTTONPOPUP_GREAT_WORK_COMPLETED_ACTIVE_PLAYER,
+                        Data1 = gwIndex,
+                        Priority = PopupPriority.Current,
+                    })
+                end,
             })
-            item.activate = function(_self, _menu)
-                Events.AudioPlay2DSound("AS2D_IF_SELECT")
-                local c = UI.GetHeadSelectedCity()
-                if c == nil then
-                    return
-                end
-                local gwIndex = c:GetBuildingGreatWork(bClassID, slotZero)
-                if gwIndex < 0 then
-                    return
-                end
-                local gwType = Game.GetGreatWorkType(gwIndex)
-                local gw = GameInfo.GreatWorks[gwType]
-                if gw == nil or gw.GreatWorkClassType == "GREAT_WORK_ARTIFACT" then
-                    return
-                end
-                Events.SerialEventGameMessagePopup({
-                    Type = ButtonPopupTypes.BUTTONPOPUP_GREAT_WORK_COMPLETED_ACTIVE_PLAYER,
-                    Data1 = gwIndex,
-                    Priority = PopupPriority.Current,
-                })
-            end
             items[#items + 1] = item
         end
         local themeBonus = city:GetThemingBonus(b.bClassID)
         if themeBonus > 0 then
             local themeTip = city:GetThemingTooltip(b.bClassID) or ""
             items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.format(
-                    "TXT_KEY_CIVVACCESS_CITYVIEW_GW_THEMING_BONUS",
-                    b.name,
-                    themeBonus,
-                    themeTip
-                ),
+                labelText = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_GW_THEMING_BONUS", b.name, themeBonus, themeTip),
             })
         end
     end
 
     if #items == 0 then
-        items[#items + 1] =
-            BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_GW_EMPTY_LIST") })
+        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_GW_EMPTY_LIST") })
     end
 
     pushCitySub("GreatWorks", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS"), items)
@@ -1092,51 +1063,51 @@ local function pushQueueSlotActions(zeroIdx, slotName)
     local qLength = city:GetOrderQueueLength()
 
     if zeroIdx > 0 then
-        local upItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_UP") })
-        upItem.activate = function(_self, _menu)
-            Events.AudioPlay2DSound("AS2D_IF_SELECT")
-            if not isTurnActive() then
-                return
-            end
-            Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, zeroIdx - 1)
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_UP"))
-            rebuildQueueAfterMutation()
-        end
-        items[#items + 1] = upItem
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_UP"),
+            onActivate = function()
+                if not isTurnActive() then
+                    return
+                end
+                Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, zeroIdx - 1)
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_UP"))
+                rebuildQueueAfterMutation()
+            end,
+        })
     end
 
     if zeroIdx < qLength - 1 then
-        local downItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_DOWN") })
-        downItem.activate = function(_self, _menu)
-            Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_DOWN"),
+            onActivate = function()
+                if not isTurnActive() then
+                    return
+                end
+                Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, zeroIdx)
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_DOWN"))
+                rebuildQueueAfterMutation()
+            end,
+        })
+    end
+
+    items[#items + 1] = BaseMenuItems.Text({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVE"),
+        onActivate = function()
             if not isTurnActive() then
                 return
             end
-            Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, zeroIdx)
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_DOWN"))
+            Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_POP_ORDER, zeroIdx)
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVED"))
             rebuildQueueAfterMutation()
-        end
-        items[#items + 1] = downItem
-    end
+        end,
+    })
 
-    local removeItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVE") })
-    removeItem.activate = function(_self, _menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        if not isTurnActive() then
-            return
-        end
-        Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_POP_ORDER, zeroIdx)
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVED"))
-        rebuildQueueAfterMutation()
-    end
-    items[#items + 1] = removeItem
-
-    local backItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_BACK") })
-    backItem.activate = function(_self, _menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        HandlerStack.removeByName("CityView.ProdActions", true)
-    end
-    items[#items + 1] = backItem
+    items[#items + 1] = BaseMenuItems.Text({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_BACK"),
+        onActivate = function()
+            HandlerStack.removeByName("CityView.ProdActions", true)
+        end,
+    })
 
     pushCitySub("ProdActions", Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS", slotName), items)
 end
@@ -1187,20 +1158,19 @@ pushProductionQueue = function()
                     end
                     return select(1, orderNameAndHelp(orderType, data1))
                 end,
+                onActivate = function()
+                    local c = UI.GetHeadSelectedCity()
+                    if c == nil then
+                        return
+                    end
+                    local orderType, data1 = c:GetOrderFromQueue(zeroIdx)
+                    if orderType == nil or orderType == -1 then
+                        return
+                    end
+                    local slotName = select(1, orderNameAndHelp(orderType, data1))
+                    pushQueueSlotActions(zeroIdx, slotName)
+                end,
             })
-            item.activate = function(_self, _menu)
-                Events.AudioPlay2DSound("AS2D_IF_SELECT")
-                local c = UI.GetHeadSelectedCity()
-                if c == nil then
-                    return
-                end
-                local orderType, data1 = c:GetOrderFromQueue(zeroIdx)
-                if orderType == nil or orderType == -1 then
-                    return
-                end
-                local slotName = select(1, orderNameAndHelp(orderType, data1))
-                pushQueueSlotActions(zeroIdx, slotName)
-            end
             items[#items + 1] = item
         end
     end
@@ -1208,66 +1178,62 @@ pushProductionQueue = function()
     -- Queue mode toggle. GetCheck() reads vanilla's checkbox state; SetCheck
     -- + OnHideQueue(newVal) writes and fires vanilla's handler so the
     -- chunk-local `productionQueueOpen` tracks too.
-    local queueModeItem = BaseMenuItems.Text({
+    items[#items + 1] = BaseMenuItems.Text({
         labelFn = function()
             local on = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
             local state = Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
             return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_QUEUE_MODE", state)
         end,
+        onActivate = function(self, menu)
+            if Controls.HideQueueButton == nil then
+                return
+            end
+            local newVal = not Controls.HideQueueButton:IsChecked()
+            Controls.HideQueueButton:SetCheck(newVal)
+            if type(OnHideQueue) == "function" then
+                OnHideQueue(newVal)
+            end
+            SpeechPipeline.speakInterrupt(self:announce(menu))
+        end,
     })
-    queueModeItem.activate = function(self, menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        if Controls.HideQueueButton == nil then
-            return
-        end
-        local newVal = not Controls.HideQueueButton:IsChecked()
-        Controls.HideQueueButton:SetCheck(newVal)
-        if type(OnHideQueue) == "function" then
-            OnHideQueue(newVal)
-        end
-        SpeechPipeline.speakInterrupt(queueModeItem:announce(menu))
-    end
-    items[#items + 1] = queueModeItem
 
-    local chooseItem =
-        BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE") })
-    chooseItem.activate = function(_self, _menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        local c = UI.GetHeadSelectedCity()
-        if c == nil then
-            return
-        end
-        local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
-        Events.SerialEventGameMessagePopup({
-            Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
-            Data1 = c:GetID(),
-            Data2 = -1,
-            Data3 = -1,
-            Option1 = (queueModeOn and c:GetOrderQueueLength() > 0),
-            Option2 = false,
-        })
-    end
-    items[#items + 1] = chooseItem
+    items[#items + 1] = BaseMenuItems.Text({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE"),
+        onActivate = function()
+            local c = UI.GetHeadSelectedCity()
+            if c == nil then
+                return
+            end
+            local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
+                Data1 = c:GetID(),
+                Data2 = -1,
+                Data3 = -1,
+                Option1 = (queueModeOn and c:GetOrderQueueLength() > 0),
+                Option2 = false,
+            })
+        end,
+    })
 
-    local purchaseItem =
-        BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE") })
-    purchaseItem.activate = function(_self, _menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        local c = UI.GetHeadSelectedCity()
-        if c == nil then
-            return
-        end
-        local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
-        Events.SerialEventGameMessagePopup({
-            Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
-            Data1 = c:GetID(),
-            Data2 = -1,
-            Data3 = -1,
-            Option1 = (queueModeOn and c:GetOrderQueueLength() > 0),
-            Option2 = true,
-        })
-    end
-    items[#items + 1] = purchaseItem
+    items[#items + 1] = BaseMenuItems.Text({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE"),
+        onActivate = function()
+            local c = UI.GetHeadSelectedCity()
+            if c == nil then
+                return
+            end
+            local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
+                Data1 = c:GetID(),
+                Data2 = -1,
+                Data3 = -1,
+                Option1 = (queueModeOn and c:GetOrderQueueLength() > 0),
+                Option2 = true,
+            })
+        end,
+    })
 
     pushCitySub("Production", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION"), items)
 end
@@ -1487,16 +1453,7 @@ local function activateHexTile()
             )
             return
         end
-        Network.SendDoTask(
-            city:GetID(),
-            TaskTypes.TASK_CHANGE_WORKING_PLOT,
-            ringIdx,
-            -1,
-            false,
-            false,
-            false,
-            false
-        )
+        Network.SendDoTask(city:GetID(), TaskTypes.TASK_CHANGE_WORKING_PLOT, ringIdx, -1, false, false, false, false)
         TickPump.runOnce(function()
             SpeechPipeline.speakInterrupt(hexTileAnnouncement(Map.GetPlot(cx, cy)))
         end)
@@ -1789,77 +1746,47 @@ end
 -- whose label carries its own zero-state).
 local function buildHubItems(city)
     local items = {}
-    items[#items + 1] = makeHubItem(
-        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") },
-        pushProductionQueue
-    )
-    items[#items + 1] = makeHubItem(
-        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") },
-        pushHexMap
-    )
+    items[#items + 1] =
+        makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") }, pushProductionQueue)
+    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, pushHexMap)
     if city:CanRangeStrikeNow() then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE") },
-            pushRangedStrike
-        )
+        items[#items + 1] =
+            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE") }, pushRangedStrike)
     end
     if cityHasAnyNonWonderBuilding(city) then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") },
-            pushBuildings
-        )
+        items[#items + 1] =
+            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") }, pushBuildings)
     end
     if cityHasAnyWonder(city) then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS") },
-            pushWonders
-        )
+        items[#items + 1] =
+            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS") }, pushWonders)
     end
-    items[#items + 1] = makeHubItem(
-        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS") },
-        pushWorkerFocus
-    )
+    items[#items + 1] =
+        makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS") }, pushWorkerFocus)
     if cityHasAnySpecialistSlots(city) then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS") },
-            pushSpecialists
-        )
+        items[#items + 1] =
+            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS") }, pushSpecialists)
     end
     if cityHasAnyGreatWorkSlots(city) then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS") },
-            pushGreatWorks
-        )
+        items[#items + 1] =
+            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS") }, pushGreatWorks)
     end
     if cityHasAnyGreatPersonProgress(city) then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE") },
-            pushGreatPeople
-        )
+        items[#items + 1] =
+            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE") }, pushGreatPeople)
     end
     -- Unemployed hub item's Civilopedia entry is the Citizen specialist, per
     -- plan §4.1 -- matches vanilla's right-click on the slacker portrait
     -- (CityView.lua:1293).
     local slackerInfo = GameInfo.Specialists[GameDefines.DEFAULT_SPECIALIST]
     local slackerPedia = slackerInfo and Text.key(slackerInfo.Description) or nil
-    items[#items + 1] = makeHubItem(
-        { labelFn = unemployedLabel, pediaName = slackerPedia },
-        activateUnemployed
-    )
-    items[#items + 1] = makeHubItem(
-        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME") },
-        activateRename
-    )
+    items[#items + 1] = makeHubItem({ labelFn = unemployedLabel, pediaName = slackerPedia }, activateUnemployed)
+    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME") }, activateRename)
     if city:IsRazing() then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE") },
-            activateUnraze
-        )
+        items[#items + 1] =
+            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE") }, activateUnraze)
     elseif canShowRaze(city) then
-        items[#items + 1] = makeHubItem(
-            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE") },
-            activateRaze
-        )
+        items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE") }, activateRaze)
     end
     return items
 end

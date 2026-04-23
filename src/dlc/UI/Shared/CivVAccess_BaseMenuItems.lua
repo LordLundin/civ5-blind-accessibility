@@ -237,8 +237,18 @@ end
 function BaseMenuItems.Text(spec)
     assertLabel(spec, "Text")
     assertTooltip(spec, "Text")
+    check(
+        spec.onActivate == nil or type(spec.onActivate) == "function",
+        "Text onActivate must be a function if provided"
+    )
     local item = { kind = "text" }
     copyCommonFields(spec, item)
+    -- Optional activation hook. Text's default activate plays the click
+    -- sound and stops; setting onActivate augments (not replaces) it so
+    -- callers don't have to re-add AudioPlay2DSound every time. Called
+    -- with (self, menu) under pcall; errors surface via Log.error so a
+    -- broken handler can't silently kill the menu.
+    item._onActivate = spec.onActivate
     function item:isNavigable()
         return true
     end
@@ -250,6 +260,12 @@ function BaseMenuItems.Text(spec)
     end
     function item:activate(menu)
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        if self._onActivate ~= nil then
+            local ok, err = pcall(self._onActivate, self, menu)
+            if not ok then
+                Log.error("BaseMenu '" .. tostring(menu and menu.name) .. "' Text onActivate failed: " .. tostring(err))
+            end
+        end
     end
     function item:adjust(menu, dir, big) end
     return item
