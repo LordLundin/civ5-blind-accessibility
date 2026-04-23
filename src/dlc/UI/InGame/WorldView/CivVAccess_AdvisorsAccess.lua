@@ -38,6 +38,16 @@
 -- The flag also guards against double-announcing in the normal fresh-show
 -- path (where ShowHide + onShow + push already announced before our
 -- listener runs).
+--
+-- Escape routing: vanilla InputHandler calls AdvisorClose() directly, which
+-- pops Advisors.lua's g_TutorialQueue and hides the Context but never fires
+-- Events.AdvisorDisplayHide. TutorialEngine's HandleAdvisorUIHide listens
+-- on that event and is the only thing that pops g_ActiveTutorialQueue and
+-- calls ProcessActiveTutorialQueue(), so vanilla Escape leaves the engine
+-- stuck on the same tutorial -- the banner closes but the next queued
+-- tutorial never shows. escAtLevelOne below routes Escape through
+-- OnAdvisorDismissClicked (the Thank-You button's handler) which fires the
+-- event, matching the advance-to-next behavior the mouse path has.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -123,6 +133,10 @@ local handler = BaseMenu.install(ContextPtr, {
     silentFirstOpen = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
+    escAtLevelOne = function()
+        OnAdvisorDismissClicked()
+        return true
+    end,
     onShow = function(h)
         -- Update the live title and force onActivate's fresh-show path on
         -- every show (so SetHide(false) on an already-visible Context --
