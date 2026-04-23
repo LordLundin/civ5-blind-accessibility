@@ -47,3 +47,6 @@ tools/bin/
 
 # luacheck cache
 .luacheckcache
+
+# Extracted leader scene images (Firaxis assets — not redistributable)
+/leader images/
