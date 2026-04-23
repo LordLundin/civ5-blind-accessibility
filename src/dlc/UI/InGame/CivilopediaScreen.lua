@@ -69,8 +69,15 @@ listOfTopicsViewed = {};
 
 sortedList = {};
 local otherSortedList = {};
-local searchableTextKeyList = {};
-local searchableList = {};
+-- Exposed as globals so the accessibility include can translate the
+-- string that Events.SearchForPediaEntry fires with (a localized article
+-- name or a TXT_KEY) back to (category, entryID). The base handler
+-- already did that lookup once, but drops the result on the floor:
+-- SelectArticle is called with addToList=nil, so listOfTopicsViewed
+-- isn't updated and we can't read what base just picked. Redoing the
+-- lookup on our side is cheaper than wrapping SelectArticle.
+searchableTextKeyList = {};
+searchableList = {};
 local categorizedList = {};
 local absurdlyLargeNumTopicsInCategory = 10000;
 local homePageOfCategoryID = 9999;

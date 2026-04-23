@@ -664,13 +664,19 @@ local function categoryChildren(entryFactory, cat)
 end
 
 local function categoryGroup(cat, entryFactory)
-    return BaseMenuItems.Group({
+    local item = BaseMenuItems.Group({
         textKey = categoryLabelKey(cat),
         cached = false,
         itemsFn = function()
             return categoryChildren(entryFactory, cat)
         end,
     })
+    -- Tag the top-level picker item with its category number so
+    -- Civilopedia.openCategory / stageCategoryForShow can locate the
+    -- matching heading from the iHomePage value that
+    -- Events.GoToPediaHomePage fires.
+    item.category = cat
+    return item
 end
 
 local function hasTable(name)
@@ -812,14 +818,10 @@ function Civilopedia._harvestInto(leaves, handler, currentCat)
     harvestRelationships(leaves, handler, currentCat)
 end
 
--- Shared tail of every in-reader navigation: update the picker cursor via
--- makeEntryID (so Shift+Tab back lands on the article we moved to), re-
--- harvest the current article's leaves, setItems on the reader tab, then
--- programmatic switchToTab(force=true) to re-announce even though the
--- reader is already the active tab. Callers are responsible for having
--- already driven SelectArticle (add-to-list for follow-link, skip-add for
--- history step) before calling this.
-local function rebuildReaderFromCurrent(handler, cat, entryID)
+-- Harvest the currently-rendered article and populate the reader tab
+-- with it. Callers must drive SelectArticle (via any path) before
+-- calling this so the live Controls contain the target's text.
+local function harvestIntoReader(handler, cat, entryID)
     if type(handler.setPickerReaderSelection) == "function" then
         handler.setPickerReaderSelection(makeEntryID(cat, entryID))
     end
@@ -831,7 +833,73 @@ local function rebuildReaderFromCurrent(handler, cat, entryID)
         })
     end
     handler.setItems(leaves, READER_TAB_IDX)
+end
+
+-- Shared tail of every in-reader navigation: harvest + setItems, then
+-- programmatic switchToTab(force=true) to re-announce even though the
+-- reader is already the active tab.
+function Civilopedia.openArticle(handler, cat, entryID)
+    harvestIntoReader(handler, cat, entryID)
     handler.switchToTab(READER_TAB_IDX)
+end
+
+-- Staging variant used when the pedia is hidden and is about to be
+-- shown (e.g., by Events.SearchForPediaEntry's QueuePopup). Populates
+-- the reader tab and sets the initial tab so openInitial lands on the
+-- article with its text already in place, rather than going through
+-- openArticle's switchToTab (which would announce into an empty UI
+-- before ShowHide completes).
+function Civilopedia.stageArticleForShow(handler, cat, entryID)
+    harvestIntoReader(handler, cat, entryID)
+    handler.setInitialTabIndex(READER_TAB_IDX)
+end
+
+-- Find the top-level picker index whose item represents the given
+-- category. Returns nil if the category is not present in the current
+-- picker tree (e.g., Beliefs in a base / G&K game -- unreachable for us
+-- today, but the guard is free).
+local function findCategoryPickerIdx(handler, cat)
+    local pickerItems = handler.tabs[1]._items
+    for i, item in ipairs(pickerItems) do
+        if item.category == cat then
+            return i
+        end
+    end
+    return nil
+end
+
+-- Visible-pedia path for Events.GoToPediaHomePage: teleport the picker
+-- cursor to the category's top-level heading and speak its label. The
+-- user hits Enter to drill in (or, for Home Page, to read the welcome
+-- page directly).
+function Civilopedia.openCategory(handler, iHomePage)
+    local idx = findCategoryPickerIdx(handler, iHomePage)
+    if idx == nil then
+        Log.warn("Civilopedia.openCategory: no picker idx for category " .. tostring(iHomePage))
+        return
+    end
+    if handler._tabIndex ~= 1 then
+        handler.switchToTab(1)
+    end
+    handler._level = 1
+    handler._indices = { idx }
+    local label = BaseMenuItems.labelOf(handler.tabs[1]._items[idx]) or ""
+    if label ~= "" then
+        SpeechPipeline.speakInterrupt(label)
+    end
+end
+
+-- Staging variant: pedia is hidden; set the initial cursor / tab so
+-- openInitial lands on the category heading without a mid-transition
+-- announce.
+function Civilopedia.stageCategoryForShow(handler, iHomePage)
+    local idx = findCategoryPickerIdx(handler, iHomePage)
+    if idx == nil then
+        Log.warn("Civilopedia.stageCategoryForShow: no picker idx for category " .. tostring(iHomePage))
+        return
+    end
+    handler.setInitialIndex(idx)
+    handler.setInitialTabIndex(1)
 end
 
 -- Follow an embedded relationship link to another article. Activation
@@ -855,7 +923,7 @@ function followLink(handler, targetCat, targetID)
             )
         end
     end
-    rebuildReaderFromCurrent(handler, targetCat, targetID)
+    Civilopedia.openArticle(handler, targetCat, targetID)
 end
 
 -- History back/forward. The base pedia's Back / Forward buttons step a
@@ -897,7 +965,7 @@ function Civilopedia.goBack(handler)
             )
         end
     end
-    rebuildReaderFromCurrent(handler, cat, article.entryID)
+    Civilopedia.openArticle(handler, cat, article.entryID)
 end
 
 function Civilopedia.goForward(handler)
@@ -928,7 +996,7 @@ function Civilopedia.goForward(handler)
             )
         end
     end
-    rebuildReaderFromCurrent(handler, cat, article.entryID)
+    Civilopedia.openArticle(handler, cat, article.entryID)
 end
 
 -- Flat search corpus -----------------------------------------------------
@@ -1089,9 +1157,11 @@ function Civilopedia.buildPickerItems(entryFactory)
     -- it lists are just links to the other category home pages, which we
     -- already expose as L1 Groups). So there's nothing to drill into; Enter
     -- on this entry opens the Civilopedia welcome page directly.
-    items[#items + 1] = introEntry(entryFactory, CAT.HOME_PAGE, {
+    local home = introEntry(entryFactory, CAT.HOME_PAGE, {
         textKey = categoryLabelKey(CAT.HOME_PAGE),
     })
+    home.category = CAT.HOME_PAGE
+    items[#items + 1] = home
     items[#items + 1] = categoryGroup(CAT.GAME_CONCEPTS, entryFactory)
     items[#items + 1] = categoryGroup(CAT.TECH, entryFactory)
     items[#items + 1] = categoryGroup(CAT.UNITS, entryFactory)

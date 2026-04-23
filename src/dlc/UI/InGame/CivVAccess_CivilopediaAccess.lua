@@ -45,7 +45,15 @@ local pickerItems = Civilopedia.buildPickerItems(session.Entry)
 
 Log.info("CivilopediaAccess: built " .. tostring(#pickerItems) .. " top-level categories")
 
-session.install(ContextPtr, {
+-- Set by Events.SearchForPediaEntry / Events.GoToPediaHomePage when the
+-- pedia is hidden at the moment the event fires. UIManager:QueuePopup
+-- is async (ShowHide runs next tick), so we stage the target here and
+-- consume it from onShow, which runs after priorShowHide but before
+-- HandlerStack.push -- the window where setInitialTabIndex / setItems
+-- land before openInitial reads them.
+local pendingTarget = nil
+
+local handler = session.install(ContextPtr, {
     name = "CivilopediaScreen",
     displayName = Text.key("TXT_KEY_CIVILOPEDIA"),
     pickerTabName = "TXT_KEY_CIVVACCESS_PEDIA_CATEGORIES_TAB",
@@ -57,6 +65,18 @@ session.install(ContextPtr, {
     pickerBuildSearchable = Civilopedia.buildFlatSearchable,
     readerOnAltLeft = Civilopedia.goBack,
     readerOnAltRight = Civilopedia.goForward,
+    onShow = function(h)
+        if pendingTarget == nil then
+            return
+        end
+        local target = pendingTarget
+        pendingTarget = nil
+        if target.kind == "article" then
+            Civilopedia.stageArticleForShow(h, target.cat, target.entryID)
+        elseif target.kind == "category" then
+            Civilopedia.stageCategoryForShow(h, target.cat)
+        end
+    end,
     -- Alt+Left/Right is reader-tab-scoped (see PickerReader install) but
     -- the help list is handler-level, so the entry surfaces in help from
     -- either tab. Description is worded as "article history" so the user
@@ -68,3 +88,49 @@ session.install(ContextPtr, {
         },
     },
 })
+
+-- External "open pedia on article X" requests. Fires from CityView
+-- (Ctrl+I on a building tile), AdvisorInfoPopup's Civilopedia button,
+-- TechPanel / ProductionPopup / UnitPanel hyperlinks, and our own
+-- BaseMenu Ctrl+I binding. The base pedia's listener (registered
+-- earlier via Events.SearchForPediaEntry.Add inside CivilopediaScreen
+-- chunk) runs first and does SetSelectedCategory + SelectArticle, so
+-- by the time our listener runs the article text is already rendered
+-- in the sighted Controls -- we just need to harvest + land our UI on
+-- the reader tab.
+--
+-- searchString == "OPEN_VIA_HOTKEY" is the bare-Ctrl+I toggle; base
+-- handles the show/hide and there is no article to navigate to.
+Events.SearchForPediaEntry.Add(function(searchString)
+    if searchString == nil or searchString == "" or searchString == "OPEN_VIA_HOTKEY" then
+        return
+    end
+    local article = searchableTextKeyList[searchString]
+    if article == nil then
+        article = searchableList[Locale.ToLower(searchString)]
+    end
+    if article == nil then
+        Log.warn("CivilopediaAccess: no article for search string '" .. tostring(searchString) .. "'")
+        return
+    end
+    if ContextPtr:IsHidden() then
+        pendingTarget = { kind = "article", cat = article.entryCategory, entryID = article.entryID }
+    else
+        Civilopedia.openArticle(handler, article.entryCategory, article.entryID)
+    end
+end)
+
+-- AdvisorInfoPopup's "View [concept] page" button fires this with the
+-- concept's CivilopediaPage (a category number). Base selects the
+-- category and QueuePopups; we park the picker cursor on that
+-- category's heading so the user lands in the right spot.
+Events.GoToPediaHomePage.Add(function(iHomePage)
+    if iHomePage == nil then
+        return
+    end
+    if ContextPtr:IsHidden() then
+        pendingTarget = { kind = "category", cat = iHomePage }
+    else
+        Civilopedia.openCategory(handler, iHomePage)
+    end
+end)
