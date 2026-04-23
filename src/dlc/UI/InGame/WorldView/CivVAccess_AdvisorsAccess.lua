@@ -51,6 +51,7 @@ include("CivVAccess_HandlerStack")
 include("CivVAccess_InputRouter")
 include("CivVAccess_TickPump")
 include("CivVAccess_Nav")
+include("CivVAccess_CameraTracker")
 include("CivVAccess_BaseMenuItems")
 include("CivVAccess_TypeAheadSearch")
 include("CivVAccess_BaseMenuHelp")
@@ -155,7 +156,12 @@ local handler = BaseMenu.install(ContextPtr, {
         }),
         -- Labelled from the inner ActivateButtonText label (the GridButton
         -- itself has no text); activate fires base OnAdvisorHelpClicked
-        -- which opens popup Type=99997.
+        -- which opens popup Type=99997. The TutorialEngine's handler for
+        -- that type (Tutorial/lua/TutorialEngine.lua:450-493) dispatches
+        -- to UI.SelectUnit + UI.LookAt, UI.LookAt directly, or another
+        -- popup depending on the tutorial -- the camera-panning variants
+        -- get the cursor follow via CameraTracker; the popup-opening
+        -- variant times out silently with the cursor unchanged.
         BaseMenuItems.Button({
             controlName = "ActivateButton",
             labelFn = function()
@@ -163,6 +169,7 @@ local handler = BaseMenu.install(ContextPtr, {
             end,
             activate = function()
                 OnAdvisorHelpClicked()
+                CameraTracker.followAndJumpCursor()
             end,
         }),
         BaseMenuItems.Checkbox({

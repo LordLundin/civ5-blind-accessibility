@@ -112,7 +112,7 @@ end
 
 -- Single notification path ------------------------------------------------
 
-function M.test_single_add_interrupts_after_window()
+function M.test_single_add_queues_after_window()
     setup()
     fireAdd(1)
     -- Inside the burst window, nothing flushes (it might still tip into a burst).
@@ -121,7 +121,7 @@ function M.test_single_add_interrupts_after_window()
     advance(3)
     T.eq(#spoken, 1)
     T.eq(spoken[1].text, "note 1")
-    T.eq(spoken[1].interrupt, true, "single notification uses interrupt, not queued")
+    T.eq(spoken[1].interrupt, false, "notifications queue so they don't clobber a turn-end dialogue")
 end
 
 -- Burst detection ---------------------------------------------------------
@@ -137,7 +137,7 @@ function M.test_three_in_six_frames_collapses_to_burst()
     fireAdd(3)
     T.eq(#spoken, 1, "third add within window triggers burst immediately")
     T.eq(spoken[1].text, "3 new notifications")
-    T.eq(spoken[1].interrupt, true, "burst announcement must interrupt")
+    T.eq(spoken[1].interrupt, false, "burst announcement queues to avoid clobbering a turn-end dialogue")
 end
 
 function M.test_two_in_six_frames_not_a_burst()
@@ -194,17 +194,18 @@ function M.test_adds_outside_window_not_a_burst()
     T.eq(spoken[3].text, "note 3")
 end
 
--- First-interrupt / rest-queue on individual flush -------------------------
+-- All-queued on individual flush -----------------------------------------
 
-function M.test_two_simultaneous_aged_flushes_first_interrupts_rest_queue()
+function M.test_two_simultaneous_aged_flush_all_queued()
     -- Two adds in the same frame; neither tips the burst threshold. When
-    -- they age out together the first must interrupt and the second queue.
+    -- they age out together both must queue (no interrupt) so a concurrent
+    -- turn-end dialogue isn't clobbered.
     setup()
     fireAdd(1)
     fireAdd(2)
     advance(10)
     T.eq(#spoken, 2)
-    T.eq(spoken[1].interrupt, true, "first of a multi-flush is interrupt")
+    T.eq(spoken[1].interrupt, false, "first of a multi-flush queues")
     T.eq(spoken[2].interrupt, false, "subsequent flushes in the same drain queue")
 end
 

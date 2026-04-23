@@ -11,6 +11,15 @@
 -- UI, and calling ActivateNotification on a stale id has undefined
 -- behavior.
 --
+-- After NotificationSelected fires, we ask CameraTracker to wait for the
+-- engine's camera pan to settle and then jump the cursor onto the look-at
+-- plot. This covers every notification whose Activate() in the engine ends
+-- up calling lookAt(plot) -- ruins, barbarians, war declarations, enemy in
+-- territory, etc -- because the engine emits no other Lua-observable
+-- signal for those. Notifications that open a popup instead of panning
+-- (production, tech, diplomacy) leave the camera still; CameraTracker's
+-- timeout drops the cursor jump silently in that case.
+--
 -- Items rebuild from Players[active]:GetNumNotifications() on every open
 -- via onShow. No caching. The game's OnPopup rebuilds its own visual row
 -- stack in parallel; both read from the engine's authoritative list. The
@@ -29,6 +38,7 @@ include("CivVAccess_HandlerStack")
 include("CivVAccess_InputRouter")
 include("CivVAccess_TickPump")
 include("CivVAccess_Nav")
+include("CivVAccess_CameraTracker")
 include("CivVAccess_BaseMenuItems")
 include("CivVAccess_TypeAheadSearch")
 include("CivVAccess_BaseMenuHelp")
@@ -42,6 +52,14 @@ local priorShowHide = ShowHideHandler
 
 local function emptyItem()
     return BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY") })
+end
+
+-- Activate a notification: fire the engine's NotificationSelected (which
+-- closes the popup and runs UI.ActivateNotification), then ride the camera
+-- pan to drop the cursor on whatever plot the engine landed on.
+local function activateAndFollow(notificationId)
+    NotificationSelected(notificationId)
+    CameraTracker.followAndJumpCursor()
 end
 
 local function buildItems()
@@ -68,7 +86,7 @@ local function buildItems()
             -- controlName / control and would fail the spec check.
             active[#active + 1] = BaseMenuItems.Choice({
                 labelText = label,
-                activate = function() NotificationSelected(notificationId) end,
+                activate = function() activateAndFollow(notificationId) end,
             })
         end
     end
