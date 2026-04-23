@@ -914,8 +914,16 @@ end
 -- suppressed on slot 1 and Move down on the last slot, same shape vanilla's
 -- arrow-button array uses (CityView.lua:2238-2262). Moves fire
 -- GAMEMESSAGE_SWAP_ORDER with the lower index of the pair; remove fires
--- GAMEMESSAGE_POP_ORDER. Both drop back to the queue list so the labelFn
--- rebuild catches the new ordering.
+-- GAMEMESSAGE_POP_ORDER. Both rebuild the queue list via a pop-and-re-push
+-- so the slot items reflect the new ordering.
+--
+-- Queue mutations from the Choose Production / Purchase popup come back
+-- through re-activation (the popup's handler pops off our Production
+-- handler on close), not through the slot drill-in. The Production
+-- handler's wrapped onActivate calls setItems with a freshly built list
+-- every re-activation so an add-to-queue surfaces the new slot and a
+-- queue that was emptied replaces the stale slot items with the empty-
+-- queue notice.
 --
 -- Queue mode is vanilla's `productionQueueOpen` local, surfaced through the
 -- `HideQueueButton` XML checkbox and its global `OnHideQueue` handler. We
@@ -1063,17 +1071,24 @@ local function pushQueueSlotActions(zeroIdx, slotName)
     pushCitySub("ProdActions", Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS", slotName), items)
 end
 
-pushProductionQueue = function()
+-- Rebuilt on every re-activation of the Production sub-handler so the slot
+-- list matches the engine's queue after a Choose Production / Purchase popup
+-- closes over it. Stable tags on the fixed-position entries let the re-
+-- activation path restore the cursor onto the same role item after queue
+-- length changes.
+local function buildProductionQueueItems()
     local city = UI.GetHeadSelectedCity()
     if city == nil then
-        return
+        return {}
     end
 
     local items = {}
 
     local qLength = city:GetOrderQueueLength()
     if qLength == 0 then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_EMPTY") })
+        local empty = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_EMPTY") })
+        empty._stableTag = "empty"
+        items[#items + 1] = empty
     else
         for i = 0, qLength - 1 do
             local zeroIdx = i
@@ -1129,7 +1144,7 @@ pushProductionQueue = function()
     -- Queue mode toggle. GetCheck() reads vanilla's checkbox state; SetCheck
     -- + OnHideQueue(newVal) writes and fires vanilla's handler so the
     -- chunk-local `productionQueueOpen` tracks too.
-    items[#items + 1] = BaseMenuItems.Text({
+    local toggle = BaseMenuItems.Text({
         labelFn = function()
             local on = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
             local state = Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
@@ -1147,8 +1162,10 @@ pushProductionQueue = function()
             SpeechPipeline.speakInterrupt(self:announce(menu))
         end,
     })
+    toggle._stableTag = "queue_mode"
+    items[#items + 1] = toggle
 
-    items[#items + 1] = BaseMenuItems.Text({
+    local chooseProd = BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE"),
         onActivate = function()
             local c = UI.GetHeadSelectedCity()
@@ -1166,8 +1183,10 @@ pushProductionQueue = function()
             })
         end,
     })
+    chooseProd._stableTag = "choose_production"
+    items[#items + 1] = chooseProd
 
-    items[#items + 1] = BaseMenuItems.Text({
+    local purchase = BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE"),
         onActivate = function()
             local c = UI.GetHeadSelectedCity()
@@ -1185,8 +1204,54 @@ pushProductionQueue = function()
             })
         end,
     })
+    purchase._stableTag = "purchase"
+    items[#items + 1] = purchase
 
-    pushCitySub("Production", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION"), items)
+    return items
+end
+
+pushProductionQueue = function()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+
+    local items = buildProductionQueueItems()
+
+    local handler = BaseMenu.create({
+        name = "CityView.Production",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION"),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    })
+
+    -- Re-expose after a Choose Production / Purchase popup (or a slot drill-
+    -- in) rebuilds the item list against the current queue: setItems clamps
+    -- cursor to the old numeric index, then _stableTag lookup steers it
+    -- back onto the same role item when queue length shifted the fixed-
+    -- position entries. First open (_initialized=false) skips the rebuild
+    -- since the items we just built are already fresh.
+    local origOnActivate = handler.onActivate
+    handler.onActivate = function()
+        if handler._initialized then
+            local oldIdx = (handler._indices and handler._indices[1]) or 1
+            local oldTag = items[oldIdx] and items[oldIdx]._stableTag
+            items = buildProductionQueueItems()
+            handler.setItems(items)
+            if oldTag ~= nil then
+                for i, it in ipairs(items) do
+                    if it._stableTag == oldTag then
+                        handler.setIndex(i)
+                        break
+                    end
+                end
+            end
+        end
+        origOnActivate()
+    end
+
+    HandlerStack.push(handler)
 end
 
 -- ===== Hex map sub-handler (§3.2) =====
