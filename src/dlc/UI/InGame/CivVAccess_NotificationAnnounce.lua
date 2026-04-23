@@ -65,16 +65,10 @@ function NotificationAnnounce._drain()
     local now = TickPump.frame()
     local windowStart = now - BURST_WINDOW_FRAMES + 1
     local remaining = {}
-    local spokeFirst = false
     for _, e in ipairs(pending) do
         if e.frame < windowStart then
             if e.summary ~= "" then
-                if spokeFirst then
-                    SpeechPipeline.speakQueued(e.summary)
-                else
-                    SpeechPipeline.speakInterrupt(e.summary)
-                    spokeFirst = true
-                end
+                SpeechPipeline.speakQueued(e.summary)
             end
         else
             remaining[#remaining + 1] = e
@@ -117,7 +111,7 @@ function NotificationAnnounce._onAdded(id, _ntype, toolTip, summary, _iGameValue
     if recent >= BURST_THRESHOLD then
         local count = #pending
         pending = {}
-        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_NOTIFICATION_BURST", count))
+        SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_NOTIFICATION_BURST", count))
         return
     end
     schedule()
