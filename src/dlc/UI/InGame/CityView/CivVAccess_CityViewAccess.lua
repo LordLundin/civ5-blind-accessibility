@@ -863,32 +863,41 @@ end
 -- Specialists (Phase 3) / Great works (Phase 4) / Great people /
 -- Unemployed / Rename (Phase 6) / Raze (Phase 6).
 
--- Hub items are all non-conditional except Ranged strike (Phase 8) and
--- Raze (Phase 6), per plan §3. Empty states are handled inside each
--- sub-handler rather than hidden at the hub, so a blind user always
--- finds the same entry in the same position regardless of city state.
-local function buildHubItems(_city)
+-- Hub items are gated per plan §3: an item is present only when its sub-
+-- handler would land the user on at least one real entry, so arrowing
+-- never hits a dead-end "No X." read. Worker focus and Unemployed stay
+-- unconditional (focus always applies, unemployed is a hub-level action
+-- whose label carries its own zero-state).
+local function buildHubItems(city)
     local items = {}
-    items[#items + 1] = makeHubItem(
-        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") },
-        pushBuildings
-    )
-    items[#items + 1] = makeHubItem(
-        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS") },
-        pushWonders
-    )
+    if cityHasAnyNonWonderBuilding(city) then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") },
+            pushBuildings
+        )
+    end
+    if cityHasAnyWonder(city) then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS") },
+            pushWonders
+        )
+    end
     items[#items + 1] = makeHubItem(
         { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS") },
         pushWorkerFocus
     )
-    items[#items + 1] = makeHubItem(
-        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS") },
-        pushSpecialists
-    )
-    items[#items + 1] = makeHubItem(
-        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE") },
-        pushGreatPeople
-    )
+    if cityHasAnySpecialistSlots(city) then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS") },
+            pushSpecialists
+        )
+    end
+    if cityHasAnyGreatPersonProgress(city) then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE") },
+            pushGreatPeople
+        )
+    end
     items[#items + 1] = makeHubItem(
         { labelFn = unemployedLabel },
         activateUnemployed
