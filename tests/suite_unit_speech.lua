@@ -493,6 +493,65 @@ function M.test_info_enemy_keeps_promotions()
     T.truthy(out:find("promotions: Shock", 1, true), "enemy promotions still spoken: " .. out)
 end
 
+-- ===== Info dump: status cascade mirrors unit flag visibility =====
+
+function M.test_info_friendly_speaks_fortified_status()
+    setup()
+    local u = mkUnit({ fortifyTurns = 3 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true), "friendly fortified expected: " .. out)
+end
+
+function M.test_info_friendly_speaks_sleep_status()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_SLEEP })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("TXT_KEY_MISSION_SLEEP", 1, true), "friendly sleep expected: " .. out)
+end
+
+function M.test_info_enemy_speaks_fortified()
+    setup()
+    local u = mkUnit({ team = 1, fortifyTurns = 3 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true), "enemy fortified expected: " .. out)
+end
+
+function M.test_info_enemy_omits_sleep_status()
+    -- Sleep isn't rendered on a foreign unit flag; mirroring that, the
+    -- enemy branch skips everything except the fortified shield.
+    setup()
+    local u = mkUnit({ team = 1, activity = ActivityTypes.ACTIVITY_SLEEP })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("SLEEP", 1, true), "enemy sleep must not speak: " .. out)
+end
+
+function M.test_info_enemy_omits_heal_status()
+    setup()
+    local u = mkUnit({ team = 1, activity = ActivityTypes.ACTIVITY_HEAL })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("HEAL", 1, true), "enemy heal must not speak: " .. out)
+end
+
+function M.test_info_embarked_prefixes_name()
+    setup()
+    local u = mkUnit({ embarked = true })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("embarked Warrior", 1, true), "info must embarked-prefix name: " .. out)
+end
+
+function M.test_info_hp_stays_last_when_status_present()
+    setup()
+    local u = mkUnit({ fortifyTurns = 3, damage = 40 })
+    local out = UnitSpeech.info(u)
+    local parts = {}
+    for part in (out .. ", "):gmatch("(.-), ") do
+        parts[#parts + 1] = part
+    end
+    T.truthy(#parts > 0, "info must produce parts: " .. out)
+    T.truthy(parts[#parts]:find("hp", 1, true), "HP must stay the final token: " .. out)
+    T.truthy(out:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true), "fortified must appear before HP: " .. out)
+end
+
 -- ===== Move result =====
 
 function M.test_move_result_clean_arrival()

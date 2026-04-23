@@ -238,6 +238,14 @@ function T.fakeUnit(opts)
         _movesLeft = opts.movesLeft or opts.maxMoves or 120,
         _promotions = opts.promotions or {},
         _plot = opts.plot,
+        _embarked = opts.embarked or false,
+        _garrisoned = opts.garrisoned or false,
+        _automated = opts.automated or false,
+        _work = opts.work or false,
+        _trade = opts.trade or false,
+        _fortifyTurns = opts.fortifyTurns or 0,
+        _activity = opts.activity or (ActivityTypes and ActivityTypes.ACTIVITY_AWAKE) or 0,
+        _buildType = opts.buildType or -1,
     }
     function u:GetOwner()
         return self._owner
@@ -283,6 +291,30 @@ function T.fakeUnit(opts)
     end
     function u:IsHasPromotion(id)
         return self._promotions[id] or false
+    end
+    function u:IsEmbarked()
+        return self._embarked
+    end
+    function u:IsGarrisoned()
+        return self._garrisoned
+    end
+    function u:IsAutomated()
+        return self._automated
+    end
+    function u:IsWork()
+        return self._work
+    end
+    function u:IsTrade()
+        return self._trade
+    end
+    function u:GetFortifyTurns()
+        return self._fortifyTurns
+    end
+    function u:GetActivityType()
+        return self._activity
+    end
+    function u:GetBuildType()
+        return self._buildType
     end
     return u
 end

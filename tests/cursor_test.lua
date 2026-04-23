@@ -8,6 +8,8 @@ local T = require("support")
 local M = {}
 
 local function setup()
+    dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_UnitSpeech.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_RecommendationsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionUnits.lua")
@@ -364,6 +366,53 @@ function M.test_units_hp_suffix_when_damaged()
     local p = T.fakePlot({ units = { damaged } })
     local s = PlotSectionUnits.Read(p, {})[1]
     T.truthy(s:find("60 hp", 1, true), "expected '60 hp' in: " .. tostring(s))
+end
+
+function M.test_units_fortified_enemy_surfaces_status()
+    -- Foreign fortify shows a shield-shaped flag to sighted players, so
+    -- the cursor's plot readout must name the status.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    Players[1] = T.fakePlayer({ adj = "Arabian" })
+    local hostile = T.fakeUnit({ owner = 1, team = 1, nameKey = "Warrior", fortifyTurns = 3 })
+    local p = T.fakePlot({ units = { hostile } })
+    local s = PlotSectionUnits.Read(p, {})[1]
+    T.truthy(s:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true),
+        "enemy fortified must surface: " .. tostring(s))
+end
+
+function M.test_units_sleeping_enemy_omits_status()
+    -- Sleep / alert / heal / automate / build don't render on a foreign
+    -- unit flag; mirror the sighted view and keep silence.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    Players[1] = T.fakePlayer({ adj = "Arabian" })
+    local hostile = T.fakeUnit({
+        owner = 1,
+        team = 1,
+        nameKey = "Warrior",
+        activity = ActivityTypes.ACTIVITY_SLEEP,
+    })
+    local p = T.fakePlot({ units = { hostile } })
+    local s = PlotSectionUnits.Read(p, {})[1]
+    T.truthy(not s:find("SLEEP", 1, true), "sleep not visible on foreign flag: " .. tostring(s))
+end
+
+function M.test_units_friendly_sleep_surfaces_status()
+    -- Own-unit sleep shows in the UnitList panel; cursor plot readout
+    -- mirrors that by speaking the deeper-rung token for friendlies.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    local sleeper = T.fakeUnit({
+        owner = 0,
+        team = 0,
+        nameKey = "Warrior",
+        activity = ActivityTypes.ACTIVITY_SLEEP,
+    })
+    local p = T.fakePlot({ units = { sleeper } })
+    local s = PlotSectionUnits.Read(p, {})[1]
+    T.truthy(s:find("TXT_KEY_MISSION_SLEEP", 1, true),
+        "friendly sleep must surface: " .. tostring(s))
 end
 
 -- ===== River edges =====

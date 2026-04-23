@@ -25,6 +25,21 @@ local function unitName(unit)
     return Text.key(row.Description)
 end
 
+-- Base name with the "embarked" compound prefix when the unit is at sea.
+-- Both selection() and info() decorate the same way; the prefix only
+-- fires when the name itself resolves so a degenerate GameInfo miss
+-- can't leave a dangling "embarked " with nothing behind it.
+local function nameWithEmbarked(unit)
+    local name = unitName(unit)
+    if name == "" then
+        return ""
+    end
+    if unit:IsEmbarked() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_EMBARKED_PREFIX") .. " " .. name
+    end
+    return name
+end
+
 local function movesFraction(unit)
     local denom = GameDefines.MOVE_DENOMINATOR
     local cur = math.floor(unit:MovesLeft() / denom)
@@ -67,9 +82,20 @@ local function isFriendly(unit)
 end
 
 -- Returns the first matching status token (localized string), or "".
--- Order matches base UnitList.lua so e.g. a garrisoned unit sitting on
--- fortify turns speaks "garrison" -- the more specific rung wins.
+-- Friendly units run the full cascade from base UnitList.lua so e.g. a
+-- garrisoned unit sitting on fortify turns speaks "garrison" -- the more
+-- specific rung wins. Enemies surface fortified only, mirroring
+-- UnitFlagManager's flag-texture cascade: the shield-shaped fortify flag
+-- is the one status rung sighted players can read off a foreign unit;
+-- sleep / alert / heal / automate / build only render in the owning
+-- player's UnitList panel.
 local function statusToken(unit)
+    if not isFriendly(unit) then
+        if unit:GetFortifyTurns() > 0 then
+            return Text.key("TXT_KEY_UNIT_STATUS_FORTIFIED")
+        end
+        return ""
+    end
     if unit:IsGarrisoned() then
         return Text.key("TXT_KEY_MISSION_GARRISON")
     end
@@ -120,10 +146,7 @@ function UnitSpeech.selection(unit, prevX, prevY)
             parts[#parts + 1] = dir
         end
     end
-    local name = unitName(unit)
-    if unit:IsEmbarked() then
-        name = Text.key("TXT_KEY_CIVVACCESS_UNIT_EMBARKED_PREFIX") .. " " .. name
-    end
+    local name = nameWithEmbarked(unit)
     if name ~= "" then
         parts[#parts + 1] = name
     end
@@ -154,16 +177,21 @@ end
 -- Flat info dump scoped by unit ownership so blind players hear what
 -- sighted players see on the unit flag and EnemyUnitPanel rather than
 -- the full own-unit tooltip. Friendlies (own or same-team) get the deep
--- dump: combat, ranged + range, max moves, level / xp, promotions,
--- upgrade target + cost, exact HP fraction. Visible enemies get the
--- subset EnemyUnitPanel.lua exposes: combat, ranged (no range), max
--- moves, promotions, HP as a color band. Zero-valued strength fields
--- skip so melee units don't waste syllables on "0 ranged". HP slot is
--- always the last token -- callers may depend on its position.
+-- dump: embarked-prefixed name, combat, ranged + range, max moves,
+-- level / xp, promotions, upgrade target + cost, full status cascade,
+-- exact HP fraction. Visible enemies get the subset sighted players can
+-- read off a foreign flag / EnemyUnitPanel: embarked-prefixed name,
+-- combat, ranged (no range), max moves, promotions, fortified only, HP
+-- as a color band. Zero-valued strength fields skip so melee units
+-- don't waste syllables on "0 ranged". HP stays the final token;
+-- status sits directly before it.
 function UnitSpeech.info(unit)
     local parts = {}
     local friendly = isFriendly(unit)
-    parts[#parts + 1] = unitName(unit)
+    local name = nameWithEmbarked(unit)
+    if name ~= "" then
+        parts[#parts + 1] = name
+    end
     local combat = unit:GetBaseCombatStrength()
     if combat > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH", combat)
@@ -203,6 +231,10 @@ function UnitSpeech.info(unit)
                 )
             end
         end
+    end
+    local status = statusToken(unit)
+    if status ~= "" then
+        parts[#parts + 1] = status
     end
     if friendly then
         parts[#parts + 1] = hpFraction(unit)
@@ -308,3 +340,8 @@ function UnitSpeech.selfPlotConfirm(token, payload)
     end
     return Text.key(key)
 end
+
+-- Exposed for PlotSectionUnits so the cursor plot readout can reuse the
+-- same ownership-gated cascade (friendly: full, enemy: fortified only)
+-- without duplicating the UnitList rung ordering.
+UnitSpeech.statusToken = statusToken

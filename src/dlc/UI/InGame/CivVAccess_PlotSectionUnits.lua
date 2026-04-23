@@ -36,6 +36,15 @@ local function describeUnit(unit, activeTeam, isDebug)
     if damage > 0 then
         s = s .. ", " .. Text.format("TXT_KEY_CIVVACCESS_HP_FORMAT", GameDefines.MAX_HIT_POINTS - damage)
     end
+    -- Mirror the unit flag's status channel: fortified lights up the
+    -- shield flag for any visible unit; the deeper rungs (sleep, alert,
+    -- heal, automate, build) only show in the owning player's UnitList
+    -- panel. UnitSpeech.statusToken gates by ownership, so enemies
+    -- here only surface the fortified shield.
+    local status = UnitSpeech.statusToken(unit)
+    if status ~= "" then
+        s = s .. ", " .. status
+    end
     return s
 end
 
