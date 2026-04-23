@@ -1311,6 +1311,12 @@ local PlotComposers = _hexDeps.PlotComposers
 -- afford" without sending; the city center and blocked ring plots are
 -- no-ops because the tile announcement already told the user why.
 
+-- GetCityIndexPlot iterates the FULL 37-plot 3-hex ring regardless of
+-- city size, so a plot being "in the ring" at this level just means it's
+-- in the navigation radius -- NOT that the city actually owns it or can
+-- work it. Use this for the engine-facing plot index (TASK_CHANGE_WORKING_PLOT
+-- wants the ring-relative index) but NEVER as the "is this plot mine"
+-- signal -- that's isInWorkingArea below.
 local function plotIndexInRing(city, plot)
     if plot == nil or city == nil then
         return nil
@@ -1325,17 +1331,45 @@ local function plotIndexInRing(city, plot)
     return nil
 end
 
-local function workedStateKey(city, plot)
-    if city:IsForcedWorkingPlot(plot) then
-        return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_PINNED"
+-- Is the plot actually part of this city's working area (owned by this
+-- city, within its effective reach -- not just within the max 3-hex ring).
+-- plot:GetWorkingCity() is the engine's "which of my cities claims this
+-- tile" accessor; a size-1 city's small effective radius means most of
+-- its navigation ring returns nil / a different city here. Guard the
+-- owner comparison too so a neighbour's city with the same per-player
+-- id doesn't falsely match.
+local function isInWorkingArea(city, plot)
+    if city == nil or plot == nil then
+        return false
     end
-    if city:IsWorkingPlot(plot) then
-        return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_WORKED"
+    local workingCity = plot:GetWorkingCity()
+    if workingCity == nil then
+        return false
     end
+    return workingCity:GetID() == city:GetID() and workingCity:GetOwner() == city:GetOwner()
+end
+
+-- Worked and pinned are orthogonal engine flags, not a single state:
+-- pinned tiles whose citizen was displaced (enemy adjacent, blockade) end
+-- up pinned-but-not-worked, and the flag doesn't auto-clear. Report each
+-- axis independently. Blocked is the can't-be-worked bucket (CanWork false)
+-- and short-circuits the worked word since "not worked, blocked" would be
+-- redundant. Pinned is appended afterward when set regardless of the
+-- worked-axis outcome so the rare pinned+blocked or pinned+not-worked
+-- states still surface.
+local function workedStateTokens(city, plot)
+    local tokens = {}
     if not city:CanWork(plot) then
-        return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_BLOCKED"
+        tokens[#tokens + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_BLOCKED")
+    elseif city:IsWorkingPlot(plot) then
+        tokens[#tokens + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_WORKED")
+    else
+        tokens[#tokens + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_NOT_WORKED")
     end
-    return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_NOT_WORKED"
+    if city:IsForcedWorkingPlot(plot) then
+        tokens[#tokens + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_PINNED")
+    end
+    return tokens
 end
 
 local function hexTileAnnouncement(plot)
@@ -1352,19 +1386,23 @@ local function hexTileAnnouncement(plot)
     if yieldText ~= nil and yieldText ~= "" then
         parts[#parts + 1] = yieldText
     end
-    local ringIdx = plotIndexInRing(city, plot)
-    -- Worked-state applies only to ring plots other than the center. The
-    -- center's "always worked" is implicit in the yield line; purchasable
-    -- plots beyond the ring have no worked-state to report.
-    if ringIdx ~= nil and ringIdx > 0 then
-        parts[#parts + 1] = Text.key(workedStateKey(city, plot))
-    end
-    -- Buy cost only on plots we don't already own. CanBuyPlotAt(..., true)
-    -- ignores affordability; the second call with false discriminates
-    -- affordable vs "visible but too expensive."
-    if ringIdx == nil then
-        local px, py = plot:GetX(), plot:GetY()
-        if city:CanBuyPlotAt(px, py, true) then
+    local px, py = plot:GetX(), plot:GetY()
+    local isCenter = (px == city:GetX() and py == city:GetY())
+    -- Three disjoint cases past the yield line:
+    -- 1) Center -- the yield line and glance cover it; skip state.
+    -- 2) In working area (this city owns and can reach the tile) -- emit
+    --    worked / pinned / blocked tokens.
+    -- 3) Purchasable -- emit buy cost (affordable or "cannot afford"). A
+    --    tile can be in nav ring but not working area (out of current
+    --    radius) and not purchasable (already owned by another city of
+    --    ours); we fall through silently for those -- the glance tells
+    --    the user who owns it.
+    if not isCenter then
+        if isInWorkingArea(city, plot) then
+            for _, t in ipairs(workedStateTokens(city, plot)) do
+                parts[#parts + 1] = t
+            end
+        elseif city:CanBuyPlotAt(px, py, true) then
             local cost = city:GetBuyPlotCost(px, py)
             if city:CanBuyPlotAt(px, py, false) then
                 parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_COST", cost)
@@ -1388,10 +1426,21 @@ local function hexMapScope(x, y)
     if c == nil then
         return false
     end
-    local plot = Map.GetPlot(x, y)
-    if plot ~= nil and plotIndexInRing(c, plot) ~= nil then
+    -- City center always in scope.
+    if x == c:GetX() and y == c:GetY() then
         return true
     end
+    local plot = Map.GetPlot(x, y)
+    if plot == nil then
+        return false
+    end
+    -- Any tile this city actually owns (covers worked, blocked, out-of-
+    -- current-radius-but-owned edge cases).
+    if isInWorkingArea(c, plot) then
+        return true
+    end
+    -- Any purchasable tile, including unaffordable ones so the user can
+    -- hear the cost and decide to save for it.
     if c:CanBuyPlotAt(x, y, true) then
         return true
     end
@@ -1411,9 +1460,21 @@ local function activateHexTile()
     if plot == nil then
         return
     end
-    local ringIdx = plotIndexInRing(city, plot)
-    if ringIdx ~= nil then
-        if ringIdx == 0 or not city:CanWork(plot) then
+    -- City center is a no-op; announcement already told the user.
+    if cx == city:GetX() and cy == city:GetY() then
+        return
+    end
+    -- Owned tile in this city's working area: try to toggle citizen
+    -- assignment. The engine's TASK_CHANGE_WORKING_PLOT wants the 37-plot
+    -- ring index, which plotIndexInRing resolves. Skip when CanWork is
+    -- false (blocked, out of radius) -- the task wouldn't apply and speech
+    -- already explained why.
+    if isInWorkingArea(city, plot) then
+        if not city:CanWork(plot) then
+            return
+        end
+        local ringIdx = plotIndexInRing(city, plot)
+        if ringIdx == nil or ringIdx == 0 then
             return
         end
         Network.SendDoTask(
