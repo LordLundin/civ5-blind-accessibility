@@ -7,8 +7,14 @@ TextFilter = {}
 local _iconMap = {}
 local _warnedIcons = {}
 
-function TextFilter.registerIcon(name, spoken)
-    _iconMap[name] = spoken
+-- `aliases` is an optional list of extra spoken forms that should collapse
+-- the icon when adjacent to the substituted text. The icon is always
+-- substituted with `spoken`, never an alias; aliases only participate in
+-- the dedup check. This covers cases where the same glyph sits next to
+-- grammatical variants of its label (happiness/happy, razing/razed,
+-- great people/great person) that plain suffix rules won't bridge.
+function TextFilter.registerIcon(name, spoken, aliases)
+    _iconMap[name] = { spoken = spoken, aliases = aliases or {} }
 end
 
 -- Strip control chars except \n \r \t.
@@ -61,8 +67,9 @@ local function substituteIcons(s)
         end
         out[#out + 1] = s:sub(cursor, startIdx - 1)
 
-        local spoken = _iconMap[name]
-        if spoken == nil then
+        local record = _iconMap[name]
+        local spoken
+        if record == nil then
             if not _warnedIcons[name] then
                 _warnedIcons[name] = true
                 if Log and Log.debug then
@@ -70,12 +77,23 @@ local function substituteIcons(s)
                 end
             end
             spoken = ""
+        else
+            spoken = record.spoken
         end
 
         if spoken ~= "" then
             local before = s:sub(1, startIdx - 1)
             local after = s:sub(endIdx + 1)
-            if _matchesAfter(after, spoken) or _matchesBefore(before, spoken) then
+            local collapsed = _matchesAfter(after, spoken) or _matchesBefore(before, spoken)
+            if not collapsed then
+                for _, alias in ipairs(record.aliases) do
+                    if _matchesAfter(after, alias) or _matchesBefore(before, alias) then
+                        collapsed = true
+                        break
+                    end
+                end
+            end
+            if collapsed then
                 spoken = ""
             end
         end

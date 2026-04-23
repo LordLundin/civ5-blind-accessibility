@@ -155,11 +155,30 @@ local ICON_KEYS = {
     ICON_RES_WINE = "TXT_KEY_CIVVACCESS_ICON_RES_WINE",
 }
 
-for name, key in pairs(ICON_KEYS) do
-    TextFilter.registerIcon(name, Text.key(key))
-end
+-- Dedup-only aliases keyed by the primary TXT_KEY. An icon's spoken form is
+-- still the primary; aliases are additional adjacent forms the word-boundary
+-- check should treat as the same concept so the substitution collapses.
+-- Keyed by primary TXT_KEY rather than ICON_ name so the typo-variant icons
+-- (ICON_HAPPINES_4, ICON_GREATPEOPLE) inherit the aliases of their canonical
+-- counterpart without repeating the list. Per-locale: each strings file
+-- defines its own _ALT keys, so a translator only needs to list equivalents
+-- in their language here (English-specific helpers like `s?` in TextFilter
+-- will not help German / Japanese / etc.).
+local ALIAS_KEYS = {
+    ["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = { "TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT" },
+    ["TXT_KEY_CIVVACCESS_ICON_UNHAPPY"] = { "TXT_KEY_CIVVACCESS_ICON_UNHAPPY_ALT" },
+    ["TXT_KEY_CIVVACCESS_ICON_CONNECTED"] = { "TXT_KEY_CIVVACCESS_ICON_CONNECTED_ALT" },
+    ["TXT_KEY_CIVVACCESS_ICON_RAZING"] = { "TXT_KEY_CIVVACCESS_ICON_RAZING_ALT" },
+    ["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = { "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT" },
+}
 
--- Exposed for the test harness to re-register after a TextFilter reload.
--- Offline tests dofile TextFilter fresh to reset its _iconMap closure, so
--- they need a hook to replay the registrations. Not used in-game.
-Icons = { _keys = ICON_KEYS }
+for name, key in pairs(ICON_KEYS) do
+    local aliases = {}
+    local aliasKeys = ALIAS_KEYS[key]
+    if aliasKeys then
+        for _, aliasKey in ipairs(aliasKeys) do
+            aliases[#aliases + 1] = Text.key(aliasKey)
+        end
+    end
+    TextFilter.registerIcon(name, Text.key(key), aliases)
+end

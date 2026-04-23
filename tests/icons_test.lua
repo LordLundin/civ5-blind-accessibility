@@ -71,7 +71,7 @@ end
 function M.test_resource_icons_resolve()
     setup()
     T.eq(filtered("ICON_RES_IRON"), "iron")
-    T.eq(filtered("ICON_RES_HORSE"), "horses")
+    T.eq(filtered("ICON_RES_HORSE"), "horse")
     T.eq(filtered("ICON_RES_WHALE"), "whales")
     -- Game text uses ICON_RES_COW; "cattle" is the screen-reader-friendly
     -- spoken form (the engine label for the resource).
@@ -153,6 +153,55 @@ function M.test_bullet_resolves_to_empty_silence()
     -- Bullets are visual-only separators; the spoken form is "" so the
     -- token vanishes without a miss-warn firing for every pedia article.
     T.eq(TextFilter.filter("[ICON_BULLET]item one"), "item one")
+end
+
+-- Alias dedup. Primary spoken form stays the substitution, but adjacent
+-- grammatical variants that the `s?` suffix rule can't bridge collapse too.
+
+function M.test_happiness_1_collapses_against_happy()
+    setup()
+    T.eq(TextFilter.filter("+1 [ICON_HAPPINESS_1] Happy City"), "+1 Happy City")
+    -- And the primary still collapses against "Happiness".
+    T.eq(TextFilter.filter("+1 [ICON_HAPPINESS_1] Happiness"), "+1 Happiness")
+    -- A bare token with no neighboring word still speaks the primary form.
+    T.eq(TextFilter.filter("+1 [ICON_HAPPINESS_1]"), "+1 happiness")
+end
+
+function M.test_happiness_4_collapses_against_unhappy()
+    setup()
+    T.eq(TextFilter.filter("source of [ICON_HAPPINESS_4] unhappy mood"), "source of unhappy mood")
+    T.eq(TextFilter.filter("[ICON_HAPPINESS_4] Unhappiness doubled"), "Unhappiness doubled")
+end
+
+function M.test_razing_collapses_against_razed()
+    setup()
+    T.eq(TextFilter.filter("city is [ICON_RAZING] Razed"), "city is Razed")
+    T.eq(TextFilter.filter("[ICON_RAZING] Razing"), "Razing")
+end
+
+function M.test_connected_collapses_against_connecting()
+    setup()
+    T.eq(TextFilter.filter("[ICON_CONNECTED] Connecting roads"), "Connecting roads")
+    T.eq(TextFilter.filter("[ICON_CONNECTED] Connected"), "Connected")
+end
+
+function M.test_great_people_collapses_against_great_person()
+    setup()
+    T.eq(TextFilter.filter("a [ICON_GREAT_PEOPLE] Great Person is born"), "a Great Person is born")
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Great People"), "Great People")
+end
+
+-- Typo-variant icons inherit aliases from their canonical TXT_KEY. A base
+-- text with the misspelled ICON_HAPPINES_4 next to "unhappy" should collapse
+-- just like ICON_HAPPINESS_4 does.
+function M.test_typo_happines_4_collapses_against_unhappy()
+    setup()
+    T.eq(TextFilter.filter("[ICON_HAPPINES_4] unhappy"), "unhappy")
+end
+
+function M.test_typo_greatpeople_collapses_against_great_person()
+    setup()
+    T.eq(TextFilter.filter("[ICON_GREATPEOPLE] Great Person"), "Great Person")
 end
 
 -- Composed: unit cost with icon substitution --------------------------------

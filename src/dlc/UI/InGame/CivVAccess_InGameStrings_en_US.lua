@@ -553,16 +553,29 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "ranged combat st
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SWAP"] = "swap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "happiness"
+-- Dedup-only alias. Base text pairs the positive-happy glyph with "Happy"
+-- as well as "Happiness"; speaking "happiness Happy" doubles the concept.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT"] = "happy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY"] = "unhappiness"
+-- Dedup-only alias. Base text pairs the unhappy glyph with "unhappy" too.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY_ALT"] = "unhappy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CAPITAL"] = "capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CITIZEN"] = "citizen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CONNECTED"] = "connected"
+-- Dedup-only alias. Advisor/tutorial copy uses "Connecting" adjacent to
+-- the glyph ("Connecting cities with roads...").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CONNECTED_ALT"] = "connecting"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_OCCUPIED"] = "occupied"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PUPPET"] = "puppet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RAZING"] = "razing"
+-- Dedup-only alias. Pedia entries on city capture use "Razed" past-tense.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RAZING_ALT"] = "razed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESISTANCE"] = "resistance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_BLOCKADED"] = "blockaded"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "great people"
+-- Dedup-only alias. Base text uses "Great Person" next to the glyph in
+-- notifications ("A Great Person is born in {city}!").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = "great person"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_WORK"] = "great work"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE"] = "golden age"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_TRADE_ROUTE"] = "trade route"
@@ -622,7 +635,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_GEMS"] = "gems"
 -- it as-is would collide with [ICON_GOLD] every time a tech description
 -- mentions both.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_GOLD_ORE"] = "gold ore"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_HORSES"] = "horses"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_HORSES"] = "horse"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_INCENSE"] = "incense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_IRON"] = "iron"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RES_IVORY"] = "ivory"
