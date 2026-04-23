@@ -46,6 +46,7 @@ read_globals = {
     "ButtonPopupTypes", "ContentType", "SlotStatus", "ActivityTypes",
     "InterfaceModeTypes", "MissionTypes", "GameMessageTypes",
     "ActionSubTypes", "GameInfoActions", "EndTurnBlockingTypes",
+    "TaskTypes",
 
     -- Platform / session / content
     "Modding", "Matchmaking", "Network", "Steam", "SaveFileList",
@@ -102,6 +103,7 @@ globals = {
     "ScannerBackendUnits",
     "SurveyorCore",
     "CitySpeech",
+    "CityRangeStrikeMode",
     "NotificationAnnounce",
     "Recommendations",
     "Turn",
@@ -178,6 +180,8 @@ files["tests/"] = {
         -- paths (e.g. turn_test flips PreGame.IsMultiplayerGame to cover
         -- both SP and MP endturn dispatch).
         "PreGame", "Network", "OptionsManager",
+        -- Engine enum the suites stub to drive popup dispatch tests.
+        "ButtonPopupTypes",
         -- Proxy-injected miniaudio binding. run.lua installs a capture
         -- stub before each suite; declaring it writable here lets the
         -- stub assignment and monkey-patches pass without warnings.
@@ -226,13 +230,14 @@ files["src/dlc/UI/InGame/CivVAccess_Polyfill.lua"] = {
     },
 }
 
--- The bootstrap files (our verbatim copies of base-game TaskList.lua /
--- InGame.lua / WorldView.lua / ToolTips.lua with include() appended) contain
+-- Base-game files we ship as verbatim copies with an include() appended
+-- (bootstrap overrides plus screen-level overrides like CityView) contain
 -- base-game code we don't control. Don't lint them; just check syntax.
 files["src/dlc/UI/InGame/TaskList.lua"]           = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/InGame.lua"]             = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/WorldView.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/Advisors.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/InGame/CityView/CityView.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/FrontEnd/ToolTips.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }
 
 -- Skip the base-game Lua we ship verbatim. Our CivVAccess_* wrappers pair

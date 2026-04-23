@@ -3399,8 +3399,6 @@ end
 -- gated on Events.SearchForPediaEntry's presence so FrontEnd Contexts
 -- don't advertise a chord that can't work.
 
-local MOD_CTRL = 2
-
 local function withPediaStub(fn)
     local captured = {}
     Events.SearchForPediaEntry = function(name)
