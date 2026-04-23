@@ -1211,7 +1211,7 @@ pushProductionQueue = function()
     -- chunk-local `productionQueueOpen` tracks too.
     local queueModeItem = BaseMenuItems.Text({
         labelFn = function()
-            local on = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:GetCheck()
+            local on = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
             local state = Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
             return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_QUEUE_MODE", state)
         end,
@@ -1221,7 +1221,7 @@ pushProductionQueue = function()
         if Controls.HideQueueButton == nil then
             return
         end
-        local newVal = not Controls.HideQueueButton:GetCheck()
+        local newVal = not Controls.HideQueueButton:IsChecked()
         Controls.HideQueueButton:SetCheck(newVal)
         if type(OnHideQueue) == "function" then
             OnHideQueue(newVal)
@@ -1238,7 +1238,7 @@ pushProductionQueue = function()
         if c == nil then
             return
         end
-        local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:GetCheck()
+        local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
         Events.SerialEventGameMessagePopup({
             Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
             Data1 = c:GetID(),
@@ -1258,7 +1258,7 @@ pushProductionQueue = function()
         if c == nil then
             return
         end
-        local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:GetCheck()
+        local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
         Events.SerialEventGameMessagePopup({
             Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
             Data1 = c:GetID(),
