@@ -123,7 +123,19 @@ function ShowHideHandler( bIsHide, bInitState )
 end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
-OnRelations();
+-- Base game called OnRelations() here to initialize the Relations tab
+-- as selected. OnRelations calls Controls.RelationsPanel:SetHide(false),
+-- which fires a non-init ShowHide on the RelationsPanel sub-Context
+-- even though Hidden="0" in XML already made it visible -- the engine
+-- dispatches ShowHide on every SetHide regardless of state change.
+-- That spurious show at module-load time landed our DiploRelationships
+-- BaseMenu on HandlerStack before DiploOverview was ever popped up,
+-- trapping input for the entire game. Panels already default to the
+-- correct state from XML Hidden attributes; only the tab highlight
+-- needs priming.
+Controls.DealsSelectHighlight:SetHide(true);
+Controls.RelationsSelectHighlight:SetHide(false);
+Controls.GlobalSelectHighlight:SetHide(true);
 
 -- Civ V Access accessibility mod bootstrap.
 include("CivVAccess_DiploOverviewBridge")
