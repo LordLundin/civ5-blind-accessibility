@@ -9,18 +9,38 @@
 
 CivDetails = {}
 
-local uniqueUnitsQuery = DB.CreateQuery([[SELECT Description FROM Units
-    INNER JOIN Civilization_UnitClassOverrides
-    ON Units.Type = Civilization_UnitClassOverrides.UnitType
-    WHERE Civilization_UnitClassOverrides.CivilizationType = ? AND
-    Civilization_UnitClassOverrides.UnitType IS NOT NULL]])
+-- LEFT JOIN onto the overridden class's default unit/building so each row
+-- carries what the unique stands in for. Rows where the class has no
+-- default (or where the unique IS the default) come back with a nil
+-- ReplacesDesc and render without the "replaces X" suffix.
+local uniqueUnitsQuery = DB.CreateQuery([[SELECT
+        UniqueUnit.Description AS UniqueDesc,
+        DefaultUnit.Description AS ReplacesDesc
+    FROM Civilization_UnitClassOverrides
+        INNER JOIN Units AS UniqueUnit
+            ON UniqueUnit.Type = Civilization_UnitClassOverrides.UnitType
+        INNER JOIN UnitClasses
+            ON UnitClasses.Type = Civilization_UnitClassOverrides.UnitClassType
+        LEFT JOIN Units AS DefaultUnit
+            ON DefaultUnit.Type = UnitClasses.DefaultUnit
+    WHERE Civilization_UnitClassOverrides.CivilizationType = ?
+        AND Civilization_UnitClassOverrides.UnitType IS NOT NULL]])
 
-local uniqueBuildingsQuery = DB.CreateQuery([[SELECT Description FROM Buildings
-    INNER JOIN Civilization_BuildingClassOverrides
-    ON Buildings.Type = Civilization_BuildingClassOverrides.BuildingType
-    WHERE Civilization_BuildingClassOverrides.CivilizationType = ? AND
-    Civilization_BuildingClassOverrides.BuildingType IS NOT NULL]])
+local uniqueBuildingsQuery = DB.CreateQuery([[SELECT
+        UniqueBuilding.Description AS UniqueDesc,
+        DefaultBuilding.Description AS ReplacesDesc
+    FROM Civilization_BuildingClassOverrides
+        INNER JOIN Buildings AS UniqueBuilding
+            ON UniqueBuilding.Type = Civilization_BuildingClassOverrides.BuildingType
+        INNER JOIN BuildingClasses
+            ON BuildingClasses.Type = Civilization_BuildingClassOverrides.BuildingClassType
+        LEFT JOIN Buildings AS DefaultBuilding
+            ON DefaultBuilding.Type = BuildingClasses.DefaultBuilding
+    WHERE Civilization_BuildingClassOverrides.CivilizationType = ?
+        AND Civilization_BuildingClassOverrides.BuildingType IS NOT NULL]])
 
+-- Improvements are additive (Moai, Polder, Feitoria add a new buildable
+-- rather than replacing a default), so no Replaces clause here.
 local uniqueImprovementsQuery = DB.CreateQuery([[SELECT Description FROM Improvements WHERE CivilizationType = ?]])
 
 local traitsQuery = DB.CreateQuery([[SELECT Description, ShortDescription FROM Traits
@@ -30,6 +50,19 @@ local traitsQuery = DB.CreateQuery([[SELECT Description, ShortDescription FROM T
 local function appendLabeled(parts, labelKey, value)
     if value == nil or value == "" then
         return
+    end
+    parts[#parts + 1] = Text.key(labelKey) .. ": " .. value
+end
+
+local function appendUnique(parts, labelKey, uniqueDesc, replacesDesc)
+    local name = Text.key(uniqueDesc)
+    if name == nil or name == "" then
+        return
+    end
+    local value = name
+    local replaces = Text.key(replacesDesc)
+    if replaces ~= nil and replaces ~= "" and replaces ~= name then
+        value = value .. ", " .. Text.format("TXT_KEY_CIVVACCESS_REPLACES", replaces)
     end
     parts[#parts + 1] = Text.key(labelKey) .. ": " .. value
 end
@@ -56,10 +89,10 @@ function CivDetails.richLabel(row)
         end
     end
     for urow in uniqueUnitsQuery(row.Type) do
-        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_UNIT", Text.key(urow.Description))
+        appendUnique(parts, "TXT_KEY_CIVVACCESS_UNIQUE_UNIT", urow.UniqueDesc, urow.ReplacesDesc)
     end
     for urow in uniqueBuildingsQuery(row.Type) do
-        appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_BUILDING", Text.key(urow.Description))
+        appendUnique(parts, "TXT_KEY_CIVVACCESS_UNIQUE_BUILDING", urow.UniqueDesc, urow.ReplacesDesc)
     end
     for urow in uniqueImprovementsQuery(row.Type) do
         appendLabeled(parts, "TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT", Text.key(urow.Description))
