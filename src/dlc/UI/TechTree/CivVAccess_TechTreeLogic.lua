@@ -93,6 +93,38 @@ local function unlocksProse(techID, techName)
     return ChooseTechLogic.filterHelpText(GetHelpTextForTech(techID), techName)
 end
 
+-- Flat corpus for TypeAheadSearch. Each entry pairs a tech with the
+-- search label "name, unlocks prose" (name only if prose is empty). The
+-- pre-comma name segment gets TypeAheadSearch's inSegment=0 ranking so
+-- matches on the tech name beat matches inside the unlocks text -- e.g.
+-- typing "knight" ranks the tech literally named Knight (if one exists)
+-- above Chivalry, which matches only via "Unlocks Knight" prose. Static
+-- across a session, so built once at screen-open.
+function TechTreeLogic.buildSearchCorpus()
+    local out = {}
+    for tech in GameInfo.Technologies() do
+        local name = Text.key(tech.Description)
+        local prose = unlocksProse(tech.ID, name)
+        local label = (prose == "") and name or (name .. ", " .. prose)
+        out[#out + 1] = { tech = tech, label = label }
+    end
+    return out
+end
+
+-- Seed the NavigableGraph cursor onto `tech` with a sibling list that
+-- matches what the user would have if they'd arrived by NavigateDown from
+-- the tech's first parent (or Left/Right across the root set when `tech`
+-- is itself a root). Both the initial-cursor landing and the search-driven
+-- landing use this so Left/Right behaves the same either way.
+function TechTreeLogic.seedCursorSiblings(cursor, tech, graph)
+    local parents = graph.getParents(tech)
+    if #parents == 0 then
+        cursor.moveToWithSiblings(tech, graph.getRoots())
+    else
+        cursor.moveToWithSiblings(tech, graph.getChildren(parents[1]))
+    end
+end
+
 -- Tree-tab landing speech spoken on every arrow move. Order: name, status,
 -- queue slot (if queued and not current), turns (if researchable and
 -- science > 0), unlocks. Distinguishing info — the tech name — leads so

@@ -543,4 +543,102 @@ function M.test_initialCursor_falls_back_to_first_root_when_nothing_canResearch(
     T.eq(pick.Type, "TECH_AGRICULTURE", "lands on the only root")
 end
 
+-- ===== buildSearchCorpus =====
+
+function M.test_searchCorpus_one_entry_per_tech()
+    setup()
+    installTechDB(techs3())
+    local corpus = TechTreeLogic.buildSearchCorpus()
+    T.eq(#corpus, 3)
+    T.eq(corpus[1].tech.Type, "TECH_AGRICULTURE")
+    T.eq(corpus[2].tech.Type, "TECH_POTTERY")
+    T.eq(corpus[3].tech.Type, "TECH_MINING")
+end
+
+function M.test_searchCorpus_label_is_name_only_when_prose_empty()
+    -- Default setup stub returns "" from GetHelpTextForTech; with no prose,
+    -- the label collapses to just the tech name so TypeAheadSearch never
+    -- appends a stray comma or empty segment.
+    setup()
+    installTechDB(techs3())
+    local corpus = TechTreeLogic.buildSearchCorpus()
+    T.eq(corpus[2].label, "TXT_KEY_TECH_POTTERY")
+end
+
+function M.test_searchCorpus_label_joins_name_and_unlocks_prose()
+    -- Non-empty prose is appended after ", " so TypeAheadSearch's
+    -- pre-comma/post-comma axis ranks name matches above prose matches
+    -- (typing "knight" finds Chivalry via "Unlocks Knight" prose but ranks
+    -- it below a hypothetical tech literally named Knight).
+    setup()
+    local techs = {
+        tech(0, "TECH_CHIVALRY", 1, "chivalry"),
+    }
+    installTechDB(techs, {})
+    GetHelpTextForTech = function(id)
+        if id == 0 then
+            return "CHIVALRY[NEWLINE]Unlocks Knight"
+        end
+        return ""
+    end
+    local corpus = TechTreeLogic.buildSearchCorpus()
+    T.eq(corpus[1].label, "chivalry, Unlocks Knight")
+end
+
+-- ===== seedCursorSiblings =====
+
+local function loadNavigableGraph()
+    NavigableGraph = nil
+    dofile("src/dlc/UI/Shared/CivVAccess_NavigableGraph.lua")
+end
+
+function M.test_seedCursorSiblings_uses_roots_when_landing_is_a_root()
+    setup()
+    loadNavigableGraph()
+    installTechDB(techs3())
+    local graph = TechTreeLogic.buildGraph()
+    local cursor = NavigableGraph.new({
+        getParents = graph.getParents,
+        getChildren = graph.getChildren,
+        getRoots = graph.getRoots,
+    })
+    local agriculture = GameInfo.Technologies["TECH_AGRICULTURE"]
+    TechTreeLogic.seedCursorSiblings(cursor, agriculture, graph)
+    T.eq(cursor.current().Type, "TECH_AGRICULTURE")
+    -- Roots list has exactly Agriculture, so hasSiblings is false but
+    -- the seeded list is the root set -- confirmed by cycleSibling being a
+    -- wrap no-op returning nil rather than cycling into a parent list.
+    local n = cursor.cycleSibling(1)
+    T.eq(n, nil, "single-root case yields no cycle target")
+end
+
+function M.test_seedCursorSiblings_uses_first_parents_children_for_non_root()
+    setup()
+    loadNavigableGraph()
+    local techs = {
+        tech(0, "TECH_BASE", 0, "base"),
+        tech(1, "TECH_CHILD_A", 1, "child a"),
+        tech(2, "TECH_CHILD_B", 2, "child b"),
+    }
+    local prereqs = {
+        { TechType = "TECH_CHILD_A", PrereqTech = "TECH_BASE" },
+        { TechType = "TECH_CHILD_B", PrereqTech = "TECH_BASE" },
+    }
+    installTechDB(techs, prereqs)
+    local graph = TechTreeLogic.buildGraph()
+    local cursor = NavigableGraph.new({
+        getParents = graph.getParents,
+        getChildren = graph.getChildren,
+        getRoots = graph.getRoots,
+    })
+    local childA = GameInfo.Technologies["TECH_CHILD_A"]
+    TechTreeLogic.seedCursorSiblings(cursor, childA, graph)
+    T.eq(cursor.current().Type, "TECH_CHILD_A")
+    -- Siblings should be BASE's children: [CHILD_A, CHILD_B]. Cycling
+    -- right from CHILD_A lands on CHILD_B without any prior vertical nav.
+    local n = cursor.cycleSibling(1)
+    T.truthy(n, "sibling cycle is live immediately after seedCursorSiblings")
+    T.eq(n.Type, "TECH_CHILD_B")
+end
+
 return M

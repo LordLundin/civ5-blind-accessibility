@@ -31,6 +31,14 @@
 -- install-once guards; dead prior-game listeners are tolerated because
 -- the engine catches per-listener throws and the current live one still
 -- fires.
+--
+-- Search: letters / digits / Space / Backspace feed a TypeAheadSearch
+-- instance whose corpus is "name, unlocks prose" per tech. Each keystroke
+-- moves the DAG cursor to the top match via TechTreeLogic.seedCursorSiblings
+-- (same seed the initial landing uses) and speaks the normal landing
+-- speech. Arrow keys clear the buffer silently before tree nav so typing
+-- never contaminates a subsequent arrow move. Esc with a buffer clears
+-- and speaks "search cleared"; Esc with no buffer closes the screen.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -72,6 +80,8 @@ local _stealingTargetID = -1
 -- Screen state. Reset on every hide.
 local _graph = nil
 local _cursor = nil
+local _corpus = nil
+local _search = nil
 
 local function currentPlayer()
     return Players[Game.GetActivePlayer()]
@@ -161,9 +171,45 @@ local function commit(shift)
     end
 end
 
+-- ===== Search =====
+
+local function clearSearch()
+    if _search ~= nil then
+        _search:clear()
+    end
+end
+
+local function buildSearchable()
+    return {
+        itemCount = function()
+            return _corpus and #_corpus or 0
+        end,
+        getLabel = function(i)
+            local entry = _corpus and _corpus[i]
+            if entry == nil then
+                return nil
+            end
+            return entry.label
+        end,
+        moveTo = function(origIndex)
+            local entry = _corpus and _corpus[origIndex]
+            if entry == nil then
+                return
+            end
+            TechTreeLogic.seedCursorSiblings(_cursor, entry.tech, _graph)
+            local p = currentPlayer()
+            if p == nil then
+                return
+            end
+            SpeechPipeline.speakInterrupt(TechTreeLogic.buildLandingSpeech(entry.tech.ID, p))
+        end,
+    }
+end
+
 -- ===== Tree nav =====
 
 local function onUp()
+    clearSearch()
     local n = _cursor.navigateUp()
     if n == nil then
         return
@@ -172,6 +218,7 @@ local function onUp()
 end
 
 local function onDown()
+    clearSearch()
     local n = _cursor.navigateDown()
     if n == nil then
         return
@@ -180,6 +227,7 @@ local function onDown()
 end
 
 local function onLeft()
+    clearSearch()
     local n = _cursor.cycleSibling(-1)
     if n == nil then
         return
@@ -188,6 +236,7 @@ local function onLeft()
 end
 
 local function onRight()
+    clearSearch()
     local n = _cursor.cycleSibling(1)
     if n == nil then
         return
@@ -301,9 +350,42 @@ end
 
 local bind = HandlerStack.bind
 
+local function handleSearchInput(_handler, vk, mods)
+    if _search == nil or _corpus == nil then
+        return false
+    end
+    local hasCtrl = math.floor(mods / 2) % 2 == 1
+    local hasAlt = math.floor(mods / 4) % 2 == 1
+    if hasCtrl or hasAlt then
+        return false
+    end
+    local s = buildSearchable()
+    if vk >= 0x41 and vk <= 0x5A then
+        return _search:handleChar(string.char(vk + 32), s)
+    end
+    if vk >= 0x30 and vk <= 0x39 then
+        return _search:handleChar(string.char(vk), s)
+    end
+    if vk == Keys.VK_SPACE and _search:isSearchActive() then
+        return _search:handleKey(Keys.VK_SPACE, false, false, s)
+    end
+    if vk == Keys.VK_BACK then
+        return _search:handleKey(Keys.VK_BACK, false, false, s)
+    end
+    return false
+end
+
 local function createTreeHandler()
     local closer = function()
         OnCloseButtonClicked()
+    end
+    local onEscape = function()
+        if _search ~= nil and (_search:isSearchActive() or _search:hasBuffer()) then
+            _search:clear()
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+            return
+        end
+        closer()
     end
     local handler = {
         name = TREE_HANDLER,
@@ -323,7 +405,7 @@ local function createTreeHandler()
             bind(Keys.VK_TAB, MOD_SHIFT, openQueueTab, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TAB"),
             bind(Keys.VK_F1, MOD_NONE, speakHeader, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F1"),
             bind(Keys.VK_F6, MOD_NONE, closer, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6"),
-            bind(Keys.VK_ESCAPE, MOD_NONE, closer, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE"),
+            bind(Keys.VK_ESCAPE, MOD_NONE, onEscape, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE"),
             bind(Keys.I, MOD_CTRL, openPediaForCurrent, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA"),
         },
         helpEntries = {
@@ -352,6 +434,10 @@ local function createTreeHandler()
                 description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA",
             },
             {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SEARCH",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SEARCH",
+            },
+            {
                 keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F6",
                 description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6",
             },
@@ -361,6 +447,7 @@ local function createTreeHandler()
             },
         },
         _initialized = false,
+        handleSearchInput = handleSearchInput,
     }
     -- onActivate distinguishes first-open from re-exposure (queue tab pop)
     -- so the header + preamble are spoken exactly once per screen session
@@ -403,22 +490,14 @@ local function onShow()
         getChildren = _graph.getChildren,
         getRoots = _graph.getRoots,
     })
+    _corpus = TechTreeLogic.buildSearchCorpus()
+    _search = TypeAheadSearch.new()
     local landing = TechTreeLogic.pickInitialCursor(p, _graph)
     if landing == nil then
         Log.error("TechTreeAccess: pickInitialCursor returned nil")
         return
     end
-    -- Seed siblings as if the player arrived by NavigateDown from the
-    -- landing's first parent (or by Left/Right across roots if the
-    -- landing is itself a root). Without this, Left/Right would be a
-    -- no-op until the user did a vertical move, which reads as a dead
-    -- key rather than a meaningful navigation affordance.
-    local parents = _graph.getParents(landing)
-    if #parents == 0 then
-        _cursor.moveToWithSiblings(landing, _graph.getRoots())
-    else
-        _cursor.moveToWithSiblings(landing, _graph.getChildren(parents[1]))
-    end
+    TechTreeLogic.seedCursorSiblings(_cursor, landing, _graph)
     HandlerStack.removeByName(TREE_HANDLER, false)
     HandlerStack.push(createTreeHandler())
 end
@@ -434,6 +513,8 @@ local function onHide()
     HandlerStack.removeByName(TREE_HANDLER, true)
     _graph = nil
     _cursor = nil
+    _corpus = nil
+    _search = nil
 end
 
 ContextPtr:SetShowHideHandler(function(bIsHide, bIsInit)
