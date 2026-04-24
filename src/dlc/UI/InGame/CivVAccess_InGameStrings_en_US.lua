@@ -301,6 +301,41 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_TRADE_UNIT_NEW_HOME"] = "Ch
 -- (e.g. "Are you sure you wish to found X?") comes from Controls.ConfirmText
 -- as a function preamble.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_CONFIRM"] = "Confirm"
+-- ChooseReligionPopup (BUTTONPOPUP_FOUND_RELIGION). Same Context wraps both
+-- founding (Option1=true) and enhancing (Option1=false); the display name
+-- resolves per phase. Change Religion Name is a sub-handler covering the
+-- engine's ChangeNamePopup overlay (Textfield + OK / Default / Cancel).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_RELIGION"] = "Choose Religion"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_ENHANCE_RELIGION"] = "Enhance Religion"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHANGE_RELIGION_NAME"] = "Change Religion Name"
+-- Belief-slot label formats. {1_Slot} is the slot's short name (Pantheon
+-- belief, Founder belief, Follower belief, Follower belief 2, Enhancer
+-- belief, Bonus belief); {2_Belief} is the short description of whichever
+-- belief currently fills the slot. States:
+--   UNCHOSEN: editable slot with nothing picked yet
+--   CHOSEN: editable slot with a selection made this session
+--   COMMITTED: locked, already committed to the religion in a prior turn
+--              (pantheon already founded, or enhance-mode pre-filled slots)
+--   LATER: locked, slot unlocks in a later phase (Follower 2 / Enhancer
+--          pre-enhance)
+--   BYZANTINES_ONLY: locked, only reachable with the Byzantine civ trait
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_SLOT_UNCHOSEN"] = "{1_Slot}, not chosen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_SLOT_CHOSEN"] = "{1_Slot}, {2_Belief}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_SLOT_COMMITTED"] = "{1_Slot}, {2_Belief}, already chosen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_SLOT_LATER"] = "{1_Slot}, available later"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_SLOT_BYZANTINES_ONLY"] = "{1_Slot}, Byzantines only"
+-- Religion-picker row. Unselected in founding mode before the user picks
+-- from the religion list; selected after SelectReligion fires. Enhance mode
+-- replaces the row with a read-only Text showing the player's own religion.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_PICKER_UNSELECTED"] = "religion, not chosen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_PICKER_SELECTED"] = "religion, {1_Name}"
+-- Name row. Founding mode lets the user open ChangeNamePopup to rename;
+-- enhance mode shows read-only. The "not yet chosen" variant covers the
+-- brief window before a religion is picked (name is whatever default the
+-- engine will seed once the religion is selected).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_NAME_ROW"] = "name, {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_NAME_ROW_UNSET"] = "name, pick a religion first"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_NAME_FIELD"] = "religion name"
 -- NotificationLogPopup (BUTTONPOPUP_NOTIFICATION_LOG). Split into Active /
 -- Dismissed tabs by the engine's per-notification dismissed flag. Item
 -- label inlines the turn so the user can place each entry in history
