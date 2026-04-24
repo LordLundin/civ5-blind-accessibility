@@ -226,7 +226,24 @@ local function statusSpeechBranch(status, payload)
     return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED")
 end
 
-local function filterHelp(helpKey)
+-- Engine Help text for branches, policies, and tenets leads with
+-- [COLOR_POSITIVE_TEXT]Name[ENDCOLOR][NEWLINE] which TextFilter reduces to
+-- "Name " at the head of the string. The spoken item already leads with
+-- the name from Description, so the prefix must be stripped to avoid
+-- duplicate narration ("Oligarchy, adoptable, Oligarchy Garrisoned ...").
+-- Case-insensitive match; trims the whitespace / punctuation that follows
+-- the name.
+local function stripLeadingName(text, name)
+    if text == nil or text == "" or name == nil or name == "" then
+        return text or ""
+    end
+    if text:lower():sub(1, #name) == name:lower() then
+        return (text:sub(#name + 1):gsub("^[%s,%.:;]+", ""))
+    end
+    return text
+end
+
+local function filterHelp(helpKey, name)
     if helpKey == nil or helpKey == "" then
         return ""
     end
@@ -234,16 +251,17 @@ local function filterHelp(helpKey)
     if raw == nil or raw == "" then
         return ""
     end
-    return TextFilter.filter(raw)
+    return stripLeadingName(TextFilter.filter(raw), name)
 end
 
 function SocialPolicyLogic.buildBranchSpeech(player, branchRow)
-    local parts = { Text.key(branchRow.Description) }
+    local name = Text.key(branchRow.Description)
+    local parts = { name }
     local status, payload = SocialPolicyLogic.branchStatus(player, branchRow)
     parts[#parts + 1] = statusSpeechBranch(status, payload)
     local adopted, total = SocialPolicyLogic.adoptedCount(player, branchRow)
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_BRANCH_COUNT", adopted, total)
-    local flavor = filterHelp(branchRow.Help)
+    local flavor = filterHelp(branchRow.Help, name)
     if flavor ~= "" then
         parts[#parts + 1] = flavor
     end
@@ -251,7 +269,8 @@ function SocialPolicyLogic.buildBranchSpeech(player, branchRow)
 end
 
 function SocialPolicyLogic.buildPolicySpeech(player, policyRow, branchRow)
-    local parts = { Text.key(policyRow.Description) }
+    local name = Text.key(policyRow.Description)
+    local parts = { name }
     local status, missing = SocialPolicyLogic.policyStatus(player, policyRow, branchRow)
     if status == "opener" then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_OPENER")
@@ -273,7 +292,7 @@ function SocialPolicyLogic.buildPolicySpeech(player, policyRow, branchRow)
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED")
         end
     end
-    local effect = filterHelp(policyRow.Help)
+    local effect = filterHelp(policyRow.Help, name)
     if effect ~= "" then
         parts[#parts + 1] = effect
     end
@@ -315,7 +334,7 @@ function SocialPolicyLogic.buildSlotSpeech(player, ideologyID, level, slotIndex)
             return Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_AVAILABLE", slotIndex)
         end
         local name = Text.key(tenetRow.Description)
-        local effect = filterHelp(tenetRow.Help)
+        local effect = filterHelp(tenetRow.Help, name)
         if effect ~= "" then
             return Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED", slotIndex, name, effect)
         end
@@ -334,7 +353,7 @@ end
 
 function SocialPolicyLogic.buildTenetPickerChoice(policyRow)
     local name = Text.key(policyRow.Description)
-    local effect = filterHelp(policyRow.Help)
+    local effect = filterHelp(policyRow.Help, name)
     if effect == "" then
         return name
     end

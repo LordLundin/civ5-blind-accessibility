@@ -13,7 +13,9 @@ local function branchRow(opts)
         ID = opts.ID,
         Type = opts.Type,
         Description = opts.Description or opts.Type,
-        Help = opts.Help or (opts.Type .. "_HELP"),
+        -- Help key prefixed "HELP_" rather than suffixed "_HELP" so it does
+        -- not collide with the leading-name strip in buildBranchSpeech.
+        Help = opts.Help or ("HELP_" .. opts.Type),
         EraPrereq = opts.EraPrereq,
         FreePolicy = opts.FreePolicy,
         FreeFinishingPolicy = opts.FreeFinishingPolicy,
@@ -27,7 +29,9 @@ local function policyRow(opts)
         ID = opts.ID,
         Type = opts.Type,
         Description = opts.Description or opts.Type,
-        Help = opts.Help or (opts.Type .. "_HELP"),
+        -- Help key prefixed "HELP_" rather than suffixed "_HELP" so it does
+        -- not collide with the leading-name strip.
+        Help = opts.Help or ("HELP_" .. opts.Type),
         PolicyBranchType = opts.PolicyBranchType,
         GridX = opts.GridX or 1,
         GridY = opts.GridY or 1,
@@ -214,7 +218,7 @@ local function setup(opts)
     -- lives in CivVAccess_InGameStrings_en_US and isn't needed here.
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_OPENED"] = "opened"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_FINISHED"] = "finished"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_ADOPTABLE"] = "adoptable now"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_ADOPTABLE"] = "adoptable"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED_ERA"] = "locked, requires {1_Era}"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED_RELIGION"] = "locked, requires a founded religion"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED"] = "locked"
@@ -223,7 +227,7 @@ local function setup(opts)
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_OPENER"] = "opener"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_FINISHER"] = "finisher"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_ADOPTED"] = "adopted"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_ADOPTABLE"] = "adoptable now"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_ADOPTABLE"] = "adoptable"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_BLOCKED"] = "blocked"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED"] = "locked"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED_REQUIRES"] = "locked, requires {1_Prereqs}"
@@ -560,7 +564,7 @@ function M.test_buildBranchSpeech_includes_count_and_flavor()
     })
     local speech = SocialPolicyLogic.buildBranchSpeech(p, branches[1])
     T.truthy(speech:find("2 of 5 adopted"), "missing count, got: " .. speech)
-    T.truthy(speech:find("BRANCH_TRAD_HELP"), "missing flavor key, got: " .. speech)
+    T.truthy(speech:find("HELP_BRANCH_TRAD"), "missing flavor key, got: " .. speech)
 end
 
 -- ========== buildPolicySpeech ==========
@@ -582,7 +586,33 @@ function M.test_buildPolicySpeech_adoptable_has_no_prereq_noise()
     local p = fakePlayer({ canAdopt = { [2] = true } })
     local speech = SocialPolicyLogic.buildPolicySpeech(p, policies[3], branches[1])
     T.falsy(speech:find("requires"), "adoptable speech should not say 'requires': " .. speech)
-    T.truthy(speech:find("adoptable now"), "should say adoptable: " .. speech)
+    T.truthy(speech:find("adoptable"), "should say adoptable: " .. speech)
+end
+
+function M.test_buildPolicySpeech_strips_leading_name_from_help()
+    setup()
+    local branches, policies, prereqs = tradition()
+    installDB(branches, policies, prereqs)
+    -- Game's help text leads with "Name " (from [COLOR_POSITIVE_TEXT]Name
+    -- [ENDCOLOR][NEWLINE] once TextFilter collapses the markup). The logic
+    -- must strip that prefix so the spoken item isn't "Name, status, Name
+    -- effect."
+    local origLocale = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(k, ...)
+        if k == "HELP_POL_OLIGARCHY" then
+            return "POL_OLIGARCHY Garrisoned units cost no maintenance"
+        end
+        return origLocale(k, ...)
+    end
+    local p = fakePlayer({ canAdopt = { [2] = true } })
+    local speech = SocialPolicyLogic.buildPolicySpeech(p, policies[3], branches[1])
+    Locale.ConvertTextKey = origLocale
+    T.truthy(speech:find("^POL_OLIGARCHY, adoptable,"), "name and status lead: " .. speech)
+    T.truthy(speech:find("Garrisoned units"), "effect present: " .. speech)
+    -- The name must appear exactly once (at the head). If the strip failed,
+    -- the help would contribute a second "POL_OLIGARCHY" after "adoptable".
+    local _, count = speech:gsub("POL_OLIGARCHY", "")
+    T.eq(count, 1, "name should appear once, got " .. tostring(count) .. " in: " .. speech)
 end
 
 -- ========== buildPreamble ==========
@@ -696,12 +726,12 @@ end
 function M.test_buildSlotSpeech_filled_speaks_name_and_effect()
     setup()
     local policies = {
-        policyRow({ ID = 100, Type = "TEN_A", Help = "TEN_A_HELP" }),
+        policyRow({ ID = 100, Type = "TEN_A", Help = "HELP_TEN_A" }),
     }
     installDB({}, policies, {})
     local p = fakePlayer({ tenets = { ["9:1:1"] = 100 } })
     local speech = SocialPolicyLogic.buildSlotSpeech(p, 9, 1, 1)
-    T.eq(speech, "slot 1, TEN_A, TEN_A_HELP")
+    T.eq(speech, "slot 1, TEN_A, HELP_TEN_A")
 end
 
 function M.test_buildSlotSpeech_filled_name_only_when_help_empty()
@@ -743,9 +773,9 @@ end
 function M.test_buildTenetPickerChoice_name_and_effect()
     setup()
     installDB({}, {}, {})
-    local row = policyRow({ ID = 50, Type = "TEN", Help = "TEN_HELP" })
+    local row = policyRow({ ID = 50, Type = "TEN", Help = "HELP_TEN" })
     local speech = SocialPolicyLogic.buildTenetPickerChoice(row)
-    T.eq(speech, "TEN, TEN_HELP")
+    T.eq(speech, "TEN, HELP_TEN")
 end
 
 function M.test_buildTenetPickerChoice_name_only_when_no_effect()
