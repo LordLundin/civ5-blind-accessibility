@@ -31,6 +31,7 @@ include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
+include("CivVAccess_LeaderDescription")
 include("CivVAccess_Help")
 
 local priorInput = InputHandler
@@ -77,7 +78,18 @@ end
 
 -- Install ---------------------------------------------------------------
 
-BaseMenu.install(ContextPtr, {
+-- LeaderHeadRoot's base-game module keeps the current AI as `local
+-- g_iAIPlayer`, an upvalue we cannot read from our include chunk.
+-- Chain Events.AILeaderMessage (new listener per Context include per
+-- CLAUDE.md's no-install-once rule) and capture iPlayer ourselves so
+-- F2 has a live id to look up at press time.
+local currentAIPlayer = -1
+local function onAILeaderMessage(iPlayer)
+    currentAIPlayer = iPlayer
+end
+Events.AILeaderMessage.Add(onAILeaderMessage)
+
+local handler = BaseMenu.install(ContextPtr, {
     name = "LeaderHeadRoot",
     -- Placeholder; onShow overwrites with the live leader title so each
     -- open speaks "Suleiman the Magnificent" rather than "Diplomacy".
@@ -137,3 +149,7 @@ BaseMenu.install(ContextPtr, {
         }),
     },
 })
+
+LeaderDescription.bindF2(handler, function()
+    return currentAIPlayer
+end)

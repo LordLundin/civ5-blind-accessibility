@@ -29,6 +29,7 @@ include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_BaseMenuNumberEntry")
 include("CivVAccess_TradeLogicAccess")
+include("CivVAccess_LeaderDescription")
 include("CivVAccess_Help")
 
 local priorInput = InputHandler
@@ -64,7 +65,7 @@ local function titleFn()
     return tostring(text)
 end
 
-TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, {
+local handler = TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, {
     name = "DiploTrade",
     kind = "AI",
     displayNameFn = titleFn,
@@ -75,3 +76,11 @@ TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, {
     silentFirstOpen = true,
     fallbackDisplayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_TRADE"),
 })
+
+-- F2 reads the AI leader's portrait description. TradeLogic exposes the
+-- other-side player id as a global `g_iThem` (the TradeLogic chunk runs
+-- in this Context's env before our include), so resolve live at
+-- keypress rather than caching.
+LeaderDescription.bindF2(handler, function()
+    return g_iThem
+end)

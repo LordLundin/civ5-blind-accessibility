@@ -46,6 +46,7 @@ include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
+include("CivVAccess_LeaderDescription")
 include("CivVAccess_Help")
 
 local priorInput = InputHandler
@@ -245,6 +246,17 @@ end
 
 -- Install ---------------------------------------------------------------
 
+-- DiscussionDialog's base-game module keeps the current AI as `local
+-- g_iAIPlayer`, an upvalue we cannot read from our include chunk.
+-- Chain Events.AILeaderMessage (new listener per Context include per
+-- CLAUDE.md's no-install-once rule) and capture iPlayer ourselves so
+-- F2 has a live id to look up at press time.
+local currentAIPlayer = -1
+local function onAILeaderMessage(iPlayer)
+    currentAIPlayer = iPlayer
+end
+Events.AILeaderMessage.Add(onAILeaderMessage)
+
 local buttonFns = {
     OnButton1,
     OnButton2,
@@ -274,7 +286,7 @@ local function makeButtonItem(idx)
     })
 end
 
-BaseMenu.install(ContextPtr, {
+local handler = BaseMenu.install(ContextPtr, {
     name = "DiscussionDialog",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_DIPLOMACY"),
     preamble = composePreamble,
@@ -298,3 +310,7 @@ BaseMenu.install(ContextPtr, {
         makeButtonItem(8),
     },
 })
+
+LeaderDescription.bindF2(handler, function()
+    return currentAIPlayer
+end)
