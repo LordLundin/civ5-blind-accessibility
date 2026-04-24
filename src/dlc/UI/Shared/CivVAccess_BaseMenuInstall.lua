@@ -58,6 +58,14 @@ function BaseMenu.install(ContextPtr, spec)
                 Log.error("BaseMenu '" .. handler.name .. "' prior ShowHide: " .. tostring(err))
             end
         end
+        -- bIsInit=true fires once per Context at boot so the engine can
+        -- prime it; the screen isn't actually open to the user. Pushing
+        -- here would land our handler on top of whatever is genuinely
+        -- visible (LoadScreen at game start) with capturesAllInput=true,
+        -- trapping input until the real screen finally closes.
+        if bIsInit then
+            return
+        end
         -- On show (bIsHide=false): reactivate=false so the handler we're
         -- about to re-push doesn't spuriously announce whatever is beneath
         -- it mid-transition. On hide: reactivate=true so the newly-exposed
