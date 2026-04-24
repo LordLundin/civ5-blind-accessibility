@@ -874,6 +874,37 @@ end
 
 -- Top-level items ---------------------------------------------------------
 
+-- Your / Their Offer items, exported so Contexts whose top-level list is
+-- not "pocket + action buttons" (DiploCurrentDeals: deal picker + drawer
+-- entries) can compose them into their own topItemsFn. useVisibilityControl
+-- gates the item on Us/ThemPanel -- DiploTrade and SimpleDiploTrade have
+-- those controls, DiploCurrentDeals does not.
+function TradeLogicAccess.buildYourOfferItem(useVisibilityControl)
+    local spec = {
+        labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_YOUR_OFFER"),
+        activate = function()
+            pushDrawer("us")
+        end,
+    }
+    if useVisibilityControl then
+        spec.visibilityControlName = "UsPanel"
+    end
+    return BaseMenuItems.Choice(spec)
+end
+
+function TradeLogicAccess.buildTheirOfferItem(useVisibilityControl)
+    local spec = {
+        labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_THEIR_OFFER"),
+        activate = function()
+            pushDrawer("them")
+        end,
+    }
+    if useVisibilityControl then
+        spec.visibilityControlName = "ThemPanel"
+    end
+    return BaseMenuItems.Choice(spec)
+end
+
 local function buildTopItems(descriptor)
     local items = {}
 
@@ -882,23 +913,11 @@ local function buildTopItems(descriptor)
     -- any state path that hides the panel without going through
     -- HUMAN_DEMAND).
     if not isHumanDemand() then
-        items[#items + 1] = BaseMenuItems.Choice({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_YOUR_OFFER"),
-            visibilityControlName = "UsPanel",
-            activate = function()
-                pushDrawer("us")
-            end,
-        })
+        items[#items + 1] = TradeLogicAccess.buildYourOfferItem(true)
     end
 
     -- Their Offer.
-    items[#items + 1] = BaseMenuItems.Choice({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_THEIR_OFFER"),
-        visibilityControlName = "ThemPanel",
-        activate = function()
-            pushDrawer("them")
-        end,
-    })
+    items[#items + 1] = TradeLogicAccess.buildTheirOfferItem(true)
 
     -- AI query slot: in AI Context, include all five possible buttons;
     -- isNavigable filters on IsHidden so only the one currently visible
@@ -973,11 +992,26 @@ end
 
 -- Rebuild + install -------------------------------------------------------
 
+-- Resolve the top-items builder for a descriptor. Contexts whose top level
+-- is not the standard pocket+action list (DiploCurrentDeals: deal picker +
+-- drawer entries) supply descriptor.topItemsFn to replace the default.
+local function effectiveTopItems(descriptor)
+    if type(descriptor.topItemsFn) == "function" then
+        local ok, result = pcall(descriptor.topItemsFn, descriptor)
+        if not ok then
+            Log.error("TradeLogicAccess topItemsFn failed: " .. tostring(result))
+            return {}
+        end
+        return result or {}
+    end
+    return buildTopItems(descriptor)
+end
+
 function TradeLogicAccess.rebuild()
     if _handler == nil or _descriptor == nil then
         return
     end
-    _handler.setItems(buildTopItems(_descriptor))
+    _handler.setItems(effectiveTopItems(_descriptor))
     rebuildDrawer()
     _handler.refresh()
 end
@@ -1001,7 +1035,7 @@ function TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, descrip
                     h.displayName = tostring(name)
                 end
             end
-            h.setItems(buildTopItems(descriptor))
+            h.setItems(effectiveTopItems(descriptor))
         end,
         items = {},
     })
@@ -1022,26 +1056,32 @@ function TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, descrip
     -- CLAUDE.md's no-install-once rule. Dead listeners from a prior game
     -- throw on first access under the engine's per-listener pcall; the
     -- newest live listener still fires.
-    local function rebuildIfLive()
-        TradeLogicAccess.rebuild()
-    end
-    if descriptor.kind == "AI" and Events.AILeaderMessage ~= nil then
-        Events.AILeaderMessage.Add(rebuildIfLive)
-    end
-    if LuaEvents.OpenAILeaderDiploTrade ~= nil then
-        LuaEvents.OpenAILeaderDiploTrade.Add(rebuildIfLive)
-    end
-    if LuaEvents.OpenSimpleDiploTrade ~= nil then
-        LuaEvents.OpenSimpleDiploTrade.Add(rebuildIfLive)
-    end
-    if Events.ClearDiplomacyTradeTable ~= nil then
-        Events.ClearDiplomacyTradeTable.Add(rebuildIfLive)
-    end
-    if Events.OpenPlayerDealScreenEvent ~= nil then
-        Events.OpenPlayerDealScreenEvent.Add(rebuildIfLive)
-    end
-    if Events.GameplaySetActivePlayer ~= nil then
-        Events.GameplaySetActivePlayer.Add(rebuildIfLive)
+    --
+    -- Skipped for DiploCurrentDeals (descriptor.skipStandardListeners):
+    -- none of these events apply to a deal-review session. Rebuild there
+    -- fires only from the deal-picker's own onActivate.
+    if not descriptor.skipStandardListeners then
+        local function rebuildIfLive()
+            TradeLogicAccess.rebuild()
+        end
+        if descriptor.kind == "AI" and Events.AILeaderMessage ~= nil then
+            Events.AILeaderMessage.Add(rebuildIfLive)
+        end
+        if LuaEvents.OpenAILeaderDiploTrade ~= nil then
+            LuaEvents.OpenAILeaderDiploTrade.Add(rebuildIfLive)
+        end
+        if LuaEvents.OpenSimpleDiploTrade ~= nil then
+            LuaEvents.OpenSimpleDiploTrade.Add(rebuildIfLive)
+        end
+        if Events.ClearDiplomacyTradeTable ~= nil then
+            Events.ClearDiplomacyTradeTable.Add(rebuildIfLive)
+        end
+        if Events.OpenPlayerDealScreenEvent ~= nil then
+            Events.OpenPlayerDealScreenEvent.Add(rebuildIfLive)
+        end
+        if Events.GameplaySetActivePlayer ~= nil then
+            Events.GameplaySetActivePlayer.Add(rebuildIfLive)
+        end
     end
 
     return handler
