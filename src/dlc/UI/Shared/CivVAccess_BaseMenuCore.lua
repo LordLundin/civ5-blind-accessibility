@@ -596,6 +596,10 @@ function BaseMenu.create(spec)
         "spec.silentFirstOpen must be a boolean if provided"
     )
     check(
+        spec.silentDisplayName == nil or type(spec.silentDisplayName) == "boolean",
+        "spec.silentDisplayName must be a boolean if provided"
+    )
+    check(
         spec.initialTabIndex == nil or (type(spec.initialTabIndex) == "number" and spec.initialTabIndex >= 1),
         "spec.initialTabIndex must be a positive number if provided"
     )
@@ -630,6 +634,14 @@ function BaseMenu.create(spec)
         -- through Tolk would double-narrate. Preamble stays reachable via
         -- F1 / readHeader.
         _silentFirstOpen = spec.silentFirstOpen == true,
+        -- When true, the first-open announce skips the displayName line;
+        -- preamble / tab / first-item speak as usual via speakQueued, and
+        -- F1 refresh still re-reads displayName on demand. Any in-flight
+        -- speech at open time tails into the first queued item; the next
+        -- user nav (arrow keys) fires speakInterrupt which flushes it.
+        -- For modal pickers whose first item is self-describing and a
+        -- menu-name header would be redundant noise before it.
+        _silentDisplayName = spec.silentDisplayName == true,
         -- Tab-less Alt+Left/Right hooks. Fall-through when no active tab hook
         -- claims the chord. Used by AdvisorInfoPopup for concept-history
         -- back/forward on a screen with no tabs.
@@ -880,7 +892,9 @@ function BaseMenu.create(spec)
                 self._indices[1] = startIndex
             end
             self._initialized = true
-            SpeechPipeline.speakInterrupt(self.displayName)
+            if not self._silentDisplayName then
+                SpeechPipeline.speakInterrupt(self.displayName)
+            end
             -- silentFirstOpen: defer preamble / tab / first-item speech to
             -- F1 (readHeader). State setup above still ran so arrow-key
             -- nav starts on the first navigable item.

@@ -93,9 +93,12 @@ local function buildEntries(plot)
     local entries = {}
     if plot:IsCity() then
         local city = plot:GetPlotCity()
+        -- Name-first for the picker label. CitySpeech.identity leads
+        -- with status tokens / population, which the 1 key wants but
+        -- a picker row needs the distinguishing word (the name) first.
         entries[#entries + 1] = {
             kind = "city",
-            label = CitySpeech.identity(city),
+            label = city:GetName() .. ", " .. CitySpeech.identity(city),
             act = function()
                 activateCity(plot)
             end,
@@ -154,6 +157,10 @@ function CursorActivate.run(plot)
         capturesAllInput = true,
         escapePops = true,
         escapeAnnounce = Text.key("TXT_KEY_CIVVACCESS_CANCELED"),
+        -- The first item's label (city name / unit info) already stands
+        -- on its own; a "Activate tile" header before it is redundant
+        -- noise. F1 still re-reads displayName on demand.
+        silentDisplayName = true,
     })
     HandlerStack.push(handler)
 end

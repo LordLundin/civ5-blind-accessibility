@@ -52,7 +52,19 @@ function M.test_city_only_produces_single_city_entry()
     local entries = CursorActivate._buildEntries(p)
     T.eq(#entries, 1)
     T.eq(entries[1].kind, "city")
-    T.eq(entries[1].label, "city:Rome")
+    T.eq(entries[1].label, "Rome, city:Rome")
+end
+
+function M.test_city_label_prefixes_name()
+    -- Picker rows disambiguate by leading with the city name. Without
+    -- this the user hears "Can attack, capital, 5 population..." and
+    -- has to listen to the whole string before the name (and sometimes
+    -- never, if the name isn't repeated).
+    setup()
+    local city = T.fakeCity({ name = "Berlin" })
+    local p = T.fakePlot({ isCity = true, city = city })
+    local entries = CursorActivate._buildEntries(p)
+    T.truthy(entries[1].label:sub(1, #"Berlin, ") == "Berlin, ", "label must start with name: " .. entries[1].label)
 end
 
 function M.test_own_military_only()
@@ -88,7 +100,7 @@ function M.test_city_then_military_then_civilian_ordering()
     local entries = CursorActivate._buildEntries(p)
     T.eq(#entries, 3)
     T.eq(entries[1].kind, "city")
-    T.eq(entries[1].label, "city:Rome")
+    T.eq(entries[1].label, "Rome, city:Rome")
     T.eq(entries[2].kind, "unit")
     T.eq(entries[2].label, "unit:Warrior")
     T.eq(entries[3].kind, "unit")
@@ -163,7 +175,7 @@ function M.test_foreign_city_with_own_garrison_lists_both()
     local entries = CursorActivate._buildEntries(p)
     T.eq(#entries, 2)
     T.eq(entries[1].kind, "city")
-    T.eq(entries[1].label, "city:Berlin")
+    T.eq(entries[1].label, "Berlin, city:Berlin")
     T.eq(entries[2].kind, "unit")
     T.eq(entries[2].label, "unit:Warrior")
 end

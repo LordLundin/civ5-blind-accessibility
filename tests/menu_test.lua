@@ -1351,6 +1351,53 @@ function M.test_silent_first_open_rejects_non_boolean()
     T.truthy(tostring(err):find("silentFirstOpen"), "error mentions the field")
 end
 
+-- silentDisplayName: first-open skips displayName but still announces
+-- preamble / first-item. Used by the hex-cursor Enter picker whose first
+-- item already carries the distinguishing name.
+function M.test_silent_display_name_skips_header()
+    setup()
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        silentDisplayName = true,
+    })
+    HandlerStack.push(h)
+    T.eq(#speaks, 1, "only first-item spoken; displayName skipped")
+    T.truthy(speaks[1].text ~= "Screen", "displayName not in speak stream: " .. tostring(speaks[1].text))
+end
+
+function M.test_silent_display_name_still_speaks_preamble_and_first_item()
+    setup()
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "body text",
+        items = buttonSpec({ "A" }),
+        silentDisplayName = true,
+    })
+    HandlerStack.push(h)
+    T.eq(#speaks, 2, "preamble and first-item both speak; displayName skipped")
+    T.eq(speaks[1].text, "body text")
+end
+
+function M.test_silent_display_name_rejects_non_boolean()
+    setup()
+    setCtrls({ "A" })
+    local ok, err = pcall(function()
+        BaseMenu.create({
+            name = "T",
+            displayName = "Screen",
+            items = buttonSpec({ "A" }),
+            silentDisplayName = "yes",
+        })
+    end)
+    T.truthy(not ok, "non-boolean rejected")
+    T.truthy(tostring(err):find("silentDisplayName"), "error mentions the field")
+end
+
 function M.test_refresh_respeaks_when_function_preamble_changes()
     setup()
     setCtrls({ "A" })
