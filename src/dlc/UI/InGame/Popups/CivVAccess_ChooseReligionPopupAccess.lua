@@ -138,47 +138,19 @@ local function slotState(slot, pPlayer)
     return "editable"
 end
 
-local function beliefShortAt(slotIndex)
-    local id = g_Beliefs and g_Beliefs[slotIndex]
-    if id == nil then
-        return nil
-    end
-    local b = GameInfo.Beliefs[id]
-    if b == nil then
-        return nil
-    end
-    return Locale.Lookup(b.ShortDescription)
-end
-
-local function beliefDescAt(slotIndex)
-    local id = g_Beliefs and g_Beliefs[slotIndex]
-    if id == nil then
-        return nil
-    end
-    local b = GameInfo.Beliefs[id]
-    if b == nil then
-        return nil
-    end
-    return Locale.Lookup(b.Description)
-end
-
 local function slotLabel(slot)
     local pPlayer = Players[Game.GetActivePlayer()]
     local slotName = Text.key(slot.nameKey)
     local state = slotState(slot, pPlayer)
-    local beliefName = beliefShortAt(slot.slotIndex)
     if state == "later" then
         return Text.format("TXT_KEY_CIVVACCESS_RELIGION_SLOT_LATER", slotName)
     end
     if state == "byzantines_only" then
         return Text.format("TXT_KEY_CIVVACCESS_RELIGION_SLOT_BYZANTINES_ONLY", slotName)
     end
-    if state == "committed" and beliefName ~= nil then
-        return Text.format("TXT_KEY_CIVVACCESS_RELIGION_SLOT_COMMITTED", slotName, beliefName)
-    end
-    -- editable (or committed-but-read-failed, treated as unchosen so we
-    -- don't fabricate a belief name).
-    if beliefName ~= nil then
+    local beliefID = g_Beliefs[slot.slotIndex]
+    if beliefID ~= nil then
+        local beliefName = Locale.Lookup(GameInfo.Beliefs[beliefID].ShortDescription)
         return Text.format("TXT_KEY_CIVVACCESS_RELIGION_SLOT_CHOSEN", slotName, beliefName)
     end
     return Text.format("TXT_KEY_CIVVACCESS_RELIGION_SLOT_UNCHOSEN", slotName)
@@ -189,29 +161,20 @@ end
 local function buildBeliefChoices(slot)
     local dedup = {}
     for _, idx in ipairs(slot.dedup) do
-        local bid = g_Beliefs and g_Beliefs[idx]
+        local bid = g_Beliefs[idx]
         if bid ~= nil then
             dedup[bid] = true
         end
     end
-    local ok, available = pcall(slot.picker)
-    if not ok then
-        Log.error(
-            "ChooseReligionPopupAccess picker for slot " .. tostring(slot.nameKey) .. " failed: " .. tostring(available)
-        )
-        available = {}
-    end
     local rows = {}
-    for _, id in ipairs(available or {}) do
+    for _, id in ipairs(slot.picker()) do
         if not dedup[id] then
             local b = GameInfo.Beliefs[id]
-            if b ~= nil then
-                rows[#rows + 1] = {
-                    id = id,
-                    name = Locale.Lookup(b.ShortDescription),
-                    description = Locale.Lookup(b.Description),
-                }
-            end
+            rows[#rows + 1] = {
+                id = id,
+                name = Locale.Lookup(b.ShortDescription),
+                description = Locale.Lookup(b.Description),
+            }
         end
     end
     table.sort(rows, function(a, b)
@@ -228,9 +191,7 @@ local function buildBeliefChoices(slot)
             activate = function()
                 g_Beliefs[slot.slotIndex] = beliefID
                 CheckifCanCommit()
-                if mainHandler ~= nil then
-                    mainHandler._goBackLevel()
-                end
+                mainHandler._goBackLevel()
             end,
         })
     end
@@ -248,7 +209,11 @@ local function buildSlotItem(slot)
         -- label segments, so slots with belief name inlined in the label
         -- don't re-announce the name twice.
         tooltipFn = function()
-            return beliefDescAt(slot.slotIndex)
+            local beliefID = g_Beliefs[slot.slotIndex]
+            if beliefID == nil then
+                return nil
+            end
+            return Locale.Lookup(GameInfo.Beliefs[beliefID].Description)
         end,
         itemsFn = function()
             local pPlayer = Players[Game.GetActivePlayer()]
@@ -278,7 +243,7 @@ local function buildReligionChoices()
             if pActiveTeam:IsHasMet(pPlayer:GetTeam()) then
                 taken[eReligion] = pPlayer:GetName()
             else
-                taken[eReligion] = Locale.ConvertTextKey("TXT_KEY_CHOOSE_RELIGION_UNMET_PLAYER")
+                taken[eReligion] = Text.key("TXT_KEY_CHOOSE_RELIGION_UNMET_PLAYER")
             end
         end
     end
@@ -309,9 +274,7 @@ local function buildReligionChoices()
                 labelText = religionName,
                 activate = function()
                     SelectReligion(religionID, religionDescKey, iconAtlas, portraitIndex)
-                    if mainHandler ~= nil then
-                        mainHandler._goBackLevel()
-                    end
+                    mainHandler._goBackLevel()
                 end,
             })
         else
@@ -319,9 +282,8 @@ local function buildReligionChoices()
             -- can orient (sighted players see the list greyed out with the
             -- same info). isActivatable flips to false so arrow-Enter
             -- re-announces the label with a "disabled" suffix.
-            local labelText = Locale.ConvertTextKey("TXT_KEY_CHOOSE_RELIGION_ALREADY_FOUNDED", religionDescKey, takenBy)
             local choice = BaseMenuItems.Choice({
-                labelText = labelText,
+                labelText = Text.format("TXT_KEY_CHOOSE_RELIGION_ALREADY_FOUNDED", religionDescKey, takenBy),
                 activate = function() end,
             })
             choice.isActivatable = function()
@@ -356,10 +318,10 @@ end
 
 -- Name row ------------------------------------------------------------------
 
+-- Name row is gated on ReligionPanel visibility, which is only set once
+-- SelectReligion has populated g_CurrentReligionName. The labelFn never
+-- runs before the name is set.
 local function nameRowLabel()
-    if g_CurrentReligionName == nil or g_CurrentReligionName == "" then
-        return Text.key("TXT_KEY_CIVVACCESS_RELIGION_NAME_ROW_UNSET")
-    end
     return Text.format("TXT_KEY_CIVVACCESS_RELIGION_NAME_ROW", Locale.Lookup(g_CurrentReligionName))
 end
 
@@ -371,16 +333,14 @@ local function pushNameEditSub()
         -- Base hides ChangeNamePopup on success, leaves it visible with
         -- ChangeNameError shown on empty-name rejection. If the popup is
         -- still up, speak the error and stay in the sub; otherwise pop.
-        if Controls.ChangeNamePopup == nil or Controls.ChangeNamePopup:IsHidden() then
+        if Controls.ChangeNamePopup:IsHidden() then
             HandlerStack.removeByName("ChangeReligionName", true)
             return
         end
         local err = Controls.ChangeNameError
-        if err ~= nil and not err:IsHidden() then
-            local ok, t = pcall(function()
-                return err:GetText()
-            end)
-            if ok and t ~= nil and t ~= "" then
+        if not err:IsHidden() then
+            local t = err:GetText()
+            if t ~= nil and t ~= "" then
                 SpeechPipeline.speakInterrupt(tostring(t))
             end
         end
@@ -422,9 +382,7 @@ local function pushNameEditSub()
         },
     })
     sub.onDeactivate = function()
-        if Controls.ChangeNamePopup ~= nil then
-            Controls.ChangeNamePopup:SetHide(true)
-        end
+        Controls.ChangeNamePopup:SetHide(true)
     end
     HandlerStack.push(sub)
 end
@@ -433,12 +391,7 @@ local function buildNameRowItem(isFounding)
     if isFounding then
         return BaseMenuItems.Choice({
             labelFn = nameRowLabel,
-            activate = function()
-                if g_CurrentReligionName == nil or g_CurrentReligionName == "" then
-                    return
-                end
-                pushNameEditSub()
-            end,
+            activate = pushNameEditSub,
             visibilityControlName = "ReligionPanel",
         })
     end
@@ -452,18 +405,7 @@ end
 -- Confirm -------------------------------------------------------------------
 
 local function confirmLabel(c)
-    if c ~= nil then
-        local ok, t = pcall(function()
-            return c:GetText()
-        end)
-        if ok and t ~= nil and t ~= "" then
-            return tostring(t)
-        end
-    end
-    if g_bFoundingReligion then
-        return Locale.ConvertTextKey("TXT_KEY_CHOOSE_RELIGION_OK_BUTTON")
-    end
-    return Locale.ConvertTextKey("TXT_KEY_CHOOSE_RELIGION_OK_BUTTON_ENHANCE")
+    return tostring(c:GetText())
 end
 
 local function buildConfirmItem()
@@ -504,9 +446,9 @@ end
 
 local function preambleText()
     if g_bFoundingReligion then
-        return Locale.ConvertTextKey("TXT_KEY_CHOOSE_RELIGION_TITLE")
+        return Text.key("TXT_KEY_CHOOSE_RELIGION_TITLE")
     end
-    return Locale.ConvertTextKey("TXT_KEY_CHOOSE_RELIGION_TITLE_ENHANCE")
+    return Text.key("TXT_KEY_CHOOSE_RELIGION_TITLE_ENHANCE")
 end
 
 mainHandler = BaseMenu.install(ContextPtr, {
@@ -520,7 +462,7 @@ mainHandler = BaseMenu.install(ContextPtr, {
 })
 
 Events.SerialEventGameMessagePopup.Add(function(popupInfo)
-    if popupInfo == nil or popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_FOUND_RELIGION then
+    if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_FOUND_RELIGION then
         return
     end
     -- DisplayName tracks phase; install passed the founding key as a
@@ -531,10 +473,5 @@ Events.SerialEventGameMessagePopup.Add(function(popupInfo)
     else
         mainHandler.displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_ENHANCE_RELIGION")
     end
-    local ok, items = pcall(buildItems, popupInfo)
-    if not ok then
-        Log.error("ChooseReligionPopupAccess buildItems failed: " .. tostring(items))
-        return
-    end
-    mainHandler.setItems(items)
+    mainHandler.setItems(buildItems(popupInfo))
 end)
