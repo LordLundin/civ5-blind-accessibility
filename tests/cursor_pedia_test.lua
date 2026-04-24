@@ -331,16 +331,22 @@ function M.test_lake_adds_entry()
 end
 
 function M.test_full_tile_composition()
-    -- End-to-end: a revealed plot with a unit, an improvement, a resource,
-    -- a feature, a terrain, and a route produces all six rows in the
-    -- documented order (units first, then wonders, improvement, resource,
-    -- feature, terrain, route).
+    -- End-to-end order assertion across every branch buildEntries can
+    -- populate on a single land plot: units, improvement, resource,
+    -- regular feature, river (fake feature), terrain, hills (plot type),
+    -- route. Covers the second-commit additions (river + hills) in line
+    -- with the older ones so a future reordering of the call chain gets
+    -- caught here rather than by the individual single-entry tests.
+    -- Lake / mountain / city-wonders are mutually exclusive with hills
+    -- / river / regular-feature on a real plot and have their own tests.
     setup()
     GameInfo.Units[1] = { Description = "TXT_KEY_UNIT_WARRIOR" }
     GameInfo.Improvements[3] = { Description = "TXT_KEY_IMPROVEMENT_FARM" }
     GameInfo.Resources[4] = { Description = "TXT_KEY_RESOURCE_WHEAT" }
     GameInfo.Features[2] = { Description = "TXT_KEY_FEATURE_FOREST" }
+    GameInfo.FakeFeatures.FEATURE_RIVER = { Description = "TXT_KEY_CIV5_FEATURES_RIVER_TITLE" }
     GameInfo.Terrains[0] = { Description = "TXT_KEY_TERRAIN_PLAINS" }
+    GameInfo.Terrains.TERRAIN_HILL = { Description = "TXT_KEY_TERRAIN_HILL" }
     GameInfo.Routes[1] = { Description = "TXT_KEY_ROUTE_ROAD" }
     local warrior = T.fakeUnit({ unitType = 1 })
     local p = T.fakePlot({
@@ -349,6 +355,8 @@ function M.test_full_tile_composition()
         resource = 4,
         improvement = 3,
         route = 1,
+        hills = true,
+        river = true,
         units = { warrior },
     })
     eqList(pediaNames(CursorPedia._buildEntries(p)), {
@@ -356,7 +364,9 @@ function M.test_full_tile_composition()
         "TXT_KEY_IMPROVEMENT_FARM",
         "TXT_KEY_RESOURCE_WHEAT",
         "TXT_KEY_FEATURE_FOREST",
+        "TXT_KEY_CIV5_FEATURES_RIVER_TITLE",
         "TXT_KEY_TERRAIN_PLAINS",
+        "TXT_KEY_TERRAIN_HILL",
         "TXT_KEY_ROUTE_ROAD",
     })
 end

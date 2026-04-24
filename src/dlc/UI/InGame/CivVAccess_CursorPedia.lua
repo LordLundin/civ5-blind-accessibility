@@ -99,17 +99,25 @@ end
 
 -- Rivers and lakes are FakeFeatures in the engine (not returned by
 -- GetFeatureType), but they have regular pedia articles reachable via
--- the FakeFeatures Description TXT_KEYs.
+-- the FakeFeatures Description TXT_KEYs. String-key access on
+-- GameInfo.FakeFeatures is unverified in base code (which only accesses
+-- by numeric ID), so a nil result logs rather than silently dropping
+-- the entry -- per the no-silent-failures rule, an invisible miss in
+-- the accessibility pipeline is the worst outcome for the user.
 local function collectRiverLake(plot, entries, seen)
     if plot:IsRiver() then
         local info = GameInfo.FakeFeatures["FEATURE_RIVER"]
-        if info ~= nil then
+        if info == nil then
+            Log.warn("CursorPedia: GameInfo.FakeFeatures['FEATURE_RIVER'] returned nil; river entry skipped")
+        else
             addEntry(entries, seen, Text.key(info.Description))
         end
     end
     if plot:IsLake() then
         local info = GameInfo.FakeFeatures["FEATURE_LAKE"]
-        if info ~= nil then
+        if info == nil then
+            Log.warn("CursorPedia: GameInfo.FakeFeatures['FEATURE_LAKE'] returned nil; lake entry skipped")
+        else
             addEntry(entries, seen, Text.key(info.Description))
         end
     end
