@@ -608,14 +608,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_ENTER"] = "Work or
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_BACK"] = "Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_BACK"] = "Back to city hub"
 -- Ranged strike sub-handler (§3.5). Hub item closes the city screen, enters
--- INTERFACEMODE_CITY_RANGE_ATTACK, and pushes a cursor-driven target picker
--- scoped to plots where CanRangeStrikeAt is true. Exit (commit, cancel, or
--- external pop) returns to the world map -- the city screen does not re-open.
+-- INTERFACEMODE_CITY_RANGE_ATTACK, and pushes a target picker. Cursor moves
+-- freely via Baseline's QAZEDC; Space speaks a strike-specific preview
+-- (target identity if in range, "cannot strike" otherwise); Enter commits
+-- with a "fired" confirmation. Exit (commit, cancel, or external pop)
+-- returns to the world map -- the city screen does not re-open.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE"] = "Ranged strike"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_MODE"] = "ranged strike"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE"] = "cannot strike"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_MOVE"] = "Q A Z E D C"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_MOVE"] = "Cycle valid targets in range"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_FIRED"] = "fired"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_PREVIEW"] = "Space"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_PREVIEW"] = "Speak target info"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_COMMIT"] = "Enter"

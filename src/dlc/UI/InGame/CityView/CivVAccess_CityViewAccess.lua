@@ -1670,13 +1670,20 @@ local function pushRangedStrike()
                 Log.warn("CityRangeStrike: city vanished between hub activate and deferred push")
                 return
             end
-            -- Order mirrors CityBannerManager.lua:1017-1021 so any listener on
-            -- the mode change sees the engine in the same state vanilla's banner
-            -- click produces.
-            UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK)
+            -- Select the city BEFORE setting the interface mode. Vanilla's
+            -- CityBannerManager order is SetInterfaceMode-then-SelectCity, but
+            -- vanilla can rely on the banner click having already selected the
+            -- city; we can't, because Events.SerialEventExitCityScreen above
+            -- ran the engine's CityScreenClosed which calls UI.ClearSelected-
+            -- Cities. Setting CITY_RANGE_ATTACK first triggers Bombardment.lua's
+            -- BeginRangedAttack with no selected city, which reverts straight
+            -- back to SELECTION. The redundant Events.InitCityRangeStrike that
+            -- vanilla fires (its only listener does the same SelectCity +
+            -- SetInterfaceMode pair) is dropped: with the right order here,
+            -- replaying it would just re-execute no-ops.
             UI.ClearSelectionList()
             UI.SelectCity(cityRef)
-            Events.InitCityRangeStrike(ownerID, cityID)
+            UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK)
             local bridge = civvaccess_shared.modules or {}
             local mode = bridge.CityRangeStrikeMode
             if mode == nil or type(mode.enter) ~= "function" then
