@@ -410,17 +410,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED"] = "Dismissed
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY"] = "No notifications."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turn {2_Turn}"
 -- MilitaryOverview (BUTTONPOPUP_MILITARY_OVERVIEW, F3). Level 0 reads GP
--- progress + supply block as Text widgets; drill-ins hold the unit rows. The
+-- progress + supply line as Text widgets; drill-ins hold the unit rows. The
 -- GP line combines the engine's own label (TXT_KEY_CITYVIEW_GG_PROGRGRESS /
 -- TXT_KEY_MO_GA_PROGRESS) with the numerator/denominator the sighted tooltip
--- shows first. Supply lines pair an engine label with the number. Sort
--- selector verbalizes current mode; menu label is independent so the user
--- hears "sort by: name" at the selector and just "sort by" as the title of
--- the picker that opens. Row strength/ranged use bare nouns (not "melee" /
--- range-distance forms that UnitSpeech uses) because the F3 row echoes the
--- sighted column whose header is just an icon.
+-- shows first. Supply collapses the sighted screen's six-to-seven-row stack
+-- (base, cities, population, cap, use, remaining OR deficit+penalty) into a
+-- single line; current state leads ("in use", "remaining" or "over"), then
+-- the three-component breakdown the sighted player gets above the divider.
+-- Sort selector verbalizes current mode; menu label is independent so the
+-- user hears "sort by: name" at the selector and just "sort by" as the
+-- title of the picker that opens. Row strength/ranged use bare nouns (not
+-- "melee" / range-distance forms that UnitSpeech uses) because the F3 row
+-- echoes the sighted column whose header is just an icon.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} of {3_Max} xp"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_LINE"] = "{1_Label}: {2_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_NORMAL"] = "Supply: {1_Use} of {2_Cap} in use, {3_Remaining} remaining. Base {4_Base}, cities {5_Cities}, population {6_Pop}."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_DEFICIT"] = "Supply: {1_Use} of {2_Cap} in use, {3_Deficit} over, {4_Penalty} production penalty. Base {5_Base}, cities {6_Cities}, population {7_Pop}."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_LABEL"] = "Sort by: {1_Mode}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MENU"] = "Sort by"
 -- Sort-mode nouns. Engine's TXT_KEY_MO_SORT_* strings are the column-header

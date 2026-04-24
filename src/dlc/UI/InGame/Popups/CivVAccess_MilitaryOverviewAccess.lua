@@ -1,7 +1,7 @@
 -- MilitaryOverview accessibility (F3). The popup lays out one screen:
 --   * Great General and Great Admiral progress meters (top right)
 --   * Supply block (left column: base supply, cities, population, cap, use,
---     remaining OR deficit+penalty when over-cap)
+--     remaining OR deficit+penalty when over-cap), collapsed to one line
 --   * Unit list split into military (combat type != -1 or nukes) and civilian
 --     stacks (right column, scrollable)
 --
@@ -246,11 +246,27 @@ local function gpProgressWidget(labelKey, currentFn, thresholdFn)
     })
 end
 
-local function supplyWidget(labelKey, valueFn)
+local function supplyWidget()
     return BaseMenuItems.Text({
         labelFn = function()
             local p = Players[Game.GetActivePlayer()]
-            return Text.format("TXT_KEY_CIVVACCESS_MO_SUPPLY_LINE", Text.key(labelKey), tostring(valueFn(p)))
+            local base = p:GetNumUnitsSuppliedByHandicap()
+            local cities = p:GetNumUnitsSuppliedByCities()
+            local pop = p:GetNumUnitsSuppliedByPopulation()
+            local cap = p:GetNumUnitsSupplied()
+            local use = p:GetNumUnits()
+            local deficit = p:GetNumUnitsOutOfSupply()
+            if deficit ~= 0 then
+                local penalty = p:GetUnitProductionMaintenanceMod() .. "%"
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_MO_SUPPLY_DEFICIT",
+                    use, cap, deficit, penalty, base, cities, pop
+                )
+            end
+            return Text.format(
+                "TXT_KEY_CIVVACCESS_MO_SUPPLY_NORMAL",
+                use, cap, cap - use, base, cities, pop
+            )
         end,
     })
 end
@@ -300,24 +316,8 @@ function buildTopItems(handler)
             function(p) return p:GetNavalCombatExperience() end,
             function(p) return p:GreatAdmiralThreshold() end
         ),
-        supplyWidget("TXT_KEY_HANDICAP_SUPPLY",   function(p) return p:GetNumUnitsSuppliedByHandicap() end),
-        supplyWidget("TXT_KEY_CITIES_SUPPLY",     function(p) return p:GetNumUnitsSuppliedByCities() end),
-        supplyWidget("TXT_KEY_POPULATION_SUPPLY", function(p) return p:GetNumUnitsSuppliedByPopulation() end),
-        supplyWidget("TXT_KEY_SUPPLY_CAP",        function(p) return p:GetNumUnitsSupplied() end),
-        supplyWidget("TXT_KEY_SUPPLY_USE",        function(p) return p:GetNumUnits() end),
+        supplyWidget(),
     }
-    if Players[Game.GetActivePlayer()]:GetNumUnitsOutOfSupply() ~= 0 then
-        items[#items + 1] = supplyWidget("TXT_KEY_SUPPLY_DEFICIT", function(p)
-            return p:GetNumUnitsOutOfSupply()
-        end)
-        items[#items + 1] = supplyWidget("TXT_KEY_SUPPLY_DEFICIT_PENALTY", function(p)
-            return p:GetUnitProductionMaintenanceMod() .. "%"
-        end)
-    else
-        items[#items + 1] = supplyWidget("TXT_KEY_SUPPLY_REMAINING", function(p)
-            return p:GetNumUnitsSupplied() - p:GetNumUnits()
-        end)
-    end
     m_sortIndex = #items + 1
     items[#items + 1] = sortSelector(handler)
     if #military > 0 then
