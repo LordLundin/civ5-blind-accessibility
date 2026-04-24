@@ -186,7 +186,8 @@ local function isAvailable(unit, iAction, action)
     if not Game.CanHandleAction(iAction) then
         return false
     end
-    if unit:MovesLeft() == 0
+    if
+        unit:MovesLeft() == 0
         and action.Type ~= "COMMAND_CANCEL"
         and action.Type ~= "COMMAND_STOP_AUTOMATION"
         and not isPromotionAction(action)
