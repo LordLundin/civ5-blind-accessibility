@@ -117,6 +117,16 @@ local function topItemsFn(_descriptor)
         })
     end
 
+    -- Early game and post-clean-slate: no current or historic deals. Your
+    -- Offer / Their Offer stay non-navigable (gated on hasLoadedDeal), so
+    -- without an explicit entry the user lands on a menu with nothing
+    -- reachable. Announce the empty state as the first navigable item.
+    if nCurrent == 0 and nHistoric == 0 then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_DIPLO_NO_DEALS"),
+        })
+    end
+
     -- buildDealItems left the scratch deal holding the last iterated deal.
     -- Clear it so Your / Their Offer report not-navigable on initial show
     -- (and after the user backs out of a review, if we ever rebuild --
@@ -151,5 +161,11 @@ TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, {
     end,
     onShiftTab = function()
         civvaccess_shared.DiploOverview.showRelations()
+    end,
+    -- See CivVAccess_DiploRelationshipsAccess for the sub-LuaContext
+    -- input-bubbling rationale.
+    onEscape = function()
+        civvaccess_shared.DiploOverview.close()
+        return true
     end,
 })

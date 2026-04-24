@@ -311,6 +311,11 @@ local function buildItems()
             items = minors,
         })
     end
+    if #groups == 0 then
+        groups[1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_DIPLO_NO_CIVS_MET"),
+        })
+    end
     return groups
 end
 
@@ -327,6 +332,15 @@ BaseMenu.install(ContextPtr, {
     end,
     onShiftTab = function()
         civvaccess_shared.DiploOverview.showGlobal()
+    end,
+    -- Base DiploOverview's InputHandler maps Esc/Enter to OnClose, but it's
+    -- installed on the DiploOverview Context. Sub-LuaContext InputHandlers
+    -- (our BaseMenu wrappers) consume keys first; Civ V doesn't bubble an
+    -- unclaimed key back to the parent Context, so the user can never
+    -- close the popup from a sub-tab without the explicit bridge.
+    onEscape = function()
+        civvaccess_shared.DiploOverview.close()
+        return true
     end,
     items = {},
 })

@@ -869,6 +869,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "policies: {1_Lis
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "wonders: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_MAJORS_GROUP"] = "Major civilizations"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_MINORS_GROUP"] = "City-states"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NO_CIVS_MET"] = "No civilizations met."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NO_DEALS"] = "No deals."
 -- Leader descriptions. Spoken on F2 over LeaderHeadRoot /
 -- DiscussionDialog / DiploTrade, keyed by Leaders.Type (Players[i]:GetLeaderType()
 -- -> GameInfo.Leaders[lt].Type). Sourced from docs/leader-descriptions.md.

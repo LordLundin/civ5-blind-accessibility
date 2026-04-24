@@ -202,6 +202,11 @@ local function buildItems()
             items[#items + 1] = majorCivItem(iUs, pUs, pUsTeam, i)
         end
     end
+    if #items == 0 then
+        items[1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_DIPLO_NO_CIVS_MET"),
+        })
+    end
     return items
 end
 
@@ -218,6 +223,12 @@ BaseMenu.install(ContextPtr, {
     end,
     onShiftTab = function()
         civvaccess_shared.DiploOverview.showDeals()
+    end,
+    -- See CivVAccess_DiploRelationshipsAccess for the sub-LuaContext
+    -- input-bubbling rationale.
+    onEscape = function()
+        civvaccess_shared.DiploOverview.close()
+        return true
     end,
     items = {},
 })

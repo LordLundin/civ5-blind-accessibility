@@ -14,3 +14,4 @@ civvaccess_shared.DiploOverview = civvaccess_shared.DiploOverview or {}
 civvaccess_shared.DiploOverview.showRelations = OnRelations
 civvaccess_shared.DiploOverview.showDeals = OnDeals
 civvaccess_shared.DiploOverview.showGlobal = OnGlobal
+civvaccess_shared.DiploOverview.close = OnClose

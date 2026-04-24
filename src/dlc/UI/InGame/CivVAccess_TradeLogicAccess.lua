@@ -1028,6 +1028,7 @@ function TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, descrip
         priorShowHide = priorShowHide,
         onTab = descriptor.onTab,
         onShiftTab = descriptor.onShiftTab,
+        onEscape = descriptor.onEscape,
         onShow = function(h)
             _handler = h
             _drawerHandler = nil
