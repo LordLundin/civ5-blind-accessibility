@@ -121,6 +121,17 @@ local function setup()
             return { bindings = {}, helpEntries = {} }
         end,
     }
+    -- BaselineHandler surfaces the scanner keys from ScannerHandler's
+    -- module-level HELP_ENTRIES (its own handler.helpEntries is {} so the
+    -- four-section map-mode help list can place scanner keys between the
+    -- surveyor and function-row sections). The test doesn't exercise the
+    -- entries themselves, so a single sentinel entry is enough to keep
+    -- the count assertions simple.
+    ScannerHandler = {
+        HELP_ENTRIES = {
+            { keyLabel = "SCAN_KEY_1", description = "SCAN_DESC_1" },
+        },
+    }
     dofile("src/dlc/UI/InGame/CivVAccess_BaselineHandler.lua")
 end
 
