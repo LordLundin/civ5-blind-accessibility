@@ -297,6 +297,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_SPLASH"] = "World Congress"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_END_GAME"] = "End of Game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DECLARE_WAR"] = "Declare War"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_GREETING"] = "City-State Greeting"
+-- Fallback for LeaderHeadRoot before TitleText is populated. In practice the
+-- onShow hook overwrites handler.displayName with the live leader title
+-- (e.g. "Suleiman the Magnificent") that LeaderMessageHandler just set.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DIPLOMACY"] = "Diplomacy"
 -- Great-work splash (archaeology / wonder / cultural-victory completion).
 -- Title is either the great work's artist or the "written artifact" label;
 -- description and quote come from GameInfo.GreatWorks.

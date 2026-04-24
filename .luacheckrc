@@ -295,6 +295,7 @@ exclude_files = {
     "src/dlc/UI/InGame/Menus/GameMenu.lua",
     "src/dlc/UI/InGame/Menus/SaveMenu.lua",
     "src/dlc/UI/InGame/Popups/",
+    "src/dlc/UI/InGame/LeaderHead/LeaderHeadRoot.lua",
     "src/dlc/UI/InGame/CivilopediaScreen.lua",
     "src/dlc/UI/InGame/PlayerChange.lua",
     "third_party/",
