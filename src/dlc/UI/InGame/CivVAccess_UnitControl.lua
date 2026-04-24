@@ -129,7 +129,7 @@ local function plotAt(x, y)
     return Map.GetPlot(x, y)
 end
 
-local function enemyAt(plot)
+function UnitControl.enemyAt(plot)
     if plot == nil then
         return nil
     end
@@ -247,7 +247,7 @@ local function directMove(dir)
         return
     end
     local tx, ty = target:GetX(), target:GetY()
-    local enemy = enemyAt(target)
+    local enemy = UnitControl.enemyAt(target)
     if enemy == nil then
         clearCombatConfirm()
         commitDirectMove(unit, tx, ty, false)
@@ -478,8 +478,24 @@ local function onUnitMoveCompleted()
     -- engine fires SerialEventUnitMove per hex traversed, so mid-path
     -- events need to be ignored.
     local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)
-    if cx == tx and cy == ty or movesLeft <= 0 then
-        speakQueued(UnitSpeech.moveResult(unit, tx, ty))
+    local reachedTarget = (cx == tx and cy == ty)
+    if reachedTarget or movesLeft <= 0 then
+        local turnsToArrival
+        if not reachedTarget then
+            local targetPlot = plotAt(tx, ty)
+            if targetPlot ~= nil then
+                local result = Pathfinder.findPath(unit, targetPlot)
+                if result ~= nil then
+                    -- Pathfinder's first step treats mpRemaining==0 as
+                    -- "wait for next turn," bumping its turn counter.
+                    -- Here the unit has just stopped with 0 MP *this*
+                    -- turn; the next move is what begins turn+1, so the
+                    -- initial bump is already accounted for. Drop one.
+                    turnsToArrival = result.turns - 1
+                end
+            end
+        end
+        speakQueued(UnitSpeech.moveResult(unit, tx, ty, turnsToArrival))
         Cursor.jumpTo(cx, cy)
         clearPending()
     end

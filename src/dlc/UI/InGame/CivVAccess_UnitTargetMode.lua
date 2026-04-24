@@ -177,6 +177,24 @@ end
 -- message, and drop back to selection mode. Range-attack war-declare
 -- popups come through the engine's own ButtonPopupTypes.BUTTONPOPUP_*
 -- dispatch and are handled by GenericPopupAccess, not here.
+--
+-- Combat commits skip pending-move registration for the same reason
+-- Alt+QAZEDC direct-move does: combat animation runs for seconds before
+-- the engine fires a post-advance SerialEventUnitMove (or never, if the
+-- attacker doesn't advance), so the pending-expiry timer would trip
+-- first and speak "action failed" while EndCombatSim is already queuing
+-- the real outcome. Applies to attack / ranged modes unconditionally,
+-- and to move modes when the target plot has an at-war enemy.
+local function willCauseCombat(plot, mode)
+    if isMeleeAttackMode(mode) or isRangeAttackMode(mode) then
+        return true
+    end
+    if isMoveMode(mode) and UnitControl.enemyAt(plot) ~= nil then
+        return true
+    end
+    return false
+end
+
 local function commitAtCursor(self)
     local plot, tx, ty = cursorPlot()
     if plot == nil then
@@ -202,7 +220,9 @@ local function commitAtCursor(self)
         restoreSelection()
         return
     end
-    UnitControl.registerPending(self._actor, tx, ty)
+    if not willCauseCombat(plot, mode) then
+        UnitControl.registerPending(self._actor, tx, ty)
+    end
     Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, false)
     HandlerStack.removeByName("UnitTargetMode", false)
     restoreSelection()

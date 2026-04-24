@@ -594,6 +594,29 @@ function M.test_move_result_short_stop()
     local u = mkUnit({ x = 2, y = 2, moves = 0 })
     local out = UnitSpeech.moveResult(u, 4, 4)
     T.truthy(out:find("stopped short", 1, true), "short-stop expected: " .. out)
+    T.falsy(out:find("turns till arrival", 1, true), "no-turns branch should omit ETA: " .. out)
+end
+
+function M.test_move_result_short_stop_with_turns()
+    setup()
+    local u = mkUnit({ x = 2, y = 2, moves = 0 })
+    local out = UnitSpeech.moveResult(u, 4, 4, 3)
+    T.truthy(out:find("stopped short", 1, true), "short-stop expected: " .. out)
+    T.truthy(out:find("3", 1, true), "turns count should appear: " .. out)
+    T.truthy(out:find("turns till arrival", 1, true), "ETA phrasing expected: " .. out)
+end
+
+function M.test_move_result_short_stop_zero_turns_is_bare()
+    -- After the pathfinder-offset correction in onUnitMoveCompleted,
+    -- an unreachable-after-stop with 0 remaining turns falls back to
+    -- the bare "stopped short" phrasing rather than reporting "0 turns
+    -- till arrival." Same for negative values.
+    setup()
+    local u = mkUnit({ x = 2, y = 2, moves = 0 })
+    local outZero = UnitSpeech.moveResult(u, 4, 4, 0)
+    T.falsy(outZero:find("turns till arrival", 1, true), "zero-turn fallback: " .. outZero)
+    local outNeg = UnitSpeech.moveResult(u, 4, 4, -1)
+    T.falsy(outNeg:find("turns till arrival", 1, true), "neg-turn fallback: " .. outNeg)
 end
 
 -- ===== Self-plot confirm =====

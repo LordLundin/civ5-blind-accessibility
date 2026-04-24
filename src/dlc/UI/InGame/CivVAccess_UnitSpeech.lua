@@ -754,15 +754,22 @@ function UnitSpeech.combatResult(args)
     return table.concat(parts, ", ")
 end
 
--- "moved, N moves left" on clean arrival, "stopped short, 0 moves" when
--- the unit didn't reach the target plot. targetX/Y are compared to the
--- unit's live position -- if they match, the path completed. Direction
--- narration is deferred; the caller already spoke direction when the
--- move was committed from the target-mode cursor.
-function UnitSpeech.moveResult(unit, targetX, targetY)
+-- "moved, N moves left" on clean arrival, or "stopped short, N turns
+-- till arrival" / "stopped short" when the unit didn't reach the target
+-- plot. targetX/Y are compared to the unit's live position -- if they
+-- match, the path completed. turnsToArrival is supplied by the caller
+-- after re-running Pathfinder from the stopped position; nil means no
+-- estimate (unreachable or pathfinder bailed) and we fall back to the
+-- bare phrasing. Direction narration is deferred; the caller already
+-- spoke direction when the move was committed from the target-mode
+-- cursor.
+function UnitSpeech.moveResult(unit, targetX, targetY, turnsToArrival)
     if unit:GetX() == targetX and unit:GetY() == targetY then
         local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)
         return Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVED_TO", movesLeft)
+    end
+    if turnsToArrival ~= nil and turnsToArrival > 0 then
+        return Text.format("TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT_TURNS", turnsToArrival)
     end
     return Text.key("TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT")
 end
