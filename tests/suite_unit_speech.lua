@@ -117,7 +117,13 @@ local function mkUnit(opts)
     function u:UpgradePrice()
         return self._upgradePrice
     end
-    function u:CanUpgradeRightNow()
+    function u:CanUpgradeRightNow(bOnlyTestVisible)
+        -- Engine binding expects a number, not a Lua boolean -- passing
+        -- `true` throws at runtime. Mirror that strictness here so a
+        -- regression in the caller fails the test instead of silently
+        -- working against the mock.
+        assert(type(bOnlyTestVisible) == "number",
+            "CanUpgradeRightNow expects a number; got " .. type(bOnlyTestVisible))
         return self._canUpgradeRightNow
     end
     function u:IsCombatUnit()

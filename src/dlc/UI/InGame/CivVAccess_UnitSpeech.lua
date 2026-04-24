@@ -184,7 +184,8 @@ end
 -- ranged (no range), max moves, fortified only, promotions, HP as a
 -- color band. Zero-valued strength fields skip so melee units don't
 -- waste syllables on "0 ranged". Upgrade is gated on
--- CanUpgradeRightNow(true) -- the bOnlyTestVisible arg skips transient
+-- CanUpgradeRightNow(1) -- the bOnlyTestVisible arg (engine wants a
+-- number, not a Lua boolean; passing `true` throws) skips transient
 -- conditions (territory, gold, resources, ...) so a tech-unlocked
 -- upgrade still speaks for a unit in enemy land the player may want
 -- to bring home; tech-locked targets stay silent so we don't spam an
@@ -225,7 +226,7 @@ function UnitSpeech.info(unit)
     if #promos > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PROMOTIONS_LABEL", table.concat(promos, ", "))
     end
-    if friendly and unit:CanUpgradeRightNow(true) then
+    if friendly and unit:CanUpgradeRightNow(1) then
         local upgradeType = unit:GetUpgradeUnitType()
         if upgradeType ~= -1 then
             local upgradeRow = GameInfo.Units[upgradeType]
