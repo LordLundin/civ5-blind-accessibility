@@ -74,6 +74,11 @@
 --                     Used by AdvisorInfoPopup for concept-history back/
 --                     forward. Help entries for the chord are opt-in via
 --                     spec.helpExtras (same pattern Civilopedia uses).
+--   onTab /           optional fn(handler) bound to Tab / Shift+Tab on
+--   onShiftTab        tab-less screens (silently ignored when spec.tabs
+--                     is set; internal tab cycling takes precedence).
+--                     Used by DiploOverview's per-panel wrappers to route
+--                     Tab to sibling-panel switching.
 
 BaseMenu = {}
 
@@ -647,6 +652,12 @@ function BaseMenu.create(spec)
         -- back/forward on a screen with no tabs.
         _onAltLeft = spec.onAltLeft,
         _onAltRight = spec.onAltRight,
+        -- Tab / Shift+Tab hooks on tab-less screens. Default Tab binding
+        -- no-ops when self.tabs is absent; these let a screen claim the
+        -- chord for its own purpose (DiploOverview's per-panel wrappers
+        -- route Tab to sibling-panel switching via civvaccess_shared).
+        _onTab = spec.onTab,
+        _onShiftTab = spec.onShiftTab,
         -- _initialized gates the first-open setup (reset cursor, speak
         -- displayName + preamble + tab + item). Re-activations from a sub
         -- pop preserve cursor and just re-announce the current item.
@@ -779,7 +790,14 @@ function BaseMenu.create(spec)
             mods = 0,
             description = "Next tab",
             fn = function()
-                BaseMenuTabs.cycle(self, 1, nav)
+                if self.tabs ~= nil then
+                    BaseMenuTabs.cycle(self, 1, nav)
+                elseif self._onTab ~= nil then
+                    local ok, err = pcall(self._onTab, self)
+                    if not ok then
+                        Log.error("BaseMenu '" .. self.name .. "' onTab: " .. tostring(err))
+                    end
+                end
             end,
         },
         {
@@ -787,7 +805,14 @@ function BaseMenu.create(spec)
             mods = MOD_SHIFT,
             description = "Previous tab",
             fn = function()
-                BaseMenuTabs.cycle(self, -1, nav)
+                if self.tabs ~= nil then
+                    BaseMenuTabs.cycle(self, -1, nav)
+                elseif self._onShiftTab ~= nil then
+                    local ok, err = pcall(self._onShiftTab, self)
+                    if not ok then
+                        Log.error("BaseMenu '" .. self.name .. "' onShiftTab: " .. tostring(err))
+                    end
+                end
             end,
         },
         {

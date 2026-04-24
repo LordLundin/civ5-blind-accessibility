@@ -397,6 +397,24 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE"] = "Active"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED"] = "Dismissed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY"] = "No notifications."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turn {2_Turn}"
+-- MilitaryOverview (BUTTONPOPUP_MILITARY_OVERVIEW, F3). Level 0 reads GP
+-- progress + supply block as Text widgets; drill-ins hold the unit rows. The
+-- GP line combines the engine's own label (TXT_KEY_CITYVIEW_GG_PROGRGRESS /
+-- TXT_KEY_MO_GA_PROGRESS) with the numerator/denominator the sighted tooltip
+-- shows first. Supply lines pair an engine label with the number. Sort
+-- selector verbalizes current mode; menu label is independent so the user
+-- hears "sort by: name" at the selector and just "sort by" as the title of
+-- the picker that opens. Row strength/ranged use bare nouns (not "melee" /
+-- range-distance forms that UnitSpeech uses) because the F3 row echoes the
+-- sighted column whose header is just an icon.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} of {3_Max} xp"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_LINE"] = "{1_Label}: {2_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_LABEL"] = "Sort by: {1_Mode}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MENU"] = "Sort by"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GROUP_MILITARY"] = "Military units"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GROUP_CIVILIAN"] = "Civilian units"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_ROW_STRENGTH"] = "strength {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_ROW_RANGED"] = "ranged {1_Num}"
 -- AdvisorCounselPopup (BUTTONPOPUP_ADVISOR_COUNSEL). Four tabs, one per
 -- advisor. Page item label is composed at Lua level from the engine's
 -- TXT_KEY_ADVISOR_COUNSEL_PAGE_DISPLAY fraction + the counsel body so the
@@ -813,3 +831,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_DECLARE_WAR"] = "Declare war"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OTHER_PLAYERS"] = "Other players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"] = "none available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_SUMMARY"] = "{1_Other}, {2_N} items"
+-- Diplomatic Overview (Relations / Global tabs). Per-civ composed lines,
+-- trade / third-party fragment prefixes, section group headers.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV"] = "{1_Leader} of {2_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_SCORE_VAL"] = "score {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_VAL"] = "gold {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GPT_VAL"] = "gold per turn {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RES_COUNT"] = "{1_Name} {2_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "strategic: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "luxury: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "nearby: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "policies: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "wonders: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_MAJORS_GROUP"] = "Major civilizations"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_MINORS_GROUP"] = "City-states"

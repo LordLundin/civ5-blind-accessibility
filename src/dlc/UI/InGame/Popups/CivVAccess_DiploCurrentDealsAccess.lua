@@ -39,6 +39,22 @@ include("CivVAccess_BaseMenuNumberEntry")
 include("CivVAccess_TradeLogicAccess")
 include("CivVAccess_Help")
 
+-- Tab / Shift+Tab cycle to Global / Relations. See
+-- CivVAccess_DiploOverviewBridge for the cross-Context mechanism; the
+-- sibling panel's visibility flip fires ShowHide on both panels, which
+-- pops our BaseMenu and pushes the sibling's.
+local function onTab()
+    local bridge = civvaccess_shared.DiploOverview
+    if bridge ~= nil and type(bridge.showGlobal) == "function" then
+        bridge.showGlobal()
+    end
+end
+local function onShiftTab()
+    local bridge = civvaccess_shared.DiploOverview
+    if bridge ~= nil and type(bridge.showRelations) == "function" then
+        bridge.showRelations()
+    end
+end
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
@@ -144,4 +160,6 @@ TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, {
     fallbackDisplayName = Text.key("TXT_KEY_DO_CURRENT_DEALS"),
     topItemsFn = topItemsFn,
     skipStandardListeners = true,
+    onTab = onTab,
+    onShiftTab = onShiftTab,
 })
