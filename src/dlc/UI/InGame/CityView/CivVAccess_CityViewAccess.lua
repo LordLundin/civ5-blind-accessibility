@@ -1624,10 +1624,17 @@ end
 -- Gated at the hub on pCity:CanRangeStrikeNow() (same predicate vanilla
 -- uses in CityBannerManager.lua:37). Activation closes the city screen,
 -- puts the engine into INTERFACEMODE_CITY_RANGE_ATTACK, and pushes the
--- InGame-Context target picker (CityRangeStrikeMode). Deferring via
--- TickPump avoids mutating the city screen's state mid-activate of a
--- BaseMenu hub item; the queued callback runs after the menu's activate
--- flow has returned.
+-- InGame-Context target picker (CityRangeStrikeMode).
+--
+-- Two-stage defer: the outer TickPump avoids mutating the city screen's
+-- state mid-activate of a BaseMenu hub item (it runs after the menu's
+-- activate flow has returned); the inner TickPump waits for the hub's
+-- ContextPtr hide to propagate before pushing CityRangeStrike. The hub's
+-- wrappedShowHide calls popAbove(hubHandler) to clean up sub-screens, and
+-- fires a tick after SerialEventExitCityScreen returns -- pushing in the
+-- same tick as the hide would have CityRangeStrike popped as collateral
+-- damage, stranding the engine in CITY_RANGE_ATTACK with no handler bound
+-- to commit or cancel.
 --
 -- Re-resolves the city via ownerID/cityID inside the deferred callback
 -- because Events.SerialEventExitCityScreen calls UI.ClearSelectedCities,
@@ -1652,32 +1659,34 @@ local function pushRangedStrike()
             return
         end
         Events.SerialEventExitCityScreen()
-        local owner = Players[ownerID]
-        if owner == nil then
-            Log.warn("CityRangeStrike: owner vanished between hub activate and deferred push")
-            return
-        end
-        local cityRef = owner:GetCityByID(cityID)
-        if cityRef == nil then
-            Log.warn("CityRangeStrike: city vanished between hub activate and deferred push")
-            return
-        end
-        -- Order mirrors CityBannerManager.lua:1017-1021 so any listener on
-        -- the mode change sees the engine in the same state vanilla's banner
-        -- click produces.
-        UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK)
-        UI.ClearSelectionList()
-        UI.SelectCity(cityRef)
-        Events.InitCityRangeStrike(ownerID, cityID)
-        local bridge = civvaccess_shared.modules or {}
-        local mode = bridge.CityRangeStrikeMode
-        if mode == nil or type(mode.enter) ~= "function" then
-            Log.error("CityRangeStrike: modules.CityRangeStrikeMode not published; aborting")
-            UI.ClearSelectedCities()
-            UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION)
-            return
-        end
-        mode.enter(cityRef)
+        TickPump.runOnce(function()
+            local owner = Players[ownerID]
+            if owner == nil then
+                Log.warn("CityRangeStrike: owner vanished between hub activate and deferred push")
+                return
+            end
+            local cityRef = owner:GetCityByID(cityID)
+            if cityRef == nil then
+                Log.warn("CityRangeStrike: city vanished between hub activate and deferred push")
+                return
+            end
+            -- Order mirrors CityBannerManager.lua:1017-1021 so any listener on
+            -- the mode change sees the engine in the same state vanilla's banner
+            -- click produces.
+            UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK)
+            UI.ClearSelectionList()
+            UI.SelectCity(cityRef)
+            Events.InitCityRangeStrike(ownerID, cityID)
+            local bridge = civvaccess_shared.modules or {}
+            local mode = bridge.CityRangeStrikeMode
+            if mode == nil or type(mode.enter) ~= "function" then
+                Log.error("CityRangeStrike: modules.CityRangeStrikeMode not published; aborting")
+                UI.ClearSelectedCities()
+                UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION)
+                return
+            end
+            mode.enter(cityRef)
+        end)
     end)
 end
 
