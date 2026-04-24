@@ -447,6 +447,15 @@ local function onUnitSelectionChanged(playerID, unitID, _hexI, _hexJ, _hexK, isS
     if playerID ~= Game.GetActivePlayer() then
         return
     end
+    -- Skip when the engine is in CITY_RANGE_ATTACK. The city-strike picker
+    -- owns the cursor and the audible focus during the strike; the engine's
+    -- CityScreenClosed re-selects the previously-selected unit, and that
+    -- event arrives after our enter() finishes -- speaking the unit info
+    -- and jumping the cursor here would steal focus from the strike target
+    -- the user just landed on.
+    if UI.GetInterfaceMode() == InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK then
+        return
+    end
     -- If target mode is active for a different unit, unwind it. Covers
     -- unit cycling (. / ,), mouse reselect, and actor death flipping
     -- selection to another unit. Same-unit re-selects leave it in place.

@@ -171,10 +171,16 @@ function CityRangeStrikeMode.enter(city)
             speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE"))
             return
         end
+        -- Re-select the city right before sending. The engine's late-firing
+        -- UnitSelectionChanged from CityScreenClosed (it re-selects whatever
+        -- unit was selected before the city screen) clears the engine's
+        -- selected-cities list, so by the time the user presses Enter the
+        -- list our enter() populated may be empty. SelectedCitiesGameNetMessage
+        -- iterates the current list, so an empty list = silent no-op (we'd
+        -- still speak "fired" because the local-side checks all pass).
+        UI.SelectCity(c)
         -- Engine uses GAMEMESSAGE_DO_TASK / TASK_RANGED_ATTACK against the
-        -- currently selected-cities list (see WorldView.lua:519). The
-        -- activation flow selected the city before entering this mode,
-        -- so the task targets the right attacker.
+        -- currently selected-cities list (see WorldView.lua:519).
         Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_DO_TASK, TaskTypes.TASK_RANGED_ATTACK, cx, cy)
         speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITY_RANGED_FIRED"))
         popHandler()
