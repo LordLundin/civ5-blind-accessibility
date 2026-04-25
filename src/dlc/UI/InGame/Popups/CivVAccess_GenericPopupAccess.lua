@@ -52,12 +52,19 @@ Log.info("GenericPopupAccess: wiring BaseMenu over PopupLayouts dispatch")
 local priorInput = InputHandler
 
 -- AddButton / ClearButtons monkey-patches -----------------------------------
+--
+-- strToolTip is the tradeoff data: PuppetCityPopup packs warmonger /
+-- liberation previews and unhappiness deltas there; declare-war variants put
+-- the per-decision summary; minor-civ-enter-territory carries the influence
+-- cost. Capturing it per slot lets every Button item announce the tradeoff
+-- alongside its label without per-popup wiring.
 
 local baseAddButton    = AddButton
 local baseClearButtons = ClearButtons
 
 local buttonCallbacks    = {}
 local buttonPreventClose = {}
+local buttonTooltips     = {}
 local nextButtonIdx      = 1
 
 AddButton = function(buttonText, buttonClickFunc, strToolTip, bPreventClose)
@@ -65,6 +72,7 @@ AddButton = function(buttonText, buttonClickFunc, strToolTip, bPreventClose)
     if nextButtonIdx <= 4 then
         buttonCallbacks[nextButtonIdx]    = buttonClickFunc
         buttonPreventClose[nextButtonIdx] = bPreventClose == true
+        buttonTooltips[nextButtonIdx]     = strToolTip
         nextButtonIdx = nextButtonIdx + 1
     end
 end
@@ -73,6 +81,7 @@ ClearButtons = function()
     baseClearButtons()
     buttonCallbacks    = {}
     buttonPreventClose = {}
+    buttonTooltips     = {}
     nextButtonIdx      = 1
 end
 
@@ -98,17 +107,21 @@ end
 
 local items = {
     BaseMenuItems.Button({ controlName = "Button1",
-        labelFn = function() return labelForSlot(1) end,
-        activate = function() invokeSlot(1) end }),
+        labelFn   = function() return labelForSlot(1) end,
+        tooltipFn = function() return buttonTooltips[1] end,
+        activate  = function() invokeSlot(1) end }),
     BaseMenuItems.Button({ controlName = "Button2",
-        labelFn = function() return labelForSlot(2) end,
-        activate = function() invokeSlot(2) end }),
+        labelFn   = function() return labelForSlot(2) end,
+        tooltipFn = function() return buttonTooltips[2] end,
+        activate  = function() invokeSlot(2) end }),
     BaseMenuItems.Button({ controlName = "Button3",
-        labelFn = function() return labelForSlot(3) end,
-        activate = function() invokeSlot(3) end }),
+        labelFn   = function() return labelForSlot(3) end,
+        tooltipFn = function() return buttonTooltips[3] end,
+        activate  = function() invokeSlot(3) end }),
     BaseMenuItems.Button({ controlName = "Button4",
-        labelFn = function() return labelForSlot(4) end,
-        activate = function() invokeSlot(4) end }),
+        labelFn   = function() return labelForSlot(4) end,
+        tooltipFn = function() return buttonTooltips[4] end,
+        activate  = function() invokeSlot(4) end }),
     BaseMenuItems.Button({ controlName = "CloseButton",
         textKey  = "TXT_KEY_CLOSE",
         activate = function() HideWindow() end }),

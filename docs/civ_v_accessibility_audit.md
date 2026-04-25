@@ -312,9 +312,9 @@ Tile purchase is reached through the Hex hub. Eligible adjacent plots speak thei
 
 Connected-to-capital is spoken in the city preamble when the city is non-capital, has a trade route to the capital, and is not blockaded; this matches the sighted-side ConnectedIcon, which is also positive-only (no disconnected indicator on the banner or the city screen). Resource-demanded and WLTKD state surface as a non-interactive readout at the bottom of the city hub, keyed off GetResourceDemanded and GetWeLoveTheKingDayCounter and reading the base game's own labels; the readout is omitted when the city has no demand cycle yet, matching the hidden ResourceDemandedBox.
 
-## 5.15 Capture decision popup — Partial
+## 5.15 Capture decision popup — Done
 
-The capture-gold announcement and the choose-disposition popup (Annex / Puppet / Raze / Liberate / View City) are read through the generic popup handler — body text and button list both speak. The detailed tradeoff summary a player needs to make this decision (current empire happiness, what razing actually destroys, what liberation gives you diplomatically) is not synthesized; the user hears the engine's tooltip text only on demand and not as a unified readout.
+The capture-gold announcement and the choose-disposition popup (Annex / Puppet / Raze / Liberate / View City) read through the generic popup handler. Body text speaks the gold/culture/great-works haul and prompts for a choice; each button announces label plus the engine's per-button tooltip, which is where the tradeoff data lives — unhappiness delta for Annex / Puppet / Raze, the warmonger preview when conquering a non-original-owner city, and the liberation preview when the city's original owner is still in the game.
 
 ## 5.16 Razing, annex, and puppet state transitions — Done
 
@@ -410,7 +410,7 @@ Status (Allied, Friend, Neutral, Afraid, Angry, At War), active quest list, curr
 
 ## 7.8 Declare war popup — Done
 
-The pre-declaration summary (BNW) reads who will be upset, who has pledged to protect the target, which city-states will declare war on you, which active deals will break, which trade routes will be lost. Yes / Cancel both work. The pre-BNW Generic-popup variants (declare-war-move, declare-war-range-strike, declare-war-plunder-trade-route) all surface through the generic popup path with at least body text and buttons.
+The pre-declaration summary (BNW) reads who will be upset, who has pledged to protect the target, which city-states will declare war on you, which active deals will break, which trade routes will be lost. Yes / Cancel both work. The move / range-strike / plunder-trade-route variants are re-registered onto the BNW DeclareWarPopup screen (the pre-BNW PopupsGeneric versions are nilled out), so they surface through the same dedicated handler rather than the generic popup path.
 
 ## 7.9 Denunciation flow — Done
 
@@ -452,29 +452,29 @@ The pre-vote preview of the diplomatic-win round. Reads the projected vote count
 
 Covered as a tab of 7.5.
 
-## 7.19 Gift unit and liberate city options — Partial
+## 7.19 Gift unit and liberate city options — Done
 
-Gifting a unit to a city-state is reachable through the city-state diplo popup's unit-gift submenu. Liberating a captured city is offered as one of the buttons in the capture decision popup, which surfaces through the generic popup handler — the button is announced and works, but the diplomatic-bonus preview a sighted player gets in the tooltip isn't synthesized.
+Gifting a unit to a city-state is reachable through the city-state diplo popup's unit-gift submenu. Liberating a captured city is offered as one of the buttons in the capture decision popup; the button announces label plus the engine's liberation preview tooltip, which is the same diplomatic-bonus text a sighted player reads on hover.
 
 ## 7.20 Tribute demands between major civs — Done
 
 The discuss / demand path on a weaker civ (or by an AI on the player) presents Give / Refuse / Counter-offer through the discussion dialog and is read.
 
-## 7.21 Minor civ territory entry — Partial
+## 7.21 Minor civ territory entry — Done
 
-The Yes / No "leave or stay" popup when a non-scout enters a city-state territory surfaces through the generic popup path with body and buttons. The Influence-cost number is not pulled out as a distinguishing readout.
+The Yes / No "leave or stay" popup when a non-scout enters a city-state territory surfaces through the generic popup path. Body text speaks the bullying warning and names the offended civ; Yes / No labels are clear. The popup itself carries no influence-cost number on either side — sighted players don't see one either.
 
-## 7.22 Minor civ gold popup — Partial
+## 7.22 Minor civ gold popup — Done
 
-The accept-or-decline gold-from-minor popup surfaces generically.
+The accept-or-decline gold-from-minor popup surfaces generically. Each gift-tier button label embeds the gold cost and the resulting friendship gain (TXT_KEY_POPUP_MINOR_GOLD_GIFT_AMOUNT), so the tradeoff is in the announcement directly.
 
-## 7.23 Return civilian popup — Partial
+## 7.23 Return civilian popup — Done
 
-Captured-civilian return / keep popup surfaces generically.
+Captured-civilian return / keep popup surfaces generically. Body text names the returning civ, the unit type the player would receive on Take, and the influence / opinion bonus on Return; Yes / No labels distinguish the actions.
 
-## 7.24 Barbarian ransom popup — Partial
+## 7.24 Barbarian ransom popup — Done
 
-The pay / abandon popup for a barbarian-held civilian is read through the generic popup path. Camp-cleared splash is a dedicated handler and is fully read.
+The pay / abandon popup for a barbarian-held civilian is read through the generic popup path; body text carries the gold cost. Camp-cleared splash is a dedicated handler and is fully read.
 
 ## 7.25 Trade route diplomatic implications — Not started
 
@@ -526,9 +526,9 @@ The destination picker that opens when a caravan or cargo ship needs an assignme
 
 The "move this caravan to a new home city" popup reads its city list and confirm.
 
-## 8.9 Annex and puppet city popups — Partial
+## 8.9 Annex and puppet city popups — Done
 
-The puppet-to-annex popup reads its body and buttons through the generic popup path. The detail breakdown a sighted player needs (current empire unhappiness, the consequence of annex resistance) isn't synthesized.
+The puppet-to-annex popup reads its body and buttons through the generic popup path. Body text (TXT_KEY_POPUP_ANNEX_PUPPET) carries the engine's qualitative warning that annexing will increase unhappiness and slow policy / Great Person acquisition; the engine doesn't compute a numerical breakdown for this popup, so sighted players don't see one either.
 
 ## 8.10 Resource tracking — Not started
 
@@ -834,8 +834,8 @@ The engine signals victory and defeat through a single end-game event whose type
 
 What the mod fully covers today: the front-end menu shell, every game-setup screen, the pause and save menus, the in-game cursor / surveyor / scanner stack for plot inspection, unit selection and the action menu, target-mode for moves and attacks, the city screen and its production / purchase / buildings / specialists / great-works / hex / rename / raze sub-handlers, the tech tree and every tech / policy / ideology / Great Person / pantheon / religion / reformation / Maya / free-item chooser, the leader head and trade screens with their full discussion / denounce / peace / embassy paths, the city-state diplomacy and greeting popups, the declare-war summary, the diplomacy overview's three tabs, every advisor popup, the notification announcement stream, the end turn flow, all production-finished and wonder-completion splashes, the natural wonder and goody hut splashes including the BNW choose-reward variant, the new era splash, the popup queue and dispatcher concerns, the military overview, the civilopedia, and the end game menu's win-or-lose splash.
 
-What's partially covered: the city capture decision (body reads but tradeoff is not synthesized), the city status preamble (some load-bearing flags like connected-to-capital aren't on it), foreign city view (works but the espionage path that reaches it doesn't), several diplomacy mini-popups (return civilian, minor civ gold, minor civ territory entry — body and buttons through generic, no special flag), the religion overview and per-city religion display, air mission and nuke targeting, the unit upgrade preview, the embarkation prompt.
+What's partially covered: foreign city view (works but the espionage path that reaches it doesn't), the per-city religion display, the air mission interface, the unit upgrade preview, the embarkation prompt.
 
-What's not started: the entire top panel and minimap toggle layer, every sidebar list (City List, Unit List, Great People List, Resource List), the diplomacy corner buttons themselves, the tutorial overlay and task list, the trade route system end to end (overview screen and chooser popup), the entire economic overview shell with its general info and happiness tabs, the demographics screen, the gold income breakdown, every espionage screen and popup, the religion overview panel, the World Congress overview screen and the diplo vote ballot popup, the victory progress screen, the in-game ranking and replay screens, the in-game and front-end hall of fame, the leaderboards, and the dedicated server panel.
+What's not started: the entire top panel and minimap toggle layer, every sidebar list (City List, Unit List, Great People List, Resource List), the diplomacy corner buttons themselves, the tutorial overlay and task list, the trade route system end to end (overview screen and chooser popup), the entire economic overview shell with its general info and happiness tabs, the demographics screen, the gold income breakdown, every espionage screen and popup, the religion overview panel, nuke targeting mode, the World Congress overview screen and the diplo vote ballot popup, the victory progress screen, the in-game ranking and replay screens, the in-game and front-end hall of fame, the leaderboards, and the dedicated server panel.
 
 The biggest gaps the player feels day to day are probably the empire-wide overviews — top panel, economic overview, happiness breakdown, resource list, victory progress — and the trade-route system in BNW. After those, the espionage system and the World Congress's full session screen are the two whole subsystems with no coverage at all.
