@@ -958,7 +958,12 @@ function BaseMenu.create(spec)
             self._indices[self._level] = next
             item = items[next]
         end
-        SpeechPipeline.speakInterrupt(item:announce(self))
+        -- TabbedShell sets _chainSpeech=true around its onActivate calls so
+        -- the shell can speakInterrupt the tab name and have BaseMenu's
+        -- re-activation content chain after it instead of clobbering. Stays
+        -- nil for normal stack-pushed BaseMenus and for sub-pop re-exposure.
+        local speak = self._chainSpeech and SpeechPipeline.speakQueued or SpeechPipeline.speakInterrupt
+        speak(item:announce(self))
     end
 
     function self.onDeactivate() end
