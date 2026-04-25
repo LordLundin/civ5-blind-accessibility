@@ -308,9 +308,9 @@ Same shape as the gold panel, filtered to faith-eligible items. Religious units,
 
 Tile purchase is reached through the Hex hub. Eligible adjacent plots speak their cost; insufficient gold is announced; turns until next free border growth is queryable.
 
-## 5.14 City connection, resource demand, and WLTKD — Partial
+## 5.14 City connection, resource demand, and WLTKD — Done
 
-Resource-demanded and WLTKD active state surface in the preamble where present. Connected-to-capital state is not yet flagged on every preamble — a newly captured or freshly settled disconnected city should announce that fact unprompted.
+Connected-to-capital is spoken in the city preamble when the city is non-capital, has a trade route to the capital, and is not blockaded; this matches the sighted-side ConnectedIcon, which is also positive-only (no disconnected indicator on the banner or the city screen). Resource-demanded and WLTKD state surface as a non-interactive readout at the bottom of the city hub, keyed off GetResourceDemanded and GetWeLoveTheKingDayCounter and reading the base game's own labels; the readout is omitted when the city has no demand cycle yet, matching the hidden ResourceDemandedBox.
 
 ## 5.15 Capture decision popup — Partial
 

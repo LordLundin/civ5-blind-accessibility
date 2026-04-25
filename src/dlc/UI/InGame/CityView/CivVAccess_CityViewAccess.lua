@@ -1744,6 +1744,30 @@ local function activateUnraze()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"))
 end
 
+-- ===== Resource demand / WLTKD readout =====
+--
+-- Mirrors the ResourceDemandedBox in CityView.xml (line 253) and its update
+-- in CityView.lua:1548-1569. Visibility predicate matches base: gate on
+-- GetResourceDemanded(true) ~= -1. Inside, WLTKD takes priority when its
+-- counter is positive; otherwise the demanded-resource label. Returns nil
+-- when the city has no demand cycle yet (early-game settle) so the caller
+-- can omit the item rather than read a dead-end.
+
+local function resourceDemandLabel(city)
+    if city:GetResourceDemanded(true) == -1 then
+        return nil
+    end
+    local turns = city:GetWeLoveTheKingDayCounter()
+    if turns > 0 then
+        return Text.format("TXT_KEY_CITYVIEW_WLTKD_COUNTER", turns)
+    end
+    local resourceInfo = GameInfo.Resources[city:GetResourceDemanded()]
+    if resourceInfo == nil then
+        return nil
+    end
+    return Text.format("TXT_KEY_CITYVIEW_RESOURCE_DEMANDED", Text.key(resourceInfo.Description))
+end
+
 -- ===== Hub item list =====
 --
 -- Rebuilt on every hub activation (initial push + sub-handler pop). Order
@@ -1800,6 +1824,10 @@ local function buildHubItems(city)
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE") }, activateUnraze)
     elseif canShowRaze(city) then
         items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE") }, activateRaze)
+    end
+    local demandLabel = resourceDemandLabel(city)
+    if demandLabel ~= nil then
+        items[#items + 1] = BaseMenuItems.Text({ labelText = demandLabel })
     end
     return items
 end
