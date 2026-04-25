@@ -53,6 +53,10 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Help.lua")
     HandlerStack._reset()
     TickPump._reset()
+    -- Tests count items derived from per-handler helpEntries. Production
+    -- ships with a non-empty commonHelpEntries (F12 → Settings) which
+    -- would inflate every count; reset for deterministic per-test state.
+    HandlerStack.commonHelpEntries = {}
 end
 
 local function itemCount(handler)

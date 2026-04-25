@@ -552,13 +552,25 @@ function ScannerNav.distanceFromCursor()
     return HexGeom.directionString(cx, cy, inst.plotX, inst.plotY)
 end
 
--- Shift+End: flip the auto-move preference. The shared table holds the
--- live value so every cycle reads it cheaply; Prefs.setBool persists the
--- flip so the choice survives a restart.
+-- Shared write path: the shared table holds the live value so every cycle
+-- reads it cheaply; Prefs.setBool persists the flip so the choice survives
+-- a restart.
+function ScannerNav.getAutoMove()
+    return civvaccess_shared.scannerAutoMove == true
+end
+
+function ScannerNav.setAutoMove(v)
+    local b = v and true or false
+    civvaccess_shared.scannerAutoMove = b
+    Prefs.setBool("ScannerAutoMove", b)
+end
+
+-- Shift+End: flip the auto-move preference. Returns the announce string
+-- the binding speaks. Settings menu uses setAutoMove directly so the
+-- announce here doesn't double up with the menu's own checkbox readout.
 function ScannerNav.toggleAutoMove()
-    local now = not civvaccess_shared.scannerAutoMove
-    civvaccess_shared.scannerAutoMove = now
-    Prefs.setBool("ScannerAutoMove", now)
+    local now = not ScannerNav.getAutoMove()
+    ScannerNav.setAutoMove(now)
     if now then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_AUTO_MOVE_ON")
     else

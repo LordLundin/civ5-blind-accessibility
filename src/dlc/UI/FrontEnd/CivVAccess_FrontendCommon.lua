@@ -9,6 +9,7 @@
 
 include("CivVAccess_Log")
 include("CivVAccess_UserPrefs")
+include("CivVAccess_AudioCueMode")
 include("CivVAccess_TextFilter")
 include("CivVAccess_FrontEndStrings_en_US")
 include("CivVAccess_Text")
@@ -34,3 +35,5 @@ include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
+include("CivVAccess_VolumeControl")
+include("CivVAccess_Settings")

@@ -326,6 +326,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL"] = "Cancel"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE"] = "Close"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL_EDIT"] = "Cancel edit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT"] = "Commit edit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F12"] = "F12"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS"] = "Open settings"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE_SETTINGS"] = "Close settings"
+-- Settings overlay strings. Reachable from every Context that routes
+-- through InputRouter, so duplicated in the FrontEnd copy as well.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Settings"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Audio cue mode"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Speech only"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Speech and audio cues"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Audio cues only"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Master volume"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Master volume, {1_Num} percent"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE"] = "Scanner auto-move cursor"
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds
@@ -489,6 +502,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GROUP_MILITARY"] = "Military units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GROUP_CIVILIAN"] = "Civilian units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_ROW_STRENGTH"] = "strength {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_ROW_RANGED"] = "ranged {1_Num}"
+-- Great People drillable group at the bottom of the panel. Mirrors GPList:
+-- one subgroup per specialist type populated with per-city progress rows
+-- sorted by turns ascending, plus flat GG / GA rows reusing
+-- TXT_KEY_CIVVACCESS_MO_GP_PROGRESS. City row leads with the city name (the
+-- distinguishing word as the user navigates a turns-sorted list), then turns,
+-- then progress / threshold, then the per-turn rate. NO_PROGRESS variant
+-- handles the rate-zero case (city has stranded GPP but no specialists or
+-- buildings producing more); skip the turns and rate fields since both are
+-- zero. TURNS_NEXT covers the imminent case where threshold-progress <= rate.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_GROUP"] = "Great People progress"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_CITY_ROW"] =
+    "{1_City}: {2_Turns}, {3_Progress} of {4_Threshold}, plus {5_Rate} per turn"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_CITY_NO_PROGRESS"] = "{1_City}: {2_Progress} of {3_Threshold}, no progress"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_TURNS_NEXT"] = "next turn"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_TURNS_N"] = "{1_N} turns"
 -- AdvisorCounselPopup (BUTTONPOPUP_ADVISOR_COUNSEL). Four tabs, one per
 -- advisor. Page item label is composed at Lua level from the engine's
 -- TXT_KEY_ADVISOR_COUNSEL_PAGE_DISPLAY fraction + the counsel body so the

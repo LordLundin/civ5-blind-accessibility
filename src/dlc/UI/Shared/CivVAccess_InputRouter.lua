@@ -5,7 +5,9 @@
 -- Pre-walk hooks (run before the binding walk):
 --   1. Shift+? opens the Help overlay built from HandlerStack.collectHelpEntries.
 --      Gated so pressing ? while Help is on top doesn't re-enter.
---   2. Type-ahead search: if the top handler exposes handleSearchInput, route
+--   2. F12 opens the Settings overlay. Gated so the in-menu close binding
+--      can fire when Settings is already on top.
+--   3. Type-ahead search: if the top handler exposes handleSearchInput, route
 --      printable / Backspace / Space through it so every BaseMenu-backed
 --      handler (installed or pushed directly) gets search without needing 40+
 --      per-letter bindings.
@@ -23,6 +25,7 @@ local MOD_ALT = 4
 -- mean '?'. Non-US layouts produce '?' via a different VK; revisit if we
 -- localize the help hotkey.
 local VK_OEM_2 = 191
+local VK_F12 = 123
 
 function InputRouter.currentModifierMask()
     local mask = 0
@@ -61,6 +64,24 @@ function InputRouter.dispatch(keyCode, modMask, msg)
                 end
             else
                 Log.warn("InputRouter: Shift+? pressed but Help module not loaded")
+            end
+            return true
+        end
+    end
+
+    -- Settings overlay hotkey. Same shape as the Help hook above. Skips
+    -- when Settings is already on top so the menu's own F12-close binding
+    -- can fire and toggle the overlay off.
+    if keyCode == VK_F12 and modMask == 0 then
+        local top = HandlerStack.active()
+        if top == nil or top.name ~= "Settings" then
+            if Settings ~= nil and type(Settings.open) == "function" then
+                local ok, err = pcall(Settings.open)
+                if not ok then
+                    Log.error("InputRouter: Settings.open failed: " .. tostring(err))
+                end
+            else
+                Log.warn("InputRouter: F12 pressed but Settings module not loaded")
             end
             return true
         end

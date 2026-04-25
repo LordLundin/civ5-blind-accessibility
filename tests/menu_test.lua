@@ -3817,4 +3817,265 @@ function M.test_ctrl_i_binding_absent_without_pedia_event()
     T.falsy(hasCtrlI, "no Ctrl+I binding when Events.SearchForPediaEntry is absent")
 end
 
+-- VirtualSlider --------------------------------------------------------
+--
+-- Settings-menu item with no Civ V XML widget. Drives Left / Right adjust
+-- through a getter / setter pair the caller supplies (e.g. VolumeControl).
+
+function M.test_virtual_slider_right_increments_by_small_step()
+    setup()
+    local value = 0.5
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.VirtualSlider({
+                textKey = "LBL_VOL",
+                getValue = function()
+                    return value
+                end,
+                setValue = function(v)
+                    value = v
+                end,
+                labelFn = function(v)
+                    return string.format("Volume %d", math.floor(v * 100 + 0.5))
+                end,
+                step = 0.05,
+                bigStep = 0.20,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(value, 0.55)
+    T.eq(speaks[1].text, "Volume 55")
+end
+
+function M.test_virtual_slider_left_decrements_by_small_step()
+    setup()
+    local value = 0.5
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.VirtualSlider({
+                textKey = "LBL_VOL",
+                getValue = function()
+                    return value
+                end,
+                setValue = function(v)
+                    value = v
+                end,
+                labelFn = function(v)
+                    return string.format("Volume %d", math.floor(v * 100 + 0.5))
+                end,
+                step = 0.05,
+                bigStep = 0.20,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
+    T.eq(value, 0.45)
+end
+
+function M.test_virtual_slider_shift_right_uses_big_step()
+    setup()
+    local value = 0.5
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.VirtualSlider({
+                textKey = "LBL_VOL",
+                getValue = function()
+                    return value
+                end,
+                setValue = function(v)
+                    value = v
+                end,
+                labelFn = function(v)
+                    return string.format("Volume %d", math.floor(v * 100 + 0.5))
+                end,
+                step = 0.05,
+                bigStep = 0.20,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 1, WM_KEYDOWN) -- mod 1 = Shift
+    T.eq(value, 0.7)
+end
+
+function M.test_virtual_slider_clamps_at_one()
+    setup()
+    local value = 0.99
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.VirtualSlider({
+                textKey = "LBL_VOL",
+                getValue = function()
+                    return value
+                end,
+                setValue = function(v)
+                    value = v
+                end,
+                labelFn = function(v)
+                    return string.format("Volume %d", math.floor(v * 100 + 0.5))
+                end,
+                step = 0.05,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(value, 1)
+    -- Second press at the cap is a no-op on the setter but still announces
+    -- (so the user gets feedback that they're at the boundary).
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(value, 1)
+end
+
+function M.test_virtual_slider_clamps_at_zero()
+    setup()
+    local value = 0.02
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.VirtualSlider({
+                textKey = "LBL_VOL",
+                getValue = function()
+                    return value
+                end,
+                setValue = function(v)
+                    value = v
+                end,
+                labelFn = function(v)
+                    return string.format("Volume %d", math.floor(v * 100 + 0.5))
+                end,
+                step = 0.05,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
+    T.eq(value, 0)
+end
+
+function M.test_virtual_slider_focus_announces_current_value()
+    setup()
+    local v1 = 0.25
+    local v2 = 0.75
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.VirtualSlider({
+                textKey = "A",
+                getValue = function()
+                    return v1
+                end,
+                setValue = function() end,
+                labelFn = function(v)
+                    return string.format("A %d", math.floor(v * 100 + 0.5))
+                end,
+            }),
+            BaseMenuItems.VirtualSlider({
+                textKey = "B",
+                getValue = function()
+                    return v2
+                end,
+                setValue = function() end,
+                labelFn = function(v)
+                    return string.format("B %d", math.floor(v * 100 + 0.5))
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(speaks[1].text, "B 75")
+end
+
+-- VirtualToggle --------------------------------------------------------
+--
+-- Settings-menu bool toggle with no Civ V XML widget. Activate flips the
+-- value via setValue and announces the new state.
+
+function M.test_virtual_toggle_enter_flips_to_true_and_announces_on()
+    setup()
+    local v = false
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.VirtualToggle({
+                textKey = "LBL_T",
+                getValue = function()
+                    return v
+                end,
+                setValue = function(nv)
+                    v = nv
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(v, true)
+    T.eq(speaks[#speaks].text, "LBL_T, on")
+end
+
+function M.test_virtual_toggle_space_flips_back_to_false_and_announces_off()
+    setup()
+    local v = true
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.VirtualToggle({
+                textKey = "LBL_T",
+                getValue = function()
+                    return v
+                end,
+                setValue = function(nv)
+                    v = nv
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_SPACE, 0, WM_KEYDOWN)
+    T.eq(v, false)
+    T.eq(speaks[#speaks].text, "LBL_T, off")
+end
+
+function M.test_virtual_toggle_focus_announces_current_state()
+    setup()
+    local v = true
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.VirtualToggle({
+                textKey = "LBL_T",
+                getValue = function()
+                    return v
+                end,
+                setValue = function() end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    -- The first announcement after push is "Screen" then the focused item.
+    T.eq(speaks[2].text, "LBL_T, on")
+end
+
 return M

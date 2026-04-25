@@ -1006,4 +1006,130 @@ function BaseMenuItems.Textfield(spec)
     return item
 end
 
+-- Virtual slider / toggle ------------------------------------------------
+--
+-- Settings-menu items for preferences that have no Civ V XML widget behind
+-- them (mod-side prefs like master volume or scanner auto-move). Unlike
+-- Slider / Checkbox, these don't read or write a Controls.X userdata; they
+-- delegate to a getValue / setValue pair the caller supplies, and the
+-- caller's setValue is responsible for any persistence + side effects
+-- (Prefs.setX, audio.set_master_volume, etc.).
+
+-- VirtualSlider: kind "slider" so BaseMenu's onLeft / onRight call adjust.
+-- Caller supplies getValue() -> number in [0,1], setValue(number), and a
+-- labelFn(value) -> string used by announce so the speech reads the live
+-- value without a Controls label control.
+function BaseMenuItems.VirtualSlider(spec)
+    assertLabel(spec, "VirtualSlider")
+    assertTooltip(spec, "VirtualSlider")
+    check(type(spec.getValue) == "function", "VirtualSlider needs getValue fn")
+    check(type(spec.setValue) == "function", "VirtualSlider needs setValue fn")
+    check(type(spec.labelFn) == "function", "VirtualSlider needs labelFn(value) fn")
+    local item = {
+        kind = "slider",
+        _getValue = spec.getValue,
+        _setValue = spec.setValue,
+        _labelFn = spec.labelFn,
+        step = spec.step or STEP_SMALL,
+        bigStep = spec.bigStep or STEP_BIG,
+    }
+    copyCommonFields(spec, item)
+    function item:isNavigable()
+        return true
+    end
+    function item:isActivatable()
+        return true
+    end
+    function item:announce(menu)
+        local ok, value = pcall(self._getValue)
+        if not ok then
+            Log.error("BaseMenuItems VirtualSlider getValue failed: " .. tostring(value))
+            return resolveLabel(self)
+        end
+        local ok2, label = pcall(self._labelFn, value)
+        if not ok2 then
+            Log.error("BaseMenuItems VirtualSlider labelFn failed: " .. tostring(label))
+            return resolveLabel(self)
+        end
+        return appendTooltip(label, resolveTooltip(self))
+    end
+    function item:activate(menu)
+        SpeechPipeline.speakInterrupt(self:announce(menu))
+    end
+    function item:adjust(menu, dir, big)
+        local ok, cur = pcall(self._getValue)
+        if not ok then
+            Log.error("BaseMenuItems VirtualSlider getValue failed: " .. tostring(cur))
+            return
+        end
+        local delta = (big and self.bigStep or self.step) * dir
+        local next = cur + delta
+        if next < 0 then
+            next = 0
+        end
+        if next > 1 then
+            next = 1
+        end
+        if next == cur then
+            SpeechPipeline.speakInterrupt(self:announce(menu))
+            return
+        end
+        local okSet, err = pcall(self._setValue, next)
+        if not okSet then
+            Log.error("BaseMenuItems VirtualSlider setValue failed: " .. tostring(err))
+            return
+        end
+        SpeechPipeline.speakInterrupt(self:announce(menu))
+    end
+    return item
+end
+
+-- VirtualToggle: kind "checkbox" semantics on a bool getValue / setValue
+-- pair. activate flips the value via setValue and re-announces. Same
+-- announcement shape as the XML-backed Checkbox: "Label, on" / "Label, off".
+function BaseMenuItems.VirtualToggle(spec)
+    assertLabel(spec, "VirtualToggle")
+    assertTooltip(spec, "VirtualToggle")
+    check(type(spec.getValue) == "function", "VirtualToggle needs getValue fn")
+    check(type(spec.setValue) == "function", "VirtualToggle needs setValue fn")
+    local item = {
+        kind = "checkbox",
+        _getValue = spec.getValue,
+        _setValue = spec.setValue,
+    }
+    copyCommonFields(spec, item)
+    function item:isNavigable()
+        return true
+    end
+    function item:isActivatable()
+        return true
+    end
+    function item:announce(menu)
+        local ok, value = pcall(self._getValue)
+        if not ok then
+            Log.error("BaseMenuItems VirtualToggle getValue failed: " .. tostring(value))
+            return resolveLabel(self)
+        end
+        local stateKey = value and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF"
+        local base = resolveLabel(self) .. ", " .. Text.key(stateKey)
+        return appendTooltip(base, resolveTooltip(self))
+    end
+    function item:activate(menu)
+        local ok, cur = pcall(self._getValue)
+        if not ok then
+            Log.error("BaseMenuItems VirtualToggle getValue failed: " .. tostring(cur))
+            return
+        end
+        local okSet, err = pcall(self._setValue, not cur)
+        if not okSet then
+            Log.error("BaseMenuItems VirtualToggle setValue failed: " .. tostring(err))
+            return
+        end
+        BaseMenuItems.clickAck()
+        SpeechPipeline.speakInterrupt(self:announce(menu))
+    end
+    function item:adjust(menu, dir, big) end
+    return item
+end
+
 return BaseMenuItems

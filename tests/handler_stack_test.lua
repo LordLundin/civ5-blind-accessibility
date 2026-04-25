@@ -17,6 +17,12 @@ local function setup()
     Log.debug = function() end
     dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
     HandlerStack._reset()
+    -- Tests in this suite assert per-handler help-entry counts. The
+    -- production module ships with a non-empty commonHelpEntries (F12 →
+    -- Settings); reset to empty here so each test sees only what it
+    -- explicitly pushes. Tests that exercise commonHelpEntries set it
+    -- themselves and reset to {} on the way out.
+    HandlerStack.commonHelpEntries = {}
 end
 
 local function makeHandler(name, opts)

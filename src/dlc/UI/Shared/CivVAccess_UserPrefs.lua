@@ -113,3 +113,37 @@ function Prefs.setInt(key, v)
         Log.error("Prefs.setInt(" .. tostring(key) .. ") threw: " .. tostring(err))
     end
 end
+
+-- Float pair. The engine's number roundtrip is documented above to preserve
+-- the value as-is, so float storage is the same code as int with no encoding.
+-- Kept as a separate name so callers express the contract at the call site.
+function Prefs.getFloat(key, default)
+    local h = handle()
+    if h == nil then
+        return default
+    end
+    local ok, v = pcall(function()
+        return h.GetValue(key)
+    end)
+    if not ok then
+        Log.error("Prefs.getFloat(" .. tostring(key) .. ") threw: " .. tostring(v))
+        return default
+    end
+    if v == nil then
+        return default
+    end
+    return v
+end
+
+function Prefs.setFloat(key, v)
+    local h = handle()
+    if h == nil then
+        return
+    end
+    local ok, err = pcall(function()
+        h.SetValue(key, v)
+    end)
+    if not ok then
+        Log.error("Prefs.setFloat(" .. tostring(key) .. ") threw: " .. tostring(err))
+    end
+end

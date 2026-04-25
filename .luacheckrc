@@ -96,7 +96,7 @@ globals = {
     "MPGameSetupShared", "SavedGameShared",
     "InstalledPanel", "LoadMenu", "LoadReplayMenu", "Lobby", "SaveMenu",
     "CivDetails", "Civilopedia", "CivilopediaCategory",
-    "AudioCueMode",
+    "AudioCueMode", "VolumeControl", "Settings",
     "CameraTracker", "NavigableGraph",
 
     -- InGame modules

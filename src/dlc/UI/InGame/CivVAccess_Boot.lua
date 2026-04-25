@@ -43,6 +43,8 @@ include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
+include("CivVAccess_VolumeControl")
+include("CivVAccess_Settings")
 -- Unit-control modules. UnitSpeech (pure formatters) first so the menu
 -- and target-mode modules can reference it; UnitControl last because it
 -- ties the others into the listener / bindings surface.
@@ -116,6 +118,9 @@ local function onInGameBoot()
     civvaccess_shared.mapScope = nil
     civvaccess_shared.mapAnnouncer = nil
     PlotAudio.loadAll()
+    -- Apply persisted master volume now that the proxy's audio engine is
+    -- initialized. Setting before loadAll would be a silent no-op.
+    VolumeControl.restore()
     TaskList.resetForNewGame()
     HandlerStack.removeByName("Baseline")
     HandlerStack.push(BaselineHandler.create())

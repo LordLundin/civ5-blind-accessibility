@@ -233,6 +233,10 @@ function BaselineHandler.create()
     appendAll(helpEntries, ScannerHandler.HELP_ENTRIES)
     appendAll(helpEntries, FUNCTION_KEY_HELP_ENTRIES)
 
+    -- F12 is intentionally absent: InputRouter's pre-walk hook claims it
+    -- for the mod-wide Settings overlay. Letting it fall through here would
+    -- be dead weight (the engine has no F12 binding) and would falsely
+    -- advertise the chord as engine-handled.
     local passthroughKeys = {
         [Keys.VK_F1] = true,
         [Keys.VK_F2] = true,
@@ -245,7 +249,6 @@ function BaselineHandler.create()
         [Keys.VK_F9] = true,
         [Keys.VK_F10] = true,
         [Keys.VK_F11] = true,
-        [Keys.VK_F12] = true,
         [Keys.VK_ESCAPE] = true,
     }
     return {

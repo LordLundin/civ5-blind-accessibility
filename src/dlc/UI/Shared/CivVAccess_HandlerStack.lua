@@ -186,10 +186,14 @@ function HandlerStack.clear()
 end
 
 -- Always-on help entries appended at the bottom of every collected list.
--- Empty for now; reserved for mod-wide hotkeys that exist at every depth of
--- the stack (cross-screen toggles, config, etc. — see ONI's F12/Ctrl+Shift+
--- F12 common entries). Authored as {keyLabel, description} TXT_KEYs.
-HandlerStack.commonHelpEntries = {}
+-- For mod-wide hotkeys reachable at every depth of the stack. Authored as
+-- {keyLabel, description} TXT_KEYs.
+HandlerStack.commonHelpEntries = {
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F12",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS",
+    },
+}
 
 -- Walk the stack top-to-bottom (mirroring InputRouter's dispatch walk),
 -- collecting authored helpEntries from each reachable handler. Stops after

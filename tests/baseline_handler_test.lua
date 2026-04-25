@@ -165,16 +165,17 @@ end
 
 function M.test_passthrough_covers_f_row_and_escape()
     -- Baseline captures every unbound key so the engine's mission / build /
-    -- automate vocabulary doesn't leak through, but carves out F1-F12 and
+    -- automate vocabulary doesn't leak through, but carves out F1-F11 and
     -- Escape so advisor screens, quick save/load, and the pause menu
-    -- remain reachable from the map.
+    -- remain reachable from the map. F12 is intentionally absent because
+    -- InputRouter's pre-walk hook claims it for the Settings overlay.
     setup()
     local h = BaselineHandler.create()
     T.truthy(h.passthroughKeys, "passthroughKeys table present")
     T.truthy(h.passthroughKeys[Keys.VK_F1], "F1 passes through")
     T.truthy(h.passthroughKeys[Keys.VK_F10], "F10 passes through")
     T.truthy(h.passthroughKeys[Keys.VK_F11], "F11 passes through")
-    T.truthy(h.passthroughKeys[Keys.VK_F12], "F12 passes through")
+    T.falsy(h.passthroughKeys[Keys.VK_F12], "F12 is owned by InputRouter")
     T.truthy(h.passthroughKeys[Keys.VK_ESCAPE], "Escape passes through")
     T.falsy(h.passthroughKeys[Keys.A], "letters do not pass through")
 end
