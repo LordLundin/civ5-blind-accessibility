@@ -129,6 +129,39 @@ local function isMoveMode(mode)
         or mode == InterfaceModeTypes.INTERFACEMODE_MOVE_TO_ALL
 end
 
+local function isRouteMode(mode)
+    return mode == InterfaceModeTypes.INTERFACEMODE_ROUTE_TO
+end
+
+-- Route-to preview. The engine routes a worker on MISSION_ROUTE_TO via
+-- BuildRouteFinder (CvAStar.cpp BuildRouteCost / BuildRouteValid), not
+-- the unit movement pathfinder. RoutePathfinder mirrors that A*. We
+-- speak two pieces: how far the road will reach (path length excluding
+-- the worker's start tile) and how long until the chain is finished
+-- (sum of per-tile build turns over plots that need a route built).
+local function routePathPreview(actor, targetPlot)
+    local result, reason = RoutePathfinder.findPath(actor, targetPlot)
+    if result == nil then
+        if reason == "same_plot" then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+        end
+        if reason == "unexplored" then
+            return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
+        end
+        if reason == "too_far" then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_TOO_FAR")
+        end
+        if reason == "no_build" then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD")
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
+    end
+    if result.buildTurns == 0 then
+        return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE", result.tileCount)
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE", result.tileCount, result.buildTurns)
+end
+
 local function buildPreview(self)
     local plot, tx, ty = cursorPlot()
     if plot == nil then
@@ -166,6 +199,8 @@ local function buildPreview(self)
         -- commit detection here. Pathfinder reports MP cost and turn
         -- count; same-plot cursor falls through to EMPTY as before.
         parts[#parts + 1] = movePathPreview(actor, plot)
+    elseif isRouteMode(mode) then
+        parts[#parts + 1] = routePathPreview(actor, plot)
     else
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
     end

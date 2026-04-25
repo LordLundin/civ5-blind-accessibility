@@ -221,6 +221,21 @@ function T.fakePlot(opts)
     function p:GetNumFriendlyUnitsOfType(_unit)
         return self._friendlyStackCount
     end
+    function p:IsImpassable()
+        return self._isMountain
+    end
+    -- Vanilla CvPlot::IsFriendlyTerritory: false when unowned (NO_TEAM),
+    -- true on same team, true for city-state OB / major OB grant. Tests
+    -- pass an _isFriendly map keyed by player to model OB grants.
+    function p:IsFriendlyTerritory(player)
+        if self._owner == -1 then
+            return false
+        end
+        if self._owner == player then
+            return true
+        end
+        return (opts.isFriendlyTerritory or {})[player] or false
+    end
     return p
 end
 
