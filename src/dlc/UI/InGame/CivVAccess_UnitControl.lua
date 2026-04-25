@@ -34,8 +34,17 @@
 -- side pre-damage and pre-resolved display names at commit (units may
 -- be gone by fallback execution time), then a tick-based timer reads
 -- post-state and feeds UnitSpeech.combatResult with a constructed
--- payload. EndCombatSim clears the snapshot when it fires so the two
--- paths don't double-speak.
+-- payload.
+--
+-- Snapshot registration is gated on GAMEOPTION_QUICK_COMBAT. Without the
+-- gate, animations-on combats double-speak: the engine resolves damage
+-- synchronously in the mission queue regardless of animation setting, so
+-- the snapshot timer reads final post-state at commit+3 frames and
+-- speaks; then EndCombatSim fires when the animation finishes (often
+-- several seconds later) and speaks the same result again. The earlier
+-- "EndCombatSim clears the snapshot" guard only worked in the
+-- EndCombatSim-then-timer order, which is the reverse of what happens
+-- with animations on.
 --
 -- War-confirm moves freeze pending into a deferred slot. Moving onto a
 -- peaceful rival's tile (or attacking a peaceful rival's unit) does not
@@ -148,8 +157,14 @@ end
 -- execution time the killed unit may already be torn down. The fallback
 -- timer runs UnitSpeech.combatResult with a payload reconstructed from
 -- post-state damage minus snapshot pre-damage.
+--
+-- No-op when Quick Combat is off; EndCombatSim is authoritative in that
+-- mode and registering the snapshot would double-speak.
 function UnitControl.registerCombatPending(actor, defender)
     if actor == nil or defender == nil then
+        return
+    end
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_QUICK_COMBAT) then
         return
     end
     local atkPlayer = actor:GetOwner()
@@ -692,9 +707,6 @@ local function onEndCombatSim(
     if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
         return
     end
-    -- Animations-on path is authoritative; cancel any combat-pending
-    -- snapshot the commit registered so we don't double-speak.
-    clearCombatPending()
     local text = UnitSpeech.combatResult({
         attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit),
         defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit),
@@ -756,12 +768,12 @@ local function liveDamage(playerId, unitId, snapshotMaxHP)
     return unit:GetDamage()
 end
 
--- Quick-Combat fallback. Animations-on combats fire EndCombatSim and
--- onEndCombatSim clears _combatPending before this timer's body runs,
--- so we no-op in that case. With animations off, EndCombatSim never
--- fires; the snapshot here reads post-state damage and reconstructs the
--- same payload shape EndCombatSim would have delivered, then routes
--- through UnitSpeech.combatResult so both modes speak the same sentence.
+-- Quick-Combat speech path. The snapshot is only ever registered when
+-- GAMEOPTION_QUICK_COMBAT is on (see registerCombatPending), where
+-- EndCombatSim never fires; this timer reads post-state damage and
+-- reconstructs the same payload shape EndCombatSim would have delivered,
+-- then routes through UnitSpeech.combatResult so both modes speak the
+-- same sentence.
 scheduleCombatExpiry = function(snapshot)
     TickPump.runOnce(function()
         if _combatPending ~= snapshot then
