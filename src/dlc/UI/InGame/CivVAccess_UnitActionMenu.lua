@@ -67,6 +67,16 @@ local function actionLabel(action)
     return Text.key(key)
 end
 
+-- Static Help text from the action's underlying table (Builds.Help,
+-- UnitPromotions.Help, Missions.Help, etc.). Engine defaults are "" for
+-- rows that don't author one, so treat empty / nil the same.
+local function staticHelpText(action)
+    if type(action.Help) ~= "string" or action.Help == "" then
+        return nil
+    end
+    return Text.key(action.Help)
+end
+
 -- Yield TXT_KEY per YieldTypes.YIELD_* id, for build-tooltip delta strings.
 -- Keys mirror UnitPanel.lua TipHandler's yield branch (line ~1586).
 local BUILD_YIELD_KEYS = {
@@ -78,19 +88,22 @@ local BUILD_YIELD_KEYS = {
     [YieldTypes.YIELD_FAITH] = "TXT_KEY_BUILD_FAITH_STRING",
 }
 
--- Build tooltip: turn count for this plot, per-yield delta vs current,
+-- Rich build tooltip mirroring UnitPanel.lua TipHandler (line ~1540-1658):
+-- static Help, turn count for this plot, per-yield delta vs current,
 -- resource connection, feature clearing. All pieces joined with ". " so
 -- appendTooltip's sentence-level dedup can drop duplicates against the
--- label. Mirrors UnitPanel.lua TipHandler (line ~1540-1658) minus the
--- static Help prefix; the engine's Help strings carry color markup and
--- prose that read awkwardly when concatenated with the data clauses.
--- Re-queried at announce time per the "never cache game state" rule.
+-- label. Re-queried at announce time per the "never cache game state" rule.
 local function buildActionTooltip(unit, action)
     local parts = {}
+    local help = staticHelpText(action)
+    if help ~= nil then
+        parts[#parts + 1] = help
+    end
+
     local iBuildID = action.MissionData
     local pBuild = GameInfo.Builds[iBuildID]
     if pBuild == nil then
-        return nil
+        return table.concat(parts, ". ")
     end
 
     local plot = unit:GetPlot()
@@ -224,6 +237,9 @@ local function buildPromotionItems(unit, rows)
         local promotionName = label
         items[#items + 1] = BaseMenuItems.Choice({
             labelText = label,
+            tooltipFn = function()
+                return staticHelpText(action)
+            end,
             activate = function()
                 commitSelfPlot(action, { iAction = iAction, promotionName = promotionName })
                 HandlerStack.removeByName("UnitActionMenu", false)
@@ -265,6 +281,9 @@ local function buildTopLevelItems(unit, buckets)
         elseif isTargetedAction(action.Type) then
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = label,
+                tooltipFn = function()
+                    return staticHelpText(action)
+                end,
                 activate = function()
                     HandlerStack.removeByName("UnitActionMenu", false)
                     commitTargeted(unit, action, iAction)
@@ -273,6 +292,9 @@ local function buildTopLevelItems(unit, buckets)
         else
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = label,
+                tooltipFn = function()
+                    return staticHelpText(action)
+                end,
                 activate = function()
                     commitSelfPlot(action, { iAction = iAction })
                     HandlerStack.removeByName("UnitActionMenu", false)
