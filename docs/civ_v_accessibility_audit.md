@@ -158,13 +158,13 @@ Ctrl+Space ends the turn. If something is blocking — a city needs production, 
 
 The "Turn N, year" line speaks at the start of every turn including the first. Turn-end fires "Turn ended" so the state transition is audible.
 
-## 3.5 Tech panel — Partial
+## 3.5 Tech panel — Done
 
-The current-research compact readout (icon, name, progress bar, turns remaining, banked free-tech slots) sits permanently below the top panel. The tech tree it opens and the chooser popups it triggers are both fully covered. The HUD readout itself has no hotkey to query "what am I researching and how long?" without going through the tree — a blind player can answer the question but it costs a screen open.
+The current-research compact readout (icon, name, progress bar, turns remaining, banked free-tech slots) sits permanently below the top panel. The tech tree it opens and the chooser popups it triggers are both fully covered. Bare R speaks the current research with turns and science per turn (see 3.1), so the HUD readout is queryable without opening the tree.
 
-## 3.6 Social policies and culture progress indicator — Partial
+## 3.6 Social policies and culture progress indicator — Done
 
-Same shape as 3.5: the chooser popup is fully covered, the HUD progress label (X of Y culture toward next policy, turns remaining) has no dedicated readout key. Ideology adoption is gated through a blocking notification and the choice popup, both of which are covered.
+The chooser popup is fully covered, and bare P speaks culture per turn and turns to the next policy (see 3.1), covering the HUD progress label without a screen open. Ideology adoption is gated through a blocking notification and the choice popup, both of which are covered.
 
 ## 3.7 Unit panel — Done
 
