@@ -2,6 +2,12 @@
 -- three content labels populated by OnPopup from the awarded Technology.
 -- Dismiss button is ContinueButton in BNW (CloseButton is hidden); we
 -- wire both and visibility drops the hidden one from navigation.
+--
+-- Speech model: silentFirstOpen so the engine's narrated tech quote (a
+-- voice clip the game plays as the popup appears) is not stepped on by
+-- Tolk. The TechName is rolled into displayName via onShow so the first-
+-- open announce still tells the user what finished researching. Quote
+-- and help stay in the preamble and are reachable on demand via F1.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -35,10 +41,9 @@ local function labelOf(name)
     return tostring(text)
 end
 
+-- TechName is in displayName, so omit it here to avoid F1 reading it twice.
 local function preamble()
     local parts = {}
-    local name = labelOf("TechName")
-    if name ~= "" then parts[#parts + 1] = name end
     local quote = labelOf("TechQuote")
     if quote ~= "" then parts[#parts + 1] = quote end
     local help = labelOf("TechHelp")
@@ -46,13 +51,14 @@ local function preamble()
     return table.concat(parts, ", ")
 end
 
-BaseMenu.install(ContextPtr, {
-    name          = "TechAwardPopup",
-    displayName   = Text.key("TXT_KEY_TECH_AWARD_TITLE"),
-    preamble      = preamble,
-    priorInput    = priorInput,
-    priorShowHide = priorShowHide,
-    items         = {
+local handler = BaseMenu.install(ContextPtr, {
+    name            = "TechAwardPopup",
+    displayName     = Text.key("TXT_KEY_TECH_AWARD_TITLE"),
+    preamble        = preamble,
+    silentFirstOpen = true,
+    priorInput      = priorInput,
+    priorShowHide   = priorShowHide,
+    items           = {
         BaseMenuItems.Button({
             controlName = "ContinueButton",
             textKey     = "TXT_KEY_TECH_AWARD_BUTTON",
@@ -64,4 +70,13 @@ BaseMenu.install(ContextPtr, {
             activate    = function() OnClose() end,
         }),
     },
+    onShow          = function(h)
+        local title = Text.key("TXT_KEY_TECH_AWARD_TITLE")
+        local name = labelOf("TechName")
+        if name ~= "" then
+            h.displayName = title .. ", " .. name
+        else
+            h.displayName = title
+        end
+    end,
 })
