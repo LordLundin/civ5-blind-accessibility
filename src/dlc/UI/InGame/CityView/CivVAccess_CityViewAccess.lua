@@ -32,6 +32,7 @@ include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
 include("CivVAccess_CitySpeech")
+include("CivVAccess_CityStats")
 
 local priorInput = InputHandler
 
@@ -45,26 +46,14 @@ local hubHandler -- forward; assigned after BaseMenu.install returns.
 
 -- ===== Preamble composition =====
 --
--- Re-resolved on every F1 / city-change so stale data can't leak. Status /
--- growth / production tokens come from CitySpeech; the connected token is
--- a CityView-surface concern (cursor-glance identity omits it).
-
--- Per-turn yields in the order the plan lists (food, production, gold,
--- science, faith, tourism, culture). Food uses net FoodDifference so the
--- user hears the starvation-adjusted number; tourism uses GetBaseTourism
--- scaled down /100 to match the banner's displayed integer.
-local function yieldTokens(city)
-    return {
-        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FOOD", city:FoodDifference()),
-        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_PRODUCTION", city:GetYieldRate(YieldTypes.YIELD_PRODUCTION)),
-        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLD", city:GetYieldRate(YieldTypes.YIELD_GOLD)),
-        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE", city:GetYieldRate(YieldTypes.YIELD_SCIENCE)),
-        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH", city:GetYieldRate(YieldTypes.YIELD_FAITH)),
-        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM", math.floor(city:GetBaseTourism() / 100)),
-        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE", city:GetYieldRate(YieldTypes.YIELD_CULTURE)),
-    }
-end
-
+-- Trimmed to identifying-and-urgent: name, status tokens (razing /
+-- resistance / occupied / puppet / blockaded), growth headline, current
+-- production line, population. Yields, connected indicator, defense
+-- breakdown, and unemployed count have moved into the Stats hub item
+-- below -- the preamble re-reads on every sub-handler pop and arrowing
+-- past dozens of numbers each time was the friction that motivated the
+-- redesign. Re-resolved on every F1 / city-change so stale data can't
+-- leak.
 local function preamble()
     local city = UI.GetHeadSelectedCity()
     if city == nil then
@@ -72,22 +61,12 @@ local function preamble()
     end
     local parts = {}
     parts[#parts + 1] = city:GetName()
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_POPULATION", city:GetPopulation())
-    parts[#parts + 1] = CitySpeech.growthToken(city)
-    parts[#parts + 1] = CitySpeech.productionToken(city)
-    for _, t in ipairs(yieldTokens(city)) do
-        parts[#parts + 1] = t
-    end
     for _, t in ipairs(CitySpeech.statusTokens(city)) do
         parts[#parts + 1] = t
     end
-    local connected = CitySpeech.connectedToken(city)
-    if connected ~= nil then
-        parts[#parts + 1] = connected
-    end
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_DEFENSE", math.floor(city:GetStrengthValue() / 100))
-    parts[#parts + 1] =
-        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_UNEMPLOYED", city:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST))
+    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_POPULATION", city:GetPopulation())
+    parts[#parts + 1] = CitySpeech.growthToken(city)
+    parts[#parts + 1] = CitySpeech.productionToken(city)
     return table.concat(parts, ". ") .. "."
 end
 
@@ -1744,37 +1723,32 @@ local function activateUnraze()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"))
 end
 
--- ===== Resource demand / WLTKD readout =====
+-- ===== Stats sub-handler =====
 --
--- Mirrors the ResourceDemandedBox in CityView.xml (line 253) and its update
--- in CityView.lua:1548-1569. Visibility predicate matches base: gate on
--- GetResourceDemanded(true) ~= -1. Inside, WLTKD takes priority when its
--- counter is positive; otherwise the demanded-resource label. Returns nil
--- when the city has no demand cycle yet (early-game settle) so the caller
--- can omit the item rather than read a dead-end.
-
-local function resourceDemandLabel(city)
-    if city:GetResourceDemanded(true) == -1 then
-        return nil
+-- Pushes the per-category drilldown that absorbed yields, growth, culture
+-- progress, happiness, religion, trade, resources, defense, and the WLTKD
+-- / resource-demanded line (which used to be a terminal hub item). The
+-- groups themselves are built fresh on every push from CityStats.buildItems
+-- so a buy / specialist / focus change in another sub-handler that pops
+-- back through Stats produces fresh numbers.
+local function pushStats()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
     end
-    local turns = city:GetWeLoveTheKingDayCounter()
-    if turns > 0 then
-        return Text.format("TXT_KEY_CITYVIEW_WLTKD_COUNTER", turns)
-    end
-    local resourceInfo = GameInfo.Resources[city:GetResourceDemanded()]
-    if resourceInfo == nil then
-        return nil
-    end
-    return Text.format("TXT_KEY_CITYVIEW_RESOURCE_DEMANDED", Text.key(resourceInfo.Description))
+    local player = Players[city:GetOwner()]
+    pushCitySub("Stats", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS"), CityStats.buildItems(city, player))
 end
 
 -- ===== Hub item list =====
 --
--- Rebuilt on every hub activation (initial push + sub-handler pop). Order
--- from the plan: Production / Hex / Ranged Strike / Buildings / Wonders /
--- Worker focus / Specialists / Great works / Great people / Unemployed /
--- Rename / Raze. Conditional items drop out when their gating predicate
--- is false without reshuffling the surviving ones.
+-- Rebuilt on every hub activation (initial push + sub-handler pop). Order:
+-- Stats / Production / Hex / Ranged Strike / Buildings / Wonders / Worker
+-- focus / Specialists / Great works / Great people / Unemployed / Rename /
+-- Raze. Stats leads because it absorbed the seven-yield run that used to
+-- pad the preamble; the user reaches yields and the rest of the city's
+-- numbers in one place at the top of the list. Conditional items drop out
+-- when their gating predicate is false without reshuffling the survivors.
 
 -- Hub items are gated per plan §3: an item is present only when its sub-
 -- handler would land the user on at least one real entry, so arrowing
@@ -1783,9 +1757,10 @@ end
 -- whose label carries its own zero-state).
 local function buildHubItems(city)
     local items = {}
-    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, pushHexMap)
+    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS") }, pushStats)
     items[#items + 1] =
         makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") }, pushProductionQueue)
+    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, pushHexMap)
     if city:CanRangeStrikeNow() then
         items[#items + 1] =
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE") }, pushRangedStrike)
@@ -1824,10 +1799,6 @@ local function buildHubItems(city)
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE") }, activateUnraze)
     elseif canShowRaze(city) then
         items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE") }, activateRaze)
-    end
-    local demandLabel = resourceDemandLabel(city)
-    if demandLabel ~= nil then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = demandLabel })
     end
     return items
 end

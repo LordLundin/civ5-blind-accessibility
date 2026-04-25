@@ -331,6 +331,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT"] = "Commit edit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F12"] = "F12"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS"] = "Open settings"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE_SETTINGS"] = "Close settings"
+-- BaseTable: 2D table viewer (used by F2 cities, future demographics, etc.).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_DESC"] = "{1_Col}, descending"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_ASC"] = "{1_Col}, ascending"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_CLEARED"] = "{1_Col}, sort cleared"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_NAV_ROWS"] = "Move between rows"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_NAV_COLS"] = "Move between columns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_HOME_END"] = "First or last row"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_ENTER"] = "Activate cell or sort by column"
 -- Settings overlay strings. Reachable from every Context that routes
 -- through InputRouter, so duplicated in the FrontEnd copy as well.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Settings"
@@ -576,6 +584,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_PREV_CITY"] = "no previous ci
 -- an item on the hub itself, not a sub; its label carries the live count
 -- so the user hears it when arrowing past and doesn't have to drill in
 -- just to check.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS"] = "Stats"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS"] = "Wonders"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE"] = "Great people progress"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"] = "Worker focus"
@@ -1077,6 +1086,61 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_EXPORTS_LIST"] = "exporting {1_List
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPEN_BORDERS"] = "open borders"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BULLYABLE"] = "bullyable"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_ALLY_OF"] = "ally of {1_Civ}"
+-- City Stats drillable. The Stats hub item pushes a sub-handler whose
+-- top-level items are these category groups. Per-yield drill-ins reuse
+-- the existing CITYVIEW_YIELD_* one-line headers (food / production /
+-- gold / etc.) so the per-turn label is identical whether the user reads
+-- it from the Yields-group root or the individual yield's drill-in
+-- header.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_YIELDS"] = "Yields"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_GROWTH"] = "Growth"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_CULTURE"] = "Culture progress"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_HAPPINESS"] = "Happiness"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RELIGION"] = "Religion"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_TRADE"] = "Trade routes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RESOURCES"] = "Resources"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_DEFENSE"] = "Defense"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_DEMAND"] = "Resource demand"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_NO_BREAKDOWN"] = "no breakdown available"
+-- Per-yield drill-in header keys re-use the same 7 CITYVIEW_YIELD strings
+-- the preamble used to read; the table below is symmetrical so a future
+-- locale only writes the spoken label once.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_FOOD"] = "food {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_PRODUCTION"] = "production {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_GOLD"] = "gold {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_SCIENCE"] = "science {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_FAITH"] = "faith {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_TOURISM"] = "tourism {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_CULTURE"] = "culture {1_Num}"
+-- Culture progress group: stored / threshold pair, per-turn rate, and the
+-- next-tile countdown that the engine hides when culture per turn is zero.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PROGRESS"] = "{1_Stored} of {2_Needed} culture"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PER_TURN"] = "{1_Num} per turn"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_IN"] = "next tile in {1_Num} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED"] = "tile expansion stalled"
+-- Happiness group: local-only contribution from buildings here, plus the
+-- per-city slice of the empire's unhappiness pool (population / occupied /
+-- specialists already folded in by the engine).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_LOCAL"] = "local happiness {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_UNHAPPINESS"] = "unhappiness {1_Num}"
+-- Religion group: one row per religion present, holy-city flag inlined
+-- when applicable so the user hears it together with that religion's
+-- numbers rather than as a separate line.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_LINE"] =
+    "{1_Religion}, {2_Followers} followers, {3_Pressure} pressure"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_HOLY_LINE"] =
+    "{1_Religion}, holy city, {2_Followers} followers, {3_Pressure} pressure"
+-- Trade group: direction first so the partner city name lands second
+-- (matches the way GetTradeRoutes presents from / to).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_OUTGOING"] = "to"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_INCOMING"] = "from"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_DOMAIN_LAND"] = "land"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_DOMAIN_SEA"] = "sea"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_ROUTE"] = "{1_Direction} {2_City}, {3_Domain}"
+-- Defense group: each defensive building announces with the same {Building}
+-- format string so adding a new defensive building only adds a row, not a
+-- new label.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_DEFENSE_BUILDING_LINE"] = "{1_Building}"
 -- Leader descriptions. Spoken on F2 over LeaderHeadRoot /
 -- DiscussionDialog / DiploTrade, keyed by Leaders.Type (Players[i]:GetLeaderType()
 -- -> GameInfo.Leaders[lt].Type). Sourced from docs/leader-descriptions.md.
@@ -1168,3 +1232,68 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_LEADER_ENRICO_DANDOLO"] =
     "Enrico Dandolo, Doge of the Most Serene Republic of Venice, stands on a stone bridge over a canal at night, one gloved hand drawn up to his chest. He is old: a long grey beard falls to his chest, grey hair shows at his temples, and his face is deeply lined. On his head sits the corno ducale, a stiff horn-shaped ducal bonnet of rust-red brocade rising to a blunt point at the back like a Phrygian cap, worn here over a close-fitting white linen camauro whose edge shows beneath it at the brow. Across his shoulders lies a heavy grey mantle trimmed in pale fur, falling open at the front and lined in the same rust-red as the cap. Beneath it he wears a long robe of deep red brocade girded at the waist with a knotted gold cord. The bridge's balustrade is wrought iron, its panels filled with slender pointed arches in the Venetian Gothic manner. Behind him the canal recedes into darkness, flanked by palazzi whose windows glow warm orange against the blue night. A narrow gondola is moored at the quay on the left, the starlit sky breaking through cloud above the rooftops."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_LEADER_SHAKA"] =
     "Shaka kaSenzangakhona, King of the Zulu, stands in the open ground of a royal homestead, feet planted, shield held out at his left side and short spear at his right. He is bare-chested, dark-skinned, and heavily muscled, his torso crossed by slender cords strung with small beads. Around his head is an umqhele, a thick circular headband of spotted leopard fur marking royal and senior rank. Fixed to it at the brow stands an upright plume of white feathers tipped in red. At his waist hangs an apron of leopard skin falling over the hips, and beneath it a skirting of long pale fur tassels sways against his thighs. Bands of the same spotted fur wrap his ankles. In his left hand he carries an isihlangu, a tall pointed oval war shield of oxhide; Its surface is mottled brown and white, a straight wooden stave running down its center and secured by leather loops. In his right hand, held low and ready, is an iklwa, a short-shafted stabbing spear with a long broad leaf-shaped blade. Behind him curves a row of iqukwane, domed grass-and-thatch beehive huts of a Zulu umuzi, their woven surfaces catching the sun. Flanking the clearing on either side rise wooden posts crowned with the skulls of long-horned cattle, the great sweeping horns still attached, wealth and sacrifice displayed at the gate. The ground is dry pale earth, a flat-topped mesa shows in the far distance, and the sky above is a clear pale blue streaked with thin cloud."
+-- Economic Overview (F2 / Domestic Advisor): tab names, column labels,
+-- group / row text consumed by CivVAccess_EconomicOverviewAccess.lua.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_TAB_CITIES"] = "Cities"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_TAB_GOLD"] = "Gold"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_TAB_HAPPINESS"] = "Happiness"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_TAB_RESOURCES"] = "Resources"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_POPULATION"] = "Population"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_STRENGTH"] = "Strength"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FOOD"] = "Food"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_SCIENCE"] = "Science"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLD"] = "Gold"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_CULTURE"] = "Culture"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FAITH"] = "Faith"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION"] = "Production"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_CAPITAL"] = "capital"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_PUPPET"] = "puppet"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_OCCUPIED"] = "occupied"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_OCCUPIED_FLAG"] = "occupied"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_CITY_LABEL"] = "{1_Name} ({2_Annot})"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_CITY_LINE"] = "{1_Name}, {2_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_CITY_LINE_ANNOT"] = "{1_Name}, {2_Value} ({3_Annot})"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_EMPTY"] = "no entries"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_NONE"] = "no production"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_CELL"] = "{1_Turns} turns: {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_FULL"] = "{1_PerTurn} per turn, {2_Cell}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_NONE"] = "none"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_TOTAL"] = "Treasury, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_NET"] = "Net per turn, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_PENALTY"] = "Science penalty, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_GROSS"] = "Gross gold per turn, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_EXPENSES"] = "Total expenses per turn, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_INCOME"] = "Income"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_CITIES"] = "Cities, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_DIPLO"] = "Diplomacy, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_RELIGION"] = "Religion, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_TRADE"] = "Trade routes, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_EXPENSES"] = "Expenses"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_UNITS"] = "Units, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_BUILDINGS"] = "Buildings, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_IMPROVEMENTS"] = "Improvements, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_DIPLO"] = "Diplomacy, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TOTAL"] = "Total happiness, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_HAPPY_SOURCES"] = "Happiness sources"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURIES"] = "Luxuries, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS"] = "Buildings, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TRADE_ROUTES"] = "Trade routes, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LOCAL_CITIES"] = "Local cities, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_CITY_STATES"] = "City-states, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_POLICIES"] = "Policies, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_RELIGION"] = "Religion, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_NATURAL_WONDERS"] = "Natural wonders, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_FREE_PER_CITY"] = "Free per city, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LEAGUES"] = "Leagues, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_TOTAL"] = "Total unhappiness, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_UNHAPPY_SOURCES"] = "Unhappiness sources"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES"] = "Number of cities, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_CITIES"] = "Occupied cities, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_POPULATION"] = "Population, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = "Occupied population, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Public opinion, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Per city"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Available"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_IMPORTED"] = "Imported"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_EXPORTED"] = "Exported"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Local"
