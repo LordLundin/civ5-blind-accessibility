@@ -77,6 +77,30 @@ local function staticHelpText(action)
     return Text.key(action.Help)
 end
 
+-- Pedia search string for a Build action: the resulting Improvement's
+-- description (Farm, Trading Post, ...) when one exists, else the Route's
+-- description (Road, Railroad). Pure feature-clearing / repair builds
+-- have neither and return nil, leaving Ctrl+I a silent no-op there.
+local function buildPediaName(action)
+    local pBuild = GameInfo.Builds[action.MissionData]
+    if pBuild == nil then
+        return nil
+    end
+    if pBuild.ImprovementType ~= nil and pBuild.ImprovementType ~= "NONE" then
+        local pImprovement = GameInfo.Improvements[pBuild.ImprovementType]
+        if pImprovement ~= nil then
+            return Text.key(pImprovement.Description)
+        end
+    end
+    if pBuild.RouteType ~= nil and pBuild.RouteType ~= "NONE" then
+        local pRoute = GameInfo.Routes[pBuild.RouteType]
+        if pRoute ~= nil then
+            return Text.key(pRoute.Description)
+        end
+    end
+    return nil
+end
+
 -- Yield TXT_KEY per YieldTypes.YIELD_* id, for build-tooltip delta strings.
 -- Keys mirror UnitPanel.lua TipHandler's yield branch (line ~1586).
 local BUILD_YIELD_KEYS = {
@@ -237,6 +261,7 @@ local function buildPromotionItems(unit, rows)
         local promotionName = label
         items[#items + 1] = BaseMenuItems.Choice({
             labelText = label,
+            pediaName = label,
             tooltipFn = function()
                 return staticHelpText(action)
             end,
@@ -258,6 +283,7 @@ local function buildBuildItems(unit, rows)
         local buildName = label
         items[#items + 1] = BaseMenuItems.Choice({
             labelText = label,
+            pediaName = buildPediaName(action),
             tooltipFn = function()
                 return buildActionTooltip(unit, action)
             end,
