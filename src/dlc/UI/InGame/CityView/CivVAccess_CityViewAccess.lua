@@ -454,12 +454,12 @@ end
 
 -- ===== Buildings sub-handler (§3.7) =====
 --
--- Flat list of non-wonder buildings constructed in this city. Enter opens
--- a drill-in action menu with Sell (when sellable and not puppet) and Back.
--- Sell pushes a modal confirm that speaks the engine's TXT_KEY_SELL_BUILDING_INFO
--- so blind and sighted users land on the same confirmation wording.
--- Y / Enter confirms and fires Network.SendSellBuilding, then pops back
--- to the hub so the Buildings list rebuilds; N / Esc cancels.
+-- Flat list of non-wonder buildings constructed in this city. Enter on a
+-- sellable, non-puppet building pushes a modal confirm that speaks the
+-- engine's TXT_KEY_SELL_BUILDING_INFO so blind and sighted users land on
+-- the same confirmation wording. Y / Enter confirms and fires
+-- Network.SendSellBuilding, then pops back to the hub so the list
+-- rebuilds; N / Esc cancels. Enter on a non-sellable building is a no-op.
 --
 -- The engine's inline SellBuildingConfirm overlay is NOT driven here --
 -- we bypass it and go straight to the network message. A sighted observer
@@ -476,9 +476,8 @@ local function makeSellConfirmHandler(buildingID)
             Network.SendSellBuilding(city:GetID(), buildingID)
         end
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SELL_DONE"))
-        -- Pop the modal, the drill-in, and the Buildings sub back to the
-        -- hub; the hub's onActivate rebuilds items so the sold building
-        -- drops from the list.
+        -- Pop the modal and the Buildings sub back to the hub; the hub's
+        -- onActivate rebuilds items so the sold building drops from the list.
         if hubHandler ~= nil then
             HandlerStack.popAbove(hubHandler)
         else
@@ -514,32 +513,6 @@ local function makeSellConfirmHandler(buildingID)
     }
 end
 
-local function pushBuildingActions(city, buildingID, buildingName)
-    local items = {}
-    if city:IsBuildingSellable(buildingID) and not city:IsPuppet() then
-        local refund = city:GetSellBuildingRefund(buildingID)
-        local sellItem = BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_SELL", refund),
-            onActivate = function()
-                if not isTurnActive() then
-                    return
-                end
-                HandlerStack.push(makeSellConfirmHandler(buildingID))
-            end,
-        })
-        items[#items + 1] = sellItem
-    end
-    local backItem = BaseMenuItems.Text({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_BACK"),
-        onActivate = function()
-            HandlerStack.removeByName("CityView.BuildingActions", true)
-        end,
-    })
-    items[#items + 1] = backItem
-
-    pushCitySub("BuildingActions", Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_ACTIONS", buildingName), items)
-end
-
 local function pushBuildings()
     local city = UI.GetHeadSelectedCity()
     if city == nil then
@@ -561,7 +534,6 @@ local function pushBuildings()
     else
         for _, b in ipairs(buildings) do
             local capturedID = b.id
-            local capturedName = b.name
             local item = BaseMenuItems.Text({
                 labelText = b.name,
                 tooltipText = (b.help ~= "") and b.help or nil,
@@ -571,7 +543,13 @@ local function pushBuildings()
                     if liveCity == nil then
                         return
                     end
-                    pushBuildingActions(liveCity, capturedID, capturedName)
+                    if not liveCity:IsBuildingSellable(capturedID) or liveCity:IsPuppet() then
+                        return
+                    end
+                    if not isTurnActive() then
+                        return
+                    end
+                    HandlerStack.push(makeSellConfirmHandler(capturedID))
                 end,
             })
             items[#items + 1] = item
