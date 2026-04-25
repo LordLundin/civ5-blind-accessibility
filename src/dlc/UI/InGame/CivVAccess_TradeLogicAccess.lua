@@ -897,7 +897,7 @@ function TradeLogicAccess.buildAvailableItems(side)
         g_Deal:AddOpenBorders(p, dealDuration())
     end, false)
     addBoolean(
-        "TXT_KEY_DIPLO_DEFENSIVE_PACT",
+        "TXT_KEY_DIPLO_DEF_PACT",
         TradeableItems.TRADE_ITEM_DEFENSIVE_PACT,
         "PocketDefensivePact",
         function(p)
@@ -906,7 +906,7 @@ function TradeLogicAccess.buildAvailableItems(side)
         true
     )
     addBoolean(
-        "TXT_KEY_DIPLO_RESEARCH_AGREEMENT",
+        "TXT_KEY_DIPLO_RESCH_AGREEMENT",
         TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT,
         "PocketResearchAgreement",
         function(p)
