@@ -932,10 +932,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_OPEN_TREE"] = "Open Tech Tree"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT"] = "researching {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_FREE"] = "gained {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_STOLEN"] = "stole {1_Name}"
--- Tech Tree screen. Hand-rolled DAG cursor for the tree tab, BaseMenu
--- subhandler for the read-only queue tab. Landing speech on every arrow
--- move composes name, status, queue slot (if queued), turns, and
--- unlocks prose. Mode preamble reuses CHOOSETECH_PREAMBLE_* keys.
+-- Tech Tree screen. TabbedShell with a hand-rolled DAG cursor tab and a
+-- BaseMenu read-only queue tab. Landing speech on every arrow move
+-- composes name, status, queue slot (if queued), turns, and unlocks
+-- prose. Mode preamble reuses CHOOSETECH_PREAMBLE_* keys.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE"] = "Tech Tree"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE"] = "Tree"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_QUEUE"] = "Queue"
@@ -955,10 +955,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_ENTER"] = "Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER"] = "Research focused tech"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SHIFT_ENTER"] = "Shift+Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER"] = "Queue focused tech"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_TAB"] = "Tab"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TAB"] = "Switch between tree and queue"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F1"] = "F1"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F1"] = "Re-read screen header"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_PEDIA"] = "Ctrl+I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA"] = "Open Civilopedia entry"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SEARCH"] = "Letter / digit / space"

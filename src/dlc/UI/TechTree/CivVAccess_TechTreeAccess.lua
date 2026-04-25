@@ -1,14 +1,16 @@
 -- Tech Tree screen accessibility. Wraps the in-game TechTree Context
--- (BUTTONPOPUP_TECH_TREE) as a two-tab screen: tree (DAG cursor; Up/Down
--- parent/child, Left/Right siblings) and queue (flat read-only list).
--- Tree tab is a hand-rolled HandlerStack entry because its arrow-key
--- semantics collide with BaseMenu's; the queue tab is a fresh BaseMenu
--- handler pushed above the tree on Tab, popped on Tab again.
+-- (BUTTONPOPUP_TECH_TREE) as a TabbedShell with two tabs:
 --
--- NavigableGraph owns the pure DAG cursor so the same module will back
--- a later social-policy screen. Tech-specific adjacency lambdas, label
--- composition, and commit eligibility live in CivVAccess_TechTreeLogic
--- so offline tests can exercise them without dofiling this wrapper.
+--   Tree    hand-rolled tab object; arrow-key DAG cursor (Up/Down for
+--           parent/child, Left/Right for siblings), Enter / Shift+Enter
+--           commits via Network.SendResearch, type-ahead search across
+--           tech name + unlocks prose. NavigableGraph owns the pure DAG
+--           cursor; tech-specific adjacency lambdas, label composition,
+--           and commit eligibility live in CivVAccess_TechTreeLogic so
+--           offline tests can exercise them without dofiling this wrapper.
+--   Queue   TabbedShell.menuTab over a BaseMenu list. Items are rebuilt
+--           on every onTabActivated so the queue reflects post-commit
+--           state when the user Tabs over after queuing a tech.
 --
 -- Commit: Network.SendResearch(techID, numFreeTechs, stealingTargetID,
 -- shift). Normal / free modes pass GetNumFreeTechs; stealing passes 0
@@ -16,7 +18,7 @@
 -- confirmation speech just says "queued <name>" because SendResearch
 -- is network-dispatched and GetQueuePosition on the next line reads
 -- pre-commit state. The user can Tab to the queue tab to hear the
--- actual slot ordering. Free / stealing modes ignore Shift — they
+-- actual slot ordering. Free / stealing modes ignore Shift -- they
 -- commit once and the engine chains subsequent popups as needed.
 --
 -- Stealing target: stock TechTree.lua captures popupInfo.Data2 into a
@@ -24,7 +26,7 @@
 -- own SerialEventGameMessagePopup listener that mirrors the capture into
 -- a module upvalue. UIManager:QueuePopup defers ContextPtr show to the
 -- next frame, so both listeners run in the same frame before ShowHide
--- fires and the upvalue is current by the time onActivate reads it.
+-- fires and the upvalue is current by the time onTabActivated reads it.
 --
 -- Load-from-game: the TechTree Context re-initializes like other popup
 -- Contexts, so our listener registers fresh on every include. No
@@ -38,7 +40,12 @@
 -- (same seed the initial landing uses) and speaks the normal landing
 -- speech. Arrow keys clear the buffer silently before tree nav so typing
 -- never contaminates a subsequent arrow move. Esc with a buffer clears
--- and speaks "search cleared"; Esc with no buffer closes the screen.
+-- and speaks "search cleared"; Esc with no buffer falls through to the
+-- base TechTree.lua InputHandler which closes the popup.
+--
+-- F1: TabbedShell owns F1 and reads "Tech Tree" + active tab name. The
+-- mode preamble (free-tech / stealing) is reachable via Tab cycle into
+-- the tree tab, whose onTabActivated re-speaks it.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -59,6 +66,7 @@ include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
+include("CivVAccess_TabbedShell")
 include("CivVAccess_Help")
 include("CivVAccess_NavigableGraph")
 include("CivVAccess_ChooseTechLogic")
@@ -66,9 +74,6 @@ include("CivVAccess_TechTreeLogic")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
-
-local TREE_HANDLER = "TechTreeScreen"
-local QUEUE_HANDLER = "TechTreeQueue"
 
 local MOD_NONE = 0
 local MOD_SHIFT = 1
@@ -104,18 +109,6 @@ local function speakLanding(techID)
         return
     end
     SpeechPipeline.speakInterrupt(TechTreeLogic.buildLandingSpeech(techID, p))
-end
-
-local function speakHeader()
-    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE"))
-    local p = currentPlayer()
-    if p == nil then
-        return
-    end
-    local preamble = ChooseTechLogic.buildPreamble(p, currentMode(), _stealingTargetID)
-    if preamble ~= "" then
-        SpeechPipeline.speakQueued(preamble)
-    end
 end
 
 -- ===== Tree commit =====
@@ -248,7 +241,126 @@ local function openPediaForCurrent()
     Events.SearchForPediaEntry(Text.key(cur.Description))
 end
 
--- ===== Queue tab (BaseMenu subhandler pushed on Tab) =====
+local function closer()
+    OnCloseButtonClicked()
+end
+
+local function treeHandleSearchInput(_handler, vk, mods)
+    if _search == nil or _corpus == nil then
+        return false
+    end
+    local hasCtrl = math.floor(mods / 2) % 2 == 1
+    local hasAlt = math.floor(mods / 4) % 2 == 1
+    if hasCtrl or hasAlt then
+        return false
+    end
+    local s = buildSearchable()
+    if vk >= 0x41 and vk <= 0x5A then
+        return _search:handleChar(string.char(vk + 32), s)
+    end
+    if vk >= 0x30 and vk <= 0x39 then
+        return _search:handleChar(string.char(vk), s)
+    end
+    if vk == Keys.VK_SPACE and _search:isSearchActive() then
+        return _search:handleKey(Keys.VK_SPACE, false, false, s)
+    end
+    if vk == Keys.VK_BACK then
+        return _search:handleKey(Keys.VK_BACK, false, false, s)
+    end
+    return false
+end
+
+-- ===== Tree tab =====
+
+local bind = HandlerStack.bind
+
+local function buildTreeTab()
+    return {
+        tabName = "TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE",
+        bindings = {
+            bind(Keys.VK_UP, MOD_NONE, onUp, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
+            bind(Keys.VK_DOWN, MOD_NONE, onDown, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
+            bind(Keys.VK_LEFT, MOD_NONE, onLeft, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
+            bind(Keys.VK_RIGHT, MOD_NONE, onRight, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
+            bind(Keys.VK_RETURN, MOD_NONE, function()
+                commit(false)
+            end, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER"),
+            bind(Keys.VK_RETURN, MOD_SHIFT, function()
+                commit(true)
+            end, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER"),
+            bind(Keys.VK_F6, MOD_NONE, closer, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6"),
+            bind(Keys.I, MOD_CTRL, openPediaForCurrent, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA"),
+        },
+        helpEntries = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_NAV",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_ENTER",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SHIFT_ENTER",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_PEDIA",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SEARCH",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SEARCH",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F6",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE",
+            },
+        },
+        handleSearchInput = treeHandleSearchInput,
+        -- announce=false on first-open: shell already spoke displayName,
+        -- queue preamble + landing under it. announce=true on Tab cycle:
+        -- speakInterrupt the tab name, then queue preamble + landing so
+        -- the user gets a fresh mode reminder on every cycle in.
+        onTabActivated = function(self, announce)
+            if announce then
+                SpeechPipeline.speakInterrupt(Text.key(self.tabName))
+            end
+            local p = currentPlayer()
+            if p == nil then
+                return
+            end
+            local preamble = ChooseTechLogic.buildPreamble(p, currentMode(), _stealingTargetID)
+            if preamble ~= "" then
+                SpeechPipeline.speakQueued(preamble)
+            end
+            local cur = _cursor and _cursor.current()
+            if cur ~= nil then
+                SpeechPipeline.speakQueued(TechTreeLogic.buildLandingSpeech(cur.ID, p))
+            end
+        end,
+        onTabDeactivated = function()
+            clearSearch()
+        end,
+        -- Esc with a search buffer clears it; otherwise return false so the
+        -- shell falls through to the base TechTree.lua InputHandler which
+        -- closes the popup.
+        onEscape = function()
+            if _search ~= nil and (_search:isSearchActive() or _search:hasBuffer()) then
+                _search:clear()
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+                return true
+            end
+            return false
+        end,
+    }
+end
+
+-- ===== Queue tab =====
 
 local function buildQueueItems()
     local p = currentPlayer()
@@ -291,187 +403,36 @@ local function buildQueueItems()
     return items
 end
 
-local function openQueueTab()
-    local queueHandler = BaseMenu.create({
-        name = QUEUE_HANDLER,
-        displayName = Text.key("TXT_KEY_CIVVACCESS_TECHTREE_TAB_QUEUE"),
-        items = buildQueueItems(),
+local function buildQueueTab()
+    local tab = TabbedShell.menuTab({
+        tabName = "TXT_KEY_CIVVACCESS_TECHTREE_TAB_QUEUE",
+        menuSpec = {
+            displayName = Text.key("TXT_KEY_CIVVACCESS_TECHTREE_TAB_QUEUE"),
+            items = {
+                BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_TECHTREE_QUEUE_EMPTY") }),
+            },
+        },
     })
-    -- BaseMenu.create wires its own Tab / Shift+Tab that cycle spec.tabs;
-    -- our handler has no tabs, so those bindings would be live no-ops and
-    -- could shadow our Tab-to-tree binding if order changed. Strip and
-    -- replace with explicit ones that pop this handler off the stack.
-    for i = #queueHandler.bindings, 1, -1 do
-        if queueHandler.bindings[i].key == Keys.VK_TAB then
-            table.remove(queueHandler.bindings, i)
-        end
-    end
-    local backToTree = function()
-        HandlerStack.removeByName(QUEUE_HANDLER, true)
-    end
-    table.insert(queueHandler.bindings, {
-        key = Keys.VK_TAB,
-        mods = MOD_NONE,
-        description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TAB",
-        fn = backToTree,
-    })
-    table.insert(queueHandler.bindings, {
-        key = Keys.VK_TAB,
-        mods = MOD_SHIFT,
-        description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TAB",
-        fn = backToTree,
-    })
-    local closer = function()
-        OnCloseButtonClicked()
-    end
-    table.insert(queueHandler.bindings, {
-        key = Keys.VK_ESCAPE,
-        mods = MOD_NONE,
-        description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE",
-        fn = closer,
-    })
-    table.insert(queueHandler.bindings, {
-        key = Keys.VK_F6,
-        mods = MOD_NONE,
+    tab.bindings[#tab.bindings + 1] = bind(Keys.VK_F6, MOD_NONE, closer, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6")
+    tab.helpEntries[#tab.helpEntries + 1] = {
+        keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F6",
         description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6",
-        fn = closer,
-    })
-    HandlerStack.push(queueHandler)
-end
-
--- ===== Tree handler =====
-
-local bind = HandlerStack.bind
-
-local function handleSearchInput(_handler, vk, mods)
-    if _search == nil or _corpus == nil then
-        return false
-    end
-    local hasCtrl = math.floor(mods / 2) % 2 == 1
-    local hasAlt = math.floor(mods / 4) % 2 == 1
-    if hasCtrl or hasAlt then
-        return false
-    end
-    local s = buildSearchable()
-    if vk >= 0x41 and vk <= 0x5A then
-        return _search:handleChar(string.char(vk + 32), s)
-    end
-    if vk >= 0x30 and vk <= 0x39 then
-        return _search:handleChar(string.char(vk), s)
-    end
-    if vk == Keys.VK_SPACE and _search:isSearchActive() then
-        return _search:handleKey(Keys.VK_SPACE, false, false, s)
-    end
-    if vk == Keys.VK_BACK then
-        return _search:handleKey(Keys.VK_BACK, false, false, s)
-    end
-    return false
-end
-
-local function createTreeHandler()
-    local closer = function()
-        OnCloseButtonClicked()
-    end
-    local onEscape = function()
-        if _search ~= nil and (_search:isSearchActive() or _search:hasBuffer()) then
-            _search:clear()
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
-            return
-        end
-        closer()
-    end
-    local handler = {
-        name = TREE_HANDLER,
-        capturesAllInput = true,
-        bindings = {
-            bind(Keys.VK_UP, MOD_NONE, onUp, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
-            bind(Keys.VK_DOWN, MOD_NONE, onDown, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
-            bind(Keys.VK_LEFT, MOD_NONE, onLeft, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
-            bind(Keys.VK_RIGHT, MOD_NONE, onRight, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
-            bind(Keys.VK_RETURN, MOD_NONE, function()
-                commit(false)
-            end, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER"),
-            bind(Keys.VK_RETURN, MOD_SHIFT, function()
-                commit(true)
-            end, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER"),
-            bind(Keys.VK_TAB, MOD_NONE, openQueueTab, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TAB"),
-            bind(Keys.VK_TAB, MOD_SHIFT, openQueueTab, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TAB"),
-            bind(Keys.VK_F1, MOD_NONE, speakHeader, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F1"),
-            bind(Keys.VK_F6, MOD_NONE, closer, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6"),
-            bind(Keys.VK_ESCAPE, MOD_NONE, onEscape, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE"),
-            bind(Keys.I, MOD_CTRL, openPediaForCurrent, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA"),
-        },
-        helpEntries = {
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_NAV",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_ENTER",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SHIFT_ENTER",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_TAB",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TAB",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F1",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F1",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_PEDIA",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SEARCH",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SEARCH",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F6",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE",
-            },
-        },
-        _initialized = false,
-        handleSearchInput = handleSearchInput,
     }
-    -- onActivate distinguishes first-open from re-exposure (queue tab pop)
-    -- so the header + preamble are spoken exactly once per screen session
-    -- while cursor re-announces are free to fire on every resurfacing.
-    handler.onActivate = function(self)
-        local p = currentPlayer()
-        local cur = _cursor and _cursor.current()
-        if not self._initialized then
-            self._initialized = true
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE"))
-            if p ~= nil then
-                local preamble = ChooseTechLogic.buildPreamble(p, currentMode(), _stealingTargetID)
-                if preamble ~= "" then
-                    SpeechPipeline.speakQueued(preamble)
-                end
-            end
-            if cur ~= nil and p ~= nil then
-                SpeechPipeline.speakQueued(TechTreeLogic.buildLandingSpeech(cur.ID, p))
-            end
-            return
-        end
-        if cur ~= nil and p ~= nil then
-            SpeechPipeline.speakInterrupt(TechTreeLogic.buildLandingSpeech(cur.ID, p))
-        end
+    -- Rebuild items on every activate so Tab cycling into Queue reflects a
+    -- post-commit Network.SendResearch that fired from the Tree tab. Wraps
+    -- TabbedShell.menuTab's existing onTabActivated which handles the
+    -- speakInterrupt + chained menu speech.
+    local innerActivate = tab.onTabActivated
+    function tab.onTabActivated(self, announce)
+        tab.menu().setItems(buildQueueItems())
+        innerActivate(self, announce)
     end
-    return handler
+    return tab
 end
 
 -- ===== Lifecycle =====
 
-local function onShow()
+local function setupForShow()
     local p = currentPlayer()
     if p == nil then
         Log.warn("TechTreeAccess: onShow without active player")
@@ -491,49 +452,53 @@ local function onShow()
         return
     end
     TechTreeLogic.seedCursorSiblings(_cursor, landing, _graph)
-    HandlerStack.removeByName(TREE_HANDLER, false)
-    HandlerStack.push(createTreeHandler())
 end
 
-local function onHide()
-    -- QUEUE removal with reactivate=false because we're about to remove
-    -- the tree handler on the next line: reactivating TREE for a single
-    -- frame would speak a landing the user is leaving behind. TREE
-    -- removal with reactivate=true so whichever handler sits underneath
-    -- (Scanner in the usual case) re-announces itself and the user
-    -- hears which mode they landed back in.
-    HandlerStack.removeByName(QUEUE_HANDLER, false)
-    HandlerStack.removeByName(TREE_HANDLER, true)
-    _graph = nil
-    _cursor = nil
-    _corpus = nil
-    _search = nil
-end
-
-ContextPtr:SetShowHideHandler(function(bIsHide, bIsInit)
+-- Wraps the engine's prior ShowHide so we can tear down the cursor / search
+-- state on hide. install pcalls the wrapper, so any throw is logged and
+-- doesn't interrupt the shell's own hide bookkeeping (handler removal,
+-- tab reset).
+local function wrappedPriorShowHide(bIsHide, bIsInit)
     if priorShowHide ~= nil then
-        local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
-        if not ok then
-            Log.error("TechTreeAccess prior ShowHide: " .. tostring(err))
-        end
+        priorShowHide(bIsHide, bIsInit)
+    end
+    if bIsInit then
+        return
     end
     if bIsHide then
-        onHide()
-    else
-        onShow()
+        _graph = nil
+        _cursor = nil
+        _corpus = nil
+        _search = nil
     end
-end)
+end
 
-ContextPtr:SetInputHandler(function(msg, wp, lp)
-    local mods = InputRouter.currentModifierMask()
-    if InputRouter.dispatch(wp, mods, msg) then
-        return true
-    end
-    if priorInput ~= nil then
-        return priorInput(msg, wp, lp)
-    end
-    return false
-end)
+TabbedShell.install(ContextPtr, {
+    name = "TechTreeScreen",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE"),
+    tabs = {
+        buildTreeTab(),
+        buildQueueTab(),
+    },
+    initialTabIndex = 1,
+    priorInput = priorInput,
+    priorShowHide = wrappedPriorShowHide,
+    onShow = function()
+        setupForShow()
+    end,
+    onEscape = function(handler)
+        local tab = handler.activeTab()
+        if type(tab.onEscape) ~= "function" then
+            return false
+        end
+        local ok, consumed = pcall(tab.onEscape, tab)
+        if not ok then
+            Log.error("TechTreeAccess tab onEscape: " .. tostring(consumed))
+            return false
+        end
+        return consumed == true
+    end,
+})
 
 -- Mirror the stock OnDisplay's stealing-target capture into our own
 -- upvalue since its local is unreachable from here. Non-TECH_TREE popups
