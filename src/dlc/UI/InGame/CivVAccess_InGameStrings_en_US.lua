@@ -715,6 +715,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH_NEXT_PANTHEON"] = "{1_Num} f
 -- Replaces TXT_KEY_TP_FAITH_PANTHEONS_LOCKED, a four-sentence rules
 -- paragraph with no live data.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH_PANTHEONS_LOCKED"] = "no pantheons available"
+-- Replaces TXT_KEY_TP_FAITH_NEXT_PROPHET, a one-sentence verbose phrasing
+-- that wraps a single data value.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH_NEXT_PROPHET"] = "{1_Num} faith for next great prophet"
+-- Replaces TXT_KEY_TP_TECH_CITY_COST and TXT_KEY_TP_CULTURE_CITY_COST,
+-- both one-sentence explainers wrapping a single percent. The engine's
+-- policy version also tacks on a "don't expand too much!" rules nudge.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TECH_CITY_COST"] = "+{1_Pct}% tech cost per city"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_CITY_COST"] = "+{1_Pct}% policy cost per city"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY"] = "+{1_Rate} culture, {2_Turns} turns to policy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_NONE_LEFT"] = "+{1_Rate} culture, no policies left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_STALLED"] = "no culture, {1_Cur} of {2_Cost} to next policy"

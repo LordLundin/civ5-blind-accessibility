@@ -690,7 +690,7 @@ function M.test_research_detail_skips_rate_and_lists_sources()
     T.eq(
         s,
         "+15 Science from Cities, +2 Science from City-States, +1 Science from Research Agreements"
-            .. ". Help: Each city raises tech cost by 5%"
+            .. ". Help: +5% tech cost per city"
     )
 end
 
@@ -1032,6 +1032,19 @@ function M.test_faith_detail_pantheon_uses_short_form()
     T.falsy(contains(s, "minimum required"), "engine's verbose phrasing not used")
 end
 
+-- Same family as the next-pantheon line: engine TXT_KEY_TP_FAITH_NEXT_PROPHET
+-- wraps a single data value in a sentence. Use the mod-authored short form.
+function M.test_faith_detail_prophet_uses_short_form()
+    setup()
+    faithData.hasPantheon = true
+    faithData.religionsStillToFound = 2
+    faithData.currentEra = 2
+    faithData.nextProphet = 200
+    local s = EmpireStatus._faithDetail()
+    T.truthy(contains(s, "200 faith for next great prophet"), "uses mod-authored short form: " .. s)
+    T.falsy(contains(s, "minimum required"), "engine's verbose phrasing not used")
+end
+
 -- Policy detail ----------------------------------------------------------
 
 function M.test_policy_detail_skips_turn_label_and_lists_sources()
@@ -1047,7 +1060,7 @@ function M.test_policy_detail_skips_turn_label_and_lists_sources()
     T.truthy(contains(s, "85 Culture for next Policy"))
     T.truthy(contains(s, "5 from Cities"))
     T.truthy(contains(s, "3 from Traits"))
-    T.truthy(contains(s, "Each city raises policy cost by 7%"))
+    T.truthy(contains(s, "+7% policy cost per city"))
 end
 
 function M.test_policy_detail_anarchy_short_circuits_source_list()
@@ -1067,7 +1080,7 @@ function M.test_policy_detail_anarchy_short_circuits_source_list()
     local s = EmpireStatus._policyDetail()
     T.truthy(contains(s, "Anarchy 3 turns"))
     T.falsy(contains(s, "5 from Cities"), "source breakdown skipped during anarchy")
-    T.falsy(contains(s, "raises policy cost"), "trailer skipped during anarchy")
+    T.falsy(contains(s, "% policy cost per city"), "trailer skipped during anarchy")
 end
 
 function M.test_policy_detail_off_when_no_policies()

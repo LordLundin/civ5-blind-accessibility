@@ -428,7 +428,10 @@ local function researchDetail()
 
     if not noBasicHelp() then
         d.section(Text.key(LABEL_HELP))
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_TECH_CITY_COST", Game.GetNumCitiesTechCostMod()))
+        -- TXT_KEY_TP_TECH_CITY_COST is a one-sentence explainer that
+        -- carries one data value (the percent). Short mod-authored form
+        -- delivers the data without the rules wrapper.
+        d.add(Text.format("TXT_KEY_CIVVACCESS_STATUS_TECH_CITY_COST", Game.GetNumCitiesTechCostMod()))
     end
     return d.compose()
 end
@@ -747,7 +750,10 @@ local function faithDetail()
             (Game.GetNumReligionsStillToFound() > 0 or player:HasCreatedReligion())
             and player:GetCurrentEra() < GameInfo.Eras["ERA_INDUSTRIAL"].ID
         then
-            d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_NEXT_PROPHET", player:GetMinimumFaithNextGreatProphet()))
+            -- TXT_KEY_TP_FAITH_NEXT_PROPHET phrases as "{N} Faith is
+            -- minimum required for your next chance at a Great Prophet".
+            -- Same family as the next-pantheon line; data is the value.
+            d.add(Text.format("TXT_KEY_CIVVACCESS_STATUS_FAITH_NEXT_PROPHET", player:GetMinimumFaithNextGreatProphet()))
         end
     else
         if player:CanCreatePantheon(false) then
@@ -866,7 +872,10 @@ local function policyDetail()
 
     if not noBasicHelp() then
         d.section(Text.key(LABEL_HELP))
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_CITY_COST", Game.GetNumCitiesPolicyCostMod()))
+        -- TXT_KEY_TP_CULTURE_CITY_COST adds a "don't expand too much!"
+        -- exclamation alongside the data percent. Mirror the tech-cost
+        -- short form: data only, no rules nudge.
+        d.add(Text.format("TXT_KEY_CIVVACCESS_STATUS_POLICY_CITY_COST", Game.GetNumCitiesPolicyCostMod()))
     end
     return d.compose()
 end
