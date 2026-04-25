@@ -13,6 +13,16 @@
 -- PopupText holds the reason line set by each PopupLayouts entry
 -- ("Are you sure you wish to declare war on X?" plus open-borders /
 -- city-state / plunder variants); surfaced as the preamble.
+--
+-- DECLAREWARMOVE-only coordination with UnitControl's pending-move
+-- tracker: the popup intercepts a move that already registered pending,
+-- so the engine's two-tick expiry would falsely speak "action failed"
+-- under the popup. UnitControl freezes pending into a deferred slot on
+-- popup show; we re-arm it on Yes (slot 1) so the engine's re-issued
+-- Game.SelectionListMove gets announced normally, or drop it on No /
+-- Esc (the popup itself was the user's resolution). Other DeclareWar
+-- popup variants (range-strike, plunder) don't touch the deferred slot
+-- because their commit paths skip pending registration.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -38,14 +48,20 @@ include("CivVAccess_Help")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
--- AddButton / ClearButtons monkey-patches -----------------------------------
+-- AddButton / ClearButtons / HideWindow monkey-patches ---------------------
 
 local baseAddButton    = AddButton
 local baseClearButtons = ClearButtons
+local baseHideWindow   = HideWindow
 
 local buttonCallbacks    = {}
 local buttonPreventClose = {}
 local nextButtonIdx      = 1
+
+-- Tracks whether the current popup-open ended via a button click vs an
+-- Esc / mouse-out dismissal; HideWindow uses it to decide whether to
+-- notify UnitControl that the deferred move was canceled.
+local _clicked = false
 
 AddButton = function(buttonText, buttonClickFunc, strToolTip, bPreventClose)
     baseAddButton(buttonText, buttonClickFunc, strToolTip, bPreventClose)
@@ -63,9 +79,37 @@ ClearButtons = function()
     nextButtonIdx      = 1
 end
 
+HideWindow = function()
+    if not _clicked
+        and g_PopupInfo ~= nil
+        and g_PopupInfo.Type == ButtonPopupTypes.BUTTONPOPUP_DECLAREWARMOVE then
+        local UC = civvaccess_shared.modules and civvaccess_shared.modules.UnitControl
+        if UC ~= nil and UC.notifyCommitCanceled ~= nil then
+            UC.notifyCommitCanceled()
+        end
+    end
+    _clicked = false
+    return baseHideWindow()
+end
+
 -- Items ---------------------------------------------------------------------
 
 local function invokeSlot(idx)
+    _clicked = true
+    -- DECLAREWARMOVE-only: forward Yes (slot 1) / No (slot 2) to UnitControl
+    -- BEFORE the engine's OnYesClicked runs so re-arming pending captures
+    -- the unit's start hex before Game.SelectionListMove fires.
+    if g_PopupInfo ~= nil
+        and g_PopupInfo.Type == ButtonPopupTypes.BUTTONPOPUP_DECLAREWARMOVE then
+        local UC = civvaccess_shared.modules and civvaccess_shared.modules.UnitControl
+        if UC ~= nil then
+            if idx == 1 and UC.notifyDeferredCommit ~= nil then
+                UC.notifyDeferredCommit()
+            elseif idx ~= 1 and UC.notifyCommitCanceled ~= nil then
+                UC.notifyCommitCanceled()
+            end
+        end
+    end
     local fn = buttonCallbacks[idx]
     if fn ~= nil then
         local ok, err = pcall(fn)

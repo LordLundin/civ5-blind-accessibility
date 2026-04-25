@@ -25,6 +25,19 @@
 -- would always trip and speak "action failed" while EndCombatSim is
 -- already queuing the real outcome. EndCombatSim is the announcement
 -- path for anything that hits enemyAt at commit time.
+--
+-- War-confirm moves freeze pending into a deferred slot. Moving onto a
+-- peaceful rival's tile (or attacking a peaceful rival's unit) does not
+-- execute the move; the engine queues BUTTONPOPUP_DECLAREWARMOVE for
+-- confirmation. enemyAt filters by IsAtWar so isCombat is false and
+-- pending is registered, then the unit sits while the popup is up and
+-- the two-tick timeout would falsely speak "action failed". The popup-
+-- shown listener moves _pending to _deferred (cancels the timer);
+-- DeclareWarPopupAccess re-arms via notifyDeferredCommit on Yes (the
+-- engine re-issues the move via Game.SelectionListMove, which fires
+-- SerialEventUnitMove and our listener resolves normally) or drops via
+-- notifyCommitCanceled on No / Esc (the popup itself was the user's
+-- answer, no further speech needed).
 
 UnitControl = {}
 
@@ -83,6 +96,7 @@ end
 local PENDING_EXPIRY_FRAMES = 2
 
 local _pending = nil
+local _deferred = nil
 
 local function clearPending()
     _pending = nil
@@ -698,6 +712,44 @@ local function onUnitMoveCompleted()
     end
 end
 
+-- War-confirm popup intercept. The engine queues this in lieu of
+-- executing a move that would trigger a war declaration; the unit hasn't
+-- moved, so the pending-expiry timer would false-positive.
+local function onPopupShown(popupInfo)
+    if popupInfo == nil or popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_DECLAREWARMOVE then
+        return
+    end
+    if _pending ~= nil then
+        _deferred = _pending
+        _pending = nil
+    end
+end
+
+-- Called by DeclareWarPopupAccess on Yes. The engine's OnYesClicked then
+-- runs Game.SelectionListMove synchronously, so re-arming pending here
+-- captures a fresh start hex (the unit hasn't moved yet) before
+-- SerialEventUnitMove fires.
+function UnitControl.notifyDeferredCommit()
+    if _deferred == nil then
+        return
+    end
+    local snap = _deferred
+    _deferred = nil
+    local player = Players[Game.GetActivePlayer()]
+    if player == nil then
+        return
+    end
+    local unit = player:GetUnitByID(snap.unitID)
+    if unit == nil then
+        return
+    end
+    UnitControl.registerPending(unit, snap.targetX, snap.targetY)
+end
+
+function UnitControl.notifyCommitCanceled()
+    _deferred = nil
+end
+
 -- Registers a fresh set of unit listeners on every call (onInGameBoot
 -- invokes this once per game load). See CivVAccess_Boot.lua's
 -- LoadScreenClose registration for the rationale: load-game-from-game
@@ -727,5 +779,10 @@ function UnitControl.installListeners()
         Events.SerialEventUnitMoveToHexes.Add(onUnitMoveCompleted)
     else
         Log.warn("UnitControl: Events.SerialEventUnitMoveToHexes missing")
+    end
+    if Events.SerialEventGameMessagePopup ~= nil then
+        Events.SerialEventGameMessagePopup.Add(onPopupShown)
+    else
+        Log.warn("UnitControl: Events.SerialEventGameMessagePopup missing")
     end
 end

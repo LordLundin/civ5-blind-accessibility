@@ -96,6 +96,7 @@ civvaccess_shared.modules.ScannerHandler = ScannerHandler
 civvaccess_shared.modules.SurveyorCore = SurveyorCore
 civvaccess_shared.modules.PlotComposers = PlotComposers
 civvaccess_shared.modules.CityRangeStrikeMode = CityRangeStrikeMode
+civvaccess_shared.modules.UnitControl = UnitControl
 
 -- Boot fires any time the WorldView Context loads (our override of
 -- WorldView.lua includes this file). That happens on fresh-game load,
