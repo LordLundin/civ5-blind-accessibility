@@ -5,13 +5,23 @@
 --   * Unit list split into military (combat type != -1 or nukes) and civilian
 --     stacks (right column, scrollable)
 --
--- Level 0 exposes the non-list payload as Text widgets, then a sort selector,
--- then a drill-in per non-empty unit stack. Unit rows activate to UI.SelectUnit
--- (or LookAtSelectionPlot if already selected, matching the engine click
--- handler), then OnClose + CameraTracker.followAndJumpCursor so the hex cursor
--- ends up on the selected unit's plot. Sort is global across both sub-lists to
--- mirror the engine; ascending/descending toggle is deferred (one direction,
--- matching the default each header click lands on).
+-- Level 0 exposes the supply widget, then a sort selector, then a drill-in
+-- per non-empty unit stack, then a Great People progress group at the bottom.
+-- Unit rows activate to UI.SelectUnit (or LookAtSelectionPlot if already
+-- selected, matching the engine click handler), then OnClose +
+-- CameraTracker.followAndJumpCursor so the hex cursor ends up on the selected
+-- unit's plot. Sort is global across both unit sub-lists to mirror the engine;
+-- ascending/descending toggle is deferred (one direction, matching the default
+-- each header click lands on).
+--
+-- Great People group mirrors the engine's GPList: one drillable subgroup per
+-- specialist type (Artist / Writer / Musician / Scientist / Engineer /
+-- Merchant), each populated with per-city rows sorted by turns ascending.
+-- Subgroups are skipped entirely when no city has any progress for that type
+-- (matches GPList's section-hiding). Great General and Great Admiral are flat
+-- rows in the same group (player-scoped, no per-city breakdown). Great Prophet
+-- is intentionally omitted because GPList doesn't list it -- prophet progress
+-- is faith-gated, not GPP-gated, and lives on the Religion Overview screen.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -50,12 +60,12 @@ local SORT_RANGED = 6
 local SORT_ORDER = { SORT_NAME, SORT_STATUS, SORT_MOVEMENT, SORT_MOVES, SORT_STRENGTH, SORT_RANGED }
 
 local SORT_LABEL_KEYS = {
-    [SORT_NAME]     = "TXT_KEY_NAME",
-    [SORT_STATUS]   = "TXT_KEY_STATUS",
+    [SORT_NAME] = "TXT_KEY_NAME",
+    [SORT_STATUS] = "TXT_KEY_STATUS",
     [SORT_MOVEMENT] = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_MOVEMENT",
-    [SORT_MOVES]    = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES",
+    [SORT_MOVES] = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES",
     [SORT_STRENGTH] = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH",
-    [SORT_RANGED]   = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED",
+    [SORT_RANGED] = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED",
 }
 
 local m_sortMode = SORT_NAME
@@ -236,12 +246,7 @@ local function gpProgressWidget(labelKey, currentFn, thresholdFn)
     return BaseMenuItems.Text({
         labelFn = function()
             local p = Players[Game.GetActivePlayer()]
-            return Text.format(
-                "TXT_KEY_CIVVACCESS_MO_GP_PROGRESS",
-                Text.key(labelKey),
-                currentFn(p),
-                thresholdFn(p)
-            )
+            return Text.format("TXT_KEY_CIVVACCESS_MO_GP_PROGRESS", Text.key(labelKey), currentFn(p), thresholdFn(p))
         end,
     })
 end
@@ -260,13 +265,16 @@ local function supplyWidget()
                 local penalty = p:GetUnitProductionMaintenanceMod() .. "%"
                 return Text.format(
                     "TXT_KEY_CIVVACCESS_MO_SUPPLY_DEFICIT",
-                    use, cap, deficit, penalty, base, cities, pop
+                    use,
+                    cap,
+                    deficit,
+                    penalty,
+                    base,
+                    cities,
+                    pop
                 )
             end
-            return Text.format(
-                "TXT_KEY_CIVVACCESS_MO_SUPPLY_NORMAL",
-                use, cap, cap - use, base, cities, pop
-            )
+            return Text.format("TXT_KEY_CIVVACCESS_MO_SUPPLY_NORMAL", use, cap, cap - use, base, cities, pop)
         end,
     })
 end
@@ -303,19 +311,165 @@ local function sortSelector(handler)
     })
 end
 
+-- Per-turn GPP gain for a (city, specialist) pair. Verbatim port of
+-- GPList.lua's getRateOfChange (Assets/DLC/Expansion2/UI/InGame/GPList.lua,
+-- lines 254-305): base specialist count + per-type buildings, multiplied by
+-- player / city / golden-age / per-type modifiers. The per-type modifier
+-- branch reaches into player methods that only exist in BNW
+-- (GetGreatWriterRateModifier, GetGoldenAgeGreatArtistRateModifier, etc.);
+-- BNW is a hard requirement of this mod, so they're guaranteed present.
+local function gpRateOfChange(city, specialistInfo, player)
+    local iCount = city:GetSpecialistCount(specialistInfo.ID)
+    local iGPPChange = specialistInfo.GreatPeopleRateChange * iCount * 100
+    for building in GameInfo.Buildings({ SpecialistType = specialistInfo.Type }) do
+        if city:IsHasBuilding(building.ID) then
+            iGPPChange = iGPPChange + building.GreatPeopleRateChange * 100
+        end
+    end
+    if iGPPChange <= 0 then
+        return 0
+    end
+
+    local iPlayerMod = player:GetGreatPeopleRateModifier()
+    local iCityMod = city:GetGreatPeopleRateModifier()
+    local iGoldenAgeMod = 0
+    local bGoldenAge = (player:GetGoldenAgeTurns() > 0)
+
+    local unitClassName = specialistInfo.GreatPeopleUnitClass
+    if unitClassName == "UNITCLASS_WRITER" then
+        iPlayerMod = iPlayerMod + player:GetGreatWriterRateModifier()
+        if bGoldenAge and player:GetGoldenAgeGreatWriterRateModifier() > 0 then
+            iGoldenAgeMod = iGoldenAgeMod + player:GetGoldenAgeGreatWriterRateModifier()
+        end
+    elseif unitClassName == "UNITCLASS_ARTIST" then
+        iPlayerMod = iPlayerMod + player:GetGreatArtistRateModifier()
+        if bGoldenAge and player:GetGoldenAgeGreatArtistRateModifier() > 0 then
+            iGoldenAgeMod = iGoldenAgeMod + player:GetGoldenAgeGreatArtistRateModifier()
+        end
+    elseif unitClassName == "UNITCLASS_MUSICIAN" then
+        iPlayerMod = iPlayerMod + player:GetGreatMusicianRateModifier()
+        if bGoldenAge and player:GetGoldenAgeGreatMusicianRateModifier() > 0 then
+            iGoldenAgeMod = iGoldenAgeMod + player:GetGoldenAgeGreatMusicianRateModifier()
+        end
+    elseif unitClassName == "UNITCLASS_SCIENTIST" then
+        iPlayerMod = iPlayerMod + player:GetGreatScientistRateModifier()
+    elseif unitClassName == "UNITCLASS_MERCHANT" then
+        iPlayerMod = iPlayerMod + player:GetGreatMerchantRateModifier()
+    elseif unitClassName == "UNITCLASS_ENGINEER" then
+        iPlayerMod = iPlayerMod + player:GetGreatEngineerRateModifier()
+    end
+
+    local iMod = iPlayerMod + iCityMod + iGoldenAgeMod
+    iGPPChange = (iGPPChange * (100 + iMod)) / 100
+    return math.floor(iGPPChange / 100)
+end
+
+-- Per-(city, specialist) row for a specialist subgroup. Sorted by turns
+-- ascending: imminent (rate >= remaining) sorts first, finite turns next,
+-- rate-zero last (treated as +infinity). Snapshots progress / threshold /
+-- rate at build time matching the unit-row pattern; the menu rebuilds on
+-- each onShow so values stay fresh between opens.
+local function buildSpecialistCityRow(specialistInfo, unitClass, city, player)
+    local iProgress = city:GetSpecialistGreatPersonProgress(specialistInfo.ID)
+    local iThreshold = city:GetSpecialistUpgradeThreshold(unitClass.ID)
+    local iRate = gpRateOfChange(city, specialistInfo, player)
+    local cityName = Locale.ConvertTextKey(city:GetNameKey())
+
+    local labelText
+    local sortTurns
+    if iRate <= 0 then
+        sortTurns = math.huge
+        labelText = Text.format("TXT_KEY_CIVVACCESS_MO_GP_CITY_NO_PROGRESS", cityName, iProgress, iThreshold)
+    else
+        local turns
+        if (iThreshold - iProgress) <= iRate then
+            turns = 1
+        else
+            turns = math.floor((iThreshold - iProgress) / iRate) + 1
+        end
+        sortTurns = turns
+        local turnsText
+        if turns == 1 then
+            turnsText = Text.key("TXT_KEY_CIVVACCESS_MO_GP_TURNS_NEXT")
+        else
+            turnsText = Text.format("TXT_KEY_CIVVACCESS_MO_GP_TURNS_N", turns)
+        end
+        labelText = Text.format("TXT_KEY_CIVVACCESS_MO_GP_CITY_ROW", cityName, turnsText, iProgress, iThreshold, iRate)
+    end
+    return {
+        labelText = labelText,
+        sortTurns = sortTurns,
+        cityID = city:GetID(),
+    }
+end
+
+-- Subgroup for one specialist type. Returns nil when no city in the player's
+-- empire has nonzero progress for this specialist -- mirrors GPList's
+-- section-hiding so the user never lands on an empty subgroup.
+local function buildSpecialistGroup(specialistInfo)
+    local unitClassName = specialistInfo.GreatPeopleUnitClass
+    if unitClassName == nil then
+        return nil
+    end
+    local unitClass = GameInfo.UnitClasses[unitClassName]
+    if unitClass == nil then
+        return nil
+    end
+    local player = Players[Game.GetActivePlayer()]
+    local entries = {}
+    for city in player:Cities() do
+        if city:GetSpecialistGreatPersonProgress(specialistInfo.ID) > 0 then
+            entries[#entries + 1] = buildSpecialistCityRow(specialistInfo, unitClass, city, player)
+        end
+    end
+    if #entries == 0 then
+        return nil
+    end
+    table.sort(entries, function(a, b)
+        if a.sortTurns ~= b.sortTurns then
+            return a.sortTurns < b.sortTurns
+        end
+        return a.cityID < b.cityID
+    end)
+    local items = {}
+    for i, entry in ipairs(entries) do
+        items[i] = BaseMenuItems.Text({ labelText = entry.labelText })
+    end
+    return BaseMenuItems.Group({
+        labelText = Locale.ConvertTextKey(unitClass.Description),
+        items = items,
+    })
+end
+
+local function buildGreatPeopleGroup()
+    local items = {}
+    for specialistInfo in GameInfo.Specialists() do
+        if specialistInfo.GreatPeopleUnitClass ~= nil then
+            local group = buildSpecialistGroup(specialistInfo)
+            if group ~= nil then
+                items[#items + 1] = group
+            end
+        end
+    end
+    items[#items + 1] = gpProgressWidget("TXT_KEY_CITYVIEW_GG_PROGRGRESS", function(p)
+        return p:GetCombatExperience()
+    end, function(p)
+        return p:GreatGeneralThreshold()
+    end)
+    items[#items + 1] = gpProgressWidget("TXT_KEY_MO_GA_PROGRESS", function(p)
+        return p:GetNavalCombatExperience()
+    end, function(p)
+        return p:GreatAdmiralThreshold()
+    end)
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_MO_GP_GROUP"),
+        items = items,
+    })
+end
+
 function buildTopItems(handler)
     local military, civilian = collectUnits()
     local items = {
-        gpProgressWidget(
-            "TXT_KEY_CITYVIEW_GG_PROGRGRESS",
-            function(p) return p:GetCombatExperience() end,
-            function(p) return p:GreatGeneralThreshold() end
-        ),
-        gpProgressWidget(
-            "TXT_KEY_MO_GA_PROGRESS",
-            function(p) return p:GetNavalCombatExperience() end,
-            function(p) return p:GreatAdmiralThreshold() end
-        ),
         supplyWidget(),
     }
     m_sortIndex = #items + 1
@@ -332,6 +486,7 @@ function buildTopItems(handler)
             items = buildGroupItems(civilian),
         })
     end
+    items[#items + 1] = buildGreatPeopleGroup()
     return items
 end
 
@@ -340,10 +495,10 @@ local function onShow(handler)
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "MilitaryOverview",
-    displayName   = Text.key("TXT_KEY_MILITARY_OVERVIEW"),
-    priorInput    = priorInput,
+    name = "MilitaryOverview",
+    displayName = Text.key("TXT_KEY_MILITARY_OVERVIEW"),
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    onShow        = onShow,
-    items         = { BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_MILITARY_OVERVIEW") }) },
+    onShow = onShow,
+    items = { BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_MILITARY_OVERVIEW") }) },
 })
