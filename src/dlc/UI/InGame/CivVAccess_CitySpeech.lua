@@ -108,10 +108,11 @@ function CitySpeech.statusTokens(city)
     return parts
 end
 
--- Trade-route connected indicator. Excluded from statusTokens because the
--- cursor-glance identity (CitySpeech.identity) intentionally omits it --
--- the banner surfaces connected via a separate icon group, not the status
--- stack. CityView and ChooseProduction preambles append this after status.
+-- Trade-route connected indicator. Kept separate from statusTokens because
+-- the banner surfaces connected via its own icon group, not the status
+-- stack, so callers can sequence it independently of the razing / occupied
+-- / blockaded chain. Cursor identity, CityView, and ChooseProduction
+-- preambles all append it after the status tokens.
 function CitySpeech.connectedToken(city)
     local owner = Players[city:GetOwner()]
     if owner ~= nil and not city:IsCapital() and owner:IsCapitalConnectedToCity(city) and not city:IsBlockaded() then
@@ -211,6 +212,18 @@ function CitySpeech.identity(city)
 
     for _, t in ipairs(CitySpeech.statusTokens(city)) do
         parts[#parts + 1] = t
+    end
+
+    -- Connected indicator gates on team membership to mirror the banner's
+    -- isActiveTeamCity gate (CityBannerManager.lua:252); for an enemy city
+    -- the underlying IsCapitalConnectedToCity asks about the enemy's road
+    -- network, not ours, so reading it on a non-team city would leak the
+    -- wrong fact.
+    if isTeam(city) then
+        local connected = CitySpeech.connectedToken(city)
+        if connected ~= nil then
+            parts[#parts + 1] = connected
+        end
     end
 
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_POPULATION", city:GetPopulation())

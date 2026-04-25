@@ -195,6 +195,9 @@ local function setup()
         GetLiberationPreviewString = function()
             return ""
         end,
+        IsCapitalConnectedToCity = function()
+            return false
+        end,
     }
     Teams[0] = {
         _hasMet = { [0] = true },
@@ -568,6 +571,28 @@ function M.test_identity_enemy_city_omits_garrison()
     }
     local city = mkCity({ owner = 5, team = 5, garrisonedUnit = garrison })
     T.falsy(CitySpeech.identity(city):find("garrisoned", 1, true), "enemy garrison must not be spoken")
+end
+
+function M.test_identity_team_non_capital_speaks_connected_when_route_home()
+    setup()
+    Players[0].IsCapitalConnectedToCity = function()
+        return true
+    end
+    local city = mkCity({ isCapital = false })
+    T.truthy(CitySpeech.identity(city):find("connected", 1, true), "connected token expected on team non-capital with route home")
+end
+
+function M.test_identity_enemy_city_omits_connected_token()
+    -- IsCapitalConnectedToCity on an enemy player asks about THEIR road
+    -- network, not the active player's, so connected must not be spoken
+    -- for non-team cities.
+    setup()
+    installForeignMajor(5, 5)
+    Players[5].IsCapitalConnectedToCity = function()
+        return true
+    end
+    local city = mkCity({ owner = 5, team = 5, isCapital = false })
+    T.falsy(CitySpeech.identity(city):find("connected", 1, true), "enemy city must not speak connected")
 end
 
 -- ===== Development =====
