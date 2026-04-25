@@ -103,6 +103,17 @@ Teams = Teams or {}
 GameInfo = GameInfo or {}
 GameInfoTypes = GameInfoTypes or {}
 
+-- OptionsManager: detail readouts (and any future production code that
+-- branches on engine option flags) read this. Default false / no-op so a
+-- module dofiled in tests without explicit setup behaves as if the option
+-- is off; suites that exercise the option-on path overwrite the function.
+OptionsManager = OptionsManager or {}
+if OptionsManager.IsNoBasicHelp == nil then
+    OptionsManager.IsNoBasicHelp = function()
+        return false
+    end
+end
+
 -- ActivePlayerTurnStart is the scanner's staleness signal. Tests that
 -- exercise invalidation replace .Add with a capture closure; the default
 -- here is a no-op so modules that install listeners at load time don't

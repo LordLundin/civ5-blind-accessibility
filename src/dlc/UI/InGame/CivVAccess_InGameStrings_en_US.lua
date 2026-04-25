@@ -88,6 +88,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE"] = "no path"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_TOO_FAR"] = "too far to compute"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"] = "no target here"
+-- Route-to (auto-route) preview. Tile count is the path length excluding
+-- the worker's start tile -- "the road will reach N tiles further from
+-- where you are now." Build turns is the sum of GetBuildTurnsLeft over
+-- plots that need a route built; tiles already routed at the target tier
+-- (and city tiles) contribute zero. ALREADY_DONE fires when the path
+-- exists but every tile already has the target route, so the mission
+-- completes the moment the worker walks the chain.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE"] = "{1_Tiles} tiles, {2_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = "{1_Tiles} tiles, no work needed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "no route available"
 -- Unit control help overlay entries. Chord labels merge each binding
 -- cluster into one line so the ? screen doesn't list six Alt+letter rows.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE"] = "Period, comma"
@@ -103,11 +113,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_MOVE"] = "Alt plus Q, E
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_MOVE"] =
     "Move the selected unit one hex (double-press to confirm attack)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SLEEP"] = "Alt plus F"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_SLEEP"] =
-    "Fortify a military unit, or sleep a civilian"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_SLEEP"] = "Fortify a military unit, or sleep a civilian"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SENTRY"] = "Alt plus S"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_SENTRY"] =
-    "Sentry, sleeping until an enemy comes into sight"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_SENTRY"] = "Sentry, sleeping until an enemy comes into sight"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_WAKE"] = "Alt plus W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_WAKE"] =
     "Wake a sleeping or fortified unit, or cancel a queued move or automation"
@@ -449,8 +457,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turn {2_
 -- "melee" / range-distance forms that UnitSpeech uses) because the F3 row
 -- echoes the sighted column whose header is just an icon.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} of {3_Max} xp"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_NORMAL"] = "Supply: {1_Use} of {2_Cap} in use, {3_Remaining} remaining. Base {4_Base}, cities {5_Cities}, population {6_Pop}."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_DEFICIT"] = "Supply: {1_Use} of {2_Cap} in use, {3_Deficit} over, {4_Penalty} production penalty. Base {5_Base}, cities {6_Cities}, population {7_Pop}."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_NORMAL"] =
+    "Supply: {1_Use} of {2_Cap} in use, {3_Remaining} remaining. Base {4_Base}, cities {5_Cities}, population {6_Pop}."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_DEFICIT"] =
+    "Supply: {1_Use} of {2_Cap} in use, {3_Deficit} over, {4_Penalty} production penalty. Base {5_Base}, cities {6_Cities}, population {7_Pop}."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_LABEL"] = "Sort by: {1_Mode}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MENU"] = "Sort by"
 -- Sort-mode nouns. Engine's TXT_KEY_MO_SORT_* strings are the column-header
@@ -677,9 +687,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_ACTIVE"] = "{1_Turns} tur
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_DONE"] = "{1_Tech} done, science +{2_Rate}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_NONE"] = "No research, science +{1_Rate}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_OFF"] = "Science off"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_POSITIVE"] = "+{1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] = "minus {1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_SHORTAGE_ITEM"] = "no {1_Resource}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_POSITIVE"] =
+    "+{1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] =
+    "minus {1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "no {1_Resource}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_COUNT"] = "{1_Num} luxuries"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HAPPY"] = "+{1_Excess} happiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_UNHAPPY"] = "Unhappy minus {1_Deficit}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_VERY_UNHAPPY"] = "Very unhappy minus {1_Deficit}"
@@ -694,21 +707,39 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_STALLED"] = "no culture, {1
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_OFF"] = "Policies off"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM"] = "+{1_Rate} tourism"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_INFLUENTIAL"] = "+{1_Rate} tourism, influential on {2_Count} civs"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_WITHIN_REACH"] = "+{1_Rate} tourism, influential on {2_Count} of {3_Total} civs"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_WITHIN_REACH"] =
+    "+{1_Rate} tourism, influential on {2_Count} of {3_Total} civs"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TURN"] = "T"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TURN"] = "Turn and date, with unit supply when over cap"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TURN"] =
+    "Turn and date, with unit supply when over cap and any strategic resource shortages"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_RESEARCH"] = "R"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_RESEARCH"] = "Current research and science per turn"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_GOLD"] = "G"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_GOLD"] = "Gold per turn, total, trade routes, and strategic shortages"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_GOLD"] = "Gold per turn, total, and trade routes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_HAPPINESS"] = "H"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_HAPPINESS"] = "Empire happiness and golden age"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_HAPPINESS"] =
+    "Empire happiness, count of luxuries providing happiness, and golden age"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_FAITH"] = "F"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_FAITH"] = "Faith per turn and total"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_POLICY"] = "P"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_POLICY"] = "Culture per turn and time to next policy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TOURISM"] = "I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM"] = "Tourism per turn and influential civ count"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_RESEARCH_DETAIL"] = "Shift plus R"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_RESEARCH_DETAIL"] = "Per-source science breakdown"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_GOLD_DETAIL"] = "Shift plus G"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_GOLD_DETAIL"] = "Per-source gold income and expenses"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_HAPPINESS_DETAIL"] = "Shift plus H"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_HAPPINESS_DETAIL"] =
+    "Happiness sources, unhappiness sources, and golden age effect"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_FAITH_DETAIL"] = "Shift plus F"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_FAITH_DETAIL"] =
+    "Per-source faith breakdown and prophet or pantheon timing"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_POLICY_DETAIL"] = "Shift plus P"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_POLICY_DETAIL"] = "Per-source culture breakdown"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TOURISM_DETAIL"] = "Shift plus I"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM_DETAIL"] =
+    "Great works, empty slots, and influential civ count"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB"] = "Actions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_MODS_TAB"] = "Mods"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_NO_MODS"] = "No mods activated."

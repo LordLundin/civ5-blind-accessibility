@@ -198,6 +198,14 @@ local function setup()
             end
             return 0
         end,
+        GetHappinessFromLuxury = function(_, id)
+            for _, r in ipairs(resources) do
+                if r.ID == id then
+                    return r.HappinessFromLuxury or 0
+                end
+            end
+            return 0
+        end,
         GetExcessHappiness = function()
             return happyData.excess
         end,
@@ -300,6 +308,25 @@ function M.test_turn_appends_supply_when_over_cap()
     T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 3 over unit cap")
 end
 
+function M.test_turn_appends_strategic_shortages()
+    -- Shortages live on the bare T line so the player learns about supply
+    -- problems with the same key that says how much time is left. Two
+    -- strategic resources short, plus a non-strategic that should be
+    -- ignored, plus a strategic in surplus that should also be ignored.
+    setup()
+    resources = {
+        { ID = 1, Description = "iron", Available = -2 },
+        { ID = 2, Description = "horses", Available = -1 },
+        { ID = 3, Description = "wheat", Available = -5 },
+        { ID = 4, Description = "coal", Available = 3 },
+    }
+    resourceUsage[1] = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC
+    resourceUsage[2] = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC
+    resourceUsage[3] = ResourceUsageTypes.RESOURCEUSAGE_BONUS
+    resourceUsage[4] = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, no iron, no horses")
+end
+
 -- Research line ----------------------------------------------------------
 
 function M.test_research_active_speaks_turns_tech_and_rate()
@@ -349,23 +376,18 @@ function M.test_gold_negative_rate_speaks_minus_prefix()
     T.eq(EmpireStatus._goldLine(), "minus 5 gold, 47 total, 1 of 3 trade routes")
 end
 
-function M.test_gold_appends_strategic_shortages()
+function M.test_gold_does_not_speak_strategic_shortages()
+    -- Shortages used to ride on G; they now live on T. The G readout
+    -- speaks only the gold/trade-routes headline regardless of supply.
     setup()
     goldData = { gold = 250, rate = 12, used = 1, avail = 3 }
-    -- Two strategic resources: iron short by 2, horses short by 1, plus a
-    -- non-strategic luxury that should be ignored, plus a strategic that's
-    -- in surplus and should be ignored.
     resources = {
         { ID = 1, Description = "iron", Available = -2 },
         { ID = 2, Description = "horses", Available = -1 },
-        { ID = 3, Description = "wheat", Available = -5 },
-        { ID = 4, Description = "coal", Available = 3 },
     }
     resourceUsage[1] = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC
     resourceUsage[2] = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC
-    resourceUsage[3] = ResourceUsageTypes.RESOURCEUSAGE_BONUS
-    resourceUsage[4] = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC
-    T.eq(EmpireStatus._goldLine(), "+12 gold, 250 total, 1 of 3 trade routes, no iron, no horses")
+    T.eq(EmpireStatus._goldLine(), "+12 gold, 250 total, 1 of 3 trade routes")
 end
 
 -- Happiness line ---------------------------------------------------------
@@ -405,6 +427,23 @@ function M.test_happiness_off_when_option_set()
     setup()
     options[GameOptionTypes.GAMEOPTION_NO_HAPPINESS] = true
     T.eq(EmpireStatus._happinessLine(), "Happiness off")
+end
+
+function M.test_happiness_appends_connected_luxury_count()
+    -- Three luxuries set up: two providing happiness right now (gold,
+    -- silk), one connected but no happiness this turn (ivory) -- the
+    -- engine returns 0 for the third, so it doesn't count. Luxuries the
+    -- player has but isn't drawing happiness from (lost source, traded
+    -- away) collapse to the same "0" branch.
+    setup()
+    happyData = { excess = 5, unhappy = false, veryUnhappy = false }
+    goldenAgeData = { turns = 0, meter = 0, threshold = 200 }
+    resources = {
+        { ID = 1, Description = "gold", HappinessFromLuxury = 4 },
+        { ID = 2, Description = "silk", HappinessFromLuxury = 4 },
+        { ID = 3, Description = "ivory", HappinessFromLuxury = 0 },
+    }
+    T.eq(EmpireStatus._happinessLine(), "+5 happiness, 2 luxuries, 0 of 200 to golden age")
 end
 
 -- Faith line -------------------------------------------------------------
