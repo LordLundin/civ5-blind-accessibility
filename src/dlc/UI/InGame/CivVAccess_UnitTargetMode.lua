@@ -133,6 +133,42 @@ local function isRouteMode(mode)
     return mode == InterfaceModeTypes.INTERFACEMODE_ROUTE_TO
 end
 
+-- Per-target previews for the modes whose only sighted feedback is a
+-- highlight tint (legal target = colored, otherwise dimmed). The engine
+-- doesn't expose per-target failure reasons, so illegal collapses to a
+-- single "cannot X here" string. Legal speaks the destination plot's
+-- glance summary so the player can sanity-check terrain / units / city
+-- before committing.
+local function legalityPreview(canTarget, illegalKey, plot)
+    if not canTarget then
+        return Text.key(illegalKey)
+    end
+    local glance = PlotComposers.glance(plot)
+    if glance == nil or glance == "" then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+    end
+    return glance
+end
+
+-- Air sweep has no Can*At; the engine accepts any plot in air range and
+-- picks an interceptor at random at commit time. Best signal we can give
+-- is "how many interceptors are visible covering this tile" -- 0 means
+-- the sweep will whiff (no one to clear), N>0 names the threat density.
+local function airSweepPreview(actor, plot)
+    local interceptors = actor:GetInterceptorCount(plot, nil, true, true)
+    local parts = {}
+    if interceptors > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors)
+    else
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NO_INTERCEPTORS")
+    end
+    local glance = PlotComposers.glance(plot)
+    if glance ~= nil and glance ~= "" then
+        parts[#parts + 1] = glance
+    end
+    return table.concat(parts, ", ")
+end
+
 -- Route-to preview. The engine routes a worker on MISSION_ROUTE_TO via
 -- BuildRouteFinder (CvAStar.cpp BuildRouteCost / BuildRouteValid), not
 -- the unit movement pathfinder. RoutePathfinder mirrors that A*. We
@@ -201,6 +237,38 @@ local function buildPreview(self)
         parts[#parts + 1] = movePathPreview(actor, plot)
     elseif isRouteMode(mode) then
         parts[#parts + 1] = routePathPreview(actor, plot)
+    elseif mode == InterfaceModeTypes.INTERFACEMODE_PARADROP then
+        parts[#parts + 1] = legalityPreview(
+            actor:CanParadropAt(actor:GetPlot(), tx, ty),
+            "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_ILLEGAL",
+            plot
+        )
+    elseif mode == InterfaceModeTypes.INTERFACEMODE_AIRLIFT then
+        parts[#parts + 1] = legalityPreview(
+            actor:CanAirliftAt(actor:GetPlot(), tx, ty),
+            "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_ILLEGAL",
+            plot
+        )
+    elseif mode == InterfaceModeTypes.INTERFACEMODE_REBASE then
+        parts[#parts + 1] = legalityPreview(
+            actor:CanRebaseAt(actor:GetPlot(), tx, ty),
+            "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_REBASE_ILLEGAL",
+            plot
+        )
+    elseif mode == InterfaceModeTypes.INTERFACEMODE_EMBARK then
+        parts[#parts + 1] = legalityPreview(
+            actor:CanEmbarkOnto(actor:GetPlot(), plot),
+            "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMBARK_ILLEGAL",
+            plot
+        )
+    elseif mode == InterfaceModeTypes.INTERFACEMODE_DISEMBARK then
+        parts[#parts + 1] =
+            legalityPreview(actor:CanDisembarkOnto(plot), "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_DISEMBARK_ILLEGAL", plot)
+    elseif mode == InterfaceModeTypes.INTERFACEMODE_NUKE then
+        parts[#parts + 1] =
+            legalityPreview(actor:CanNukeAt(tx, ty), "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL", plot)
+    elseif mode == InterfaceModeTypes.INTERFACEMODE_AIR_SWEEP then
+        parts[#parts + 1] = airSweepPreview(actor, plot)
     else
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
     end

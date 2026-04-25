@@ -246,9 +246,9 @@ Both automation actions appear in the unit action menu when the unit type qualif
 
 Movement path preview uses the Lua-side Pathfinder that target-mode commits through; Space speaks MP cost, turn count, and MP remaining at end. Worker route-to (Ctrl+Shift+R, INTERFACEMODE_ROUTE_TO) reaches the same target-mode harness via the action menu and uses RoutePathfinder.findPath, which speaks tile count and total build turns. Hazards along the path (ZoC, Great Wall borders) and border-crossing implications (open-borders entry, will-declare-war on move) are folded into the MP number rather than called out, so the player gets a correct cost but not a textual warning. The BNW trade route preview is not reached — covered under Phase 8.7.
 
-## 4.11 Other world interaction modes — Partial
+## 4.11 Other world interaction modes — Done
 
-The action menu routes every INTERFACEMODE_* into target-mode and the cursor's plot becomes the commit target. Real previews exist for move-to (and its same-type / all-on-plot variants), melee attack, range attack, air strike, and route-to — these speak combat damage, MP, turns, or build turns as appropriate. Every other mission-backed mode (paradrop, airlift, rebase, air sweep, nuke, embark, disembark) commits on Enter but the preview is silent ("no target here"); the player has no readout before committing and relies on the engine's legality gate to refuse illegal targets. Air sweep does not share air-strike's preview; intercept warnings (which interceptors will fire on the target tile and at what damage) are not surfaced for any air mode, including air strike. Three engine modes have <Mission>NONE — gift-tile-improvement (G&K Great General citadel-on-foreign-tile), gift-unit, and purchase-plot — and short-circuit in commitAtCursor's mission lookup; they need dedicated handlers calling the right engine API rather than the generic PUSH_MISSION path. City range attack is wired but through CivVAccess_CityRangeStrikeMode and dispatched from the city banner, not the unit action menu.
+The action menu routes every INTERFACEMODE_* into target-mode and the cursor's plot becomes the commit target. Real previews exist for move-to (and its same-type / all-on-plot variants), melee attack, range attack, air strike (with intercept-possible and visible-interceptor warnings), route-to, paradrop, airlift, rebase, embark, disembark, nuke, and air sweep. The combat-shaped modes speak damage / MP / turns / build turns; the legality-shaped modes (paradrop, airlift, rebase, embark, disembark, nuke) speak the destination plot's glance summary on legal targets and a "cannot X here" string when the engine's per-target Can*At check refuses. Air sweep has no Can*At, so its preview names the visible interceptor count covering the target plot plus the glance. City range attack is dispatched from the city banner through CivVAccess_CityRangeStrikeMode rather than the unit action menu, but it shares the same target-plot-plus-Enter shape. Three engine modes have <Mission>NONE — gift-unit, gift-tile-improvement (G&K Great General citadel-on-foreign-tile), and purchase-plot. Purchase-plot is reached entirely through the city Hex hub (5.13) and never enters the world-cursor flow. Gift-unit and gift-tile-improvement are entered by the city-state diplomacy popup setting the interface mode and waiting for a hex click; that post-popup commit step is tracked under 7.7.
 
 ---
 
@@ -404,9 +404,9 @@ The three-tab overview reached from the diplomacy corner. Relations lists every 
 
 First-contact splash. Speaks the city-state's name, type (Cultural, Maritime, Militaristic, Mercantile, Religious), initial trait, the first-meet bonus or reward, and routes to the diplomacy popup for next steps.
 
-## 7.7 City-state diplomacy popup — Done
+## 7.7 City-state diplomacy popup — Partial
 
-Status (Allied, Friend, Neutral, Afraid, Angry, At War), active quest list, current ally if any, type and personality, shared resources if allied, influence value and resting point. The action stack — Peace, Give, Pledge to Protect, Revoke, Take (bully), War, Stop Unit Spawning, Buyout — is fully wired. Gift submenu (small / medium / large gold, gift unit, gift improvement) and bully submenu (gold tribute, unit tribute) both walk; bully-confirm sub-popup is read.
+Status (Allied, Friend, Neutral, Afraid, Angry, At War), active quest list, current ally if any, type and personality, shared resources if allied, influence value and resting point. The action stack — Peace, Give, Pledge to Protect, Revoke, Take (bully), War, Stop Unit Spawning, Buyout — is fully wired. Gift submenu (small / medium / large gold, gift unit, gift improvement) and bully submenu (gold tribute, unit tribute) both walk; bully-confirm sub-popup is read. Gap: the gift-unit and gift-improvement options dismiss the popup and set INTERFACEMODE_GIFT_UNIT / INTERFACEMODE_GIFT_TILE_IMPROVEMENT, expecting a hex click to commit. Our target-mode harness only enters from the unit action menu, not from engine-driven mode changes, so the post-popup commit step has no keyboard path. Wiring this requires either an InterfaceModeChanged listener that pushes a UnitTargetMode-shaped handler with the right Can*At check (`CanDistanceGift` per same-plot unit; `CanMajorGiftTileImprovementAtPlot`), or a dedicated handler invoked from the popup itself before it dismisses.
 
 ## 7.8 Declare war popup — Done
 
@@ -670,17 +670,17 @@ Founding a city has no popup; the city is created and the screen opens, both of 
 
 Camp-cleared splash is a dedicated handler. Ransom popup reads through generic (covered in 7.24).
 
-## 11.9 Nuke targeting mode — Not started
+## 11.9 Nuke targeting mode — Done
 
-Entering nuke targeting from a unit's action menu commits but the blast-radius preview, the dimmed-invalid-hex set, and the war-declaration confirm-if-at-peace branch are not specifically wired. A blind player can fire a nuke but cannot inspect the valid-target set or preview the consequences.
+Nuke targeting goes through UnitTargetMode like any other interface mode. Space speaks `actor:CanNukeAt(x, y)` legality plus the destination plot's glance (units, city, terrain, owner where surfaced); illegal targets read "cannot nuke here." The blast-radius enumeration sighted players see as a dimmed hex set isn't exposed — the player navigates by cursor and re-presses Space to check each candidate plot. The war-declaration confirm-if-at-peace branch is the engine's own popup and routes through GenericPopupAccess at commit time.
 
 ## 11.10 Air mission interface — Partial
 
-Air strike and air sweep target through the same target-mode harness as ground attacks. Intercept is a toggle and is reachable through the action menu. Rebase reaches a target-mode but the "valid friendly cities and carriers within rebase range" set isn't explicitly enumerated. Interceptor warnings are present in the combat preview.
+Air strike, air sweep, and rebase all target through the same target-mode harness as ground attacks. Air strike's combat preview surfaces intercept-possible plus visible-interceptor count. Air sweep speaks the visible-interceptor count covering the target plot plus the destination glance. Rebase speaks `CanRebaseAt` legality plus the destination glance. The remaining gap is the "valid friendly cities and carriers within rebase range" enumeration — sighted players see the highlighted set; we only validate the cursor's current plot.
 
-## 11.11 Embarkation prompts — Partial
+## 11.11 Embarkation prompts — Done
 
-The first-time-this-turn embark confirm reads through generic. Embark / disembark state changes are flagged in the unit's status.
+The first-time-this-turn embark confirm reads through generic. Embark / disembark state changes are flagged in the unit's status. Embark and disembark target-modes now speak `CanEmbarkOnto` / `CanDisembarkOnto` legality plus the destination glance, so the player can preview the move before committing.
 
 ## 11.12 Naval unit special cases — Done
 
