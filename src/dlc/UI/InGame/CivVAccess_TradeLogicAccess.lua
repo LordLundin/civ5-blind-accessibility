@@ -775,7 +775,7 @@ local function availableVotesGroup(side)
         return nil
     end
     return BaseMenuItems.Group({
-        labelText = Locale.ConvertTextKey("TXT_KEY_TRADE_ITEM_VOTE_COMMITMENT"),
+        labelText = Text.key("TXT_KEY_TRADE_ITEM_VOTES"),
         items = items,
     })
 end
@@ -815,7 +815,7 @@ local function availableCitiesGroup(side)
         return nil
     end
     return BaseMenuItems.Group({
-        labelText = Locale.ConvertTextKey("TXT_KEY_TRADE_ITEM_CITIES"),
+        labelText = Text.key("TXT_KEY_DIPLO_CITIES"),
         items = items,
     })
 end
