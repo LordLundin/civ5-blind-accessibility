@@ -2,7 +2,7 @@
 
 A tour of every surface a Civ V player encounters, in roughly the order they meet it, and what coverage this mod gives each one. The point of this document is to let you read straight through and feel the shape of the work: what is reachable to a blind player today, what is partially reachable, and what still has nothing.
 
-Status word at the top of each section says where it sits. "Done" means a screen-reader user can drive the surface end to end. "Partial" means some of it is spoken or navigable but specific gaps remain — the gap is named in the body. "Not started" means the surface produces no speech at all and a sighted player would do something there that a blind player cannot. "Not applicable" means the surface is non-interactive (logos, splash animations, voice-over) or simply does not exist in shipped Civ V.
+Status word at the top of each section says where it sits. "Done" means a screen-reader user can drive the surface end to end. "Partial" means some of it is spoken or navigable but specific gaps remain — the gap is named in the body. "Not started" means the surface produces no speech at all and a sighted player would do something there that a blind player cannot. "Not applicable" means the surface is non-interactive (logos, splash animations, voice-over), simply does not exist in shipped Civ V, or sits outside the mod's architecture (a separate executable that the in-process Lua hooks cannot reach).
 
 Coverage is for Brave New World only. The mod ships a single BNW-only DLC manifest; base-game and Gods and Kings sessions activate no accessibility layer at all by design.
 
@@ -78,9 +78,9 @@ The two-tab pre-game lobby (Players, Game Options). Per-slot rows speak leader, 
 
 The handoff popups between hot-seat players. Both speak the new player's identity and accept the password edit.
 
-## 1.18 Dedicated server (Pitboss host) — Not started
+## 1.18 Dedicated server (Pitboss host) — Not applicable
 
-The Pitboss host control panel — uptime, players connected, turn, autosave timing, kick, save now, return to menu — is unread.
+The Pitboss host control panel runs in `CivV_Pitboss.exe`, a separate dedicated-server executable that ships alongside the game. The mod's DLC and Lua hooks load inside the game client's lua_State and have no reach into a sibling process, so the host panel is outside this project's architecture. Making it accessible would be a separate effort against the Pitboss exe (an external screen-reader bridge), not a `CivVAccess_*.lua` file. The lobby screens that connect to a Pitboss server (1.13, 1.14) live in the game client and are covered.
 
 ## 1.19 Content and expansion switching — Done
 
