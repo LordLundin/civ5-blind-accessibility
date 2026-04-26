@@ -454,6 +454,13 @@ function M.test_label_drops_help_when_identical_to_strategy()
     -- both resolve to the same localized string. The label must not read it
     -- twice.
     setup()
+    local origConvert = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(k, ...)
+        if k == "TXT_KEY_BUILDING_MONUMENT_STRATEGY" then
+            return "Cultural anchor."
+        end
+        return origConvert(k, ...)
+    end
     installGameInfoBuildings({
         {
             ID = 1,
@@ -475,8 +482,50 @@ function M.test_label_drops_help_when_identical_to_strategy()
         isProduce = true,
     }
     local label = ChooseProductionLogic.buildLabel(entry, city)
-    local _, count = label:gsub("TXT_KEY_BUILDING_MONUMENT_STRATEGY", "")
+    local _, count = label:gsub("Cultural anchor%.", "")
     T.eq(count, 1, "strategy/help text appears exactly once")
+end
+
+function M.test_label_drops_unresolved_strategy_key()
+    -- A handful of base-game records (PROCESS_RESEARCH, PROCESS_WEALTH)
+    -- reference TXT_KEY_*_STRATEGY strings that were never registered. The
+    -- label must drop the unresolved key rather than letting Tolk spell out
+    -- "TXT KEY PROCESS RESEARCH STRATEGY" letter by letter.
+    setup()
+    local origConvert = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(k, ...)
+        if k == "TXT_KEY_PROCESS_RESEARCH" then
+            return "Research"
+        end
+        if k == "TXT_KEY_PROCESS_RESEARCH_HELP" then
+            return "Research converts production into science."
+        end
+        return origConvert(k, ...)
+    end
+    installGameInfoProcesses({
+        {
+            ID = 1,
+            Type = "PROCESS_RESEARCH",
+            Description = "TXT_KEY_PROCESS_RESEARCH",
+            Help = "TXT_KEY_PROCESS_RESEARCH_HELP",
+            Strategy = "TXT_KEY_PROCESS_RESEARCH_STRATEGY",
+        },
+    })
+    local city = mkCityStub({ canMaintain = { [1] = true } })
+    local entry = {
+        orderType = OrderTypes.ORDER_MAINTAIN,
+        id = 1,
+        info = GameInfo.Processes[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local label = ChooseProductionLogic.buildLabel(entry, city)
+    T.truthy(label:find("Research"), "label includes the Description")
+    T.truthy(label:find("converts production"), "label includes the Help text")
+    T.falsy(
+        label:find("TXT_KEY_PROCESS_RESEARCH_STRATEGY", 1, true),
+        "label drops the unresolved Strategy key"
+    )
 end
 
 function M.test_advisor_suffix_with_zero_one_and_all_advisors()

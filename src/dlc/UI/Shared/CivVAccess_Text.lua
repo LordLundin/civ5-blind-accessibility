@@ -57,6 +57,21 @@ function Text.key(keyName)
     return out
 end
 
+-- Like Text.key but returns nil instead of the raw key string when the lookup
+-- misses. Use this when the caller has somewhere to drop the value (a part
+-- list, a tooltip with a fallback) so an unresolved key never reaches Tolk
+-- and gets spelled out letter by letter. Base-game data is the main source
+-- of misses: a few TXT_KEY_* references point at strings that were never
+-- registered (e.g. TXT_KEY_PROCESS_RESEARCH_STRATEGY).
+function Text.keyOrNil(keyName)
+    local out = lookup(keyName)
+    if out == keyName and isTxtKey(keyName) then
+        Log.warn("Text: missing TXT_KEY " .. tostring(keyName))
+        return nil
+    end
+    return out
+end
+
 function Text.format(keyName, ...)
     local out = lookup(keyName, ...)
     if out == keyName and isTxtKey(keyName) then

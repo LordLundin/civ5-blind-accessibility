@@ -346,14 +346,24 @@ function ChooseProductionLogic.buildLabel(entry, city)
             parts[#parts + 1] = reason
         end
     end
+    -- keyOrNil rather than key: a couple of base-game records reference
+    -- TXT_KEY_* strings that were never defined (PROCESS_RESEARCH and
+    -- PROCESS_WEALTH have stub Strategy fields that the visual UI happens
+    -- not to read). Tolk would spell out the raw key letter by letter.
     if entry.info.Strategy and entry.info.Strategy ~= "" then
-        parts[#parts + 1] = Text.key(entry.info.Strategy)
+        local strategy = Text.keyOrNil(entry.info.Strategy)
+        if strategy then
+            parts[#parts + 1] = strategy
+        end
     end
     -- Some buildings (Monument, etc.) point Help and Strategy at the same
     -- TXT_KEY; the game's Civilopedia skips Help in that case to avoid a
     -- duplicate read (CivilopediaScreen.lua:3270).
     if entry.info.Help and entry.info.Help ~= "" and entry.info.Help ~= entry.info.Strategy then
-        parts[#parts + 1] = Text.key(entry.info.Help)
+        local help = Text.keyOrNil(entry.info.Help)
+        if help then
+            parts[#parts + 1] = help
+        end
     end
     local suffix = ChooseProductionLogic.advisorSuffix(entry)
     if suffix ~= "" then
