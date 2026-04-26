@@ -923,8 +923,11 @@ function BaseMenu.create(spec)
             end
             -- silentFirstOpen: defer preamble / tab / first-item speech to
             -- F1 (readHeader). State setup above still ran so arrow-key
-            -- nav starts on the first navigable item.
-            if self._silentFirstOpen then
+            -- nav starts on the first navigable item. The Settings
+            -- "Read Subtitles" toggle bypasses the suppression so the user
+            -- hears the preamble alongside the engine's narration; read live
+            -- so flipping the option affects subsequent opens immediately.
+            if self._silentFirstOpen and not (civvaccess_shared and civvaccess_shared.readSubtitles) then
                 return
             end
             local preambleText = resolvePreamble(self)

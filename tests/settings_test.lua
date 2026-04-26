@@ -116,11 +116,11 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_open_builds_three_items()
+function M.test_open_builds_four_items()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(#h._items, 3, "audio cue mode group + volume slider + scanner toggle")
+    T.eq(#h._items, 4, "audio cue mode group + volume slider + scanner toggle + read-subtitles toggle")
 end
 
 function M.test_first_item_is_audio_cue_mode_group()
@@ -235,6 +235,29 @@ function M.test_scanner_toggle_flip_writes_shared_and_prefs()
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(civvaccess_shared.scannerAutoMove, true)
     T.eq(prefsStore["ScannerAutoMove"], true)
+end
+
+-- Read-subtitles toggle -------------------------------------------------
+
+function M.test_fourth_item_is_read_subtitles_toggle()
+    setup()
+    Settings.open()
+    local h = HandlerStack.active()
+    T.eq(h._items[4].kind, "checkbox")
+end
+
+function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
+    setup()
+    civvaccess_shared.readSubtitles = false
+    Settings.open()
+    local handler = HandlerStack.active()
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(civvaccess_shared.readSubtitles, true)
+    T.eq(prefsStore["ReadSubtitles"], true)
 end
 
 return M

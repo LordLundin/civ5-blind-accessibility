@@ -27,6 +27,27 @@ local function setScannerAutoMove(v)
     Prefs.setBool("ScannerAutoMove", b)
 end
 
+-- Read-subtitles toggle. Off by default: several screens (LoadScreen
+-- DawnOfMan, leader dialogue, tech-award quote, advisor intros) declare
+-- silentFirstOpen so their preamble doesn't talk over the engine's own
+-- narration audio. Flipping this on bypasses that suppression so the user
+-- hears the screen reader's preamble layered on top. Lives on
+-- civvaccess_shared so BaseMenuCore reads it live at the gate site and
+-- toggling takes effect on the next screen open.
+if civvaccess_shared.readSubtitles == nil then
+    civvaccess_shared.readSubtitles = Prefs.getBool("ReadSubtitles", false)
+end
+
+local function getReadSubtitles()
+    return civvaccess_shared.readSubtitles == true
+end
+
+local function setReadSubtitles(v)
+    local b = v and true or false
+    civvaccess_shared.readSubtitles = b
+    Prefs.setBool("ReadSubtitles", b)
+end
+
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
         textKey = textKey,
@@ -74,6 +95,11 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE",
             getValue = getScannerAutoMove,
             setValue = setScannerAutoMove,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES",
+            getValue = getReadSubtitles,
+            setValue = setReadSubtitles,
         }),
     }
 end

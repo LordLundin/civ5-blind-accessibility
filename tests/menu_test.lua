@@ -1652,6 +1652,28 @@ function M.test_silent_first_open_readHeader_speaks_preamble()
     T.eq(speaks[2].text, "body text")
 end
 
+-- ReadSubtitles toggle bypasses silentFirstOpen so the preamble and first
+-- item speak alongside the engine's narration. The flag is read live at the
+-- gate site, so flipping it on civvaccess_shared takes effect immediately.
+function M.test_silent_first_open_bypassed_by_read_subtitles()
+    setup()
+    setCtrls({ "A", "B" })
+    civvaccess_shared.readSubtitles = true
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "body text",
+        items = buttonSpec({ "A", "B" }),
+        silentFirstOpen = true,
+    })
+    HandlerStack.push(h)
+    civvaccess_shared.readSubtitles = false
+    T.eq(#speaks, 3, "displayName, preamble, first item all spoken")
+    T.eq(speaks[1].text, "Screen")
+    T.eq(speaks[2].text, "body text")
+    T.eq(speaks[3].text, "LABEL_A")
+end
+
 function M.test_silent_first_open_rejects_non_boolean()
     setup()
     setCtrls({ "A" })
