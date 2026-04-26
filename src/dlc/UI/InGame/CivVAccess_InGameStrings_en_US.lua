@@ -1316,3 +1316,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_ROW_APOLLO_BARE_SELF"] = "Apol
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_ROW_APOLLO_PARTS"] = "{1_Name}, Apollo built, {2_Parts}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_SELF_PARTS"] = "Apollo built, {1_Parts}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PREREQ_PROGRESS"] = "{1_Have} of {2_Total} prerequisites researched"
+-- Demographics (F9): one row per metric, speaking name, rank, the active
+-- player's value, then rival best (with civ name), average, and worst
+-- (with civ name) -- vanilla column order. Metric name and unmet-civ /
+-- "you of <Civ>" fillers reuse engine TXT_KEYs so the format key stays
+-- pure positional substitution.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_ROW"] =
+    "{1_Metric}, rank {2_Rank}, {3_Value}, best {4_BestCiv} {5_BestVal}, average {6_AvgVal}, worst {7_WorstCiv} {8_WorstVal}"
