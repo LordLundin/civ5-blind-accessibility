@@ -234,12 +234,40 @@ end
 -- arrow / re-show navigation always reflects current game state. Format
 -- mirrors vanilla's left-to-right column order: name, rank, value, best
 -- (with civ), average, worst (with civ).
-local function metricRow(labelKey, valueFn, formatFn)
+--
+-- measureKey is the engine's per-metric unit string (vanilla shows it as
+-- the value-cell tooltip: "Million Bushels", "Million Tons", "Square KM",
+-- etc.). The raw-number metrics are flavor-scaled by the engine -- GNP
+-- "50" is really 50 GPT, Crop Yield "200" is really 200 food per turn --
+-- so speaking the unit on the active player's value lets the listener
+-- recognize the scaling. Skipped where the unit is already implied:
+-- Soldiers (metric name and unit are both "Soldiers" in vanilla),
+-- Approval, and Literacy (the "%" suffix in formatPct already encodes
+-- the unit on every value).
+--
+-- magSuffix is a short magnitude marker tacked onto the comparison
+-- numbers (best / average / worst) for metrics whose unit prefix is
+-- "Million" -- without it, the listener hears "200 Million Bushels,
+-- best Persia 350" and can't tell whether 350 means 350 bushels or
+-- 350 million bushels. Population and Land sidestep this because their
+-- digit-grouped numbers (12,345,678 / 1,000,000) read with magnitude
+-- already in the digit count.
+local function metricRow(labelKey, valueFn, formatFn, measureKey, magSuffix)
     return BaseMenuItems.Text({
         labelFn = function()
             local pSelf = Players[activePlayerId()]
             local rank = rankOf(valueFn, pSelf)
             local selfVal = formatFn(valueFn(pSelf))
+            if measureKey ~= nil then
+                selfVal = selfVal .. " " .. Locale.ConvertTextKey(measureKey)
+            end
+            local function shortVal(rawVal)
+                local s = formatFn(rawVal)
+                if magSuffix ~= nil then
+                    s = s .. magSuffix
+                end
+                return s
+            end
             local bestRaw, bestP = bestOf(valueFn)
             local worstRaw, worstP = worstOf(valueFn)
             local avgRaw = averageOf(valueFn)
@@ -249,10 +277,10 @@ local function metricRow(labelKey, valueFn, formatFn)
                 rank,
                 selfVal,
                 civDisplayName(bestP or pSelf),
-                formatFn(bestRaw or 0),
-                formatFn(avgRaw),
+                shortVal(bestRaw or 0),
+                shortVal(avgRaw),
                 civDisplayName(worstP or pSelf),
-                formatFn(worstRaw or 0)
+                shortVal(worstRaw or 0)
             )
         end,
     })
@@ -260,14 +288,14 @@ end
 
 local function buildItems()
     return {
-        metricRow("TXT_KEY_DEMOGRAPHICS_POPULATION", valuePopulation, formatBig),
-        metricRow("TXT_KEY_DEMOGRAPHICS_FOOD",       valueFood,       formatBig),
-        metricRow("TXT_KEY_DEMOGRAPHICS_PRODUCTION", valueProduction, formatBig),
-        metricRow("TXT_KEY_DEMOGRAPHICS_GOLD",       valueGold,       formatBig),
-        metricRow("TXT_KEY_DEMOGRAPHICS_LAND",       valueLand,       formatBig),
-        metricRow("TXT_KEY_DEMOGRAPHICS_ARMY",       valueArmy,       formatBig),
-        metricRow("TXT_KEY_DEMOGRAPHICS_APPROVAL",   valueApproval,   formatPct),
-        metricRow("TXT_KEY_DEMOGRAPHICS_LITERACY",   valueLiteracy,   formatPct),
+        metricRow("TXT_KEY_DEMOGRAPHICS_POPULATION", valuePopulation, formatBig, "TXT_KEY_DEMOGRAPHICS_POPULATION_MEASURE", nil),
+        metricRow("TXT_KEY_DEMOGRAPHICS_FOOD",       valueFood,       formatBig, "TXT_KEY_DEMOGRAPHICS_FOOD_MEASURE",       "m"),
+        metricRow("TXT_KEY_DEMOGRAPHICS_PRODUCTION", valueProduction, formatBig, "TXT_KEY_DEMOGRAPHICS_PRODUCTION_MEASURE", "m"),
+        metricRow("TXT_KEY_DEMOGRAPHICS_GOLD",       valueGold,       formatBig, "TXT_KEY_DEMOGRAPHICS_GOLD_MEASURE",       "m"),
+        metricRow("TXT_KEY_DEMOGRAPHICS_LAND",       valueLand,       formatBig, "TXT_KEY_DEMOGRAPHICS_LAND_MEASURE",       nil),
+        metricRow("TXT_KEY_DEMOGRAPHICS_ARMY",       valueArmy,       formatBig, nil,                                       nil),
+        metricRow("TXT_KEY_DEMOGRAPHICS_APPROVAL",   valueApproval,   formatPct, nil,                                       nil),
+        metricRow("TXT_KEY_DEMOGRAPHICS_LITERACY",   valueLiteracy,   formatPct, nil,                                       nil),
     }
 end
 
