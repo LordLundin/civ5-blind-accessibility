@@ -877,6 +877,13 @@ end
 --
 -- Groups are not leaves: activate drills; adjust is a no-op (Right drilling
 -- is handled by the menu container via kind checks).
+--
+-- A Group with no navigable children is itself non-navigable: the parent's
+-- nav (Up/Down, cross-group jump, search corpus, first-valid-on-open) skips
+-- it so empty drillables don't appear in the list (e.g. a Wonders group on
+-- the production chooser disappears when the city has no wonders to build).
+-- For cached=false groups this re-evaluates each check, so children() may
+-- be invoked once per nav step; cached=true groups pay it once.
 
 function BaseMenuItems.Group(spec)
     assertLabel(spec, "Group")
@@ -903,7 +910,12 @@ function BaseMenuItems.Group(spec)
         if self._visibilityControl ~= nil and self._visibilityControl:IsHidden() then
             return false
         end
-        return true
+        for _, child in ipairs(self:children()) do
+            if child:isNavigable() then
+                return true
+            end
+        end
+        return false
     end
     function item:isActivatable()
         return self:isNavigable()

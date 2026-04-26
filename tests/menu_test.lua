@@ -2571,19 +2571,80 @@ function M.test_ctrl_up_at_level_2_jumps_to_prev_group_first_child()
     T.eq(speaks[1].text, "A")
 end
 
-function M.test_empty_group_drill_is_noop_and_reannounces_label()
+function M.test_empty_group_is_skipped_in_navigation()
     setup()
-    setCtrls({})
+    setCtrls({ "A1", "C1" })
     local h = BaseMenu.create({
         name = "T",
         displayName = "Screen",
-        items = { BaseMenuItems.Group({ labelText = "Empty", items = {} }) },
+        items = {
+            BaseMenuItems.Group({ labelText = "Full A", items = { buttonItem("A1", "A One") } }),
+            BaseMenuItems.Group({ labelText = "Empty", items = {} }),
+            BaseMenuItems.Group({ labelText = "Full C", items = { buttonItem("C1", "C One") } }),
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(h._indices[1], 1, "open lands on first non-empty group")
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 3, "Down skips the empty group")
+    T.eq(speaks[1].text, "Full C")
+end
+
+function M.test_group_with_only_non_navigable_children_is_skipped()
+    setup()
+    setCtrls({ "A1", "HIDDEN", "C1" })
+    ctrlState.HIDDEN.hidden = true
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Group({ labelText = "Full A", items = { buttonItem("A1", "A One") } }),
+            BaseMenuItems.Group({ labelText = "OnlyHidden", items = { buttonItem("HIDDEN", "Hidden Child") } }),
+            BaseMenuItems.Group({ labelText = "Full C", items = { buttonItem("C1", "C One") } }),
+        },
     })
     HandlerStack.push(h)
     speaks = {}
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
-    T.eq(h._level, 1, "drill into empty group does not change level")
-    T.eq(speaks[1].text, "Empty")
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 3, "Down skips group whose only child is hidden")
+    T.eq(speaks[1].text, "Full C")
+end
+
+function M.test_nested_group_with_inner_drillable_stays_navigable()
+    setup()
+    setCtrls({ "DEEP" })
+    local innerGroup = BaseMenuItems.Group({ labelText = "Inner", items = { buttonItem("DEEP", "Leaf") } })
+    local outerGroup = BaseMenuItems.Group({ labelText = "Outer", items = { innerGroup } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { outerGroup } })
+    HandlerStack.push(h)
+    T.truthy(outerGroup:isNavigable(), "outer group navigable when inner has a leaf")
+    T.truthy(innerGroup:isNavigable(), "inner group navigable")
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into outer
+    T.eq(h._level, 2, "drilled into outer")
+    T.eq(speaks[1].text, "Inner", "inner group announced")
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into inner
+    T.eq(h._level, 3, "drilled into inner")
+    T.eq(speaks[2].text, "Leaf", "leaf announced")
+end
+
+function M.test_nested_group_with_only_empty_inner_is_hidden()
+    setup()
+    setCtrls({ "REAL" })
+    local emptyInner = BaseMenuItems.Group({ labelText = "EmptyInner", items = {} })
+    local hollowOuter = BaseMenuItems.Group({ labelText = "Hollow", items = { emptyInner } })
+    local realGroup = BaseMenuItems.Group({ labelText = "Real", items = { buttonItem("REAL", "Leaf") } })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { realGroup, hollowOuter },
+    })
+    HandlerStack.push(h)
+    T.falsy(hollowOuter:isNavigable(), "outer group with only empty inner is hidden")
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 1, "Down has nowhere to go; cursor stays on Real")
 end
 
 function M.test_group_itemsFn_is_called_lazily_and_cached()
@@ -3572,14 +3633,14 @@ end
 
 function M.test_tab_without_onCtrl_hook_falls_back_to_default()
     setup()
-    local g1a = BaseMenuItems.Checkbox({ controlName = "C1a", textKey = "L1a" })
-    local g1b = BaseMenuItems.Checkbox({ controlName = "C1b", textKey = "L1b" })
-    local g2a = BaseMenuItems.Checkbox({ controlName = "C2a", textKey = "L2a" })
     populateControls({
         C1a = Polyfill.makeCheckBox(),
         C1b = Polyfill.makeCheckBox(),
         C2a = Polyfill.makeCheckBox(),
     })
+    local g1a = BaseMenuItems.Checkbox({ controlName = "C1a", textKey = "L1a" })
+    local g1b = BaseMenuItems.Checkbox({ controlName = "C1b", textKey = "L1b" })
+    local g2a = BaseMenuItems.Checkbox({ controlName = "C2a", textKey = "L2a" })
     local h = BaseMenu.create({
         name = "T",
         displayName = "Screen",
