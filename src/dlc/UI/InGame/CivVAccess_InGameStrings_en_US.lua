@@ -69,7 +69,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"] = "target mode"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CANCELED"] = "canceled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE"] = "out of range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK"] =
-    "{1_Name}, {2_MyStr} vs {3_TheirStr}, {4_Result}, {5_MyDmg} damage to me, {6_TheirDmg} to them"
+    "{1_Name}, {2_MyStr} vs {3_TheirStr}, {4_Result}, {5_DmgToMe} damage to me, {6_DmgToThem} to them"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_SUPPORT_FIRE"] = "support fire {1_Dmg}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_CAPTURE_CHANCE"] = "capture chance {1_Pct} percent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_MY"] = "my bonuses {1_List}"
@@ -77,7 +77,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_THEIR"] = "theirs: {1_L
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOD_POS"] = "plus {1_N} percent {2_Label}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOD_NEG"] = "minus {1_N} percent {2_Label}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED"] =
-    "{1_Name}, {2_MyStr} vs {3_TheirStr}, {4_Result}, {5_MyDmg} damage to them"
+    "{1_Name}, {2_MyStr} vs {3_TheirStr}, {4_Result}, {5_DmgToThem} damage to them"
 -- City-defender preview variants. Cities don't surface a combat
 -- prediction (the engine's CombatPrediction is unit-vs-unit only) and
 -- the modifier breakdowns are different enough that we drop them rather
@@ -85,9 +85,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED"] =
 -- GetCombatDamage with the city flags set, so they match what the
 -- sighted EnemyUnitPanel reports.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_CITY"] =
-    "city {1_Name}, {2_MyStr} vs {3_TheirStr}, {4_MyDmg} damage to me, {5_TheirDmg} to them"
+    "city {1_Name}, {2_MyStr} vs {3_TheirStr}, {4_DmgToMe} damage to me, {5_DmgToThem} to them"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED_CITY"] =
-    "city {1_Name}, {2_MyStr} vs {3_TheirStr}, {4_MyDmg} damage to them"
+    "city {1_Name}, {2_MyStr} vs {3_TheirStr}, {4_DmgToThem} damage to them"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE"] = "{1_Dmg} to me"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPT_POSSIBLE"] = "intercept possible"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS"] = "{1_N} interceptors"
