@@ -70,7 +70,7 @@ local function mpMapTypeSizeLabels()
     local mapScripts = {}
     for row in GameInfo.MapScripts({ SupportsMultiplayer = 1 }) do
         mapScripts[#mapScripts + 1] = {
-            name = Locale.ConvertTextKey(row.Name),
+            name = Text.key(row.Name),
             allSizes = true,
         }
     end
@@ -83,7 +83,7 @@ local function mpMapTypeSizeLabels()
             end
         end
         mapScripts[#mapScripts + 1] = {
-            name = Locale.Lookup(row.Name),
+            name = Text.key(row.Name),
             sizes = sizes,
         }
     end
@@ -98,7 +98,7 @@ local function mpMapTypeSizeLabels()
             if map.Name and not Locale.IsNilOrWhitespace(map.Name) then
                 name = map.Name
             elseif wb ~= nil and not Locale.IsNilOrWhitespace(wb.Name) then
-                name = Locale.Lookup(wb.Name)
+                name = Text.key(wb.Name)
             else
                 name = Path.GetFileNameWithoutExtension(map.File)
             end
@@ -220,8 +220,8 @@ local function gameOptionDropdownRows()
         )
     do
         rows[#rows + 1] = {
-            Name = Locale.ConvertTextKey(option.Name),
-            Help = option.Description and Locale.ConvertTextKey(option.Description) or nil,
+            Name = Text.key(option.Name),
+            Help = option.Description and Text.key(option.Description) or nil,
             SortPriority = option.SortPriority,
         }
     end
@@ -236,8 +236,8 @@ local function gameOptionCheckboxRows()
             local supported = hotseat and option.SupportsSinglePlayer or option.SupportsMultiplayer
             if supported then
                 rows[#rows + 1] = {
-                    Name = Locale.ConvertTextKey(option.Description),
-                    Help = option.Help and Locale.ConvertTextKey(option.Help) or nil,
+                    Name = Text.key(option.Description),
+                    Help = option.Help and Text.key(option.Help) or nil,
                     SortPriority = 0,
                 }
             end
@@ -253,8 +253,8 @@ local function gameOptionCheckboxRows()
         )
     do
         rows[#rows + 1] = {
-            Name = Locale.ConvertTextKey(option.Name),
-            Help = option.Description and Locale.ConvertTextKey(option.Description) or nil,
+            Name = Text.key(option.Name),
+            Help = option.Description and Text.key(option.Description) or nil,
             SortPriority = option.SortPriority,
         }
     end

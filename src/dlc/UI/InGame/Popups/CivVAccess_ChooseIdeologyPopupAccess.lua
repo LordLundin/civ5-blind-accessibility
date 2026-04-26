@@ -58,9 +58,9 @@ local function buildItems()
             local branchID = branch.ID
             local branchDescription = branch.Description
             local iFreePolicies = Game.GetNumFreePolicies(branchID)
-            local labelParts = { Locale.ConvertTextKey(branchDescription) }
+            local labelParts = { Text.key(branchDescription) }
             if iFreePolicies > 0 then
-                labelParts[#labelParts + 1] = Locale.Lookup("TXT_KEY_CHOOSE_IDEOLOGY_NUM_FREE_POLICIES", iFreePolicies)
+                labelParts[#labelParts + 1] = Text.format("TXT_KEY_CHOOSE_IDEOLOGY_NUM_FREE_POLICIES", iFreePolicies)
             end
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = table.concat(labelParts, ", "),

@@ -97,7 +97,7 @@ local function buildItems(popupInfo)
         local iGoodyType = iIndex
         if pPlayer:CanGetGoody(pPlot, iGoodyType, pUnit) then
             items[#items + 1] = BaseMenuItems.Choice({
-                labelText = Locale.ConvertTextKey(info.ChooseDescription),
+                labelText = Text.key(info.ChooseDescription),
                 selectedFn = function()
                     return #SelectedItems > 0 and SelectedItems[1][1] == iGoodyType
                 end,

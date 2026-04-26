@@ -185,7 +185,7 @@ local function majorCivItem(iUs, pUs, pUsTeam, iOther)
     local capturedOther = iOther
     return BaseMenuItems.Choice({
         labelText = DiploCommon.joinParts(parts),
-        pediaName = Locale.ConvertTextKey(GameInfo.Leaders[pOther:GetLeaderType()].Description),
+        pediaName = Text.key(GameInfo.Leaders[pOther:GetLeaderType()].Description),
         activate = function()
             DiploCommon.openTradeWith(capturedOther)
         end,

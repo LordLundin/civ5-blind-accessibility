@@ -131,8 +131,8 @@ local function buildItems()
     if not bWrittenArtifact and bArtSlotOpen and pPlayer1 ~= nil then
         local civKey = pPlayer1:GetCivilizationAdjectiveKey()
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = Locale.Lookup("TXT_KEY_CHOOSE_ARCH_ARTIFACT_HEADER", Locale.ConvertTextKey(civKey)),
-            tooltipText = Locale.ConvertTextKey("TXT_KEY_CHOOSE_ARCH_ARTIFACT_RESULT"),
+            labelText = Text.format("TXT_KEY_CHOOSE_ARCH_ARTIFACT_HEADER", Text.key(civKey)),
+            tooltipText = Text.key("TXT_KEY_CHOOSE_ARCH_ARTIFACT_RESULT"),
             activate = confirmActivate(2),
         })
     end
@@ -140,8 +140,8 @@ local function buildItems()
     if bWrittenArtifact and bWritingSlotOpen and pPlayer1 ~= nil then
         local civKey = pPlayer1:GetCivilizationAdjectiveKey()
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = Locale.Lookup("TXT_KEY_CHOOSE_ARCH_WRITING_HEADER", Locale.ConvertTextKey(civKey)),
-            tooltipText = Locale.ConvertTextKey("TXT_KEY_CHOOSE_ARCH_WRITTEN_ARTIFACT_RESULT"),
+            labelText = Text.format("TXT_KEY_CHOOSE_ARCH_WRITING_HEADER", Text.key(civKey)),
+            tooltipText = Text.key("TXT_KEY_CHOOSE_ARCH_WRITTEN_ARTIFACT_RESULT"),
             activate = confirmActivate(5),
         })
     end
@@ -149,22 +149,22 @@ local function buildItems()
     if not bWrittenArtifact and bArtSlotOpen and bShow2ndPlayer and pPlayer2 ~= nil then
         local civKey = pPlayer2:GetCivilizationAdjectiveKey()
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = Locale.Lookup("TXT_KEY_CHOOSE_ARCH_ARTIFACT_HEADER", Locale.ConvertTextKey(civKey)),
-            tooltipText = Locale.ConvertTextKey("TXT_KEY_CHOOSE_ARCH_ARTIFACT_RESULT"),
+            labelText = Text.format("TXT_KEY_CHOOSE_ARCH_ARTIFACT_HEADER", Text.key(civKey)),
+            tooltipText = Text.key("TXT_KEY_CHOOSE_ARCH_ARTIFACT_RESULT"),
             activate = confirmActivate(3),
         })
     end
 
     if not bWrittenArtifact then
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = Locale.ConvertTextKey("TXT_KEY_CHOOSE_ARCH_LANDMARK_HEADER"),
-            tooltipText = Locale.ConvertTextKey("TXT_KEY_CHOOSE_ARCH_LANDMARK_RESULT"),
+            labelText = Text.key("TXT_KEY_CHOOSE_ARCH_LANDMARK_HEADER"),
+            tooltipText = Text.key("TXT_KEY_CHOOSE_ARCH_LANDMARK_RESULT"),
             activate = confirmActivate(1),
         })
     else
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = Locale.ConvertTextKey("TXT_KEY_CHOOSE_ARCH_RENAISSANCE_HEADER"),
-            tooltipText = Locale.ConvertTextKey("TXT_KEY_CHOOSE_ARCH_RENAISSANCE_RESULT"),
+            labelText = Text.key("TXT_KEY_CHOOSE_ARCH_RENAISSANCE_HEADER"),
+            tooltipText = Text.key("TXT_KEY_CHOOSE_ARCH_RENAISSANCE_RESULT"),
             activate = confirmActivate(4),
         })
     end

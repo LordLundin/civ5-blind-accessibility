@@ -37,13 +37,13 @@ function LeaderDescription.speakFor(iPlayer)
         return
     end
     local key = "TXT_KEY_CIVVACCESS_LEADER_DESC_" .. leaderType
-    local mapped = CivVAccess_Strings and CivVAccess_Strings[key]
-    if mapped == nil then
+    local desc = Text.keyOrNil(key)
+    if desc == nil then
         Log.warn("LeaderDescription: no description for " .. tostring(leaderType))
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_LEADER_DESC_MISSING"))
         return
     end
-    SpeechPipeline.speakInterrupt(mapped)
+    SpeechPipeline.speakInterrupt(desc)
 end
 
 -- Append an F2 binding + matching help entry to a BaseMenu handler.

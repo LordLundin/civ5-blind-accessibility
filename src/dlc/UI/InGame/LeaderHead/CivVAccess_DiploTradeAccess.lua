@@ -59,7 +59,7 @@ local function titleFn()
     if g_iThem ~= nil and g_iThem >= 0 then
         local pPlayer = Players[g_iThem]
         if pPlayer ~= nil then
-            return Locale.ConvertTextKey("TXT_KEY_DIPLO_LEADER_SAYS", pPlayer:GetName())
+            return Text.format("TXT_KEY_DIPLO_LEADER_SAYS", pPlayer:GetName())
         end
     end
     -- Fallback in case globals haven't been populated yet.

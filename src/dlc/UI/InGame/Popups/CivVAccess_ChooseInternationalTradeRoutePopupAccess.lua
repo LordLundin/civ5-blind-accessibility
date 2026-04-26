@@ -75,7 +75,7 @@ local function yieldEntry(yieldType, valueTimes100)
     if key == nil then
         return nil
     end
-    return Locale.Lookup(key, valueTimes100 / 100)
+    return Text.format(key, valueTimes100 / 100)
 end
 
 -- Trade religion pressure verified via Community-Patch-DLL

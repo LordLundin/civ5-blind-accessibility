@@ -83,7 +83,7 @@ end
 -- vanilla SetCivName.
 local function civDisplayName(pPlayer)
     if not playerHasMet(pPlayer) then
-        return Locale.ConvertTextKey("TXT_KEY_MISC_UNKNOWN")
+        return Text.key("TXT_KEY_MISC_UNKNOWN")
     end
     local civInfo = GameInfo.Civilizations[pPlayer:GetCivilizationType()]
     local strPlayer
@@ -95,7 +95,7 @@ local function civDisplayName(pPlayer)
     else
         strPlayer = pPlayer:GetNameKey()
     end
-    return Locale.ConvertTextKey("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
+    return Text.format("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
 end
 
 -- Civilopedia search string for a civ row's leader article. Nil when the
@@ -109,7 +109,7 @@ local function leaderPediaNameFor(pPlayer)
     if not playerHasMet(pPlayer) then
         return nil
     end
-    return Locale.ConvertTextKey(GameInfo.Leaders[pPlayer:GetLeaderType()].Description)
+    return Text.key(GameInfo.Leaders[pPlayer:GetLeaderType()].Description)
 end
 
 -- Iterator over major civs that have ever been alive in the game (returns
@@ -137,7 +137,7 @@ end
 -- PopulateScoreScreen but speaks "name, score N" / "name, score N, capital
 -- lost" instead of vanilla's visual gray-out + sword overlay.
 local function scoreRowText(rank, pPlayer)
-    local rankPrefix = Locale.ConvertTextKey("TXT_KEY_NUMBERING_FORMAT", rank)
+    local rankPrefix = Text.format("TXT_KEY_NUMBERING_FORMAT", rank)
     local name = rankPrefix .. " " .. civDisplayName(pPlayer)
     local score = pPlayer:GetScore()
     if pPlayer:IsHasLostCapital() then
@@ -175,7 +175,7 @@ local function scoreLine(labelKey, valueFn)
         labelFn = function()
             return Text.format(
                 "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
-                stripColon(Locale.ConvertTextKey(labelKey)),
+                stripColon(Text.key(labelKey)),
                 valueFn()
             )
         end,
@@ -194,7 +194,7 @@ local function buildMyScoreItems()
     if not PreGame.IsVictory(GameInfo.Victories["VICTORY_TIME"].ID) then
         return {
             BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey("TXT_KEY_VP_TIME_VICTORY_DISABLED"),
+                labelText = Text.key("TXT_KEY_VP_TIME_VICTORY_DISABLED"),
             }),
         }
     end
@@ -289,17 +289,17 @@ local function dominationLeadingLine(state)
         if state.anyoneLostCapital then
             return nil
         end
-        return Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_NEW_CAPITALS_REMAINING")
+        return Text.key("TXT_KEY_VP_DIPLO_NEW_CAPITALS_REMAINING")
     end
     if state.leadingNumPlayersOnTeam > 1 then
-        return Locale.ConvertTextKey(
+        return Text.format(
             "TXT_KEY_VP_DIPLO_CAPITALS_TEAM_LEADING",
             state.leadingTeam + 1,
             state.leadingNumCapitals
         )
     end
     if state.leadingPlayer == activePlayerId() then
-        return Locale.ConvertTextKey(
+        return Text.format(
             "TXT_KEY_VP_DIPLO_CAPITALS_ACTIVE_PLAYER_LEADING",
             state.leadingNumCapitals
         )
@@ -307,19 +307,19 @@ local function dominationLeadingLine(state)
     local pLeader = Players[state.leadingPlayer]
     local activeT = Teams[activeTeamId()]
     if pLeader:GetNickName() ~= "" and pLeader:IsHuman() then
-        return Locale.ConvertTextKey(
+        return Text.format(
             "TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING",
             pLeader:GetNickName(),
             state.leadingNumCapitals
         )
     end
     if not activeT:IsHasMet(pLeader:GetTeam()) then
-        return Locale.ConvertTextKey(
+        return Text.format(
             "TXT_KEY_VP_DIPLO_CAPITALS_UNMET_PLAYER_LEADING",
             state.leadingNumCapitals
         )
     end
-    return Locale.ConvertTextKey(
+    return Text.format(
         "TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING",
         pLeader:GetName(),
         state.leadingNumCapitals
@@ -349,7 +349,7 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
 
     if dominatingPlayerId == nil then
         if iPlayer == activePlayerId() then
-            return Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_TT_YOU_NO_CAPITAL")
+            return Text.key("TXT_KEY_VP_DIPLO_TT_YOU_NO_CAPITAL")
         end
         if hasMetSubject then
             local name
@@ -358,9 +358,9 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
             else
                 name = pPlayer:GetName()
             end
-            return Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_TT_KNOWN_NO_CAPITAL", name)
+            return Text.format("TXT_KEY_VP_DIPLO_TT_KNOWN_NO_CAPITAL", name)
         end
-        return Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_TT_UNKNOWN_NO_CAPITAL")
+        return Text.key("TXT_KEY_VP_DIPLO_TT_UNKNOWN_NO_CAPITAL")
     end
 
     local pDominator = Players[dominatingPlayerId]
@@ -370,12 +370,12 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
     -- Subject still holds their own original capital.
     if iPlayer == iDominator then
         if not hasMetSubject then
-            return Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_TT_UNMET_CONTROLS_THEIR_CAPITAL")
+            return Text.key("TXT_KEY_VP_DIPLO_TT_UNMET_CONTROLS_THEIR_CAPITAL")
         end
         local capital = findOriginalCapital(pPlayer)
         local capName = capital ~= nil and capital:GetNameKey() or ""
         if iPlayer == activePlayerId() then
-            return Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_TT_YOU_CONTROL_YOUR_CAPITAL", capName)
+            return Text.format("TXT_KEY_VP_DIPLO_TT_YOU_CONTROL_YOUR_CAPITAL", capName)
         end
         local subjectName
         if isMP() and pPlayer:GetNickName() ~= "" then
@@ -383,7 +383,7 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
         else
             subjectName = pPlayer:GetName()
         end
-        return Locale.ConvertTextKey(
+        return Text.format(
             "TXT_KEY_VP_DIPLO_TT_SOMEONE_CONTROLS_THEIR_CAPITAL",
             subjectName,
             capName
@@ -401,14 +401,14 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
             else
                 domName = pDominator:GetName()
             end
-            return Locale.ConvertTextKey(
+            return Text.format(
                 "TXT_KEY_VP_DIPLO_TT_OTHER_PLAYER_CONTROLS_YOUR_CAPITAL",
                 domName,
                 capName
             )
         end
         if iDominator == activePlayerId() then
-            return Locale.ConvertTextKey(
+            return Text.format(
                 "TXT_KEY_VP_DIPLO_TT_YOU_CONTROL_OTHER_PLAYER_CAPITAL",
                 capName,
                 pPlayer:GetCivilizationShortDescriptionKey()
@@ -420,7 +420,7 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
         else
             domName = pDominator:GetName()
         end
-        return Locale.ConvertTextKey(
+        return Text.format(
             "TXT_KEY_VP_DIPLO_TT_OTHER_PLAYER_CONTROLS_OTHER_PLAYER_CAPITAL",
             domName,
             capName,
@@ -428,7 +428,7 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
         )
     end
     if hasMetSubject and not dominatorMet then
-        return Locale.ConvertTextKey(
+        return Text.format(
             "TXT_KEY_VP_DIPLO_TT_UNMET_PLAYER_CONTROLS_OTHER_PLAYER_CAPITAL",
             capName,
             pPlayer:GetCivilizationShortDescriptionKey()
@@ -441,12 +441,12 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
         else
             domName = pDominator:GetName()
         end
-        return Locale.ConvertTextKey(
+        return Text.format(
             "TXT_KEY_VP_DIPLO_TT_OTHER_PLAYER_CONTROLS_UNMET_PLAYER_CAPITAL",
             domName
         )
     end
-    return Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_TT_UNMET_PLAYER_CONTROLS_UNMET_PLAYER_CAPITAL")
+    return Text.key("TXT_KEY_VP_DIPLO_TT_UNMET_PLAYER_CONTROLS_UNMET_PLAYER_CAPITAL")
 end
 
 -- Count of capitals held by each major civ (the post-conquest aggregate
@@ -477,7 +477,7 @@ local function buildDominationItems()
     if not PreGame.IsVictory(GameInfo.Victories["VICTORY_DOMINATION"].ID) then
         return {
             BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey("TXT_KEY_VP_DOMINATION_VICTORY_DISABLED"),
+                labelText = Text.key("TXT_KEY_VP_DOMINATION_VICTORY_DISABLED"),
             }),
         }
     end
@@ -632,7 +632,7 @@ local function buildScienceItems()
     if not PreGame.IsVictory(GameInfo.Victories["VICTORY_SPACE_RACE"].ID) then
         return {
             BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey("TXT_KEY_VP_SCIENCE_VICTORY_DISABLED"),
+                labelText = Text.key("TXT_KEY_VP_SCIENCE_VICTORY_DISABLED"),
             }),
         }
     end
@@ -673,7 +673,7 @@ local function buildScienceItems()
             end
         end
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = Locale.ConvertTextKey(
+            labelText = Text.format(
                 "TXT_KEY_VP_DIPLO_PROJECT_PLAYERS_COMPLETE",
                 numApollo,
                 "TXT_KEY_PROJECT_APOLLO_PROGRAM"
@@ -716,7 +716,7 @@ local function buildDiplomaticItems()
     if victoryInfo == nil or not PreGame.IsVictory(victoryInfo.ID) then
         return {
             BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_VICTORY_DISABLED"),
+                labelText = Text.key("TXT_KEY_VP_DIPLO_VICTORY_DISABLED"),
             }),
         }
     end
@@ -729,11 +729,11 @@ local function buildDiplomaticItems()
         if isMP() and pLeader:GetNickName() ~= "" and pLeader:IsHuman() then
             name = pLeader:GetNickName()
         else
-            name = Locale.ConvertTextKey(pLeader:GetNameKey())
+            name = Text.key(pLeader:GetNameKey())
         end
         return {
             BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_SOMEONE_WON", name),
+                labelText = Text.format("TXT_KEY_VP_DIPLO_SOMEONE_WON", name),
             }),
         }
     end
@@ -756,39 +756,39 @@ local function buildDiplomaticItems()
 
     if pLeague == nil then
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_UN_INACTIVE"),
+            labelText = Text.key("TXT_KEY_VP_DIPLO_UN_INACTIVE"),
         })
         return items
     end
 
     if Game.IsUnitedNationsActive() then
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_UN_ACTIVE"),
+            labelText = Text.key("TXT_KEY_VP_DIPLO_UN_ACTIVE"),
         })
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.format(
                 "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
-                stripColon(Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_TURNS_UNTIL_SESSION")),
+                stripColon(Text.key("TXT_KEY_VP_DIPLO_TURNS_UNTIL_SESSION")),
                 pLeague:GetTurnsUntilVictorySession()
             ),
         })
     else
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_UN_INACTIVE"),
+            labelText = Text.key("TXT_KEY_VP_DIPLO_UN_INACTIVE"),
         })
     end
 
     items[#items + 1] = BaseMenuItems.Text({
         labelText = Text.format(
             "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
-            stripColon(Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_DELEGATES_CONTROLLED")),
+            stripColon(Text.key("TXT_KEY_VP_DIPLO_DELEGATES_CONTROLLED")),
             pLeague:CalculateStartingVotesForMember(activePlayerId())
         ),
     })
     items[#items + 1] = BaseMenuItems.Text({
         labelText = Text.format(
             "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
-            stripColon(Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_DELEGATES_NEEDED")),
+            stripColon(Text.key("TXT_KEY_VP_DIPLO_DELEGATES_NEEDED")),
             Game.GetVotesNeededForDiploVictory()
         ),
     })
@@ -813,7 +813,7 @@ local function buildCulturalItems()
     if cultureVictory == nil or not PreGame.IsVictory(cultureVictory.ID) then
         return {
             BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey("TXT_KEY_VP_CULTURE_VICTORY_DISABLED"),
+                labelText = Text.key("TXT_KEY_VP_CULTURE_VICTORY_DISABLED"),
             }),
         }
     end
@@ -842,7 +842,7 @@ local function buildCulturalItems()
             key = "TXT_KEY_VP_CULTURE_INFLUENCE_UNMET"
         end
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = Locale.ConvertTextKey(key, pct, pOther:GetCivilizationShortDescriptionKey()),
+            labelText = Text.format(key, pct, pOther:GetCivilizationShortDescriptionKey()),
             pediaName = leaderPediaNameFor(pOther),
         })
     end

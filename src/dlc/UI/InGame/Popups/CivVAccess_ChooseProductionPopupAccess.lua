@@ -203,7 +203,7 @@ local function choiceFromEntry(entry)
             return ChooseProductionLogic.buildLabel(entry, city)
         end,
         activate = entryActivate(entry),
-        pediaName = Locale.ConvertTextKey(entry.info.Description),
+        pediaName = Text.key(entry.info.Description),
     })
 end
 

@@ -116,8 +116,8 @@ local function buildItems(popupInfo)
             local unitType = info.Type
             local strategy = info.Strategy
             items[#items + 1] = BaseMenuItems.Choice({
-                labelText = Locale.ConvertTextKey(info.Description),
-                tooltipText = strategy and Locale.ConvertTextKey(strategy) or nil,
+                labelText = Text.key(info.Description),
+                tooltipText = strategy and Text.key(strategy) or nil,
                 selectedFn = function()
                     return #SelectedItems > 0 and SelectedItems[1][1] == unitType
                 end,

@@ -199,7 +199,7 @@ local function leaderLabel()
     if PreGame.GetLeaderName(0) ~= "" then
         return PreGame.GetLeaderName(0)
     end
-    return Locale.ConvertTextKey(GameInfo.Leaders[pPlayer:GetLeaderType()].Description)
+    return Text.key(GameInfo.Leaders[pPlayer:GetLeaderType()].Description)
 end
 
 local function civLabel()
@@ -207,7 +207,7 @@ local function civLabel()
         return PreGame.GetCivilizationShortDescription(0)
     end
     local t = Players[Game.GetActivePlayer()]:GetCivilizationType()
-    return Locale.ConvertTextKey(GameInfo.Civilizations[t].ShortDescription)
+    return Text.key(GameInfo.Civilizations[t].ShortDescription)
 end
 
 local function eraLabel()
@@ -219,14 +219,14 @@ local function eraLabel()
     if row == nil then
         return nil
     end
-    return Locale.ConvertTextKey("TXT_KEY_START_ERA", Locale.ConvertTextKey(row.Description))
+    return Text.format("TXT_KEY_START_ERA", Text.key(row.Description))
 end
 
 local function mapTypeLabel()
     local fileName = PreGame.GetMapScript()
     for row in GameInfo.MapScripts() do
         if row.FileName == fileName then
-            return Locale.ConvertTextKey("TXT_KEY_AD_MAP_TYPE_SETTING", Locale.ConvertTextKey(row.Name))
+            return Text.format("TXT_KEY_AD_MAP_TYPE_SETTING", Text.key(row.Name))
         end
     end
     return nil
@@ -237,7 +237,7 @@ local function mapSizeLabel()
     if info == nil then
         return nil
     end
-    return Locale.ConvertTextKey("TXT_KEY_AD_MAP_SIZE_SETTING", Locale.ConvertTextKey(info.Description))
+    return Text.format("TXT_KEY_AD_MAP_SIZE_SETTING", Text.key(info.Description))
 end
 
 local function handicapLabel()
@@ -245,7 +245,7 @@ local function handicapLabel()
     if info == nil then
         return nil
     end
-    return Locale.ConvertTextKey("TXT_KEY_AD_HANDICAP_SETTING", Locale.ConvertTextKey(info.Description))
+    return Text.format("TXT_KEY_AD_HANDICAP_SETTING", Text.key(info.Description))
 end
 
 local function speedLabel()
@@ -253,7 +253,7 @@ local function speedLabel()
     if info == nil then
         return nil
     end
-    return Locale.ConvertTextKey("TXT_KEY_AD_GAME_SPEED_SETTING", Locale.ConvertTextKey(info.Description))
+    return Text.format("TXT_KEY_AD_GAME_SPEED_SETTING", Text.key(info.Description))
 end
 
 local function buildDetailsItems()
@@ -273,10 +273,10 @@ local function buildDetailsItems()
     add(handicapLabel())
     add(speedLabel())
 
-    add(Locale.ConvertTextKey("TXT_KEY_VICTORYS_FORMAT"))
+    add(Text.key("TXT_KEY_VICTORYS_FORMAT"))
     for row in GameInfo.Victories() do
         if PreGame.IsVictory(row.ID) then
-            add(Locale.ConvertTextKey(row.Description))
+            add(Text.key(row.Description))
         end
     end
 
@@ -289,7 +289,7 @@ local function buildDetailsItems()
     for option in GameInfo.GameOptions(conditions) do
         local saved = PreGame.GetGameOption(option.Type)
         if saved ~= nil and saved == 1 then
-            add(Locale.ConvertTextKey(option.Description))
+            add(Text.key(option.Description))
         end
     end
 

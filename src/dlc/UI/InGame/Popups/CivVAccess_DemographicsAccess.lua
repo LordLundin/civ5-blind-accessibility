@@ -70,7 +70,7 @@ end
 -- break under load-from-game's env wipe.
 local function civDisplayName(pPlayer)
     if not playerHasMet(pPlayer) then
-        return Locale.ConvertTextKey("TXT_KEY_MISC_UNKNOWN")
+        return Text.key("TXT_KEY_MISC_UNKNOWN")
     end
     local civInfo = GameInfo.Civilizations[pPlayer:GetCivilizationType()]
     local strPlayer
@@ -78,11 +78,11 @@ local function civDisplayName(pPlayer)
     if nick ~= "" and isMP() then
         strPlayer = nick
     elseif pPlayer:GetID() == activePlayerId() then
-        strPlayer = "TXT_KEY_POP_VOTE_RESULTS_YOU"
+        strPlayer = Text.key("TXT_KEY_POP_VOTE_RESULTS_YOU")
     else
         strPlayer = pPlayer:GetNameKey()
     end
-    return Locale.ConvertTextKey("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
+    return Text.format("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
 end
 
 -- Major civs that are currently alive. Vanilla's GetBest / GetWorst /

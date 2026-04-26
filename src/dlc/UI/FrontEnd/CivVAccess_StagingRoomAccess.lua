@@ -132,7 +132,7 @@ local function civText(playerID)
     if row == nil then
         return nil
     end
-    return Locale.ConvertTextKey(row.ShortDescription)
+    return Text.key(row.ShortDescription)
 end
 
 local function teamText(playerID)
@@ -140,7 +140,7 @@ local function teamText(playerID)
     if team == nil or team < 0 then
         return nil
     end
-    return Locale.ConvertTextKey("TXT_KEY_MULTIPLAYER_DEFAULT_TEAM_NAME", team + 1)
+    return Text.format("TXT_KEY_MULTIPLAYER_DEFAULT_TEAM_NAME", team + 1)
 end
 
 local function handicapText(playerID)
@@ -152,7 +152,7 @@ local function handicapText(playerID)
     if row == nil then
         return nil
     end
-    return Locale.ConvertTextKey(row.Description)
+    return Text.key(row.Description)
 end
 
 local function nickName(playerID)
@@ -176,7 +176,7 @@ local function slotStatusText(status)
     if key == nil then
         return nil
     end
-    return Locale.ConvertTextKey(key)
+    return Text.key(key)
 end
 
 -- Compose a one-line summary of a slot's current state. Used as the Group
@@ -237,7 +237,7 @@ local function slotSummary(playerID)
                 .. tostring(PreGame.GetNickName(playerID))
                 .. "'"
         )
-        return Locale.ConvertTextKey("TXT_KEY_PLAYER_TYPE_HUMAN")
+        return Text.key("TXT_KEY_PLAYER_TYPE_HUMAN")
     end
     return table.concat(parts, ", ")
 end
@@ -547,9 +547,9 @@ local function displayName(playerID, snap)
     local n = snap.nick
     if n == nil or n == "" then
         if snap.status == SlotStatus.SS_COMPUTER then
-            return Locale.ConvertTextKey("TXT_KEY_SLOTTYPE_AI")
+            return Text.key("TXT_KEY_SLOTTYPE_AI")
         end
-        return Locale.ConvertTextKey("TXT_KEY_PLAYER_TYPE_HUMAN")
+        return Text.key("TXT_KEY_PLAYER_TYPE_HUMAN")
     end
     return n
 end
@@ -866,7 +866,7 @@ local function resolveNick(playerID)
     if cached ~= nil and cached ~= "" then
         return cached
     end
-    return Locale.ConvertTextKey("TXT_KEY_PLAYER_TYPE_HUMAN")
+    return Text.key("TXT_KEY_PLAYER_TYPE_HUMAN")
 end
 
 local function onPreGameDirty()

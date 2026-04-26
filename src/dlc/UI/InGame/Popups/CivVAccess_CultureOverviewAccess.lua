@@ -154,7 +154,7 @@ end
 -- cross-Context reference would break under load-from-game's env wipe.
 local function civDisplayName(pPlayer)
     if not Teams[pPlayer:GetTeam()]:IsHasMet(Game.GetActiveTeam()) and not isMP() then
-        return Locale.ConvertTextKey("TXT_KEY_MISC_UNKNOWN")
+        return Text.key("TXT_KEY_MISC_UNKNOWN")
     end
     local civInfo = GameInfo.Civilizations[pPlayer:GetCivilizationType()]
     local strPlayer
@@ -166,7 +166,7 @@ local function civDisplayName(pPlayer)
     else
         strPlayer = pPlayer:GetNameKey()
     end
-    return Locale.ConvertTextKey("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
+    return Text.format("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
 end
 
 -- Resolve a great work's creator to a speakable civ name. The engine can
@@ -268,7 +268,7 @@ local function gwTooltip(gwIndex)
     local workType = Game.GetGreatWorkType(gwIndex)
     local classType = GameInfo.GreatWorks[workType].GreatWorkClassType
     local creator = gwCreatorName(gwIndex)
-    local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(gwIndex))
+    local era = Text.key(Game.GetGreatWorkEraShort(gwIndex))
     local culture = GameDefines.BASE_CULTURE_PER_GREAT_WORK
     local tourism = GameDefines.BASE_TOURISM_PER_GREAT_WORK
     if classType == "GREAT_WORK_ARTIFACT" then
@@ -281,7 +281,7 @@ local function gwTooltip(gwIndex)
             tourism
         )
     end
-    local artist = stripArtistTitle(Locale.ConvertTextKey(Game.GetGreatWorkArtist(gwIndex)))
+    local artist = stripArtistTitle(Text.key(Game.GetGreatWorkArtist(gwIndex)))
     if classType == "GREAT_WORK_ART" then
         return Text.format(
             "TXT_KEY_CIVVACCESS_CO_GW_TOOLTIP_AUTHORED",
@@ -454,7 +454,7 @@ local function buildSlotItem(city, buildingClassID, slotIndex, slotType)
         labelFn = function()
             local gw = city:GetBuildingGreatWork(buildingClassID, slotIndex)
             if gw >= 0 then
-                local name = Locale.ConvertTextKey(Game.GetGreatWorkName(gw))
+                local name = Text.key(Game.GetGreatWorkName(gw))
                 return Text.format("TXT_KEY_CIVVACCESS_CO_SLOT_FILLED", idxLabel, name)
             end
             return Text.format("TXT_KEY_CIVVACCESS_CO_SLOT_EMPTY", idxLabel)
@@ -476,13 +476,13 @@ end
 local function buildSingleSlotRow(city, building, buildingClass)
     local buildingClassID = buildingClass.ID
     local slotType = building.GreatWorkSlotType
-    local buildingDescription = Locale.ConvertTextKey(building.Description)
+    local buildingDescription = Text.key(building.Description)
     local slotTypeText = slotTypeLabel(slotType)
     return BaseMenuItems.Text({
         labelFn = function()
             local gw = city:GetBuildingGreatWork(buildingClassID, 0)
             if gw >= 0 then
-                local name = Locale.ConvertTextKey(Game.GetGreatWorkName(gw))
+                local name = Text.key(Game.GetGreatWorkName(gw))
                 return Text.format(
                     "TXT_KEY_CIVVACCESS_CO_BUILDING_SINGLE_FILLED",
                     buildingDescription,
@@ -510,7 +510,7 @@ local function buildMultiSlotGroup(city, building, buildingClass)
     local buildingClassID = buildingClass.ID
     local slotType = building.GreatWorkSlotType
     local slotCount = building.GreatWorkCount or 0
-    local buildingDescription = Locale.ConvertTextKey(building.Description)
+    local buildingDescription = Text.key(building.Description)
     local slotTypeText = slotTypeLabel(slotType)
     return BaseMenuItems.Group({
         labelFn = function()
@@ -738,7 +738,7 @@ local function gwInlineName(idx)
     if idx < 0 then
         return Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_NONE")
     end
-    return Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
+    return Text.key(Game.GetGreatWorkName(idx))
 end
 
 -- The trade-state sentence describing what would happen if the user
@@ -757,13 +757,13 @@ local function tradeStateLabel()
     local typeId = Game.GetGreatWorkClass(theirIdx)
     local meta = typeMetaFor(typeId)
     local typeName = meta and Text.key(meta.nameKey) or ""
-    local theirName = Locale.ConvertTextKey(Game.GetGreatWorkName(theirIdx))
+    local theirName = Text.key(Game.GetGreatWorkName(theirIdx))
     local theirCiv = civDisplayName(Players[m_swapTradingPartner])
     local yourIdx = swappableForTypeId(typeId)
     if yourIdx < 0 then
         return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_NEED_DESIGNATE", typeName, theirName, theirCiv)
     end
-    local yourName = Locale.ConvertTextKey(Game.GetGreatWorkName(yourIdx))
+    local yourName = Text.key(Game.GetGreatWorkName(yourIdx))
     return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_READY", yourName, theirName, theirCiv)
 end
 
@@ -796,7 +796,7 @@ local function buildOfferingPulldown(typeMeta)
             -- have no separate tooltip-on-demand path (entryAnnounceFn
             -- short-circuits the per-entry tooltip append), so the two
             -- are folded into one announcement here.
-            local name = Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
+            local name = Text.key(Game.GetGreatWorkName(idx))
             return name .. ". " .. gwTooltip(idx)
         end,
         onSelected = function()
@@ -846,7 +846,7 @@ local function buildForeignOfferingLeaf(gwIndex, ownerID)
             local typeId = Game.GetGreatWorkClass(gwIndex)
             local meta = typeMetaFor(typeId)
             local typeName = meta and Text.key(meta.nameKey) or ""
-            local name = Locale.ConvertTextKey(Game.GetGreatWorkName(gwIndex))
+            local name = Text.key(Game.GetGreatWorkName(gwIndex))
             return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED", typeName, name)
         end,
         tooltipFn = function()

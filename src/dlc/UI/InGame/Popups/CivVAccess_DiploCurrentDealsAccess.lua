@@ -46,7 +46,7 @@ local function turnsSuffix(duration)
     if duration == nil or duration <= 0 then
         return ""
     end
-    return ", " .. Locale.ConvertTextKey("TXT_KEY_DIPLO_TURNS", duration)
+    return ", " .. Text.format("TXT_KEY_DIPLO_TURNS", duration)
 end
 
 -- Boolean diplo items share a label-key shape; map item type to its key.
@@ -79,20 +79,20 @@ end
 local function describeDealItem(itemType, data1, data2, data3, flag1, duration)
     if itemType == TradeableItems.TRADE_ITEM_PEACE_TREATY then
         -- TXT_KEY_DIPLO_PEACE_TREATY already embeds the turn count.
-        return Locale.ConvertTextKey("TXT_KEY_DIPLO_PEACE_TREATY", duration or 0)
+        return Text.format("TXT_KEY_DIPLO_PEACE_TREATY", duration or 0)
     end
     if itemType == TradeableItems.TRADE_ITEM_GOLD then
-        return Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD") .. ", " .. tostring(data1 or 0)
+        return Text.key("TXT_KEY_DIPLO_GOLD") .. ", " .. tostring(data1 or 0)
     end
     if itemType == TradeableItems.TRADE_ITEM_GOLD_PER_TURN then
-        return Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN")
+        return Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN")
             .. ", "
             .. tostring(data1 or 0)
             .. turnsSuffix(duration)
     end
     if itemType == TradeableItems.TRADE_ITEM_RESOURCES then
         local resInfo = GameInfo.Resources[data1]
-        local resName = resInfo and Locale.ConvertTextKey(resInfo.Description) or "?"
+        local resName = resInfo and Text.key(resInfo.Description) or "?"
         local isStrategic = resInfo and resInfo.ResourceUsage == 1
         if isStrategic then
             return Text.format("TXT_KEY_CIVVACCESS_TRADE_STRATEGIC_OFFERING", resName, tostring(data2 or 0))
@@ -110,7 +110,7 @@ local function describeDealItem(itemType, data1, data2, data3, flag1, duration)
                 tostring(city:GetPopulation())
             )
         end
-        return Locale.ConvertTextKey("TXT_KEY_RAZED_CITY")
+        return Text.key("TXT_KEY_RAZED_CITY")
     end
     if
         itemType == TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE
@@ -134,11 +134,11 @@ local function describeDealItem(itemType, data1, data2, data3, flag1, duration)
             local choice = pLeague:GetTextForChoice(tVote.VoteDecision, tVote.VoteChoice)
             return tostring(proposal) .. ", " .. tostring(choice)
         end
-        return Locale.ConvertTextKey("TXT_KEY_CIVVACCESS_TRADE_VOTE_UNKNOWN")
+        return Text.key("TXT_KEY_CIVVACCESS_TRADE_VOTE_UNKNOWN")
     end
     local boolKey = BOOLEAN_KEYS[itemType]
     if boolKey ~= nil then
-        return Locale.ConvertTextKey(boolKey) .. turnsSuffix(duration)
+        return Text.key(boolKey) .. turnsSuffix(duration)
     end
     return nil
 end
@@ -156,7 +156,7 @@ local function buildDealLabel(iPlayer, pScratch)
     if pOther ~= nil then
         local leader = GameInfo.Leaders[pOther:GetLeaderType()]
         if leader ~= nil then
-            pediaName = Locale.ConvertTextKey(leader.Description)
+            pediaName = Text.key(leader.Description)
         end
     end
 

@@ -84,34 +84,34 @@ local buildTopItems
 -- column (idle non-fortified, non-sleeping unit).
 local function unitStatusText(unit)
     if unit:IsEmbarked() then
-        return Locale.ConvertTextKey("TXT_KEY_UNIT_STATUS_EMBARKED")
+        return Text.key("TXT_KEY_UNIT_STATUS_EMBARKED")
     end
     if unit:IsGarrisoned() then
-        return Locale.ConvertTextKey("TXT_KEY_MISSION_GARRISON")
+        return Text.key("TXT_KEY_MISSION_GARRISON")
     end
     if unit:IsAutomated() then
         if unit:IsWork() then
-            return Locale.ConvertTextKey("TXT_KEY_ACTION_AUTOMATE_BUILD")
+            return Text.key("TXT_KEY_ACTION_AUTOMATE_BUILD")
         end
-        return Locale.ConvertTextKey("TXT_KEY_ACTION_AUTOMATE_EXPLORE")
+        return Text.key("TXT_KEY_ACTION_AUTOMATE_EXPLORE")
     end
     local activityType = unit:GetActivityType()
     if activityType == ActivityTypes.ACTIVITY_HEAL then
-        return Locale.ConvertTextKey("TXT_KEY_MISSION_HEAL")
+        return Text.key("TXT_KEY_MISSION_HEAL")
     end
     if activityType == ActivityTypes.ACTIVITY_SENTRY then
-        return Locale.ConvertTextKey("TXT_KEY_MISSION_ALERT")
+        return Text.key("TXT_KEY_MISSION_ALERT")
     end
     if unit:GetFortifyTurns() > 0 then
-        return Locale.ConvertTextKey("TXT_KEY_UNIT_STATUS_FORTIFIED")
+        return Text.key("TXT_KEY_UNIT_STATUS_FORTIFIED")
     end
     if activityType == ActivityTypes.ACTIVITY_SLEEP then
-        return Locale.ConvertTextKey("TXT_KEY_MISSION_SLEEP")
+        return Text.key("TXT_KEY_MISSION_SLEEP")
     end
     local buildType = unit:GetBuildType()
     if buildType ~= -1 then
         local build = GameInfo.Builds[buildType]
-        local str = Locale.ConvertTextKey(build.Description)
+        local str = Text.key(build.Description)
         local turnsLeft = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0)
         if turnsLeft < 4000 and turnsLeft > 0 then
             str = str .. " (" .. tostring(turnsLeft) .. ")"
@@ -128,7 +128,7 @@ local function buildRowEntry(unit)
     return {
         unit = unit,
         unitID = unit:GetID(),
-        displayName = Locale.Lookup(unit:GetNameKey()),
+        displayName = Text.key(unit:GetNameKey()),
         status = unitStatusText(unit),
         movesLeft = math.floor(unit:MovesLeft() / moveDenom),
         maxMoves = math.floor(unit:MaxMoves() / moveDenom),
@@ -161,7 +161,7 @@ local function pediaNameFor(unit)
     if info == nil then
         return nil
     end
-    return Locale.Lookup(info.Description)
+    return Text.key(info.Description)
 end
 
 -- Click semantics mirror the engine's UnitClicked: same unit already selected
@@ -373,7 +373,7 @@ local function buildSpecialistCityRow(specialistInfo, unitClass, city, player)
     local iProgress = city:GetSpecialistGreatPersonProgress(specialistInfo.ID)
     local iThreshold = city:GetSpecialistUpgradeThreshold(unitClass.ID)
     local iRate = gpRateOfChange(city, specialistInfo, player)
-    local cityName = Locale.ConvertTextKey(city:GetNameKey())
+    local cityName = Text.key(city:GetNameKey())
 
     local labelText
     local sortTurns
@@ -436,7 +436,7 @@ local function buildSpecialistGroup(specialistInfo)
         items[i] = BaseMenuItems.Text({ labelText = entry.labelText })
     end
     return BaseMenuItems.Group({
-        labelText = Locale.ConvertTextKey(unitClass.Description),
+        labelText = Text.key(unitClass.Description),
         items = items,
     })
 end

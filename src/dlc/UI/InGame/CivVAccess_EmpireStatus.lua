@@ -108,7 +108,7 @@ local function shortageClause(player)
                 if available < 0 then
                     names[#names + 1] = Text.format(
                         "TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM",
-                        Locale.ConvertTextKey(resource.Description)
+                        Text.key(resource.Description)
                     )
                 end
             end
@@ -125,7 +125,7 @@ end
 -- Turn.lua emits at ActivePlayerTurnStart - one consistent calendar shape
 -- across every surface that speaks the date.
 local function turnLine()
-    local turn = Locale.ConvertTextKey("TXT_KEY_TP_TURN_COUNTER", Game.GetGameTurn())
+    local turn = Text.format("TXT_KEY_TP_TURN_COUNTER", Game.GetGameTurn())
     local year = Game.GetGameTurnYear()
     local dateKey
     if year < 0 then
@@ -133,7 +133,7 @@ local function turnLine()
     else
         dateKey = "TXT_KEY_TIME_AD"
     end
-    local date = Locale.ConvertTextKey(dateKey, math.abs(year))
+    local date = Text.format(dateKey, math.abs(year))
 
     local player = Players[Game.GetActivePlayer()]
     -- Maya calendar (Dlc_06 Babylon -> Maya scenario civ). Speak the long
@@ -160,14 +160,14 @@ local function researchLine()
     if currentTech ~= -1 then
         local turns = player:GetResearchTurnsLeft(currentTech, true)
         local techInfo = GameInfo.Technologies[currentTech]
-        local techName = Locale.ConvertTextKey(techInfo.Description)
+        local techName = Text.key(techInfo.Description)
         return Text.format("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_ACTIVE", turns, techName, rate)
     end
     local team = Teams[player:GetTeam()]
     local lastTech = team:GetTeamTechs():GetLastTechAcquired()
     if lastTech ~= -1 then
         local techInfo = GameInfo.Technologies[lastTech]
-        local techName = Locale.ConvertTextKey(techInfo.Description)
+        local techName = Text.key(techInfo.Description)
         return Text.format("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_DONE", techName, rate)
     end
     return Text.format("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_NONE", rate)
@@ -383,7 +383,7 @@ local function anarchyPrefix(player)
     if not player:IsAnarchy() then
         return nil
     end
-    return Locale.ConvertTextKey("TXT_KEY_TP_ANARCHY", player:GetAnarchyNumTurns())
+    return Text.format("TXT_KEY_TP_ANARCHY", player:GetAnarchyNumTurns())
 end
 
 -- Research detail. Mirrors ScienceTipHandler: skip TXT_KEY_TP_SCIENCE (the
@@ -400,27 +400,27 @@ local function researchDetail()
 
     local fromBudgetDeficit = player:GetScienceFromBudgetDeficitTimes100()
     if fromBudgetDeficit ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_SCIENCE_FROM_BUDGET_DEFICIT", fromBudgetDeficit / 100))
+        d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_BUDGET_DEFICIT", fromBudgetDeficit / 100))
     end
     local fromCities = player:GetScienceFromCitiesTimes100(true)
     if fromCities ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_SCIENCE_FROM_CITIES", fromCities / 100))
+        d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_CITIES", fromCities / 100))
     end
     local fromTrade = player:GetScienceFromCitiesTimes100(false) - fromCities
     if fromTrade ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_SCIENCE_FROM_ITR", fromTrade / 100))
+        d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_ITR", fromTrade / 100))
     end
     local fromOthers = player:GetScienceFromOtherPlayersTimes100()
     if fromOthers ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_SCIENCE_FROM_MINORS", fromOthers / 100))
+        d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_MINORS", fromOthers / 100))
     end
     local fromHappiness = player:GetScienceFromHappinessTimes100()
     if fromHappiness ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_SCIENCE_FROM_HAPPINESS", fromHappiness / 100))
+        d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_HAPPINESS", fromHappiness / 100))
     end
     local fromRAs = player:GetScienceFromResearchAgreementsTimes100()
     if fromRAs ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_SCIENCE_FROM_RESEARCH_AGREEMENTS", fromRAs / 100))
+        d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_RESEARCH_AGREEMENTS", fromRAs / 100))
     end
 
     if not noBasicHelp() then
@@ -457,17 +457,17 @@ local function goldDetail()
     local traitGold = player:GetGoldPerTurnFromTraits()
 
     d.section(Text.key(LABEL_INCOME))
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_CITY_OUTPUT", fromCities))
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_CITY_CONNECTIONS", math.floor(cityConnectionGold)))
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_ITR", math.floor(tradeRouteGold)))
+    d.add(Text.format("TXT_KEY_TP_CITY_OUTPUT", fromCities))
+    d.add(Text.format("TXT_KEY_TP_GOLD_FROM_CITY_CONNECTIONS", math.floor(cityConnectionGold)))
+    d.add(Text.format("TXT_KEY_TP_GOLD_FROM_ITR", math.floor(tradeRouteGold)))
     if math.floor(traitGold) > 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_TRAITS", math.floor(traitGold)))
+        d.add(Text.format("TXT_KEY_TP_GOLD_FROM_TRAITS", math.floor(traitGold)))
     end
     if fromOthers > 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_OTHERS", fromOthers))
+        d.add(Text.format("TXT_KEY_TP_GOLD_FROM_OTHERS", fromOthers))
     end
     if fromReligion > 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_RELIGION", fromReligion))
+        d.add(Text.format("TXT_KEY_TP_GOLD_FROM_RELIGION", fromReligion))
     end
 
     local unitCost = player:CalculateUnitCost()
@@ -477,32 +477,32 @@ local function goldDetail()
     local totalExpenses = unitCost + unitSupply + buildingMaint + improvementMaint + toOthers
 
     d.section()
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_TOTAL_EXPENSES", totalExpenses))
+    d.add(Text.format("TXT_KEY_TP_TOTAL_EXPENSES", totalExpenses))
     if unitCost ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNIT_MAINT", unitCost))
+        d.add(Text.format("TXT_KEY_TP_UNIT_MAINT", unitCost))
     end
     if unitSupply ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_UNIT_SUPPLY", unitSupply))
+        d.add(Text.format("TXT_KEY_TP_GOLD_UNIT_SUPPLY", unitSupply))
     end
     if buildingMaint ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_BUILDING_MAINT", buildingMaint))
+        d.add(Text.format("TXT_KEY_TP_GOLD_BUILDING_MAINT", buildingMaint))
     end
     if improvementMaint ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_TILE_MAINT", improvementMaint))
+        d.add(Text.format("TXT_KEY_TP_GOLD_TILE_MAINT", improvementMaint))
     end
     if toOthers > 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_TO_OTHERS", toOthers))
+        d.add(Text.format("TXT_KEY_TP_GOLD_TO_OTHERS", toOthers))
     end
 
     local fTotalIncome = fromCities + fromOthers + cityConnectionGold + fromReligion + tradeRouteGold + traitGold
     if fTotalIncome + player:GetGold() < 0 then
         d.section()
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_LOSING_SCIENCE_FROM_DEFICIT"))
+        d.add(Text.key("TXT_KEY_TP_LOSING_SCIENCE_FROM_DEFICIT"))
     end
 
     if not noBasicHelp() then
         d.section(Text.key(LABEL_HELP))
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_EXPLANATION"))
+        d.add(Text.key("TXT_KEY_TP_GOLD_EXPLANATION"))
     end
     return d.compose()
 end
@@ -519,7 +519,7 @@ local function happinessResourceItems(player, resourcesHappiness, extraLuxuryHap
         local h = player:GetHappinessFromLuxury(resource.ID)
         if h > 0 then
             items[#items + 1] = "+"
-                .. Locale.ConvertTextKey(
+                .. Text.format(
                     "TXT_KEY_TP_HAPPINESS_EACH_RESOURCE",
                     h,
                     resource.IconString,
@@ -531,11 +531,11 @@ local function happinessResourceItems(player, resourcesHappiness, extraLuxuryHap
     end
     local fromVariety = player:GetHappinessFromResourceVariety()
     if fromVariety > 0 then
-        items[#items + 1] = "+" .. Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_RESOURCE_VARIETY", fromVariety)
+        items[#items + 1] = "+" .. Text.format("TXT_KEY_TP_HAPPINESS_RESOURCE_VARIETY", fromVariety)
     end
     if extraLuxuryHappiness >= 1 then
         items[#items + 1] = "+"
-            .. Locale.ConvertTextKey(
+            .. Text.format(
                 "TXT_KEY_TP_HAPPINESS_EXTRA_PER_RESOURCE",
                 extraLuxuryHappiness,
                 numHappinessResources
@@ -543,7 +543,7 @@ local function happinessResourceItems(player, resourcesHappiness, extraLuxuryHap
     end
     local misc = resourcesHappiness - baseFromResources - fromVariety - (extraLuxuryHappiness * numHappinessResources)
     if misc > 0 then
-        items[#items + 1] = "+" .. Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_OTHER_SOURCES", misc)
+        items[#items + 1] = "+" .. Text.format("TXT_KEY_TP_HAPPINESS_OTHER_SOURCES", misc)
     end
     return items
 end
@@ -555,9 +555,9 @@ local function goldenAgeDetailSegments(player, d)
     if player:GetGoldenAgeTurns() <= 0 then
         local excessHappy = player:GetExcessHappiness()
         if excessHappy >= 0 then
-            d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_ADDITION", excessHappy))
+            d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_ADDITION", excessHappy))
         else
-            d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_LOSS", -excessHappy))
+            d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_LOSS", -excessHappy))
         end
     end
     -- The engine renders TXT_KEY_TP_GOLDEN_AGE_EFFECT unconditionally;
@@ -567,14 +567,14 @@ local function goldenAgeDetailSegments(player, d)
     if not noBasicHelp() then
         d.section()
         if player:IsGoldenAgeCultureBonusDisabled() then
-            d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_EFFECT_NO_CULTURE"))
+            d.add(Text.key("TXT_KEY_TP_GOLDEN_AGE_EFFECT_NO_CULTURE"))
         else
-            d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_EFFECT"))
+            d.add(Text.key("TXT_KEY_TP_GOLDEN_AGE_EFFECT"))
         end
     end
     if player:GetGoldenAgeTurns() > 0 and player:GetGoldenAgeTourismModifier() > 0 then
         d.section()
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CARNIVAL_EFFECT"))
+        d.add(Text.key("TXT_KEY_TP_CARNIVAL_EFFECT"))
     end
 end
 
@@ -593,12 +593,12 @@ local function happinessDetail()
 
     if player:IsEmpireVeryUnhappy() then
         if player:IsEmpireSuperUnhappy() then
-            d.add(Locale.ConvertTextKey("TXT_KEY_TP_EMPIRE_SUPER_UNHAPPY"))
+            d.add(Text.key("TXT_KEY_TP_EMPIRE_SUPER_UNHAPPY"))
             d.section()
         end
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_EMPIRE_VERY_UNHAPPY"))
+        d.add(Text.key("TXT_KEY_TP_EMPIRE_VERY_UNHAPPY"))
     elseif player:IsEmpireUnhappy() then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_EMPIRE_UNHAPPY"))
+        d.add(Text.key("TXT_KEY_TP_EMPIRE_UNHAPPY"))
     end
 
     local policiesHappiness = player:GetHappinessFromPolicies()
@@ -636,35 +636,35 @@ local function happinessDetail()
         + leagueHappiness
 
     d.section()
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_SOURCES", totalHappiness))
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_FROM_RESOURCES", resourcesHappiness))
+    d.add(Text.format("TXT_KEY_TP_HAPPINESS_SOURCES", totalHappiness))
+    d.add(Text.format("TXT_KEY_TP_HAPPINESS_FROM_RESOURCES", resourcesHappiness))
     for _, item in ipairs(happinessResourceItems(player, resourcesHappiness, extraLuxuryHappiness)) do
         d.add(item)
     end
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_CITIES", cityHappiness))
+    d.add(Text.format("TXT_KEY_TP_HAPPINESS_CITIES", cityHappiness))
     if policiesHappiness >= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_POLICIES", policiesHappiness))
+        d.add(Text.format("TXT_KEY_TP_HAPPINESS_POLICIES", policiesHappiness))
     end
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_BUILDINGS", buildingHappiness))
+    d.add(Text.format("TXT_KEY_TP_HAPPINESS_BUILDINGS", buildingHappiness))
     if tradeRouteHappiness ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_CONNECTED_CITIES", tradeRouteHappiness))
+        d.add(Text.format("TXT_KEY_TP_HAPPINESS_CONNECTED_CITIES", tradeRouteHappiness))
     end
     if religionHappiness ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_STATE_RELIGION", religionHappiness))
+        d.add(Text.format("TXT_KEY_TP_HAPPINESS_STATE_RELIGION", religionHappiness))
     end
     if naturalWonderHappiness ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_NATURAL_WONDERS", naturalWonderHappiness))
+        d.add(Text.format("TXT_KEY_TP_HAPPINESS_NATURAL_WONDERS", naturalWonderHappiness))
     end
     if extraHappinessPerCity ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_CITY_COUNT", extraHappinessPerCity))
+        d.add(Text.format("TXT_KEY_TP_HAPPINESS_CITY_COUNT", extraHappinessPerCity))
     end
     if minorCivHappiness ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_CITY_STATE_FRIENDSHIP", minorCivHappiness))
+        d.add(Text.format("TXT_KEY_TP_HAPPINESS_CITY_STATE_FRIENDSHIP", minorCivHappiness))
     end
     if leagueHappiness ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_LEAGUES", leagueHappiness))
+        d.add(Text.format("TXT_KEY_TP_HAPPINESS_LEAGUES", leagueHappiness))
     end
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_DIFFICULTY_LEVEL", handicapHappiness))
+    d.add(Text.format("TXT_KEY_TP_HAPPINESS_DIFFICULTY_LEVEL", handicapHappiness))
 
     local totalUnhappiness = player:GetUnhappiness()
     local fromUnits = Locale.ToNumber(player:GetUnhappinessFromUnits() / 100, "#.##")
@@ -678,34 +678,34 @@ local function happinessDetail()
     local publicOpinion = player:GetUnhappinessFromPublicOpinion()
 
     d.section()
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_TOTAL", totalUnhappiness))
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_CITY_COUNT", fromCityCount))
+    d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_TOTAL", totalUnhappiness))
+    d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_CITY_COUNT", fromCityCount))
     if fromCapturedCities ~= "0" then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_CAPTURED_CITY_COUNT", fromCapturedCities))
+        d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_CAPTURED_CITY_COUNT", fromCapturedCities))
     end
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_POPULATION", fromPop))
+    d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_POPULATION", fromPop))
     if fromPuppets > 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_PUPPET_CITIES", fromPuppets / 100))
+        d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_PUPPET_CITIES", fromPuppets / 100))
     end
     if fromSpecialists > 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_SPECIALISTS", fromSpecialists / 100))
+        d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_SPECIALISTS", fromSpecialists / 100))
     end
     if fromOccupied ~= "0" then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_OCCUPIED_POPULATION", fromOccupied))
+        d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_OCCUPIED_POPULATION", fromOccupied))
     end
     if fromUnits ~= "0" then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_UNITS", fromUnits))
+        d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_UNITS", fromUnits))
     end
     if policiesHappiness < 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_POLICIES", policiesHappiness))
+        d.add(Text.format("TXT_KEY_TP_HAPPINESS_POLICIES", policiesHappiness))
     end
     if publicOpinion > 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_PUBLIC_OPINION", publicOpinion))
+        d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_PUBLIC_OPINION", publicOpinion))
     end
 
     if not noBasicHelp() then
         d.section(Text.key(LABEL_HELP))
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_EXPLANATION"))
+        d.add(Text.key("TXT_KEY_TP_HAPPINESS_EXPLANATION"))
     end
 
     -- Golden-age portion. Bare H reads the GA headline (active turns or
@@ -730,15 +730,15 @@ local function faithDetail()
 
     local fromCities = player:GetFaithPerTurnFromCities()
     if fromCities ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_FROM_CITIES", fromCities))
+        d.add(Text.format("TXT_KEY_TP_FAITH_FROM_CITIES", fromCities))
     end
     local fromMinors = player:GetFaithPerTurnFromMinorCivs()
     if fromMinors ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_FROM_MINORS", fromMinors))
+        d.add(Text.format("TXT_KEY_TP_FAITH_FROM_MINORS", fromMinors))
     end
     local fromReligion = player:GetFaithPerTurnFromReligion()
     if fromReligion ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_FROM_RELIGION", fromReligion))
+        d.add(Text.format("TXT_KEY_TP_FAITH_FROM_RELIGION", fromReligion))
     end
 
     d.section(Text.key(LABEL_RELIGIONS))
@@ -772,11 +772,11 @@ local function faithDetail()
     if stillToFound < 0 then
         stillToFound = 0
     end
-    d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_RELIGIONS_LEFT", stillToFound))
+    d.add(Text.format("TXT_KEY_TP_FAITH_RELIGIONS_LEFT", stillToFound))
 
     if player:GetCurrentEra() >= GameInfo.Eras["ERA_INDUSTRIAL"].ID then
         d.section(Text.key(LABEL_GREAT_PEOPLE))
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_NEXT_GREAT_PERSON", player:GetMinimumFaithNextGreatProphet()))
+        d.add(Text.format("TXT_KEY_TP_FAITH_NEXT_GREAT_PERSON", player:GetMinimumFaithNextGreatProphet()))
         local capital = player:GetCapitalCity()
         local anyFound = false
         if capital ~= nil then
@@ -787,13 +787,13 @@ local function faithDetail()
                     and player:IsCanPurchaseAnyCity(false, true, info.ID, -1, YieldTypes.YIELD_FAITH)
                     and player:DoesUnitPassFaithPurchaseCheck(info.ID)
                 then
-                    d.add(Locale.ConvertTextKey(info.Description))
+                    d.add(Text.key(info.Description))
                     anyFound = true
                 end
             end
         end
         if not anyFound then
-            d.add(Locale.ConvertTextKey("TXT_KEY_RO_YR_NO_GREAT_PEOPLE"))
+            d.add(Text.key("TXT_KEY_RO_YR_NO_GREAT_PEOPLE"))
         end
     end
     return d.compose()
@@ -814,9 +814,9 @@ local function policyDetail()
 
     if not noBasicHelp() then
         d.section()
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_ACCUMULATED", player:GetJONSCulture()))
+        d.add(Text.format("TXT_KEY_TP_CULTURE_ACCUMULATED", player:GetJONSCulture()))
         if player:GetNextPolicyCost() > 0 then
-            d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_NEXT_POLICY", player:GetNextPolicyCost()))
+            d.add(Text.format("TXT_KEY_TP_CULTURE_NEXT_POLICY", player:GetNextPolicyCost()))
         end
     end
 
@@ -827,32 +827,32 @@ local function policyDetail()
     d.section()
     local cultureForFree = player:GetJONSCulturePerTurnForFree()
     if cultureForFree ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FOR_FREE", cultureForFree))
+        d.add(Text.format("TXT_KEY_TP_CULTURE_FOR_FREE", cultureForFree))
     end
     local fromCities = player:GetJONSCulturePerTurnFromCities()
     if fromCities ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_CITIES", fromCities))
+        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_CITIES", fromCities))
     end
     local fromHappiness = player:GetJONSCulturePerTurnFromExcessHappiness()
     if fromHappiness ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_HAPPINESS", fromHappiness))
+        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_HAPPINESS", fromHappiness))
     end
     local fromTraits = player:GetJONSCulturePerTurnFromTraits()
     if fromTraits ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_TRAITS", fromTraits))
+        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_TRAITS", fromTraits))
     end
     local fromMinors = player:GetCulturePerTurnFromMinorCivs()
     if fromMinors ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_MINORS", fromMinors))
+        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_MINORS", fromMinors))
     end
     local fromReligion = player:GetCulturePerTurnFromReligion()
     if fromReligion ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_RELIGION", fromReligion))
+        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_RELIGION", fromReligion))
     end
     local fromBonusTurns = player:GetCulturePerTurnFromBonusTurns()
     if fromBonusTurns ~= 0 then
         d.add(
-            Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_BONUS_TURNS", fromBonusTurns, player:GetCultureBonusTurns())
+            Text.format("TXT_KEY_TP_CULTURE_FROM_BONUS_TURNS", fromBonusTurns, player:GetCultureBonusTurns())
         )
     end
     local fromGoldenAge = player:GetTotalJONSCulturePerTurn()
@@ -864,7 +864,7 @@ local function policyDetail()
         - fromTraits
         - fromBonusTurns
     if fromGoldenAge ~= 0 then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_GOLDEN_AGE", fromGoldenAge))
+        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_GOLDEN_AGE", fromGoldenAge))
     end
 
     if not noBasicHelp() then
@@ -889,8 +889,8 @@ local function tourismDetail()
     local totalSlots = player:GetNumGreatWorkSlots()
 
     local d = newDetail()
-    d.add(Locale.ConvertTextKey("TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_1", totalGreatWorks))
-    d.add(Locale.ConvertTextKey("TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_2", totalSlots - totalGreatWorks))
+    d.add(Text.format("TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_1", totalGreatWorks))
+    d.add(Text.format("TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_2", totalSlots - totalGreatWorks))
 
     local cultureVictory = GameInfo.Victories["VICTORY_CULTURAL"]
     if cultureVictory ~= nil and PreGame.IsVictory(cultureVictory.ID) then
@@ -899,9 +899,9 @@ local function tourismDetail()
         if not bareSpokeXofY then
             local numInfluential = player:GetNumCivsInfluentialOn()
             local numToBe = player:GetNumCivsToBeInfluentialOn()
-            local szText = Locale.ConvertTextKey("TXT_KEY_CO_VICTORY_INFLUENTIAL_OF", numInfluential, numToBe)
+            local szText = Text.format("TXT_KEY_CO_VICTORY_INFLUENTIAL_OF", numInfluential, numToBe)
             d.section(Text.key(LABEL_INFLUENCE))
-            d.add(Locale.ConvertTextKey("TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_3", szText))
+            d.add(Text.format("TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_3", szText))
         end
     end
     return d.compose()

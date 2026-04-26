@@ -61,7 +61,7 @@ local function turnsSuffix(duration)
     if duration == nil or duration <= 0 then
         return ""
     end
-    return ", " .. Locale.ConvertTextKey("TXT_KEY_DIPLO_TURNS", duration)
+    return ", " .. Text.format("TXT_KEY_DIPLO_TURNS", duration)
 end
 
 -- State classification ----------------------------------------------------
@@ -241,7 +241,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         -- Non-activatable: engine forbids removal. Text re-announces on
         -- Enter by default.
         return BaseMenuItems.Text({
-            labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_PEACE_TREATY", duration or 0),
+            labelText = Text.format("TXT_KEY_DIPLO_PEACE_TREATY", duration or 0),
         })
     end
 
@@ -252,12 +252,12 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
             -- Read-only drawer or missing EditBox (unlikely): fall through
             -- to a plain Text item showing label + amount.
             return BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD") .. ", " .. tostring(data1 or 0),
+                labelText = Text.key("TXT_KEY_DIPLO_GOLD") .. ", " .. tostring(data1 or 0),
             })
         end
         return BaseMenuItems.Textfield({
             controlName = editName,
-            labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD"),
+            labelText = Text.key("TXT_KEY_DIPLO_GOLD"),
             -- Engine ChangeGoldTrade(0) keeps a 0-amount entry in the
             -- deal; for accessibility we treat 0 / empty on Enter as
             -- "remove" so the user can clear an offer without hunting
@@ -281,16 +281,16 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         local control = Controls[editName]
         if control == nil or readOnly then
             return BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN")
+                labelText = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN")
                     .. ", "
                     .. tostring(data1 or 0)
                     .. ", "
-                    .. Locale.ConvertTextKey("TXT_KEY_DIPLO_TURNS", duration or 0),
+                    .. Text.format("TXT_KEY_DIPLO_TURNS", duration or 0),
             })
         end
         return BaseMenuItems.Textfield({
             controlName = editName,
-            labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(duration),
+            labelText = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(duration),
             priorCallback = function(text, ctrl, isEnter)
                 if isEnter then
                     local n = tonumber(text)
@@ -307,7 +307,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
 
     if itemType == TradeableItems.TRADE_ITEM_RESOURCES then
         local resInfo = GameInfo.Resources[data1]
-        local resName = resInfo and Locale.ConvertTextKey(resInfo.Description) or "?"
+        local resName = resInfo and Text.key(resInfo.Description) or "?"
         local isStrategic = resInfo and resInfo.ResourceUsage == 1
         if isStrategic and not readOnly then
             -- Strategic amount is editable via an IM-built AmountEdit on
@@ -367,7 +367,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
             label =
                 Text.format("TXT_KEY_CIVVACCESS_TRADE_CITY_OFFERING", city:GetName(), tostring(city:GetPopulation()))
         else
-            label = Locale.ConvertTextKey("TXT_KEY_RAZED_CITY")
+            label = Text.key("TXT_KEY_RAZED_CITY")
         end
         if readOnly or cityID == nil then
             return BaseMenuItems.Text({ labelText = label })
@@ -433,7 +433,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
             local choice = pLeague:GetTextForChoice(tVote.VoteDecision, tVote.VoteChoice)
             label = tostring(proposal) .. ", " .. tostring(choice)
         else
-            label = Locale.ConvertTextKey("TXT_KEY_CIVVACCESS_TRADE_VOTE_UNKNOWN")
+            label = Text.key("TXT_KEY_CIVVACCESS_TRADE_VOTE_UNKNOWN")
         end
         if readOnly or pLeague == nil or tVote == nil then
             return BaseMenuItems.Text({ labelText = label })
@@ -486,7 +486,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
     }
     local bSpec = booleanSpecs[itemType]
     if bSpec ~= nil then
-        local label = Locale.ConvertTextKey(bSpec.key) .. turnsSuffix(duration)
+        local label = Text.key(bSpec.key) .. turnsSuffix(duration)
         if readOnly then
             return BaseMenuItems.Text({ labelText = label })
         end
@@ -550,10 +550,10 @@ local function availableGoldLeaf(side)
     local iPlayer = sidePlayer(side)
     local other = sideIsUs(side) and g_iThem or g_iUs
     if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD, 1) then
-        return disabledPocketLeaf(Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD"), prefix(side) .. "PocketGold")
+        return disabledPocketLeaf(Text.key("TXT_KEY_DIPLO_GOLD"), prefix(side) .. "PocketGold")
     end
     return BaseMenuItems.Text({
-        labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD"),
+        labelText = Text.key("TXT_KEY_DIPLO_GOLD"),
         onActivate = function()
             local maxGold = g_Deal:GetGoldAvailable(iPlayer, -1) or 0
             if maxGold <= 0 then
@@ -561,7 +561,7 @@ local function availableGoldLeaf(side)
                 return
             end
             BaseMenuNumberEntry.push({
-                promptLabel = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD"),
+                promptLabel = Text.key("TXT_KEY_DIPLO_GOLD"),
                 maxValue = maxGold,
                 onCommit = function(amount)
                     g_Deal:AddGoldTrade(iPlayer, amount)
@@ -579,7 +579,7 @@ end
 local function availableGoldPerTurnLeaf(side)
     local iPlayer = sidePlayer(side)
     local other = sideIsUs(side) and g_iThem or g_iUs
-    local label = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(dealDuration())
+    local label = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(dealDuration())
     if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD_PER_TURN, 1, dealDuration()) then
         return disabledPocketLeaf(label, prefix(side) .. "PocketGoldPerTurn")
     end
@@ -593,7 +593,7 @@ local function availableGoldPerTurnLeaf(side)
                 return
             end
             BaseMenuNumberEntry.push({
-                promptLabel = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN"),
+                promptLabel = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN"),
                 maxValue = maxGPT,
                 onCommit = function(amount)
                     g_Deal:AddGoldPerTurnTrade(iPlayer, amount, dealDuration())
@@ -608,7 +608,7 @@ end
 -- amount). Shared builder; isStrategic branches on the activation path.
 local function availableResourceLeaf(side, resType, resInfo)
     local iPlayer = sidePlayer(side)
-    local resName = Locale.ConvertTextKey(resInfo.Description)
+    local resName = Text.key(resInfo.Description)
     local isStrategic = resInfo.ResourceUsage == 1
     local label = resName .. turnsSuffix(dealDuration())
     if not isStrategic then
@@ -660,7 +660,7 @@ local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix,
     -- Legality for boolean items all follow the same 4-arg signature
     -- IsPossibleToTradeItem(from, to, type, duration) (matching TradeLogic's
     -- RefreshPocketEmbassy / OpenBorders / DP / RA / TA / DoF handlers).
-    local label = Locale.ConvertTextKey(labelKey) .. turnsSuffix(dealDuration())
+    local label = Text.key(labelKey) .. turnsSuffix(dealDuration())
     if not g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, itemConstant, dealDuration()) then
         return disabledPocketLeaf(label, prefix(side) .. controlSuffix)
     end
@@ -703,13 +703,13 @@ local function availableResourceGroups(side)
     local groups = {}
     if #luxuries > 0 then
         groups[#groups + 1] = BaseMenuItems.Group({
-            labelText = Locale.ConvertTextKey("TXT_KEY_TRADE_ITEM_LUXURY_RESOURCES"),
+            labelText = Text.key("TXT_KEY_TRADE_ITEM_LUXURY_RESOURCES"),
             items = luxuries,
         })
     end
     if #strategics > 0 then
         groups[#groups + 1] = BaseMenuItems.Group({
-            labelText = Locale.ConvertTextKey("TXT_KEY_TRADE_ITEM_STRATEGIC_RESOURCES"),
+            labelText = Text.key("TXT_KEY_TRADE_ITEM_STRATEGIC_RESOURCES"),
             items = strategics,
         })
     end
@@ -1137,7 +1137,7 @@ local function buildTopItems(descriptor)
                 return Controls.ProposeButton:GetVoid1()
             end)
             OnPropose((okV and void1) or 0)
-        end, "Propose")
+        end, Text.key("TXT_KEY_DIPLO_PROPOSE"))
         if item ~= nil then
             items[#items + 1] = item
         end
@@ -1150,7 +1150,7 @@ local function buildTopItems(descriptor)
                 return Controls.CancelButton:GetVoid1()
             end)
             OnBack((okV and void1) or 0)
-        end, "Cancel")
+        end, Text.key("TXT_KEY_DIPLO_CANCEL"))
         if item ~= nil then
             items[#items + 1] = item
         end
@@ -1158,7 +1158,7 @@ local function buildTopItems(descriptor)
 
     -- Modify (PvP only; control is nil in AI / Review so factory returns nil).
     if Controls.ModifyButton ~= nil and type(OnModify) == "function" then
-        local item = actionButtonLeaf("ModifyButton", OnModify, "Modify")
+        local item = actionButtonLeaf("ModifyButton", OnModify, Text.key("TXT_KEY_DIPLO_MODIFY"))
         if item ~= nil then
             items[#items + 1] = item
         end

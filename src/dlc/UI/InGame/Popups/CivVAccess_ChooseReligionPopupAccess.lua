@@ -151,7 +151,7 @@ local function slotLabel(slot)
     end
     local beliefID = g_Beliefs[slot.slotIndex]
     if beliefID ~= nil then
-        local beliefName = Locale.Lookup(GameInfo.Beliefs[beliefID].ShortDescription)
+        local beliefName = Text.key(GameInfo.Beliefs[beliefID].ShortDescription)
         return Text.format("TXT_KEY_CIVVACCESS_RELIGION_SLOT_CHOSEN", slotName, beliefName)
     end
     return Text.format("TXT_KEY_CIVVACCESS_RELIGION_SLOT_UNCHOSEN", slotName)
@@ -173,8 +173,8 @@ local function buildBeliefChoices(slot)
             local b = GameInfo.Beliefs[id]
             rows[#rows + 1] = {
                 id = id,
-                name = Locale.Lookup(b.ShortDescription),
-                description = Locale.Lookup(b.Description),
+                name = Text.key(b.ShortDescription),
+                description = Text.key(b.Description),
             }
         end
     end
@@ -214,7 +214,7 @@ local function buildSlotItem(slot)
             if beliefID == nil then
                 return nil
             end
-            return Locale.Lookup(GameInfo.Beliefs[beliefID].Description)
+            return Text.key(GameInfo.Beliefs[beliefID].Description)
         end,
         itemsFn = function()
             local pPlayer = Players[Game.GetActivePlayer()]
@@ -252,7 +252,7 @@ local function buildReligionChoices()
     for row in GameInfo.Religions("Type <> 'RELIGION_PANTHEON'") do
         religions[#religions + 1] = {
             id = row.ID,
-            name = Locale.Lookup(row.Description),
+            name = Text.key(row.Description),
             descKey = row.Description,
             iconAtlas = row.IconAtlas,
             portraitIndex = row.PortraitIndex,
@@ -300,7 +300,7 @@ local function religionPickerLabel()
     if g_CurrentReligionName == nil or g_CurrentReligionName == "" then
         return Text.key("TXT_KEY_CIVVACCESS_RELIGION_PICKER_UNSELECTED")
     end
-    return Text.format("TXT_KEY_CIVVACCESS_RELIGION_PICKER_SELECTED", Locale.Lookup(g_CurrentReligionName))
+    return Text.format("TXT_KEY_CIVVACCESS_RELIGION_PICKER_SELECTED", Text.key(g_CurrentReligionName))
 end
 
 local function buildReligionPickerItem(isFounding)
@@ -323,7 +323,7 @@ end
 -- SelectReligion has populated g_CurrentReligionName. The labelFn never
 -- runs before the name is set.
 local function nameRowLabel()
-    return Text.format("TXT_KEY_CIVVACCESS_RELIGION_NAME_ROW", Locale.Lookup(g_CurrentReligionName))
+    return Text.format("TXT_KEY_CIVVACCESS_RELIGION_NAME_ROW", Text.key(g_CurrentReligionName))
 end
 
 local function pushNameEditSub()

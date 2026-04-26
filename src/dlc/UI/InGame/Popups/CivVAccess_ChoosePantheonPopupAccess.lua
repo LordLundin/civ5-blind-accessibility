@@ -71,8 +71,8 @@ local function buildItems(popupInfo)
         if belief ~= nil then
             rows[#rows + 1] = {
                 ID = belief.ID,
-                Name = Locale.Lookup(belief.ShortDescription),
-                Description = Locale.Lookup(belief.Description),
+                Name = Text.key(belief.ShortDescription),
+                Description = Text.key(belief.Description),
             }
         end
     end

@@ -204,7 +204,7 @@ end
 function ChooseProductionLogic.sortEntries(entries, sortKeyFn)
     for _, e in ipairs(entries) do
         e.sortKey = sortKeyFn(e)
-        e.displayName = Locale.ConvertTextKey(e.info.Description)
+        e.displayName = Text.key(e.info.Description)
     end
     table.sort(entries, function(a, b)
         if a.disabledForSort ~= b.disabledForSort then

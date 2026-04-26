@@ -309,7 +309,7 @@ local function pushMod(list, value, key, ...)
     if value == nil or value == 0 then
         return
     end
-    local label = TextFilter.filter(Locale.ConvertTextKey(key, ...))
+    local label = TextFilter.filter(Text.format(key, ...))
     if label == "" then
         return
     end
@@ -441,11 +441,11 @@ local function attackerMods(actor, defender, targetPlot, bRanged)
     pushMod(mods, actor:GetAttackModifier(), "TXT_KEY_EUPANEL_ATTACK_MOD_BONUS")
 
     local theirClass = defender:GetUnitClassType()
-    local theirClassDesc = Locale.ConvertTextKey(GameInfo.UnitClasses[theirClass].Description)
+    local theirClassDesc = Text.key(GameInfo.UnitClasses[theirClass].Description)
     pushMod(mods, actor:GetUnitClassModifier(theirClass), "TXT_KEY_EUPANEL_BONUS_VS_CLASS", theirClassDesc)
     pushMod(mods, actor:UnitClassAttackModifier(theirClass), "TXT_KEY_EUPANEL_BONUS_VS_CLASS", theirClassDesc)
     if defender:GetUnitCombatType() ~= -1 then
-        local combatDesc = Locale.ConvertTextKey(GameInfo.UnitCombatInfos[defender:GetUnitCombatType()].Description)
+        local combatDesc = Text.key(GameInfo.UnitCombatInfos[defender:GetUnitCombatType()].Description)
         pushMod(
             mods,
             actor:UnitCombatModifier(defender:GetUnitCombatType()),
@@ -482,15 +482,15 @@ local function attackerMods(actor, defender, targetPlot, bRanged)
 
     local featureType = targetPlot:GetFeatureType()
     if featureType ~= -1 then
-        local featureDesc = Locale.ConvertTextKey(GameInfo.Features[featureType].Description)
+        local featureDesc = Text.key(GameInfo.Features[featureType].Description)
         pushMod(mods, actor:FeatureAttackModifier(featureType), "TXT_KEY_EUPANEL_ATTACK_INTO_BONUS", featureDesc)
     else
         local terrainType = targetPlot:GetTerrainType()
-        local terrainDesc = Locale.ConvertTextKey(GameInfo.Terrains[terrainType].Description)
+        local terrainDesc = Text.key(GameInfo.Terrains[terrainType].Description)
         pushMod(mods, actor:TerrainAttackModifier(terrainType), "TXT_KEY_EUPANEL_ATTACK_INTO_BONUS", terrainDesc)
         if targetPlot:IsHills() then
             local hillId = GameInfo.Terrains.TERRAIN_HILL.ID
-            local hillDesc = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description)
+            local hillDesc = Text.key(GameInfo.Terrains.TERRAIN_HILL.Description)
             pushMod(mods, actor:TerrainAttackModifier(hillId), "TXT_KEY_EUPANEL_ATTACK_INTO_BONUS", hillDesc)
         end
     end
@@ -584,10 +584,10 @@ local function defenderMods(actor, defender, targetPlot)
     pushMod(mods, defender:GetDefenseModifier(), "TXT_KEY_EUPANEL_DEFENSE_BONUS")
 
     local myClass = actor:GetUnitClassType()
-    local myClassDesc = Locale.ConvertTextKey(GameInfo.UnitClasses[myClass].Description)
+    local myClassDesc = Text.key(GameInfo.UnitClasses[myClass].Description)
     pushMod(mods, defender:UnitClassDefenseModifier(myClass), "TXT_KEY_EUPANEL_BONUS_VS_CLASS", myClassDesc)
     if actor:GetUnitCombatType() ~= -1 then
-        local combatDesc = Locale.ConvertTextKey(GameInfo.UnitCombatInfos[actor:GetUnitCombatType()].Description)
+        local combatDesc = Text.key(GameInfo.UnitCombatInfos[actor:GetUnitCombatType()].Description)
         pushMod(
             mods,
             defender:UnitCombatModifier(actor:GetUnitCombatType()),
@@ -632,7 +632,7 @@ local function defenderMods(actor, defender, targetPlot)
 
     local featureType = targetPlot:GetFeatureType()
     if featureType ~= -1 then
-        local featureDesc = Locale.ConvertTextKey(GameInfo.Features[featureType].Description)
+        local featureDesc = Text.key(GameInfo.Features[featureType].Description)
         pushMod(
             mods,
             defender:FeatureDefenseModifier(featureType),
@@ -641,7 +641,7 @@ local function defenderMods(actor, defender, targetPlot)
         )
     else
         local terrainType = targetPlot:GetTerrainType()
-        local terrainDesc = Locale.ConvertTextKey(GameInfo.Terrains[terrainType].Description)
+        local terrainDesc = Text.key(GameInfo.Terrains[terrainType].Description)
         pushMod(
             mods,
             defender:TerrainDefenseModifier(terrainType),
@@ -650,7 +650,7 @@ local function defenderMods(actor, defender, targetPlot)
         )
         if targetPlot:IsHills() then
             local hillId = GameInfo.Terrains.TERRAIN_HILL.ID
-            local hillDesc = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description)
+            local hillDesc = Text.key(GameInfo.Terrains.TERRAIN_HILL.Description)
             pushMod(mods, defender:TerrainDefenseModifier(hillId), "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", hillDesc)
         end
     end

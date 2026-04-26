@@ -78,7 +78,7 @@ local function buildSizeByName()
         end
         local suffix = formatSuffix(sizes)
         if suffix ~= nil then
-            byName[Locale.Lookup(row.Name)] = suffix
+            byName[Text.key(row.Name)] = suffix
         end
     end
 
@@ -93,7 +93,7 @@ local function buildSizeByName()
             if map.Name and not Locale.IsNilOrWhitespace(map.Name) then
                 name = map.Name
             elseif wb ~= nil and not Locale.IsNilOrWhitespace(wb.Name) then
-                name = Locale.Lookup(wb.Name)
+                name = Text.key(wb.Name)
             else
                 name = Path.GetFileNameWithoutExtension(map.File)
             end

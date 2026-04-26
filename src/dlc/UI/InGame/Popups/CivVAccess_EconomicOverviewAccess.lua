@@ -146,7 +146,7 @@ local function productionCellText(city)
     if nameKey == nil or nameKey == "" then
         nameText = Text.key("TXT_KEY_CIVVACCESS_EO_PROD_NONE")
     else
-        nameText = Locale.ConvertTextKey(nameKey)
+        nameText = Text.key(nameKey)
     end
     if city:IsProduction() and not city:IsProductionProcess()
         and city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
@@ -262,7 +262,7 @@ local function buildCityColumns()
             if key == nil or key == "" then
                 return nil
             end
-            return Locale.ConvertTextKey(key)
+            return Text.key(key)
         end,
     }
     return cols
@@ -504,10 +504,10 @@ local function perLuxuryHappinessEntries()
             items[#items + 1] = BaseMenuItems.Text({
                 labelText = Text.format(
                     "TXT_KEY_CIVVACCESS_EO_CITY_LINE",
-                    Locale.ConvertTextKey(resource.Description),
+                    Text.key(resource.Description),
                     formatNumber(h)
                 ),
-                pediaName = Locale.ConvertTextKey(resource.Description),
+                pediaName = Text.key(resource.Description),
             })
         end
     end
@@ -750,10 +750,10 @@ local function resourceEntries(amountFn)
                 items[#items + 1] = BaseMenuItems.Text({
                     labelText = Text.format(
                         "TXT_KEY_CIVVACCESS_EO_CITY_LINE",
-                        Locale.ConvertTextKey(resource.Description),
+                        Text.key(resource.Description),
                         amount
                     ),
-                    pediaName = Locale.ConvertTextKey(resource.Description),
+                    pediaName = Text.key(resource.Description),
                 })
             end
         end

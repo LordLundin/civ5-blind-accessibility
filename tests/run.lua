@@ -100,6 +100,7 @@ end
 T.register("text_filter", require("text_filter_test"))
 T.register("speech_pipeline", require("speech_pipeline_test"))
 T.register("text", require("text_test"))
+T.register("text_rule", require("text_rule_test"))
 T.register("handler_stack", require("handler_stack_test"))
 T.register("input_router", require("input_router_test"))
 T.register("tick_pump", require("tick_pump_test"))

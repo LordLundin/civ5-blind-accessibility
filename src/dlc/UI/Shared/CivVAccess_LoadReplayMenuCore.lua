@@ -214,9 +214,9 @@ function LoadReplayMenu.buildReader(mainHandler, id)
     local eraDesc
     if header.CurrentEra ~= nil and header.CurrentEra ~= "" then
         local era = GameInfo.Eras[header.CurrentEra]
-        eraDesc = (era ~= nil and era.Description) or "TXT_KEY_MISC_UNKNOWN"
+        eraDesc = Text.key((era ~= nil and era.Description) or "TXT_KEY_MISC_UNKNOWN")
     else
-        eraDesc = "TXT_KEY_MISC_UNKNOWN"
+        eraDesc = Text.key("TXT_KEY_MISC_UNKNOWN")
     end
     leaves[#leaves + 1] = BaseMenuItems.Text({
         labelText = Text.format("TXT_KEY_CUR_ERA_TURNS_FORMAT", eraDesc, header.TurnNumber),
@@ -224,7 +224,7 @@ function LoadReplayMenu.buildReader(mainHandler, id)
 
     if header.StartEra ~= nil and header.StartEra ~= "" then
         local startEra = GameInfo.Eras[header.StartEra]
-        local startEraDesc = (startEra ~= nil and startEra.Description) or "TXT_KEY_MISC_UNKNOWN"
+        local startEraDesc = Text.key((startEra ~= nil and startEra.Description) or "TXT_KEY_MISC_UNKNOWN")
         leaves[#leaves + 1] = BaseMenuItems.Text({
             labelText = Text.format("TXT_KEY_START_ERA_FORMAT", startEraDesc),
         })
@@ -232,7 +232,7 @@ function LoadReplayMenu.buildReader(mainHandler, id)
 
     local mapInfo = MapUtilities.GetBasicInfo(header.MapScript)
     if mapInfo ~= nil and mapInfo.Name ~= nil then
-        addField(leaves, HEADER_KEYS.mapType, Locale.Lookup(mapInfo.Name))
+        addField(leaves, HEADER_KEYS.mapType, Text.key(mapInfo.Name))
     end
     addField(leaves, HEADER_KEYS.mapSize, descOf(GameInfo.Worlds[header.WorldSize]))
     addField(leaves, HEADER_KEYS.difficulty, descOf(GameInfo.HandicapInfos[header.Difficulty]))

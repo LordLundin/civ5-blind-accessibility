@@ -87,7 +87,7 @@ local function buildItems(popupInfo)
         if plot ~= nil then
             local city = plot:GetPlotCity()
             if city ~= nil then
-                local label = Locale.Lookup("TXT_KEY_CHANGE_TRADE_UNIT_HOME_CITY_ITEM_CITY", city:GetName())
+                local label = Text.format("TXT_KEY_CHANGE_TRADE_UNIT_HOME_CITY_ITEM_CITY", city:GetName())
                 local plotX, plotY = v.X, v.Y
                 items[#items + 1] = BaseMenuItems.Choice({
                     labelText = label,
