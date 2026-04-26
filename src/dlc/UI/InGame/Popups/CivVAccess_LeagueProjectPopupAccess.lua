@@ -40,6 +40,17 @@ local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
 local capturedEntries = {}
+local capturedLeague = nil
+local capturedProject = nil
+
+-- Capture the league/project IDs from the popup info; base keeps these as
+-- file-locals so we re-listen to the engine event ourselves.
+Events.SerialEventGameMessagePopup.Add(function(popupInfo)
+    if popupInfo.Type == ButtonPopupTypes.BUTTONPOPUP_LEAGUE_PROJECT_COMPLETED then
+        capturedLeague = popupInfo.Data1
+        capturedProject = popupInfo.Data2
+    end
+end)
 
 local baseAddPlayerEntry = AddPlayerEntry
 AddPlayerEntry = function(iPlayerID, iScore, iTier, iRank)
@@ -100,6 +111,20 @@ local function buildPreamble()
     return table.concat(parts, ". ")
 end
 
+local function rewardTooltipFor(iTier)
+    if iTier <= 0 then return nil end
+    if capturedLeague == nil or capturedProject == nil then return nil end
+    local pLeague = Game.GetLeague(capturedLeague)
+    if pLeague == nil then return nil end
+    -- Cumulative: a silver-tier earner also got bronze, gold also got silver+bronze.
+    -- Order highest-to-lowest to match base's tooltip ordering.
+    local parts = {}
+    for i = iTier, 1, -1 do
+        parts[#parts + 1] = pLeague:GetProjectRewardTierDetails(i, capturedProject)
+    end
+    return table.concat(parts, ". ")
+end
+
 local function buildItems()
     local items = {}
     for _, e in ipairs(capturedEntries) do
@@ -108,7 +133,10 @@ local function buildItems()
             playerNameFor(e.iPlayerID),
             e.iScore,
             tierLabel(e.iTier))
-        items[#items + 1] = BaseMenuItems.Text({ labelText = label })
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText   = label,
+            tooltipText = rewardTooltipFor(e.iTier),
+        })
     end
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "CloseButton",
