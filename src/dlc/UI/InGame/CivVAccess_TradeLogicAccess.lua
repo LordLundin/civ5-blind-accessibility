@@ -468,11 +468,11 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
             bothSides = false,
         },
         [TradeableItems.TRADE_ITEM_DEFENSIVE_PACT] = {
-            key = "TXT_KEY_DIPLO_DEFENSIVE_PACT",
+            key = "TXT_KEY_DIPLO_DEF_PACT",
             bothSides = true,
         },
         [TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT] = {
-            key = "TXT_KEY_DIPLO_RESEARCH_AGREEMENT",
+            key = "TXT_KEY_DIPLO_RESCH_AGREEMENT",
             bothSides = true,
         },
         [TradeableItems.TRADE_ITEM_TRADE_AGREEMENT] = {
