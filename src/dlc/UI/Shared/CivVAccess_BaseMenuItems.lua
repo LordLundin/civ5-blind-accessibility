@@ -80,6 +80,15 @@ end
 
 -- Drop any tooltip sentence that duplicates an existing ", "-separated
 -- segment in `base`. Sentences separated by ". " in localized tooltip text.
+--
+-- Tooltip sentences join the base with ". " and join each other with ". "
+-- as well, so multi-line engine tooltips (GetTourismTooltip,
+-- GetThemingTooltip, etc.) get readable pauses between lines instead of
+-- one undelimited blob. [NEWLINE] tokens inside the tooltip are normalized
+-- to ". " up front so each engine line participates in both the dedup
+-- pass and the period-joined output. ":%." artifacts the normalization
+-- can leave behind (line ends with ":") are cleaned up downstream by
+-- TextFilter's `:%.` rule.
 local function appendTooltip(base, tooltip)
     if tooltip == nil or tooltip == "" then
         return base
@@ -87,6 +96,8 @@ local function appendTooltip(base, tooltip)
     if base == nil or base == "" then
         return tooltip
     end
+
+    tooltip = tooltip:gsub("%[NEWLINE%]", ". ")
 
     local seen = {}
     for segment in string.gmatch(base, "([^,]+)") do
@@ -107,7 +118,7 @@ local function appendTooltip(base, tooltip)
     if #novel == 0 then
         return base
     end
-    return base .. ", " .. table.concat(novel, ", ")
+    return base .. ". " .. table.concat(novel, ". ")
 end
 
 BaseMenuItems.appendTooltip = appendTooltip

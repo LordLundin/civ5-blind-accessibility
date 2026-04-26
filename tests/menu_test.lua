@@ -1033,7 +1033,7 @@ function M.test_tooltip_appended_after_label_value()
         },
     })
     HandlerStack.push(h)
-    T.eq(speaks[2].text, "Show map, on, Toggles the map overlay")
+    T.eq(speaks[2].text, "Show map, on. Toggles the map overlay")
 end
 
 function M.test_tooltip_dedupes_against_label()
@@ -1054,7 +1054,7 @@ function M.test_tooltip_dedupes_against_label()
         },
     })
     HandlerStack.push(h)
-    T.eq(speaks[2].text, "Fullscreen, off, Some extra detail", "duplicate 'Fullscreen' sentence dropped from tooltip")
+    T.eq(speaks[2].text, "Fullscreen, off. Some extra detail", "duplicate 'Fullscreen' sentence dropped from tooltip")
 end
 
 function M.test_tooltipFn_appends_dynamic_tooltip()
@@ -1077,7 +1077,7 @@ function M.test_tooltipFn_appends_dynamic_tooltip()
         },
     })
     HandlerStack.push(h)
-    T.eq(speaks[2].text, "LBL, off, live tip")
+    T.eq(speaks[2].text, "LBL, off. live tip")
     T.truthy(calls >= 1)
 end
 
@@ -1101,6 +1101,31 @@ function M.test_tooltipFn_error_is_logged_and_swallowed()
     HandlerStack.push(h)
     T.eq(speaks[2].text, "LBL, off")
     T.truthy(#errors >= 1)
+end
+
+function M.test_tooltip_newlines_become_period_separators()
+    setup()
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "LABEL_A",
+                tooltipFn = function()
+                    return "first line[NEWLINE]second line[NEWLINE]third line"
+                end,
+                activate = function() end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(
+        speaks[#speaks].text,
+        "LABEL_A. first line. second line. third line",
+        "engine [NEWLINE] separators become periods so multi-line tooltips read with pauses"
+    )
 end
 
 function M.test_tooltipFn_nil_result_does_not_add_comma()
