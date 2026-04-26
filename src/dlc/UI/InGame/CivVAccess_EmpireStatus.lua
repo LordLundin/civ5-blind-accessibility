@@ -106,10 +106,8 @@ local function shortageClause(player)
             if techReveal == nil or teamTechs:HasTech(techReveal) then
                 local available = player:GetNumResourceAvailable(resource.ID, true)
                 if available < 0 then
-                    names[#names + 1] = Text.format(
-                        "TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM",
-                        Text.key(resource.Description)
-                    )
+                    names[#names + 1] =
+                        Text.format("TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM", Text.key(resource.Description))
                 end
             end
         end
@@ -519,12 +517,7 @@ local function happinessResourceItems(player, resourcesHappiness, extraLuxuryHap
         local h = player:GetHappinessFromLuxury(resource.ID)
         if h > 0 then
             items[#items + 1] = "+"
-                .. Text.format(
-                    "TXT_KEY_TP_HAPPINESS_EACH_RESOURCE",
-                    h,
-                    resource.IconString,
-                    resource.Description
-                )
+                .. Text.format("TXT_KEY_TP_HAPPINESS_EACH_RESOURCE", h, resource.IconString, resource.Description)
             numHappinessResources = numHappinessResources + 1
             baseFromResources = baseFromResources + h
         end
@@ -535,11 +528,7 @@ local function happinessResourceItems(player, resourcesHappiness, extraLuxuryHap
     end
     if extraLuxuryHappiness >= 1 then
         items[#items + 1] = "+"
-            .. Text.format(
-                "TXT_KEY_TP_HAPPINESS_EXTRA_PER_RESOURCE",
-                extraLuxuryHappiness,
-                numHappinessResources
-            )
+            .. Text.format("TXT_KEY_TP_HAPPINESS_EXTRA_PER_RESOURCE", extraLuxuryHappiness, numHappinessResources)
     end
     local misc = resourcesHappiness - baseFromResources - fromVariety - (extraLuxuryHappiness * numHappinessResources)
     if misc > 0 then
@@ -851,9 +840,7 @@ local function policyDetail()
     end
     local fromBonusTurns = player:GetCulturePerTurnFromBonusTurns()
     if fromBonusTurns ~= 0 then
-        d.add(
-            Text.format("TXT_KEY_TP_CULTURE_FROM_BONUS_TURNS", fromBonusTurns, player:GetCultureBonusTurns())
-        )
+        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_BONUS_TURNS", fromBonusTurns, player:GetCultureBonusTurns()))
     end
     local fromGoldenAge = player:GetTotalJONSCulturePerTurn()
         - cultureForFree

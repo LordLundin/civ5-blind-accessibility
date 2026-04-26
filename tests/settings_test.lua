@@ -92,15 +92,6 @@ local function setup()
     TickPump._reset()
 end
 
-local function findItemByLabelKey(handler, keyName)
-    for _, item in ipairs(handler._items) do
-        if item.textKey == keyName then
-            return item
-        end
-    end
-    return nil
-end
-
 -- Wiring ----------------------------------------------------------------
 
 function M.test_open_pushes_handler_named_Settings()

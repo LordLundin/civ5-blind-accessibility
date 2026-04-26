@@ -438,15 +438,21 @@ end
 function M.test_trade_filters_routes_by_city_id_and_speaks_direction()
     setup()
     local city = mkCity({ id = 42 })
-    local rome = { GetID = function()
-        return 42
-    end }
-    local berlin = { GetID = function()
-        return 99
-    end }
-    local madrid = { GetID = function()
-        return 17
-    end }
+    local rome = {
+        GetID = function()
+            return 42
+        end,
+    }
+    local berlin = {
+        GetID = function()
+            return 99
+        end,
+    }
+    local madrid = {
+        GetID = function()
+            return 17
+        end,
+    }
     local player = mkPlayer({
         tradeRoutes = {
             -- Outgoing from this city to Berlin
@@ -589,9 +595,11 @@ function M.test_defense_speaks_garrison_name_when_manned()
         end,
     })
     GameInfo.Units[100] = { Description = "Pikeman" }
-    local garrison = { GetUnitType = function()
-        return 100
-    end }
+    local garrison = {
+        GetUnitType = function()
+            return 100
+        end,
+    }
     local city = mkCity({ garrisonedUnit = garrison })
     local rows = CityStats.defenseRows(city)
     local last = rows[#rows]

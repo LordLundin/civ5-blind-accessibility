@@ -522,7 +522,7 @@ function M.test_handleSearchInput_returns_false_when_active_tab_lacks_hook()
     local h = TabbedShell.create({
         name = "X",
         displayName = "X",
-        tabs = { stubTab() },  -- no handleSearchInput
+        tabs = { stubTab() }, -- no handleSearchInput
     })
     HandlerStack.push(h)
     local consumed = h.handleSearchInput(h, 0x41, 0)

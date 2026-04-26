@@ -72,22 +72,38 @@ local function makeBasicSpec()
         columns = {
             {
                 name = "TXT_KEY_CIVVACCESS_TBL_COL_NAME",
-                getCell = function(r) return r.name end,
-                sortKey = function(r) return r.name end,
+                getCell = function(r)
+                    return r.name
+                end,
+                sortKey = function(r)
+                    return r.name
+                end,
             },
             {
                 name = "TXT_KEY_CIVVACCESS_TBL_COL_POP",
-                getCell = function(r) return tostring(r.pop) end,
-                sortKey = function(r) return r.pop end,
+                getCell = function(r)
+                    return tostring(r.pop)
+                end,
+                sortKey = function(r)
+                    return r.pop
+                end,
             },
             {
                 name = "TXT_KEY_CIVVACCESS_TBL_COL_GOLD",
-                getCell = function(r) return tostring(r.gold) end,
-                sortKey = function(r) return r.gold end,
+                getCell = function(r)
+                    return tostring(r.gold)
+                end,
+                sortKey = function(r)
+                    return r.gold
+                end,
             },
         },
-        rebuildRows = function() return rows end,
-        rowLabel = function(r) return r.name end,
+        rebuildRows = function()
+            return rows
+        end,
+        rowLabel = function(r)
+            return r.name
+        end,
     }
 end
 
@@ -162,9 +178,9 @@ function M.test_reactivation_after_deactivate_preserves_cursor()
     local h = BaseTable.create(makeBasicSpec())
     h.onTabActivated(h, true)
     -- Move down twice to row 3, right once to col 2.
-    h.bindings[2].fn()  -- VK_DOWN
+    h.bindings[2].fn() -- VK_DOWN
     h.bindings[2].fn()
-    h.bindings[4].fn()  -- VK_RIGHT
+    h.bindings[4].fn() -- VK_RIGHT
     -- Cursor should now be row 3 (Memphis), col 2 (Pop).
     h.onTabDeactivated()
     speaks = {}
@@ -201,7 +217,7 @@ function M.test_down_navigates_data_rows_no_wrap()
     findBinding(h, Keys.VK_DOWN)()
     T.eq(speaks[#speaks].text:match("^[^,]+"), "Athens", "row 2 is Athens")
     findBinding(h, Keys.VK_DOWN)()
-    findBinding(h, Keys.VK_DOWN)()  -- past end; no-op
+    findBinding(h, Keys.VK_DOWN)() -- past end; no-op
     -- Last meaningful speech is row 3 Memphis.
     T.truthy(speaks[#speaks].text:find("Memphis"))
 end
@@ -215,7 +231,7 @@ function M.test_up_from_first_data_row_moves_to_header()
     findBinding(h, Keys.VK_UP)()
     -- _row is now 0 (header). Speech is just the column name.
     T.eq(speaks[#speaks].text, "Name")
-    findBinding(h, Keys.VK_UP)()  -- already at header; no-op
+    findBinding(h, Keys.VK_UP)() -- already at header; no-op
 end
 
 function M.test_left_right_wrap_columns()
@@ -304,11 +320,11 @@ function M.test_enter_on_header_cycles_through_asc_then_cleared()
     -- Sort col 1 (Name).
     speaks = {}
     SpeechPipeline._reset()
-    findBinding(h, Keys.VK_RETURN)()  -- desc
+    findBinding(h, Keys.VK_RETURN)() -- desc
     T.eq(speaks[#speaks].text, "Name, descending")
-    findBinding(h, Keys.VK_RETURN)()  -- asc
+    findBinding(h, Keys.VK_RETURN)() -- asc
     T.eq(speaks[#speaks].text, "Name, ascending")
-    findBinding(h, Keys.VK_RETURN)()  -- cleared
+    findBinding(h, Keys.VK_RETURN)() -- cleared
     T.eq(speaks[#speaks].text, "Name, sort cleared")
     -- Down to first data row -- should be Rome again (original iteration order).
     findBinding(h, Keys.VK_DOWN)()
@@ -366,7 +382,7 @@ function M.test_search_jumps_to_matching_column()
     speaks = {}
     SpeechPipeline._reset()
     -- Press 'g' (lowercase) to search for "Gold".
-    local consumed = h.handleSearchInput(h, 0x47, 0)  -- 'G'
+    local consumed = h.handleSearchInput(h, 0x47, 0) -- 'G'
     T.eq(consumed, true)
     -- Should have moved to col 3 (Gold) and spoken the cell.
     T.truthy(speaks[#speaks].text:find("Gold"))
@@ -377,7 +393,7 @@ function M.test_search_ignores_ctrl_chord()
     local h = BaseTable.create(makeBasicSpec())
     h.onTabActivated(h, false)
     -- Ctrl+G should NOT route to search.
-    local consumed = h.handleSearchInput(h, 0x47, 2)  -- 'G' with Ctrl
+    local consumed = h.handleSearchInput(h, 0x47, 2) -- 'G' with Ctrl
     T.eq(consumed, false)
 end
 
@@ -386,7 +402,9 @@ end
 function M.test_ctrl_i_invokes_pedia_when_column_provides_pediaName()
     setup()
     local spec = makeBasicSpec()
-    spec.columns[1].pediaName = function(row) return "PEDIA_" .. row.name end
+    spec.columns[1].pediaName = function(row)
+        return "PEDIA_" .. row.name
+    end
     local h = BaseTable.create(spec)
     h.onTabActivated(h, false)
     local fn = findBinding(h, Keys.I, 2)
@@ -428,7 +446,9 @@ end
 function M.test_empty_table_lands_on_header_row()
     setup()
     local spec = makeBasicSpec()
-    spec.rebuildRows = function() return {} end
+    spec.rebuildRows = function()
+        return {}
+    end
     local h = BaseTable.create(spec)
     h.onTabActivated(h, true)
     T.eq(h._row, 0)

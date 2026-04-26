@@ -34,9 +34,15 @@ local function setup()
     ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION = 100
 
     Game = Game or {}
-    Game.IsOption = function() return false end
-    Game.GetActivePlayer = function() return 0 end
-    Game.GetResourceUsageType = function() return 0 end
+    Game.IsOption = function()
+        return false
+    end
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.GetResourceUsageType = function()
+        return 0
+    end
 
     ResourceUsageTypes = ResourceUsageTypes or { RESOURCEUSAGE_BONUS = 0 }
 
@@ -80,26 +86,66 @@ end
 local function stubCity(opts)
     opts = opts or {}
     local c = {}
-    function c:GetName() return opts.name or "Rome" end
-    function c:GetID() return opts.id or 1 end
-    function c:GetPopulation() return opts.pop or 5 end
-    function c:GetStrengthValue() return opts.strength or 1500 end
-    function c:FoodDifference() return opts.food or 3 end
-    function c:GetYieldRate(yieldType) return (opts.yields or {})[yieldType] or 0 end
-    function c:GetYieldRateTimes100(yieldType) return ((opts.yields or {})[yieldType] or 0) * 100 end
-    function c:GetJONSCulturePerTurn() return opts.culture or 2 end
-    function c:GetFaithPerTurn() return opts.faith or 0 end
-    function c:GetProductionModifier() return opts.prodMod or 0 end
-    function c:GetProductionNameKey() return opts.prodName or "TXT_KEY_UNIT_WARRIOR" end
-    function c:IsProduction() return opts.isProduction ~= false end
-    function c:IsProductionProcess() return opts.isProcess or false end
-    function c:GetCurrentProductionDifferenceTimes100() return opts.prodDiff or 100 end
-    function c:GetProductionTurnsLeft() return opts.prodTurns or 5 end
-    function c:IsCapital() return opts.capital or false end
-    function c:IsPuppet() return opts.puppet or false end
-    function c:IsOccupied() return opts.occupied or false end
-    function c:IsNoOccupiedUnhappiness() return opts.noOccupiedUnhappiness or false end
-    function c:Plot() return opts.plot or {} end
+    function c:GetName()
+        return opts.name or "Rome"
+    end
+    function c:GetID()
+        return opts.id or 1
+    end
+    function c:GetPopulation()
+        return opts.pop or 5
+    end
+    function c:GetStrengthValue()
+        return opts.strength or 1500
+    end
+    function c:FoodDifference()
+        return opts.food or 3
+    end
+    function c:GetYieldRate(yieldType)
+        return (opts.yields or {})[yieldType] or 0
+    end
+    function c:GetYieldRateTimes100(yieldType)
+        return ((opts.yields or {})[yieldType] or 0) * 100
+    end
+    function c:GetJONSCulturePerTurn()
+        return opts.culture or 2
+    end
+    function c:GetFaithPerTurn()
+        return opts.faith or 0
+    end
+    function c:GetProductionModifier()
+        return opts.prodMod or 0
+    end
+    function c:GetProductionNameKey()
+        return opts.prodName or "TXT_KEY_UNIT_WARRIOR"
+    end
+    function c:IsProduction()
+        return opts.isProduction ~= false
+    end
+    function c:IsProductionProcess()
+        return opts.isProcess or false
+    end
+    function c:GetCurrentProductionDifferenceTimes100()
+        return opts.prodDiff or 100
+    end
+    function c:GetProductionTurnsLeft()
+        return opts.prodTurns or 5
+    end
+    function c:IsCapital()
+        return opts.capital or false
+    end
+    function c:IsPuppet()
+        return opts.puppet or false
+    end
+    function c:IsOccupied()
+        return opts.occupied or false
+    end
+    function c:IsNoOccupiedUnhappiness()
+        return opts.noOccupiedUnhappiness or false
+    end
+    function c:Plot()
+        return opts.plot or {}
+    end
     return c
 end
 
@@ -198,14 +244,6 @@ function M.test_cityProductionPerTurn_applies_percent_modifier()
 end
 
 -- buildCityColumns visibility ----------------------------------------
-
-local function colNames(cols)
-    local names = {}
-    for i, c in ipairs(cols) do
-        names[i] = c.name
-    end
-    return names
-end
 
 local function hasColumn(cols, name)
     for _, c in ipairs(cols) do
@@ -330,7 +368,7 @@ function M.test_productionColumnCell_with_active_build_includes_turns_and_name()
     local city = stubCity({
         yields = { [YieldTypes.YIELD_PRODUCTION] = 10 },
         prodMod = 0,
-        prodName = "Warrior",  -- passed through Locale.ConvertTextKey
+        prodName = "Warrior", -- passed through Locale.ConvertTextKey
         isProduction = true,
         isProcess = false,
         prodDiff = 100,

@@ -579,7 +579,10 @@ function M.test_identity_team_non_capital_speaks_connected_when_route_home()
         return true
     end
     local city = mkCity({ isCapital = false })
-    T.truthy(CitySpeech.identity(city):find("connected", 1, true), "connected token expected on team non-capital with route home")
+    T.truthy(
+        CitySpeech.identity(city):find("connected", 1, true),
+        "connected token expected on team non-capital with route home"
+    )
 end
 
 function M.test_identity_enemy_city_omits_connected_token()

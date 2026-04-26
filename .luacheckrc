@@ -8,12 +8,17 @@ max_line_length = false   -- Civ V UI Lua has long localized strings; line lengt
 cache        = true       -- stash results under .luacheckcache
 
 -- Global ignores:
---   212  unused argument. Civ V UI callbacks (ShowHideHandler(bIsHide,bIsInit),
---        widget callbacks (self,menu), RegisterCallback(void1,void2)) have
---        engine-fixed signatures; a no-op handler that receives but ignores
---        its args is the norm, not a bug. W211 (unused local variables and
---        functions) stays active, which is where the real dead-code signal is.
-ignore = { "212" }
+--   212        unused argument. Civ V UI callbacks (ShowHideHandler(bIsHide,
+--              bIsInit), widget callbacks (self,menu), RegisterCallback(void1,
+--              void2)) have engine-fixed signatures; a no-op handler that
+--              receives but ignores its args is the norm, not a bug. W211
+--              (unused local variables and functions) stays active, which is
+--              where the real dead-code signal is.
+--   211/_.+   unused locals whose name starts with an underscore. Convention
+--              for "intentionally discarded multi-return slot" (e.g.
+--              `local plot, _x, _y = cursorPlot()` keeps only `plot`). Naked
+--              `_` would collide on multiple discards in one assignment.
+ignore = { "212", "211/_.+" }
 
 -- Engine globals. The game injects these into every UI Lua context. They are
 -- effectively read-only from mod code; assigning to them would replace the
@@ -69,6 +74,13 @@ read_globals = {
     -- Engine hex-geometry helpers injected by WorldView / camera code.
     -- CameraTracker uses them to convert grid coords to world coords.
     "HexToWorld", "ToHexFromGrid",
+
+    -- CityView tooltip helpers (InfoTooltipInclude pulls them in via the
+    -- CityView Context's include chain). CityStats reads them at speech
+    -- time to produce the per-yield breakdown lines.
+    "GetProductionTooltip", "GetFoodTooltip", "GetGoldTooltip",
+    "GetScienceTooltip", "GetCultureTooltip", "GetFaithTooltip",
+    "GetTourismTooltip",
 }
 
 -- Mod-authored module globals. Each file defines one of these at top level;
@@ -92,6 +104,8 @@ globals = {
     "PickerReader", "PullDownProbe", "TypeAheadSearch",
     "BaseMenu", "BaseMenuItems", "BaseMenuTabs", "BaseMenuHelp", "BaseMenuEditMode",
     "BaseMenuNumberEntry",
+    "BaseTable", "TabbedShell",
+    "CityStats",
     "LeaderDescription",
     "MPGameSetupShared", "SavedGameShared",
     "InstalledPanel", "LoadMenu", "LoadReplayMenu", "Lobby", "SaveMenu",
@@ -222,6 +236,18 @@ files["tests/"] = {
         -- Mod modules the test suites exercise directly.
         "UnitSpeech", "Pathfinder", "RoutePathfinder",
         "ScannerBackendTerrain", "EmpireStatus",
+        -- Wrapper module that exposes its functions globally so tests can
+        -- exercise it directly. Other *Access wrappers don't expose globals
+        -- like this; this one is the exception.
+        "EconomicOverviewAccess",
+        -- Engine `include` is read-only at the project level, but tests
+        -- stub it (function() end) before dofile-ing a wrapper so the
+        -- wrapper's own include() calls become no-ops.
+        "include",
+        -- Test-only helper that suite_city_stats stashes on _G so its
+        -- per-test setups (GameInfo.Religions = makeIterableTable({...}))
+        -- can build engine-shaped iterable tables.
+        "makeIterableTable",
     },
     -- Test suites are tables of test_* functions returned via `return M`;
     -- setup helpers and per-test locals are often declared but only used

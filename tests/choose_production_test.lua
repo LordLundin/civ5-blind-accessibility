@@ -522,10 +522,7 @@ function M.test_label_drops_unresolved_strategy_key()
     local label = ChooseProductionLogic.buildLabel(entry, city)
     T.truthy(label:find("Research"), "label includes the Description")
     T.truthy(label:find("converts production"), "label includes the Help text")
-    T.falsy(
-        label:find("TXT_KEY_PROCESS_RESEARCH_STRATEGY", 1, true),
-        "label drops the unresolved Strategy key"
-    )
+    T.falsy(label:find("TXT_KEY_PROCESS_RESEARCH_STRATEGY", 1, true), "label drops the unresolved Strategy key")
 end
 
 function M.test_advisor_suffix_with_zero_one_and_all_advisors()

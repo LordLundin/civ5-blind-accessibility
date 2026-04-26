@@ -328,12 +328,7 @@ function CityStats.religionRows(city)
         local pressure = pressureToken(pressureRaw)
         local label
         if city:IsHolyCityForReligion(religionId) then
-            label = Text.format(
-                "TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_HOLY_LINE",
-                religionName,
-                followers,
-                pressure
-            )
+            label = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_HOLY_LINE", religionName, followers, pressure)
         else
             label = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_LINE", religionName, followers, pressure)
         end
@@ -448,9 +443,7 @@ function CityStats.resourceRows(city)
     local luxes = {}
     for resource in GameInfo.Resources() do
         local usage = resource.ResourceUsage
-        if
-            usage == ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC or usage == ResourceUsageTypes.RESOURCEUSAGE_LUXURY
-        then
+        if usage == ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC or usage == ResourceUsageTypes.RESOURCEUSAGE_LUXURY then
             local rid = resource.ID
             if city:IsHasResourceLocal(rid) then
                 local name = Text.key(resource.Description)

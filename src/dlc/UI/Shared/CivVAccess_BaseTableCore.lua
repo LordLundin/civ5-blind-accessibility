@@ -53,9 +53,7 @@
 
 BaseTable = {}
 
-local MOD_SHIFT = 1
 local MOD_CTRL = 2
-local MOD_ALT = 4
 
 local function check(cond, msg)
     if not cond then
@@ -339,10 +337,22 @@ end
 
 local function buildHelpEntries(spec)
     local entries = {
-        { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN", description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_NAV_ROWS" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_LEFT_RIGHT", description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_NAV_COLS" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END", description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_HOME_END" },
-        { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ENTER", description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_ENTER" },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
+            description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_NAV_ROWS",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_LEFT_RIGHT",
+            description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_NAV_COLS",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
+            description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_HOME_END",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ENTER",
+            description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_ENTER",
+        },
         { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_AZ09", description = "TXT_KEY_CIVVACCESS_HELP_DESC_SEARCH" },
     }
     if spec._anyPedia and Events ~= nil and Events.SearchForPediaEntry ~= nil then
@@ -364,7 +374,10 @@ function BaseTable.create(spec)
         check(type(c) == "table", "columns[" .. i .. "] must be a table")
         check(type(c.name) == "string" and c.name ~= "", "columns[" .. i .. "].name required")
         check(type(c.getCell) == "function", "columns[" .. i .. "].getCell required")
-        check(c.sortKey == nil or type(c.sortKey) == "function", "columns[" .. i .. "].sortKey must be a function if provided")
+        check(
+            c.sortKey == nil or type(c.sortKey) == "function",
+            "columns[" .. i .. "].sortKey must be a function if provided"
+        )
         check(
             c.enterAction == nil or type(c.enterAction) == "function",
             "columns[" .. i .. "].enterAction must be a function if provided"
@@ -403,21 +416,79 @@ function BaseTable.create(spec)
     end
 
     self.bindings = {
-        { key = Keys.VK_UP, mods = 0, description = "Previous row", fn = function() onUp(self) end },
-        { key = Keys.VK_DOWN, mods = 0, description = "Next row", fn = function() onDown(self) end },
-        { key = Keys.VK_LEFT, mods = 0, description = "Previous column", fn = function() onLeft(self) end },
-        { key = Keys.VK_RIGHT, mods = 0, description = "Next column", fn = function() onRight(self) end },
-        { key = Keys.VK_HOME, mods = 0, description = "First data row", fn = function() onHome(self) end },
-        { key = Keys.VK_END, mods = 0, description = "Last data row", fn = function() onEnd(self) end },
-        { key = Keys.VK_RETURN, mods = 0, description = "Activate / sort", fn = function() onEnter(self) end },
-        { key = Keys.VK_SPACE, mods = 0, description = "Activate / sort", fn = function() onEnter(self) end },
+        {
+            key = Keys.VK_UP,
+            mods = 0,
+            description = "Previous row",
+            fn = function()
+                onUp(self)
+            end,
+        },
+        {
+            key = Keys.VK_DOWN,
+            mods = 0,
+            description = "Next row",
+            fn = function()
+                onDown(self)
+            end,
+        },
+        {
+            key = Keys.VK_LEFT,
+            mods = 0,
+            description = "Previous column",
+            fn = function()
+                onLeft(self)
+            end,
+        },
+        {
+            key = Keys.VK_RIGHT,
+            mods = 0,
+            description = "Next column",
+            fn = function()
+                onRight(self)
+            end,
+        },
+        {
+            key = Keys.VK_HOME,
+            mods = 0,
+            description = "First data row",
+            fn = function()
+                onHome(self)
+            end,
+        },
+        {
+            key = Keys.VK_END,
+            mods = 0,
+            description = "Last data row",
+            fn = function()
+                onEnd(self)
+            end,
+        },
+        {
+            key = Keys.VK_RETURN,
+            mods = 0,
+            description = "Activate / sort",
+            fn = function()
+                onEnter(self)
+            end,
+        },
+        {
+            key = Keys.VK_SPACE,
+            mods = 0,
+            description = "Activate / sort",
+            fn = function()
+                onEnter(self)
+            end,
+        },
     }
     if anyPedia and Events ~= nil and Events.SearchForPediaEntry ~= nil then
         self.bindings[#self.bindings + 1] = {
             key = Keys.I,
             mods = MOD_CTRL,
             description = "Civilopedia",
-            fn = function() onPedia(self) end,
+            fn = function()
+                onPedia(self)
+            end,
         }
     end
 

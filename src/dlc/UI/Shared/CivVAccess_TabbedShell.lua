@@ -50,8 +50,6 @@
 TabbedShell = {}
 
 local MOD_SHIFT = 1
-local MOD_CTRL = 2
-local MOD_ALT = 4
 
 local function check(cond, msg)
     if not cond then
@@ -255,13 +253,14 @@ function TabbedShell.create(spec)
     end
     check(
         spec.initialTabIndex == nil
-            or (type(spec.initialTabIndex) == "number" and spec.initialTabIndex >= 1 and spec.initialTabIndex <= #spec.tabs),
+            or (
+                type(spec.initialTabIndex) == "number"
+                and spec.initialTabIndex >= 1
+                and spec.initialTabIndex <= #spec.tabs
+            ),
         "spec.initialTabIndex must be a positive number within tabs range if provided"
     )
-    check(
-        spec.onEscape == nil or type(spec.onEscape) == "function",
-        "spec.onEscape must be a function if provided"
-    )
+    check(spec.onEscape == nil or type(spec.onEscape) == "function", "spec.onEscape must be a function if provided")
 
     local self = {
         name = spec.name,
@@ -477,7 +476,12 @@ function TabbedShell.install(ContextPtr, spec)
                 local ok, err = pcall(tab.resetForNextOpen, tab)
                 if not ok then
                     Log.error(
-                        "TabbedShell '" .. handler.name .. "' resetForNextOpen on '" .. tostring(tab.tabName) .. "': " .. tostring(err)
+                        "TabbedShell '"
+                            .. handler.name
+                            .. "' resetForNextOpen on '"
+                            .. tostring(tab.tabName)
+                            .. "': "
+                            .. tostring(err)
                     )
                 end
             end

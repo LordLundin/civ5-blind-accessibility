@@ -1377,14 +1377,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_TYPE_ART_ARTIFACT"] = "art or art
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_TYPE_MUSIC"] = "music slot"
 -- Multi-slot building entry inside a city. Theming bonus shown when active.
 -- Single-slot buildings collapse to one row (see CO_BUILDING_SINGLE_*).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL"] =
-    "{1_Name}, {2_SlotType}, {3_Filled} of {4_Total}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL"] = "{1_Name}, {2_SlotType}, {3_Filled} of {4_Total}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL_THEMED"] =
     "{1_Name}, {2_SlotType}, {3_Filled} of {4_Total}, theming bonus plus {5_Bonus}"
 -- Single-slot building rows. The building row is the slot; activation
 -- runs the move state machine directly. No drill-in.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_SINGLE_FILLED"] =
-    "{1_Name}, {2_SlotType}, {3_WorkName}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_SINGLE_FILLED"] = "{1_Name}, {2_SlotType}, {3_WorkName}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_SINGLE_EMPTY"] = "{1_Name}, {2_SlotType}, empty"
 -- Per-slot leaf inside a multi-slot building. Slot index is 1-based.
 -- The slot-type word lives on the parent label, not repeated per leaf.

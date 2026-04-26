@@ -86,18 +86,12 @@ local function buildItems()
         BaseMenuItems.Group({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE",
             items = {
-                audioCueModeChoice(
-                    AudioCueMode.MODE_SPEECH,
-                    "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"
-                ),
+                audioCueModeChoice(AudioCueMode.MODE_SPEECH, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"),
                 audioCueModeChoice(
                     AudioCueMode.MODE_SPEECH_PLUS_CUE,
                     "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"
                 ),
-                audioCueModeChoice(
-                    AudioCueMode.MODE_CUE_ONLY,
-                    "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"
-                ),
+                audioCueModeChoice(AudioCueMode.MODE_CUE_ONLY, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"),
             },
         }),
         BaseMenuItems.VirtualSlider({
