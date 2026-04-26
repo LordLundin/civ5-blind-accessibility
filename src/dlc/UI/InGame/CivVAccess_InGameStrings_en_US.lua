@@ -403,6 +403,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_IDEOLOGY"] = "Choose Ideolo
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_ARCHAEOLOGY"] = "Choose Archaeology Result"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_ADMIRAL_NEW_PORT"] = "Choose Admiral New Port"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_TRADE_UNIT_NEW_HOME"] = "Choose Trade Unit New Home"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_INTERNATIONAL_TRADE_ROUTE"] = "Establish Trade Route"
 -- Confirm-overlay sub-handler pushed on top of a Choose* picker when the
 -- player activates an item. Display name only; the actual prompt text
 -- (e.g. "Are you sure you wish to found X?") comes from Controls.ConfirmText
@@ -1133,6 +1134,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_INCOMING"] = "from"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_DOMAIN_LAND"] = "land"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_DOMAIN_SEA"] = "sea"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_ROUTE"] = "{1_Direction} {2_City}, {3_Domain}"
+-- ChooseInternationalTradeRoutePopup row format: destination identifier
+-- (city, plus civ for major-civ rows), hex distance, then yields split
+-- into "you get" / "they get" sides matching the engine's myBonuses /
+-- theirBonuses bucketing. Religion-pressure direction verified against
+-- Community-Patch-DLL CvLuaPlayer.cpp lGetPotentialInternationalTrade
+-- RouteDestinations.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_DEST_INTL"] = "{1_Civ}, {2_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_DISTANCE"] = "{1_Num} hexes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_YOU_GET"] = "You get {1_Yields}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET"] = "They get {1_Yields}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE"] = "{1_Num} {2_Religion} pressure"
 -- Defense group: each defensive building announces with the same {Building}
 -- format string so adding a new defensive building only adds a row, not a
 -- new label.
