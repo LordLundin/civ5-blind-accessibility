@@ -336,7 +336,11 @@ function LeagueOverviewProposal.slotItem(controller, slotIdx, pLeague, activePla
                 slot.ChoiceId,
                 slot.Direction
             )
-            return Text.format("TXT_KEY_CIVVACCESS_LEAGUE_SLOT_FILLED", slotIdx, body)
+            local label = Text.format("TXT_KEY_CIVVACCESS_LEAGUE_SLOT_FILLED", slotIdx, body)
+            local details = LeagueOverviewRow.filterTooltip(
+                pLeague:GetResolutionDetails(slot.Type, activePlayer, slot.ResolutionId, slot.ChoiceId)
+            )
+            return LeagueOverviewRow.appendTooltip(label, details)
         end,
         onActivate = function()
             LeagueOverviewProposal.pushSlotPicker(controller, slotIdx, pLeague)

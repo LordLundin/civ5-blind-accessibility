@@ -327,7 +327,7 @@ function LeagueOverviewVote.row(controller, idx, pLeague, activePlayer)
         else
             voteState = LeagueOverviewRow.formatYesNoVoteState(entry.votes)
         end
-        return LeagueOverviewRow.formatProposal(pLeague, entry.proposal, activePlayer, voteState)
+        return LeagueOverviewRow.formatProposalWithDetails(pLeague, entry.proposal, activePlayer, voteState)
     end
     function item:activate(menu)
         if isMajorCivProposal(entry.proposal) and entry.choice == nil then

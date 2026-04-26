@@ -177,6 +177,23 @@ function LeagueOverviewRow.formatProposal(pLeague, proposal, activePlayer, voteS
     return row
 end
 
+-- formatProposal plus the engine's GetResolutionDetails appended via
+-- appendTooltip / filterTooltip. Used by every Tab 2 proposal row (Vote /
+-- View / on-hold) so the user hears what the resolution does without
+-- having to drill anywhere; mirrors the View All / slot picker rows
+-- which include the same details. proposal must carry Type / ID /
+-- ProposerDecision (the snapshotProposal shape collectProposals returns).
+function LeagueOverviewRow.formatProposalWithDetails(pLeague, proposal, activePlayer, voteState)
+    local label = LeagueOverviewRow.formatProposal(pLeague, proposal, activePlayer, voteState)
+    local detailsText = pLeague:GetResolutionDetails(
+        proposal.Type,
+        activePlayer,
+        proposal.ID,
+        proposal.ProposerDecision or kChoiceNone
+    )
+    return LeagueOverviewRow.appendTooltip(label, LeagueOverviewRow.filterTooltip(detailsText))
+end
+
 -- Vote-state suffix for a yes/no resolution. Sign of `votes` carries the
 -- direction (positive = Yea, negative = Nay, zero = abstain).
 function LeagueOverviewRow.formatYesNoVoteState(votes)

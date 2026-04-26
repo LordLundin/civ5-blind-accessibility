@@ -320,10 +320,13 @@ local function onClose()
     end
 end
 
--- Read-only proposal row for View / Propose modes (no vote control).
+-- Read-only proposal row for View / Propose modes and for on-hold proposals
+-- in Vote mode (engine hides the vote control on those). Includes the
+-- engine GetResolutionDetails tooltip via formatProposalWithDetails so the
+-- user hears what the resolution does without drilling.
 local function readOnlyProposalRow(pLeague, proposal, activePlayer)
     return BaseMenuItems.Text({
-        labelText = LeagueOverviewRow.formatProposal(pLeague, proposal, activePlayer),
+        labelText = LeagueOverviewRow.formatProposalWithDetails(pLeague, proposal, activePlayer),
     })
 end
 
@@ -366,69 +369,96 @@ end
 
 local function rebuildAllTabs() end -- forward decl; real fn defined after install
 
+-- Engine VoteController:Activate / ProposalController:Activate set the
+-- shared Reset/Commit GridButtons to SetDisabled(true) at init and only
+-- toggle them via UpdateAvailableVotes / per-pending-proposal hooks we
+-- never trigger (allocations are mod-side). BaseMenuItems.Button's default
+-- isActivatable reads control:IsDisabled, so the buttons would announce
+-- "disabled" forever. Each footer overrides isActivatable to read mod-side
+-- controller state, mirroring the engine's enable semantics: Reset is
+-- meaningful once any vote is allocated / any slot is filled; Vote-mode
+-- Commit is always live; Propose-mode Commit waits until every slot has a
+-- pick (engine canCommit at line 1496-1501).
 local function buildVoteFooter(pLeague, activePlayer)
-    return {
-        BaseMenuItems.Button({
-            controlName = "ResetButton",
-            textKey = "TXT_KEY_LEAGUE_OVERVIEW_RESET_VOTES",
-            activate = function()
-                if m_voteController == nil then
-                    return
-                end
-                m_voteController:reset()
-                local n = m_voteController:availableVotes()
-                if n == 1 then
-                    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING_ONE"))
-                else
-                    SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING", n))
-                end
-            end,
-        }),
-        BaseMenuItems.Button({
-            controlName = "CommitButton",
-            textKey = "TXT_KEY_LEAGUE_OVERVIEW_COMMIT_VOTES",
-            activate = function()
-                if m_voteController == nil then
-                    return
-                end
-                local controller = m_voteController
-                pushCommitConfirm(controller:hasUnspentDelegates(), function()
-                    controller:commit(onClose)
-                end)
-            end,
-        }),
-        buildViewAllButton(pLeague, activePlayer),
-    }
+    local resetBtn = BaseMenuItems.Button({
+        controlName = "ResetButton",
+        textKey = "TXT_KEY_LEAGUE_OVERVIEW_RESET_VOTES",
+        activate = function()
+            if m_voteController == nil then
+                return
+            end
+            m_voteController:reset()
+            local n = m_voteController:availableVotes()
+            if n == 1 then
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING_ONE"))
+            else
+                SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING", n))
+            end
+        end,
+    })
+    resetBtn.isActivatable = function(self)
+        if not self:isNavigable() then
+            return false
+        end
+        return m_voteController ~= nil and m_voteController:availableVotes() < m_voteController.totalVotes
+    end
+    local commitBtn = BaseMenuItems.Button({
+        controlName = "CommitButton",
+        textKey = "TXT_KEY_LEAGUE_OVERVIEW_COMMIT_VOTES",
+        activate = function()
+            if m_voteController == nil then
+                return
+            end
+            local controller = m_voteController
+            pushCommitConfirm(controller:hasUnspentDelegates(), function()
+                controller:commit(onClose)
+            end)
+        end,
+    })
+    commitBtn.isActivatable = function(self)
+        return self:isNavigable() and m_voteController ~= nil
+    end
+    return { resetBtn, commitBtn, buildViewAllButton(pLeague, activePlayer) }
 end
 
 local function buildProposeFooter(pLeague, activePlayer)
-    return {
-        BaseMenuItems.Button({
-            controlName = "ResetButton",
-            textKey = "TXT_KEY_LEAGUE_OVERVIEW_RESET_PROPOSALS",
-            activate = function()
-                if m_proposalController == nil then
-                    return
-                end
-                m_proposalController:reset()
-                rebuildAllTabs()
-            end,
-        }),
-        BaseMenuItems.Button({
-            controlName = "CommitButton",
-            textKey = "TXT_KEY_LEAGUE_OVERVIEW_COMMIT_PROPOSALS",
-            activate = function()
-                if m_proposalController == nil then
-                    return
-                end
-                local controller = m_proposalController
-                pushCommitConfirm(false, function()
-                    controller:commit(onClose)
-                end)
-            end,
-        }),
-        buildViewAllButton(pLeague, activePlayer),
-    }
+    local resetBtn = BaseMenuItems.Button({
+        controlName = "ResetButton",
+        textKey = "TXT_KEY_LEAGUE_OVERVIEW_RESET_PROPOSALS",
+        activate = function()
+            if m_proposalController == nil then
+                return
+            end
+            m_proposalController:reset()
+            rebuildAllTabs()
+        end,
+    })
+    resetBtn.isActivatable = function(self)
+        if not self:isNavigable() then
+            return false
+        end
+        return m_proposalController ~= nil and m_proposalController:filledCount() > 0
+    end
+    local commitBtn = BaseMenuItems.Button({
+        controlName = "CommitButton",
+        textKey = "TXT_KEY_LEAGUE_OVERVIEW_COMMIT_PROPOSALS",
+        activate = function()
+            if m_proposalController == nil then
+                return
+            end
+            local controller = m_proposalController
+            pushCommitConfirm(false, function()
+                controller:commit(onClose)
+            end)
+        end,
+    })
+    commitBtn.isActivatable = function(self)
+        if not self:isNavigable() then
+            return false
+        end
+        return m_proposalController ~= nil and m_proposalController:filledCount() == m_proposalController.numSlots
+    end
+    return { resetBtn, commitBtn, buildViewAllButton(pLeague, activePlayer) }
 end
 
 local function buildProposalsTabItems(pLeague, activePlayer)
