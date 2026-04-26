@@ -1149,6 +1149,27 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET"] = "They get {1_Yie
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE"] = "{1_Num} {2_Religion} pressure"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_DESTINATIONS"] = "No valid destinations."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"] = "No valid home cities."
+-- Trade Route Overview (Ctrl+T). Three tabs (your active routes / available
+-- routes you could establish / routes other civs run with you), each a flat
+-- list of route summaries. Drill-in surfaces the engine's per-cell tooltip
+-- (BuildTradeRouteToolTipString output) split per [NEWLINE] line.
+--
+-- Domain prefix lands first because it answers what kind of unit moves the
+-- route (caravan vs cargo ship), which is the user's first filter when
+-- scanning a list. Civ-name parenthetical follows the city name to match
+-- the choose-trade-route popup's "city of civ" pattern. Turns-left lands
+-- last because routes are typically scanned for "what do they yield" before
+-- "when do they expire."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_KEY"] = "Ctrl+T"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_DESC"] = "Open Trade Route Overview"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_YOURS"] = "Your trade routes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_AVAILABLE"] = "Available trade routes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_WITH_YOU"] = "Trade routes with you"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_LAND"] = "caravan"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_SEA"] = "cargo ship"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ROUTE_LABEL"] =
+    "{1_Domain}, {2_FromCity} ({3_FromCiv}) to {4_ToCity} ({5_ToCiv}), {6_Turns} turns left"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_ROUTES"] = "No routes."
 -- Defense group: each defensive building announces with the same {Building}
 -- format string so adding a new defensive building only adds a row, not a
 -- new label.

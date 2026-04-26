@@ -89,6 +89,12 @@ end
 -- pass and the period-joined output. ":%." artifacts the normalization
 -- can leave behind (line ends with ":") are cleaned up downstream by
 -- TextFilter's `:%.` rule.
+--
+-- Sentence boundaries are period-followed-by-whitespace (or end of string),
+-- not bare period. A bare period inside a number ("1.06 Gold") or
+-- abbreviation is not a boundary; trade-route tooltips report fractional
+-- values via the engine's "{1_Num: number #.#}" format and any sentence
+-- splitter that treats every "." as terminal mangles them into "1. 06".
 local function appendTooltip(base, tooltip)
     if tooltip == nil or tooltip == "" then
         return base
@@ -107,9 +113,17 @@ local function appendTooltip(base, tooltip)
         end
     end
 
+    -- Mark every period-followed-by-whitespace boundary with NUL, then
+    -- split on NUL. The period itself is dropped (the join below supplies
+    -- one back); any period not followed by whitespace (e.g. the "." in
+    -- "1.06") survives untouched inside its segment.
+    local marked = tooltip:gsub("%.%s+", "\0")
     local novel = {}
-    for sentence in string.gmatch(tooltip, "([^%.]+)") do
+    for sentence in string.gmatch(marked, "([^%z]+)") do
         local trimmed = sentence:match("^%s*(.-)%s*$")
+        -- Strip a single trailing period so the join's ". " separator
+        -- doesn't double up ("Foo." + ". " + "Bar" -> "Foo.. Bar").
+        trimmed = trimmed:gsub("%.$", "")
         if trimmed ~= "" and not seen[trimmed] then
             novel[#novel + 1] = trimmed
         end

@@ -1128,6 +1128,31 @@ function M.test_tooltip_newlines_become_period_separators()
     )
 end
 
+function M.test_tooltip_decimal_in_value_is_preserved()
+    setup()
+    setCtrls({ "A" })
+    -- Trade-route tooltips report fractional values via the engine's
+    -- "{1_Num: number #.#}" format, producing strings like "Gold base: 1.06".
+    -- The sentence splitter must not treat the decimal point as a sentence
+    -- boundary, otherwise the user hears "1. 06" with a spurious break.
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "LABEL_A",
+                tooltipFn = function()
+                    return "Gold base: 1.06[NEWLINE]Total: 5 Gold"
+                end,
+                activate = function() end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(speaks[#speaks].text, "LABEL_A. Gold base: 1.06. Total: 5 Gold")
+end
+
 function M.test_tooltipFn_nil_result_does_not_add_comma()
     setup()
     setCtrls({ "A" })

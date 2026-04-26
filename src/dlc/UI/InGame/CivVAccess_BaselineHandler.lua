@@ -138,6 +138,13 @@ local FUNCTION_KEY_HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY",
         description = "TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC",
     },
+    -- Trade Route Overview is reachable in vanilla only via the trade-unit
+    -- panel button and DiploCorner; no engine hotkey. Same rationale as
+    -- Culture Overview's chord above.
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_DESC",
+    },
 }
 
 local function appendAll(dst, src)
@@ -221,6 +228,21 @@ function BaselineHandler.create()
                 Data1 = 1,
             })
         end, "Open Culture Overview"),
+        -- Trade Route Overview. No engine hotkey at all (sighted players
+        -- reach it via the trade-unit panel and DiploCorner). Plain T is
+        -- empire-status turn / date / supply readout; Ctrl+T is distinct
+        -- under (key, mods) dispatch and unbound by every CIV5 XML
+        -- (Controls / Commands / Missions / Automates / Builds / Interface-
+        -- Modes), so the chord is free. Data1=1 toggles the popup closed
+        -- when already visible (matches the Culture Overview pattern); Data2
+        -- selects the landing tab (1=Your TR).
+        bind(Keys.T, MOD_CTRL, function()
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_TRADE_ROUTE_OVERVIEW,
+                Data1 = 1,
+                Data2 = 1,
+            })
+        end, "Open Trade Route Overview"),
     }
 
     -- Pull sibling modules' bindings into Baseline's list, and their help
