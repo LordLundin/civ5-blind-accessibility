@@ -151,6 +151,13 @@ local FUNCTION_KEY_HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_KEY",
         description = "TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_DESC",
     },
+    -- Religion Overview. Engine's Ctrl+R toggles the resource icon overlay
+    -- (visual-only); same overlay-toggle category as Ctrl+L and safe to
+    -- replace.
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC",
+    },
 }
 
 local function appendAll(dst, src)
@@ -272,6 +279,28 @@ function BaselineHandler.create()
                 Data1 = leagueId,
             })
         end, "Open World Congress overview"),
+        -- Religion Overview. Engine's Ctrl+R toggles the resource-icon
+        -- overlay (visual-only, no value to a blind player). Engine has a
+        -- native Ctrl+P binding for the same screen, but Ctrl+P collides
+        -- with worker BUILD_REPAIR (the engine disambiguates by context);
+        -- Ctrl+R is mnemonic and conflict-free across CIV5Controls /
+        -- Builds / Missions / Interface-Modes (bare R is BUILD_ROAD,
+        -- Alt+R is RAILROAD/REBASE, Ctrl+Alt+R is REMOVE_ROUTE,
+        -- Ctrl+Shift+R is ROUTE_TO -- none of which dispatch on Ctrl+R
+        -- alone). Data1=1 toggles the popup closed when already visible
+        -- (matches the Culture / Trade Route Overview pattern). Gated on
+        -- GAMEOPTION_NO_RELIGION so the binding speaks a disabled state
+        -- rather than silently no-opping when religion is off.
+        bind(Keys.R, MOD_CTRL, function()
+            if Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
+                speak(Text.key("TXT_KEY_CIVVACCESS_STATUS_FAITH_OFF"))
+                return
+            end
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_RELIGION_OVERVIEW,
+                Data1 = 1,
+            })
+        end, "Open Religion Overview"),
     }
 
     -- Pull sibling modules' bindings into Baseline's list, and their help

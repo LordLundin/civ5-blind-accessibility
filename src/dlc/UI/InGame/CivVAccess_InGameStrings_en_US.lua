@@ -1546,3 +1546,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_THIS"] = "Propose this res
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_THIS"] = "Repeal this resolution"
 -- View All sections reuse the engine's TXT_KEY_LEAGUE_OVERVIEW_*_RESOLUTIONS
 -- keys directly (Enacted Resolutions / Possible Resolutions / Other Resolutions).
+-- Religion Overview. TabbedShell over the engine's BUTTONPOPUP_RELIGION_OVERVIEW:
+-- tab 1 Your Religion (status / beliefs / faith / great people / auto-purchase),
+-- tab 2 World Religions (one row per founded religion plus OVERALL STATUS footer),
+-- tab 3 Beliefs (one Group per religion / pantheon, drilling into beliefs).
+-- Screen title and tab names reuse engine TXT_KEY_RELIGION_OVERVIEW and
+-- TXT_KEY_RO_TAB_*; only the hotkey-help pair and the world-row composition
+-- have no engine equivalent.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_KEY"] = "Control plus R"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC"] = "Open Religion Overview"
+-- World Religions row composition. Distinguishing word (religion name) leads;
+-- holy city / founder / city count follow with brief framing words so values
+-- that could otherwise read as a list of names stay disambiguated.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] =
+    "{1_Religion}, holy city {2_HolyCity}, founded by {3_Founder}, {4_NumCities} cities"
