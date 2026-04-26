@@ -380,6 +380,22 @@ table.insert(mainHandler.bindings, {
     fn = function() cycleCity("next") end,
 })
 
+-- Esc binding: base ProductionPopup uses ContextPtr:SetHide instead of
+-- UIManager:QueuePopup, so when reached from a popup-queued screen (F2's
+-- EconomicOverview, future drill-ins from other overview popups) the engine
+-- never routes input to ProductionPopup's ContextPtr -- it goes to the
+-- queued screen's wrapper, which delegates to InputRouter.dispatch. That
+-- walk hits our capturesAllInput=true at the top of the stack with no Esc
+-- binding and swallows the key, so the priorInput path that would have
+-- closed via OnClose never runs. Binding Esc here makes the dispatch find
+-- a match and fire OnClose regardless of which Context's InputHandler ran.
+table.insert(mainHandler.bindings, {
+    key = Keys.VK_ESCAPE,
+    mods = 0,
+    description = "Close",
+    fn = OnClose,
+})
+
 -- ===== Popup intercept =====
 
 -- Puppet-city gate. Base's handling at ProductionPopup.lua:1067-1073 is: any
