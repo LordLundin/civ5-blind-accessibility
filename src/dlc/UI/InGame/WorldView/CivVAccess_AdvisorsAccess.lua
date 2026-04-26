@@ -119,7 +119,7 @@ local function buildPreamble()
     if #parts == 0 then
         return nil
     end
-    return TextFilter.filter(table.concat(parts, ". "))
+    return table.concat(parts, ". ")
 end
 
 local freshShow = false

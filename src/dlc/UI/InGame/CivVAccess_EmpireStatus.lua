@@ -368,7 +368,7 @@ local function newDetail()
                 end
             end
         end
-        return TextFilter.filter(table.concat(parts, ". "))
+        return table.concat(parts, ". ")
     end
     return self
 end

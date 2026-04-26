@@ -1,7 +1,6 @@
 -- Read-only mirror of the engine's task list. Shift+T speaks active
--- (status 0) tasks via TextFilter.filter, joined by ". ". With no active
--- tasks (or no task list at all -- the common case outside scenarios) the
--- key is a silent no-op.
+-- (status 0) tasks joined by ". ". With no active tasks (or no task list
+-- at all -- the common case outside scenarios) the key is a silent no-op.
 --
 -- Why mirror at all (the "never cache game state" rule has an exception
 -- here): tasks live in the engine's TaskList Context's sandboxed env
@@ -79,7 +78,7 @@ local function speakActiveTasks()
     if #parts == 0 then
         return
     end
-    SpeechPipeline.speakInterrupt(TextFilter.filter(table.concat(parts, ". ")))
+    SpeechPipeline.speakInterrupt(table.concat(parts, ". "))
 end
 
 local bind = HandlerStack.bind

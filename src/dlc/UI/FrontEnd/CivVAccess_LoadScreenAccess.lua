@@ -136,7 +136,7 @@ local function buildItems()
                 return ""
             end
             local out = name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_UNIQUE_ABILITY")
-            local desc = TextFilter.filter(controlText(Controls.BonusDescription))
+            local desc = controlText(Controls.BonusDescription)
             if desc ~= nil and desc ~= "" then
                 out = out .. ", " .. desc
             end
@@ -164,7 +164,7 @@ local function buildItems()
 end
 
 local function buildPreamble()
-    local quote = TextFilter.filter(controlText(Controls.Quote))
+    local quote = controlText(Controls.Quote)
     if quote == nil or quote == "" then
         return nil
     end

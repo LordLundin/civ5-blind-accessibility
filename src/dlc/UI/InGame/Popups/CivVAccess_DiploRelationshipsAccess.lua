@@ -326,16 +326,15 @@ local function minorNearbyResources(iOther, pOther)
     return Text.format("TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST", table.concat(names, ", "))
 end
 
--- City-state status: Allies / Friends / Neutral / Afraid / Angry / War /
--- Permanent War / Peace Blocked. Filtered through TextFilter to strip
--- the [COLOR_*] markup the engine helper wraps the label in. "War"
--- subsumes the at-war flag we used to add separately.
+-- City-state status (Allies, Friends, Neutral, hostile / war variants,
+-- etc.) via the engine helper. "War" subsumes the at-war flag we used
+-- to add separately.
 local function minorStatusFragment(iUs, iOther)
     local raw = GetCityStateStatusText(iUs, iOther)
     if raw == nil or raw == "" then
         return nil
     end
-    return TextFilter.filter(raw)
+    return raw
 end
 
 -- Influence value, per-turn rate, and anchor. Per-turn drops when zero;
@@ -440,9 +439,9 @@ end
 -- Active quests, threatening-barbarians, and proxy-war events as one
 -- fragment. Reuses the engine's GetActiveQuestToolTip so BNW's full
 -- quest set, per-quest turns-remaining, and the contest winning /
--- losing branches all come through localized. Pre-replace [NEWLINE]
--- with ", " so multi-quest output reads as a flat list once TextFilter
--- collapses the rest of the markup.
+-- losing branches all come through localized. Replace [NEWLINE] with
+-- ", " before SpeechPipeline filters the token away, so multi-quest
+-- output reads as a flat list rather than collapsing into one run-on.
 local function minorQuestsFragment(iUs, iOther, pOther)
     local hasQuests = pOther:GetMinorCivNumDisplayedQuestsForPlayer(iUs) > 0
     local hasBarbs = pOther:IsThreateningBarbariansEventActiveForPlayer(iUs)
@@ -451,8 +450,7 @@ local function minorQuestsFragment(iUs, iOther, pOther)
         return nil
     end
     local raw = GetActiveQuestToolTip(iUs, iOther)
-    raw = raw:gsub("%[NEWLINE%]", ", ")
-    return TextFilter.filter(raw)
+    return (raw:gsub("%[NEWLINE%]", ", "))
 end
 
 -- Bullyable indicator. Engine's status text already says "Afraid" when

@@ -67,10 +67,6 @@ local function preambleText()
     return table.concat(parts, ", ")
 end
 
--- Yield strings come from the engine's per-yield TXT keys (e.g.
--- TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_GOLD = "+{1_Num}
--- [ICON_GOLD] Gold per turn"). TextFilter strips the icon markup,
--- leaving the speech-clean number + name.
 local function yieldEntry(yieldType, valueTimes100)
     if valueTimes100 == 0 then
         return nil
@@ -79,8 +75,7 @@ local function yieldEntry(yieldType, valueTimes100)
     if key == nil then
         return nil
     end
-    local raw = Locale.Lookup(key, valueTimes100 / 100)
-    return TextFilter.strip(raw)
+    return Locale.Lookup(key, valueTimes100 / 100)
 end
 
 -- Trade religion pressure verified via Community-Patch-DLL
