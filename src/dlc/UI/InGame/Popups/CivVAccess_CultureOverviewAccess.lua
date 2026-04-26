@@ -589,10 +589,14 @@ local function buildDesignateGroup(typeID, typeNameKey)
                 local name = Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
                 local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(idx))
                 local creator = civDisplayName(Players[w.Creator])
-                local theming = Game.GetGreatWorkCurrentThemingBonus(idx)
                 items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY", name, era, creator, theming or 0),
-                    tooltipText = Game.GetGreatWorkTooltip(idx, activePlayerID()),
+                    labelFn = function()
+                        local theming = Game.GetGreatWorkCurrentThemingBonus(idx)
+                        return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY", name, era, creator, theming or 0)
+                    end,
+                    tooltipFn = function()
+                        return Game.GetGreatWorkTooltip(idx, activePlayerID())
+                    end,
                     onActivate = function()
                         Network.SendSetSwappableGreatWork(activePlayerID(), typeID, idx)
                     end,
