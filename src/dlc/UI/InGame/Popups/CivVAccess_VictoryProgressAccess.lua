@@ -716,13 +716,30 @@ local function buildDiplomaticItems()
         }
     end
 
+    -- Three states with distinct speech, diverging from vanilla which
+    -- conflates the first two and shows "0 of 12 delegates" against a
+    -- mechanic that doesn't yet exist:
+    --   1. No League exists -> just the inactive line. Voting hasn't
+    --      started, so delegate counts would be misleading noise.
+    --   2. League exists, UN not active -> inactive line + delegates,
+    --      since voting is live in the World Congress phase even though
+    --      the UN-specific World Leader proposal isn't unlocked yet.
+    --   3. UN active -> active line + turns until next victory session
+    --      + delegates.
     local items = {}
     local pLeague = nil
     if Game.GetNumActiveLeagues() > 0 then
         pLeague = Game.GetActiveLeague()
     end
 
-    if pLeague ~= nil and Game.IsUnitedNationsActive() then
+    if pLeague == nil then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_UN_INACTIVE"),
+        })
+        return items
+    end
+
+    if Game.IsUnitedNationsActive() then
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_UN_ACTIVE"),
         })
@@ -733,25 +750,26 @@ local function buildDiplomaticItems()
                 pLeague:GetTurnsUntilVictorySession()
             ),
         })
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.format(
-                "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
-                stripColon(Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_DELEGATES_CONTROLLED")),
-                pLeague:CalculateStartingVotesForMember(activePlayerId())
-            ),
-        })
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.format(
-                "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
-                stripColon(Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_DELEGATES_NEEDED")),
-                Game.GetVotesNeededForDiploVictory()
-            ),
-        })
     else
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_UN_INACTIVE"),
         })
     end
+
+    items[#items + 1] = BaseMenuItems.Text({
+        labelText = Text.format(
+            "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
+            stripColon(Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_DELEGATES_CONTROLLED")),
+            pLeague:CalculateStartingVotesForMember(activePlayerId())
+        ),
+    })
+    items[#items + 1] = BaseMenuItems.Text({
+        labelText = Text.format(
+            "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
+            stripColon(Locale.ConvertTextKey("TXT_KEY_VP_DIPLO_DELEGATES_NEEDED")),
+            Game.GetVotesNeededForDiploVictory()
+        ),
+    })
 
     return items
 end
