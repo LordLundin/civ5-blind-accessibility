@@ -24,6 +24,14 @@
 --                       matching designation on your side / ready) that
 --                       fires Network.SendSwapGreatWorks on activate when
 --                       ready and stays on the tab.
+--                       Great-work reading on this tab matches Tab 1: the
+--                       work name carries the label (with a type prefix on
+--                       foreign leaves to disambiguate within a civ, like
+--                       Tab 1's slot index inside a multi-slot building),
+--                       and gwTooltip supplies the rich class/artist/
+--                       origin/era/yields detail. Pulldown entries fold
+--                       both into one announcement because pulldown
+--                       entries have no separate tooltip-on-demand path.
 --   Culture Victory  -- one Group per met major civ alive, sorted by tourism
 --                       descending. Label combines influences/tourism/
 --                       ideology/public opinion/excess happiness; drill-in
@@ -720,16 +728,17 @@ local function swappableForTypeId(typeId)
     return meta.accessor(activePlayer())
 end
 
--- Speak a great work as "<name>, <era>, <creator>". Used inside the
--- per-type designation pulldown labels (where the owner is always us).
-local function gwShortDesc(idx)
+-- Closed-state value for a per-type designation pulldown: the work name
+-- when designated, "none designated" otherwise. Era / creator / yields are
+-- carried by the per-entry announcement and the foreign-offering tooltips
+-- (both routed through gwTooltip), which keeps Tab 2's work reading
+-- aligned with Tab 1's slot-leaf "name in label, rich detail in tooltip"
+-- pattern.
+local function gwInlineName(idx)
     if idx < 0 then
         return Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_NONE")
     end
-    local name = Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
-    local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(idx))
-    local creator = gwCreatorName(idx)
-    return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL", name, era, creator)
+    return Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
 end
 
 -- The trade-state sentence describing what would happen if the user
@@ -771,7 +780,7 @@ local function buildOfferingPulldown(typeMeta)
             return Text.format(
                 "TXT_KEY_CIVVACCESS_CO_SWAP_DESIGNATE_TYPE",
                 Text.key(typeMeta.nameKey),
-                gwShortDesc(swappableForTypeId(typeMeta.id))
+                gwInlineName(swappableForTypeId(typeMeta.id))
             )
         end,
         tooltipKey = typeMeta.slotTooltipKey,
@@ -782,11 +791,13 @@ local function buildOfferingPulldown(typeMeta)
             if idx < 0 then
                 return Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_ENTRY")
             end
+            -- Match Tab 1's slot-leaf reading: name as label, gwTooltip
+            -- supplying class/artist/origin/era/yields. Pulldown entries
+            -- have no separate tooltip-on-demand path (entryAnnounceFn
+            -- short-circuits the per-entry tooltip append), so the two
+            -- are folded into one announcement here.
             local name = Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
-            local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(idx))
-            local creator = gwCreatorName(idx)
-            local theming = Game.GetGreatWorkCurrentThemingBonus(idx) or 0
-            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY", name, era, creator, theming)
+            return name .. ". " .. gwTooltip(idx)
         end,
         onSelected = function()
             m_swapTab.menu().setItems(buildSwapItems())
@@ -823,6 +834,12 @@ end
 -- designation between picking and trading can't strand a stale pairing.
 -- Speaks the resolved trade-state label after queuing so the user hears
 -- what would happen at the trade item without backing out to it.
+--
+-- Reading mirrors Tab 1's slot-leaf pattern: type prefix + work name in
+-- the label (the type prefix is the within-civ disambiguator, like the
+-- slot index inside a multi-slot building); gwTooltip supplies the rich
+-- class/artist/origin/era/yields detail and gets auto-appended on
+-- navigation by Text.announce.
 local function buildForeignOfferingLeaf(gwIndex, ownerID)
     return BaseMenuItems.Text({
         labelFn = function()
@@ -830,12 +847,10 @@ local function buildForeignOfferingLeaf(gwIndex, ownerID)
             local meta = typeMetaFor(typeId)
             local typeName = meta and Text.key(meta.nameKey) or ""
             local name = Locale.ConvertTextKey(Game.GetGreatWorkName(gwIndex))
-            local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(gwIndex))
-            local creator = gwCreatorName(gwIndex)
-            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED", typeName, name, era, creator)
+            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED", typeName, name)
         end,
         tooltipFn = function()
-            return Game.GetGreatWorkTooltip(gwIndex, ownerID)
+            return gwTooltip(gwIndex)
         end,
         onActivate = function()
             m_swapTheirItem = gwIndex
@@ -846,31 +861,38 @@ local function buildForeignOfferingLeaf(gwIndex, ownerID)
     })
 end
 
-local function buildForeignCivGroup(rec)
-    local civPlayer = Players[rec.iPlayer]
+-- Civ-level Group inside the foreign-offerings drill. Slot indices are
+-- re-derived from a fresh GetOthersGreatWorks() query on every drill-in
+-- (cached = false) so a designation change between the parent build and
+-- the user reaching this Group can't surface a stale index. Only iPlayer
+-- is captured, since player IDs are stable for the session.
+local function buildForeignCivGroup(iPlayer)
+    local civPlayer = Players[iPlayer]
     local civLabel = civDisplayName(civPlayer)
-    -- Pre-resolved at Group construction so the leaf list is the same set
-    -- the parent Group's count described. A subsequent
-    -- SerialEventGreatWorksScreenDirty rebuilds the whole tab via
-    -- setItems, so this Group object is replaced wholesale rather than
-    -- mutated in place.
-    local slots = {}
-    if rec.WritingIndex >= 0 then
-        slots[#slots + 1] = rec.WritingIndex
-    end
-    if rec.ArtIndex >= 0 then
-        slots[#slots + 1] = rec.ArtIndex
-    end
-    if rec.ArtifactIndex >= 0 then
-        slots[#slots + 1] = rec.ArtifactIndex
-    end
     return BaseMenuItems.Group({
         labelText = civLabel,
         cached = false,
         itemsFn = function()
             local items = {}
-            for _, idx in ipairs(slots) do
-                items[#items + 1] = buildForeignOfferingLeaf(idx, rec.iPlayer)
+            local others = activePlayer():GetOthersGreatWorks() or {}
+            for _, rec in ipairs(others) do
+                if rec.iPlayer == iPlayer then
+                    if rec.WritingIndex >= 0 then
+                        items[#items + 1] = buildForeignOfferingLeaf(rec.WritingIndex, iPlayer)
+                    end
+                    if rec.ArtIndex >= 0 then
+                        items[#items + 1] = buildForeignOfferingLeaf(rec.ArtIndex, iPlayer)
+                    end
+                    if rec.ArtifactIndex >= 0 then
+                        items[#items + 1] = buildForeignOfferingLeaf(rec.ArtifactIndex, iPlayer)
+                    end
+                    break
+                end
+            end
+            if #items == 0 then
+                items[1] = BaseMenuItems.Text({
+                    labelText = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_NO_SLOTS"),
+                })
             end
             return items
         end,
@@ -896,7 +918,7 @@ local function buildForeignOfferingsGroup()
         itemsFn = function()
             local items = {}
             for _, rec in ipairs(civsWithOfferings()) do
-                items[#items + 1] = buildForeignCivGroup(rec)
+                items[#items + 1] = buildForeignCivGroup(rec.iPlayer)
             end
             if #items == 0 then
                 items[1] = BaseMenuItems.Text({
