@@ -10,11 +10,20 @@
 --                       Slot Enter runs the move state machine; great-work
 --                       details are surfaced via the slot's tooltip.
 --                       Antiquity site counts precede the city list.
---   Swap Great Works -- designate-your-swappable section (three drill-ins,
---                       one per type), the in-flight swap workspace (your
---                       offer / their offer / Send / Clear), and the foreign-
---                       offerings list (one Group per offering civ, three
---                       slot leaves each).
+--   Swap Great Works -- three top-level rows. (1) Your offerings: drills
+--                       into three Pulldowns wrapping the engine's per-type
+--                       designation widgets; tooltip on each carries the
+--                       engine's "other civs may swap for this without
+--                       your permission" warning so the trade-asymmetry is
+--                       visible to us as it is to sighted players. (2)
+--                       Available from other civilizations: drills into
+--                       civs with at least one designation, then into each
+--                       civ's non-empty slots; activating a leaf queues
+--                       that work as the swap target. (3) Trade item:
+--                       state-aware label (nothing picked / picked but no
+--                       matching designation on your side / ready) that
+--                       fires Network.SendSwapGreatWorks on activate when
+--                       ready and stays on the tab.
 --   Culture Victory  -- one Group per met major civ alive, sorted by tourism
 --                       descending. Label combines influences/tourism/
 --                       ideology/public opinion/excess happiness; drill-in
@@ -32,10 +41,13 @@
 -- Engine integration: ships an override of CultureOverview.lua (verbatim BNW
 -- copy + an include for this module). The engine's OnPopupMessage, OnClose,
 -- ShowHideHandler, InputHandler, RegisterSortOptions, TabSelect("YourCulture"),
--- and SerialEventCityInfoDirty wiring stay intact; TabbedShell.install layers
--- our handler on top via priorInput / priorShowHide chains. SerialEventCityInfoDirty
--- triggers a Tab 1 setItems refresh while the popup is open so post-move state
--- is reflected without requiring the user to close and reopen.
+-- and SerialEvent*Dirty wiring stay intact; TabbedShell.install layers our
+-- handler on top via priorInput / priorShowHide chains. SerialEventCityInfo-
+-- Dirty refreshes Tab 1 (post GW-move slot states); SerialEventGreatWorks-
+-- ScreenDirty refreshes Tab 2 (post designate / post swap, including swaps
+-- another player initiated against our designations). onShow also calls the
+-- engine's RefreshSwappingItems directly so the YourWriting/Art/Artifact
+-- pulldowns are populated regardless of which engine tab landed.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -73,25 +85,28 @@ CultureOverviewAccess = CultureOverviewAccess or {}
 -- when the user lands a target).
 local m_gwMoveSource = nil
 
--- Tab 2: in-flight swap state. Mirrors engine's g_iTheirItem, g_iYourItem,
--- g_iTradingPartner. Reset on every popup open.
+-- Tab 2: queued swap target. The work the user picked from another civ's
+-- offerings, plus that civ's player ID. The matching-type designation on
+-- our side is derived live from the engine accessors at trade time so a
+-- designation change between picking and trading can't leave a stale
+-- pairing. Reset on every popup open and after a trade fires.
 local m_swapTheirItem = -1
-local m_swapYourItem = -1
 local m_swapTradingPartner = -1
 
 -- Tab handles, set during install. onShow rebuilds each tab's items via
--- the menu accessor. Module-level so the SerialEventCityInfoDirty hook
--- can refresh Tab 1 mid-screen.
+-- the menu accessor. Module-level so the SerialEvent*Dirty hooks can
+-- refresh tabs mid-screen.
 local m_yourCultureTab
 local m_swapTab
 local m_victoryTab
 local m_influenceTab
 
--- Forward declaration. The Tab 4 perspective Pulldown's onSelected hook
--- needs to call buildInfluenceItems to rebuild the row list against the
--- new perspective; buildInfluenceItems is the function that creates the
--- Pulldown in the first place, so the dependency is self-referential.
+-- Forward declarations. Tab 4's perspective Pulldown onSelected rebuilds
+-- the row list (which is what defines the Pulldown in the first place);
+-- Tab 2's pulldown onSelected and foreign-offering activate both rebuild
+-- the tab to refresh the trade item's state-aware label.
 local buildInfluenceItems
+local buildSwapItems
 
 -- ===== Helpers =========================================================
 
@@ -630,165 +645,248 @@ end
 
 -- ===== Tab 2 (Swap Great Works) ========================================
 
--- Class IDs for Network.SendSetSwappableGreatWork: 1=Art, 2=Artifact,
--- 3=Writing, 4=Music. Music is commented out in the engine; we omit it
--- here too. The accessor pair matches engine SelectYourWork class branches.
-local function swappableForType(typeID)
-    local p = activePlayer()
-    if typeID == 1 then
-        return p:GetSwappableGreatArt()
+-- Engine workType IDs for Network.SendSetSwappableGreatWork: 1=Art,
+-- 2=Artifact, 3=Writing, 4=Music. Music is commented out engine-side; we
+-- follow.
+local SWAP_TYPE_WRITING = 3
+local SWAP_TYPE_ART = 1
+local SWAP_TYPE_ARTIFACT = 2
+
+-- Per-type metadata. Display order (Writing, Art, Artifact) matches the
+-- engine's RefreshSwappingItems sequence so anything the user reads in a
+-- sighted-player walkthrough lines up with the order they hear here. The
+-- slotTooltipKey is the engine TXT_KEY whose body ends with the
+-- "other civilizations may swap for it on their turn without your
+-- permission!" advisory; reusing it verbatim means the trade-asymmetry
+-- warning is one tooltip request away from each pulldown.
+local SWAP_TYPES = {
+    {
+        id = SWAP_TYPE_WRITING,
+        controlName = "YourWritingPullDown",
+        nameKey = "TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_WRITING",
+        slotTooltipKey = "TXT_KEY_WRITING_SLOT_TT",
+        accessor = function(p)
+            return p:GetSwappableGreatWriting()
+        end,
+    },
+    {
+        id = SWAP_TYPE_ART,
+        controlName = "YourArtPullDown",
+        nameKey = "TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ART",
+        slotTooltipKey = "TXT_KEY_ART_SLOT_TT",
+        accessor = function(p)
+            return p:GetSwappableGreatArt()
+        end,
+    },
+    {
+        id = SWAP_TYPE_ARTIFACT,
+        controlName = "YourArtifactPullDown",
+        nameKey = "TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ARTIFACT",
+        slotTooltipKey = "TXT_KEY_ARTIFACT_SLOT_TT",
+        accessor = function(p)
+            return p:GetSwappableGreatArtifact()
+        end,
+    },
+}
+
+local function typeMetaFor(typeId)
+    for _, t in ipairs(SWAP_TYPES) do
+        if t.id == typeId then
+            return t
+        end
     end
-    if typeID == 2 then
-        return p:GetSwappableGreatArtifact()
-    end
-    if typeID == 3 then
-        return p:GetSwappableGreatWriting()
-    end
-    return -1
+    return nil
 end
 
--- Speak a great work as "<name>, <era>, <creator>" or, when ownerID is
--- supplied, with an "owned by <owner>" suffix. The owner-bearing form is
--- used by the in-flight swap workspace where the user needs to know whose
--- inventory the offered work is coming from; the bare form is used inside
--- the active player's own designate-swappable list where the owner is
--- always us.
-local function gwShortDesc(idx, ownerID)
+local function swappableForTypeId(typeId)
+    local meta = typeMetaFor(typeId)
+    if meta == nil then
+        return -1
+    end
+    return meta.accessor(activePlayer())
+end
+
+-- Speak a great work as "<name>, <era>, <creator>". Used inside the
+-- per-type designation pulldown labels (where the owner is always us).
+local function gwShortDesc(idx)
     if idx < 0 then
         return Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_NONE")
     end
     local name = Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
     local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(idx))
     local creator = civDisplayName(Players[Game.GetGreatWorkCreator(idx)])
-    if ownerID == nil then
-        return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL", name, era, creator)
-    end
-    local owner = civDisplayName(Players[ownerID])
-    return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL_OWNED", name, era, creator, owner)
+    return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL", name, era, creator)
 end
 
--- Drill-in Group for "designate your swappable Writing/Art/Artifact."
--- Children are a Clear entry plus every great work the active player owns
--- of that type. Activating a child fires Network.SendSetSwappableGreatWork.
-local function buildDesignateGroup(typeID, typeNameKey)
+-- The trade-state sentence describing what would happen if the user
+-- pressed the trade item right now. Three states:
+--   1. m_swapTheirItem < 0                       not picked
+--   2. picked but no matching designation        need to designate
+--   3. both ready                                consummate
+-- Used both as the trade item's labelFn and as spoken feedback after the
+-- user picks a foreign offering, so the post-pick speech matches what the
+-- trade item itself would say if reached.
+local function tradeStateLabel()
+    if m_swapTheirItem < 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_NOT_PICKED")
+    end
+    local theirIdx = m_swapTheirItem
+    local typeId = Game.GetGreatWorkClass(theirIdx)
+    local meta = typeMetaFor(typeId)
+    local typeName = meta and Text.key(meta.nameKey) or ""
+    local theirName = Locale.ConvertTextKey(Game.GetGreatWorkName(theirIdx))
+    local theirCiv = civDisplayName(Players[m_swapTradingPartner])
+    local yourIdx = swappableForTypeId(typeId)
+    if yourIdx < 0 then
+        return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_NEED_DESIGNATE", typeName, theirName, theirCiv)
+    end
+    local yourName = Locale.ConvertTextKey(Game.GetGreatWorkName(yourIdx))
+    return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_READY", yourName, theirName, theirCiv)
+end
+
+-- Per-type Pulldown wrapping the engine's per-type designation widget.
+-- The engine already wires RegisterSelectionCallback to fire
+-- Network.SendSetSwappableGreatWork, so the Pulldown's activate path
+-- mutates engine state through the captured callback. onSelected rebuilds
+-- the tab so the trade item's state-aware label reflects whatever
+-- matching-type designation now exists.
+local function buildOfferingPulldown(typeMeta)
+    return BaseMenuItems.Pulldown({
+        controlName = typeMeta.controlName,
+        labelFn = function()
+            return Text.format(
+                "TXT_KEY_CIVVACCESS_CO_SWAP_DESIGNATE_TYPE",
+                Text.key(typeMeta.nameKey),
+                gwShortDesc(swappableForTypeId(typeMeta.id))
+            )
+        end,
+        tooltipKey = typeMeta.slotTooltipKey,
+        entryAnnounceFn = function(inst)
+            -- Engine sets entry voids to (workType, workIndex). Index < 0
+            -- is the "Empty This Spot" / clear entry.
+            local idx = inst.Button:GetVoid2()
+            if idx < 0 then
+                return Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_ENTRY")
+            end
+            local name = Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
+            local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(idx))
+            local creator = civDisplayName(Players[Game.GetGreatWorkCreator(idx)])
+            local theming = Game.GetGreatWorkCurrentThemingBonus(idx) or 0
+            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY", name, era, creator, theming)
+        end,
+        onSelected = function()
+            if m_swapTab ~= nil then
+                m_swapTab.menu().setItems(buildSwapItems())
+            end
+        end,
+    })
+end
+
+local function buildYourOfferingsGroup()
     return BaseMenuItems.Group({
         labelFn = function()
-            local cur = swappableForType(typeID)
-            local detail
-            if cur < 0 then
-                detail = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_NONE")
-            else
-                detail = gwShortDesc(cur)
+            local p = activePlayer()
+            local n = 0
+            for _, t in ipairs(SWAP_TYPES) do
+                if t.accessor(p) >= 0 then
+                    n = n + 1
+                end
             end
-            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_DESIGNATE_TYPE", Text.key(typeNameKey), detail)
+            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_YOUR_OFFERINGS_LABEL", n)
         end,
         cached = false,
         itemsFn = function()
             local items = {}
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_ENTRY"),
-                onActivate = function()
-                    Network.SendSetSwappableGreatWork(activePlayerID(), typeID, -1)
-                end,
-            })
-            local works = activePlayer():GetGreatWorks(typeID) or {}
-            for _, w in ipairs(works) do
-                local idx = w.Index
-                local name = Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
-                local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(idx))
-                local creator = civDisplayName(Players[w.Creator])
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelFn = function()
-                        local theming = Game.GetGreatWorkCurrentThemingBonus(idx)
-                        return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY", name, era, creator, theming or 0)
-                    end,
-                    tooltipFn = function()
-                        return Game.GetGreatWorkTooltip(idx, activePlayerID())
-                    end,
-                    onActivate = function()
-                        Network.SendSetSwappableGreatWork(activePlayerID(), typeID, idx)
-                    end,
-                })
+            for _, t in ipairs(SWAP_TYPES) do
+                items[#items + 1] = buildOfferingPulldown(t)
             end
             return items
         end,
     })
 end
 
--- Foreign-civ slot leaf. Activating sets m_swapTheirItem and auto-pairs
--- m_swapYourItem with the matching-type swappable (mirror of engine
--- CheckAvailableSwap branch).
-local function buildForeignSlotItem(typeID, typeNameKey, gwIndex, ownerID)
+-- Foreign offering leaf. Activating queues this work as the swap target.
+-- We don't store a "your item" alongside; the matching designation is
+-- derived live by tradeStateLabel and at trade-fire time so changing your
+-- designation between picking and trading can't strand a stale pairing.
+-- Speaks the resolved trade-state label after queuing so the user hears
+-- what would happen at the trade item without backing out to it.
+local function buildForeignOfferingLeaf(gwIndex, ownerID)
     return BaseMenuItems.Text({
         labelFn = function()
-            if gwIndex < 0 then
-                return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_EMPTY", Text.key(typeNameKey))
-            end
+            local typeId = Game.GetGreatWorkClass(gwIndex)
+            local meta = typeMetaFor(typeId)
+            local typeName = meta and Text.key(meta.nameKey) or ""
             local name = Locale.ConvertTextKey(Game.GetGreatWorkName(gwIndex))
             local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(gwIndex))
-            local creatorID = Game.GetGreatWorkCreator(gwIndex)
-            local creator = civDisplayName(Players[creatorID])
-            return Text.format(
-                "TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED",
-                Text.key(typeNameKey),
-                name,
-                era,
-                creator
-            )
+            local creator = civDisplayName(Players[Game.GetGreatWorkCreator(gwIndex)])
+            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED", typeName, name, era, creator)
         end,
         tooltipFn = function()
-            if gwIndex >= 0 then
-                return Game.GetGreatWorkTooltip(gwIndex, ownerID)
-            end
-            return nil
+            return Game.GetGreatWorkTooltip(gwIndex, ownerID)
         end,
         onActivate = function()
-            if gwIndex < 0 then
-                return
-            end
             m_swapTheirItem = gwIndex
             m_swapTradingPartner = ownerID
-            -- Auto-pair our matching-type swappable, mirroring engine
-            -- CheckAvailableSwap. typeID for SelectYourWork is the engine
-            -- enum; map our Writing(3)/Art(1)/Artifact(2) tags to the
-            -- swappable accessors via swappableForType.
-            m_swapYourItem = swappableForType(typeID)
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_PAIRED"))
+            if m_swapTab ~= nil then
+                m_swapTab.menu().setItems(buildSwapItems())
+            end
+            SpeechPipeline.speakInterrupt(tradeStateLabel())
+        end,
+    })
+end
+
+local function buildForeignCivGroup(rec)
+    local civPlayer = Players[rec.iPlayer]
+    local civLabel = civDisplayName(civPlayer)
+    -- Pre-resolved at Group construction so the leaf list is the same set
+    -- the parent Group's count described. A subsequent
+    -- SerialEventGreatWorksScreenDirty rebuilds the whole tab via
+    -- setItems, so this Group object is replaced wholesale rather than
+    -- mutated in place.
+    local slots = {}
+    if rec.WritingIndex >= 0 then
+        slots[#slots + 1] = rec.WritingIndex
+    end
+    if rec.ArtIndex >= 0 then
+        slots[#slots + 1] = rec.ArtIndex
+    end
+    if rec.ArtifactIndex >= 0 then
+        slots[#slots + 1] = rec.ArtifactIndex
+    end
+    return BaseMenuItems.Group({
+        labelText = civLabel,
+        cached = false,
+        itemsFn = function()
+            local items = {}
+            for _, idx in ipairs(slots) do
+                items[#items + 1] = buildForeignOfferingLeaf(idx, rec.iPlayer)
+            end
+            return items
         end,
     })
 end
 
 local function buildForeignOfferingsGroup()
+    local function civsWithOfferings()
+        local out = {}
+        local others = activePlayer():GetOthersGreatWorks() or {}
+        for _, v in ipairs(others) do
+            if v.WritingIndex >= 0 or v.ArtIndex >= 0 or v.ArtifactIndex >= 0 then
+                out[#out + 1] = v
+            end
+        end
+        return out
+    end
     return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_OFFERINGS"),
+        labelFn = function()
+            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_LABEL", #civsWithOfferings())
+        end,
         cached = false,
         itemsFn = function()
             local items = {}
-            local others = activePlayer():GetOthersGreatWorks() or {}
-            for _, v in ipairs(others) do
-                local civPlayer = Players[v.iPlayer]
-                local civLabel = civDisplayName(civPlayer)
-                items[#items + 1] = BaseMenuItems.Group({
-                    labelText = civLabel,
-                    cached = false,
-                    itemsFn = function()
-                        return {
-                            buildForeignSlotItem(
-                                3,
-                                "TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_WRITING",
-                                v.WritingIndex,
-                                v.iPlayer
-                            ),
-                            buildForeignSlotItem(1, "TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ART", v.ArtIndex, v.iPlayer),
-                            buildForeignSlotItem(
-                                2,
-                                "TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ARTIFACT",
-                                v.ArtifactIndex,
-                                v.iPlayer
-                            ),
-                        }
-                    end,
-                })
+            for _, rec in ipairs(civsWithOfferings()) do
+                items[#items + 1] = buildForeignCivGroup(rec)
             end
             if #items == 0 then
                 items[1] = BaseMenuItems.Text({
@@ -800,66 +898,39 @@ local function buildForeignOfferingsGroup()
     })
 end
 
-local function buildSwapItems()
-    local items = {}
-    items[#items + 1] = BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_DESIGNATE"),
-        cached = false,
-        itemsFn = function()
-            return {
-                buildDesignateGroup(3, "TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_WRITING"),
-                buildDesignateGroup(1, "TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ART"),
-                buildDesignateGroup(2, "TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ARTIFACT"),
-            }
-        end,
-    })
-    items[#items + 1] = BaseMenuItems.Text({
-        labelFn = function()
-            local detail
-            if m_swapYourItem < 0 then
-                detail = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_NONE")
-            else
-                detail = gwShortDesc(m_swapYourItem)
-            end
-            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_YOUR_OFFER", detail)
-        end,
-    })
-    items[#items + 1] = BaseMenuItems.Text({
-        labelFn = function()
-            local detail
-            if m_swapTheirItem < 0 then
-                detail = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_NONE")
-            else
-                detail = gwShortDesc(m_swapTheirItem, m_swapTradingPartner)
-            end
-            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_THEIR_OFFER", detail)
-        end,
-    })
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_BUTTON"),
+-- Trade item. Label mirrors tradeStateLabel; activate consummates the
+-- trade in the ready state and re-speaks the not-ready label otherwise so
+-- the user gets explicit feedback rather than silence. After the trade
+-- fires we don't pre-emptively setItems because SerialEventGreatWorks-
+-- ScreenDirty will rebuild the tab before the user can navigate.
+local function buildTradeItem()
+    return BaseMenuItems.Text({
+        labelFn = tradeStateLabel,
         onActivate = function()
-            if m_swapTheirItem >= 0 and m_swapYourItem >= 0 and m_swapTradingPartner >= 0 then
-                Network.SendSwapGreatWorks(activePlayerID(), m_swapYourItem, m_swapTradingPartner, m_swapTheirItem)
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_SENT"))
-                m_swapTheirItem = -1
-                m_swapYourItem = -1
-                m_swapTradingPartner = -1
-            else
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_NOT_READY"))
+            local theirIdx = m_swapTheirItem
+            if theirIdx < 0 then
+                SpeechPipeline.speakInterrupt(tradeStateLabel())
+                return
             end
-        end,
-    })
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_BUTTON"),
-        onActivate = function()
+            local yourIdx = swappableForTypeId(Game.GetGreatWorkClass(theirIdx))
+            if yourIdx < 0 then
+                SpeechPipeline.speakInterrupt(tradeStateLabel())
+                return
+            end
+            Network.SendSwapGreatWorks(activePlayerID(), yourIdx, m_swapTradingPartner, theirIdx)
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_SENT"))
             m_swapTheirItem = -1
-            m_swapYourItem = -1
             m_swapTradingPartner = -1
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_CLEARED"))
         end,
     })
-    items[#items + 1] = buildForeignOfferingsGroup()
-    return items
+end
+
+buildSwapItems = function()
+    return {
+        buildYourOfferingsGroup(),
+        buildForeignOfferingsGroup(),
+        buildTradeItem(),
+    }
 end
 
 -- ===== Tab 3 (Culture Victory) =========================================
@@ -1190,14 +1261,13 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         priorShowHide = priorShowHide,
         onShow = function(_handler)
             -- Reset transient mod-side state on every open so a previous
-            -- session's in-flight selection (move source, swap pairing)
+            -- session's in-flight selection (move source, swap target)
             -- doesn't bleed into the new view. Tab 4's perspective is the
             -- engine's g_iSelectedPlayerID; the engine itself does not
             -- reset it on popup close, so a sighted player's perspective
             -- pick persists across reopen — we mirror that.
             m_gwMoveSource = nil
             m_swapTheirItem = -1
-            m_swapYourItem = -1
             m_swapTradingPartner = -1
             -- Force the engine's PlayerInfluence refresh whenever it isn't
             -- the visually current tab. priorShowHide above ran the engine's
@@ -1220,6 +1290,22 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
                     Log.error("CultureOverview: PlayerInfluence prefetch failed: " .. tostring(err))
                 end
             end
+            -- Same problem on Tab 2: the engine's per-type pulldowns
+            -- (YourWriting/Art/Artifact) only get populated when its
+            -- panel's RefreshContent runs, which doesn't happen if we
+            -- landed on a different tab. RefreshSwappingItems is the
+            -- function inside DisplaySwapGreatWorks that calls
+            -- PopulatePullDown for each, capturing entries via
+            -- PullDownProbe; cheap and idempotent. Skipping the rest of
+            -- DisplaySwapGreatWorks (CheckSwappedItems / DisplayOthersWorks)
+            -- because we use our own swap state and our own foreign
+            -- offerings list.
+            if type(RefreshSwappingItems) == "function" then
+                local ok, err = pcall(RefreshSwappingItems)
+                if not ok then
+                    Log.error("CultureOverview: swap pulldown prefetch failed: " .. tostring(err))
+                end
+            end
             m_yourCultureTab.menu().setItems(buildYourCultureItems())
             m_swapTab.menu().setItems(buildSwapItems())
             m_victoryTab.menu().setItems(buildVictoryItems())
@@ -1227,20 +1313,30 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         end,
     })
 
-    -- Engine fires SerialEventCityInfoDirty after a Network.SendMoveGreatWorks
-    -- and a Network.SendSwapGreatWorks completes. Refresh Tab 1 so post-move
-    -- slot states reflect on next drill-in. Tab 2 also depends on swap
-    -- state, so refresh it too. cached=false on every Group inside Tabs 1
-    -- and 2 makes drill-ins re-query, but the top-level rebuild covers
-    -- removal of cities (capture / liberation between turns is theoretical
-    -- but cheap to handle). Guard on IsHidden so we don't waste work when
-    -- the popup isn't open.
+    -- Tab 1 refresh: SerialEventCityInfoDirty fires after Network.Send-
+    -- MoveGreatWorks completes. cached=false on every Group inside Tab 1
+    -- makes drill-ins re-query, but the top-level rebuild covers removal
+    -- of cities (capture / liberation between turns is theoretical but
+    -- cheap to handle). Guard on IsHidden so we don't waste work when the
+    -- popup isn't open.
     Events.SerialEventCityInfoDirty.Add(function()
         if ContextPtr:IsHidden() then
             return
         end
         if m_yourCultureTab ~= nil then
             m_yourCultureTab.menu().setItems(buildYourCultureItems())
+        end
+    end)
+
+    -- Tab 2 refresh: SerialEventGreatWorksScreenDirty is the engine's
+    -- authoritative event for swap state changes. Fires after a
+    -- designation (Network.SendSetSwappableGreatWork), after a swap (our
+    -- side or theirs — when another player swaps for one of our
+    -- designations the event fires here too so the user sees the updated
+    -- "your offerings" count). Guard on IsHidden.
+    Events.SerialEventGreatWorksScreenDirty.Add(function()
+        if ContextPtr:IsHidden() then
+            return
         end
         if m_swapTab ~= nil then
             m_swapTab.menu().setItems(buildSwapItems())

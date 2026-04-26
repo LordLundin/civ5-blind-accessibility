@@ -1416,9 +1416,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_PLACED"] = "moved"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_CANCELED"] = "move source cleared"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_TYPE_MISMATCH"] = "wrong slot type for current source"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_EMPTY_SOURCE"] = "cannot move from an empty slot"
--- Tab 2 (Swap Great Works). Three sections: designate-your-swappables,
--- in-flight workspace, foreign offerings.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_DESIGNATE"] = "Designate works to swap"
+-- Tab 2 (Swap Great Works). Three top-level rows: your offerings (drills
+-- into per-type pulldowns), available from other civs (drills into civ
+-- groups, then into each civ's non-empty slots), trade item with state-
+-- aware label.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_YOUR_OFFERINGS_LABEL"] = "Your offerings, {1_N} designated"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_DESIGNATE_TYPE"] = "{1_Type}: {2_Current}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_WRITING"] = "Writing"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ART"] = "Art"
@@ -1426,22 +1428,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ARTIFACT"] = "Artifact"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NONE"] = "none designated"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_ENTRY"] = "Clear designation"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY"] = "{1_Name}, {2_Era}, {3_Creator}, theming plus {4_Bonus}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_YOUR_OFFER"] = "Your offer: {1_State}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_THEIR_OFFER"] = "Their offer: {1_State}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_NONE"] = "none selected"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL"] = "{1_Name}, {2_Era}, {3_Creator}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL_OWNED"] =
-    "{1_Name}, {2_Era}, {3_Creator}, owned by {4_Owner}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_BUTTON"] = "Send swap"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_BUTTON"] = "Clear swap workspace"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFERINGS"] = "Foreign offerings"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_LABEL"] = "Available from other civilizations, {1_N} offering"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED"] = "{1_Type}: {2_Name}, {3_Era}, {4_Creator}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_EMPTY"] = "{1_Type}: empty"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NO_OFFERINGS"] = "No civs offering swappable works"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_PAIRED"] = "swap auto-paired"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NO_OFFERINGS"] = "No civilizations offering swappable works"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_NOT_PICKED"] = "Pick a work from another civilization to swap for"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_NEED_DESIGNATE"] =
+    "No {1_Type} designated to offer for {2_TheirName} from {3_TheirCiv}; designate one in your offerings"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_READY"] =
+    "Trade your {1_YourName} for {2_TheirName} from {3_TheirCiv}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_SENT"] = "swap sent"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_CLEARED"] = "swap workspace cleared"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NOT_READY"] = "no valid swap pairing"
 -- Tab 3 (Culture Victory). Per-civ row + drill-in detail.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_ROW"] =
     "{1_Civ}, {2_Influenced} influenced, tourism {3_Tou}, {4_Ideology}, {5_Opinion}, {6_Unhappy} unhappiness, {7_Happy} excess happiness"
