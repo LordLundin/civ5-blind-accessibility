@@ -1409,11 +1409,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_CLEARED"] = "swap workspace clear
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NOT_READY"] = "no valid swap pairing"
 -- Tab 3 (Culture Victory). Per-civ row + drill-in detail.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_ROW"] =
-    "{1_Civ}, {2_Influenced} influenced, tourism {3_Tou}, {4_Ideology}, {5_Opinion}, {6_Unhappy}, {7_Happy}"
+    "{1_Civ}, {2_Influenced} influenced, tourism {3_Tou}, {4_Ideology}, {5_Opinion}, {6_Unhappy} unhappiness, {7_Happy} excess happiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_INFLUENCED_OF"] = "{1_N} of {2_Total}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY"] = "no ideology"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_NA"] = "no public opinion"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_HAPPY_LABEL"] = "happiness {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_DETAIL"] = "Public opinion breakdown"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_UNHAPPY_DETAIL"] = "Public opinion unhappiness breakdown"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY_DETAIL"] = "No ideology yet, no public opinion"
@@ -1422,12 +1421,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_NO_CIVS"] = "No met major civs
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE"] = "Perspective: {1_Civ}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOURISM"] = "Tourism per turn: {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_ROW"] =
-    "{1_Civ}, {2_Level}, {3_Pct} percent, modifier {4_Modifier}, {5_PerTurn} per turn, {6_Trend}"
+    "{1_Civ}, influence: {2_Level}, {3_Pct} percent, {4_PerTurn} tourism per turn"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TURNS_TO"] = "estimated {1_N} turns to influential"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_YOURS"] = "your tourism on them: {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_THEIRS"] = "their lifetime culture: {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_NO_TARGETS"] = "No civs with influence levels"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIERS_LABEL"] = "Tourism modifier breakdown"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIERS_LABEL"] = "Tourism modifier {1_N} percent"
 -- Hotkey help (BaselineHandler / map-mode help list).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Control plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Open Culture Overview"

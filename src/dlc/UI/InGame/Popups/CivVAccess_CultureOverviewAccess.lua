@@ -752,14 +752,18 @@ local function buildVictoryRowGroup(pPlayer)
                 opinionText = publicOpinionText(p:GetPublicOpinionType())
                 local unhappiness = -1 * p:GetPublicOpinionUnhappiness()
                 unhappyText = Locale.ConvertTextKey("TXT_KEY_CO_PUBLIC_OPINION_UNHAPPINESS", unhappiness)
-                local excess = p:GetExcessHappiness()
-                happyText = Text.format("TXT_KEY_CIVVACCESS_CO_VICTORY_HAPPY_LABEL", excess)
             else
                 ideologyText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY")
                 opinionText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_NA")
                 unhappyText = "0"
-                happyText = "0"
             end
+            -- Excess happiness is the player's overall happiness buffer; it
+            -- exists regardless of ideology (city happiness summed minus
+            -- unhappiness from all sources). Public-opinion unhappiness only
+            -- meaningfully kicks in once an ideology is chosen, but the
+            -- buffer itself is always live, so query GetExcessHappiness in
+            -- both branches.
+            happyText = formatSigned(p:GetExcessHappiness())
             return Text.format(
                 "TXT_KEY_CIVVACCESS_CO_VICTORY_ROW",
                 civ,
@@ -834,24 +838,6 @@ local function influenceLevelText(level)
     return Locale.ConvertTextKey(key)
 end
 
-local function influenceTrendText(trend, turnsToInfluential, level)
-    if trend == InfluenceLevelTrend.INFLUENCE_TREND_FALLING then
-        return Locale.ConvertTextKey("TXT_KEY_CO_FALLING")
-    end
-    if trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING then
-        if turnsToInfluential == 999 then
-            return Locale.ConvertTextKey("TXT_KEY_CO_RISING_SLOWLY")
-        end
-        -- At Dominant the engine hides the trend label entirely (the icon
-        -- shows green but the text slot is blank) since there's nothing
-        -- left to rise toward. We still speak "rising" because the trend
-        -- IS rising and silence here would be a worse compromise than the
-        -- engine's visual omission.
-        return Locale.ConvertTextKey("TXT_KEY_CO_RISING")
-    end
-    return Locale.ConvertTextKey("TXT_KEY_CO_STATIC")
-end
-
 -- Bonuses-at-level callout. Engine concatenates this onto the level
 -- tooltip; we surface it as a separate drill-in line so the user can read
 -- the level-tier description without scrolling the tooltip mid-paragraph.
@@ -874,36 +860,20 @@ local function buildInfluenceRowGroup(targetID)
             local pSel = Players[g_iSelectedPlayerID]
             local pTgt = Players[targetID]
             local civ = civDisplayName(pTgt)
-            local level = pSel:GetInfluenceLevel(targetID)
-            local levelText = influenceLevelText(level)
+            local levelText = influenceLevelText(pSel:GetInfluenceLevel(targetID))
             local influence = pSel:GetInfluenceOn(targetID)
             local culture = pTgt:GetJONSCultureEverGenerated()
             local pct = 0
             if culture > 0 then
                 pct = math.floor((influence / culture) * 100 + 0.5)
             end
-            local modifier = pSel:GetTourismModifierWith(targetID)
-            local modText
-            if modifier == 0 then
-                modText = "0%"
-            elseif modifier > 0 then
-                modText = "+" .. tostring(modifier) .. "%"
-            else
-                modText = tostring(modifier) .. "%"
-            end
             local perTurn = math.floor(pSel:GetInfluencePerTurn(targetID))
-            local trend = pSel:GetInfluenceTrend(targetID)
-            local turnsTo = pSel:GetTurnsToInfluential(targetID)
-            local trendText = influenceTrendText(trend, turnsTo, level)
-            return Text.format(
-                "TXT_KEY_CIVVACCESS_CO_INFLUENCE_ROW",
-                civ,
-                levelText,
-                pct,
-                modText,
-                formatSigned(perTurn),
-                trendText
-            )
+            -- Modifier and trend live on drill-in items rather than the row:
+            -- modifier becomes "Tourism modifier N percent" with the engine's
+            -- itemized breakdown on tooltip (so the bare number isn't
+            -- contextless); trend is implied by the per-turn sign and the
+            -- estimated-turns-to-influential line below.
+            return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_ROW", civ, levelText, pct, formatSigned(perTurn))
         end,
         cached = false,
         itemsFn = function()
@@ -918,15 +888,23 @@ local function buildInfluenceRowGroup(targetID)
                     labelText = Locale.ConvertTextKey(bonusKey),
                 })
             end
-            -- Modifier breakdown — every active tourism modifier the
-            -- selected player has against this target. The engine puts
-            -- this in a tooltip; we surface it as a navigable line so
-            -- the user reads the full itemized list cleanly.
-            local modTooltip = pSel:GetTourismModifierWithTooltip(targetID)
-            if modTooltip ~= nil and modTooltip ~= "" then
+            -- Modifier breakdown. The label carries the live modifier value
+            -- (e.g. "Tourism modifier +50 percent") so a bare drill-in line
+            -- isn't contextless; the tooltip is the engine's itemized list
+            -- of which boosts and penalties contributed. Show only when
+            -- the engine has a non-empty breakdown to drill into.
+            local modTooltipNow = pSel:GetTourismModifierWithTooltip(targetID)
+            if modTooltipNow ~= nil and modTooltipNow ~= "" then
                 items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIERS_LABEL"),
-                    tooltipText = modTooltip,
+                    labelFn = function()
+                        return Text.format(
+                            "TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIERS_LABEL",
+                            formatSigned(Players[g_iSelectedPlayerID]:GetTourismModifierWith(targetID))
+                        )
+                    end,
+                    tooltipFn = function()
+                        return Players[g_iSelectedPlayerID]:GetTourismModifierWithTooltip(targetID)
+                    end,
                 })
             end
             -- Estimated turns-to-Influential, surfaced when the engine
