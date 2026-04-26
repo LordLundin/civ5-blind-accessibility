@@ -546,4 +546,81 @@ function M.test_proposal_row_no_vote_state_when_voteState_nil()
     teardown()
 end
 
+-- filterTooltip: clauses without trailing punctuation get a period inserted
+-- before the [NEWLINE] separator so screen readers pause naturally between
+-- them; clauses that already end in terminal punctuation keep the plain
+-- space. Trailing [NEWLINE] (no content after) does not produce a spurious
+-- terminal period.
+
+function M.test_filter_tooltip_inserts_period_between_unpunctuated_clauses()
+    setup({})
+    local out = LeagueOverviewRow.filterTooltip("1 from membership[NEWLINE]2 from World Wonders")
+    T.eq(out, "1 from membership. 2 from World Wonders")
+    teardown()
+end
+
+function M.test_filter_tooltip_preserves_existing_period_between_clauses()
+    setup({})
+    local out = LeagueOverviewRow.filterTooltip("session ends.[NEWLINE]1 from membership")
+    T.eq(out, "session ends. 1 from membership")
+    teardown()
+end
+
+function M.test_filter_tooltip_preserves_existing_colon_between_clauses()
+    setup({})
+    local out = LeagueOverviewRow.filterTooltip("Their top choices for the current proposals:[NEWLINE]Unknown for ENACT")
+    T.eq(out, "Their top choices for the current proposals: Unknown for ENACT")
+    teardown()
+end
+
+function M.test_filter_tooltip_does_not_append_period_for_trailing_newline()
+    setup({})
+    local out = LeagueOverviewRow.filterTooltip("production city[NEWLINE]")
+    T.eq(out, "production city")
+    teardown()
+end
+
+function M.test_filter_tooltip_handles_consecutive_unpunctuated_clauses()
+    setup({})
+    local out = LeagueOverviewRow.filterTooltip("Wine[NEWLINE]Unknown for ENACT[NEWLINE]Arts Funding")
+    T.eq(out, "Wine. Unknown for ENACT. Arts Funding")
+    teardown()
+end
+
+function M.test_filter_tooltip_handles_nil_input()
+    setup({})
+    T.eq(LeagueOverviewRow.filterTooltip(nil), "")
+    teardown()
+end
+
+-- appendTooltip: flattening helper for rows that would otherwise be a Group
+-- with a single Text child. Joins the lead label and the appended tooltip
+-- with a single space when the label already ends in terminal punctuation,
+-- otherwise inserts ". " so the two clauses read as separate sentences.
+-- Empty / nil tooltip returns the label unchanged.
+
+function M.test_append_tooltip_inserts_period_when_label_unpunctuated()
+    setup({})
+    T.eq(LeagueOverviewRow.appendTooltip("Enact: Ban Luxury", "This would..."), "Enact: Ban Luxury. This would...")
+end
+
+function M.test_append_tooltip_uses_space_when_label_ends_in_period()
+    setup({})
+    T.eq(
+        LeagueOverviewRow.appendTooltip("Darius I of Persia, host.", "Darius commands 3 Delegates."),
+        "Darius I of Persia, host. Darius commands 3 Delegates."
+    )
+end
+
+function M.test_append_tooltip_uses_space_when_label_ends_in_colon()
+    setup({})
+    T.eq(LeagueOverviewRow.appendTooltip("Note:", "extra info"), "Note: extra info")
+end
+
+function M.test_append_tooltip_returns_label_unchanged_for_empty_tooltip()
+    setup({})
+    T.eq(LeagueOverviewRow.appendTooltip("just a label", ""), "just a label")
+    T.eq(LeagueOverviewRow.appendTooltip("just a label", nil), "just a label")
+end
+
 return M

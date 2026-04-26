@@ -186,8 +186,7 @@ local function pushRenameSub(activePlayer, leagueId)
 end
 
 local function memberDetailsTooltip(pLeague, member, activePlayer)
-    local raw = pLeague:GetMemberDetails(member.playerID, activePlayer)
-    return TextFilter.filter(tostring(raw or ""))
+    return LeagueOverviewRow.filterTooltip(pLeague:GetMemberDetails(member.playerID, activePlayer))
 end
 
 local function buildStatusTabItems(pLeague, activePlayer, leagueId)
@@ -210,13 +209,11 @@ local function buildStatusTabItems(pLeague, activePlayer, leagueId)
         labelText = LeagueOverviewRow.formatStatusPill(pLeague),
     })
     for _, member in ipairs(LeagueOverviewRow.orderedMembers(pLeague)) do
-        items[#items + 1] = BaseMenuItems.Group({
-            labelText = LeagueOverviewRow.formatMember(pLeague, member, activePlayer),
-            items = {
-                BaseMenuItems.Text({
-                    labelText = memberDetailsTooltip(pLeague, member, activePlayer),
-                }),
-            },
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = LeagueOverviewRow.appendTooltip(
+                LeagueOverviewRow.formatMember(pLeague, member, activePlayer),
+                memberDetailsTooltip(pLeague, member, activePlayer)
+            ),
         })
     end
     return items
@@ -227,20 +224,19 @@ end
 -- View All: read-only browse of the resolution catalog. Three sections that
 -- match engine PopulateViewAllResolutionsPopup (line 915): Enacted (all
 -- active), Possible (inactive where Possible == true), Other (inactive
--- where Possible == false). Per-row label is the bare resolution name --
--- no direction prefix, no proposer clause, no on-hold marker -- since
--- these are catalog entries, not proposals. Drill-in is one Text row
--- containing the full filtered GetResolutionDetails string (the engine's
--- pre-formatted opaque tooltip).
-local function buildViewAllResolutionGroup(pLeague, candidate, activePlayer)
+-- where Possible == false). Per-row label is the bare resolution name plus
+-- the full filtered GetResolutionDetails appended via appendTooltip -- no
+-- direction prefix, no proposer clause, no on-hold marker, since these are
+-- catalog entries, not proposals. Single flat row per candidate (no drill).
+local function buildViewAllResolutionRow(pLeague, candidate, activePlayer)
     local name = pLeague:GetResolutionName(candidate.Type, candidate.ResolutionId, candidate.ProposerDecision, false)
     local detailsText =
         pLeague:GetResolutionDetails(candidate.Type, activePlayer, candidate.ResolutionId, candidate.ProposerDecision)
-    return BaseMenuItems.Group({
-        labelText = tostring(name or ""),
-        items = {
-            BaseMenuItems.Text({ labelText = TextFilter.filter(tostring(detailsText or "")) }),
-        },
+    return BaseMenuItems.Text({
+        labelText = LeagueOverviewRow.appendTooltip(
+            tostring(name or ""),
+            LeagueOverviewRow.filterTooltip(detailsText)
+        ),
     })
 end
 
@@ -250,7 +246,7 @@ local function buildViewAllSection(headerKey, candidates, pLeague, activePlayer)
     end
     local children = {}
     for _, candidate in ipairs(candidates) do
-        children[#children + 1] = buildViewAllResolutionGroup(pLeague, candidate, activePlayer)
+        children[#children + 1] = buildViewAllResolutionRow(pLeague, candidate, activePlayer)
     end
     return BaseMenuItems.Group({
         labelText = Text.key(headerKey),
@@ -508,7 +504,7 @@ local function buildEffectsTabItems(pLeague, activePlayer)
     end
     local items = {}
     for _, effect in ipairs(effects) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = TextFilter.filter(tostring(effect)) })
+        items[#items + 1] = BaseMenuItems.Text({ labelText = LeagueOverviewRow.filterTooltip(effect) })
     end
     return items
 end

@@ -196,6 +196,44 @@ function LeagueOverviewRow.formatYesNoVoteState(votes)
     return Text.format("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY", n)
 end
 
+-- Engine multi-line tooltips (GetMemberDetails / GetResolutionDetails /
+-- GetCurrentEffectsSummary entries) use [NEWLINE] as a clause separator
+-- without trailing punctuation on each clause, so TextFilter's plain-space
+-- substitution produces runon speech ("1 from membership 2 from World
+-- Wonders Their interests are largely a mystery"). Inject a period before
+-- any [NEWLINE] whose preceding char isn't already terminal punctuation
+-- (.!?:;,), then let TextFilter handle the rest. Only inject when there is
+-- actual content after the [NEWLINE] so trailing newlines don't produce a
+-- spurious sentence-ending period. Mirrors ChooseTechLogic.filterHelpText
+-- which uses ", " for the same reason; tooltips here are sentence-shaped
+-- so a period is the right separator.
+function LeagueOverviewRow.filterTooltip(text)
+    if text == nil then
+        return ""
+    end
+    local s = tostring(text)
+    s = s:gsub("([^%s%.%!%?%:%;%,])(%s*%[NEWLINE%]%s*)([%S])", "%1.%2%3")
+    return TextFilter.filter(s)
+end
+
+-- Concatenate a row's lead label and an appended tooltip into one spoken
+-- sentence. Used by every row that would otherwise be a Group with a single
+-- Text child: the inner Text is dropped and its body becomes part of the
+-- row label, so the user navigates to the row and hears the full content
+-- without an extra drill-in. Empty / nil tooltip returns the label as-is.
+-- If the label already ends in terminal punctuation (.!?:;,) the join is a
+-- single space; otherwise insert ". " so the two clauses read as separate
+-- sentences.
+function LeagueOverviewRow.appendTooltip(label, tooltip)
+    if tooltip == nil or tooltip == "" then
+        return label
+    end
+    if label:match("[%.%!%?%:%;%,]%s*$") then
+        return label .. " " .. tooltip
+    end
+    return label .. ". " .. tooltip
+end
+
 -- Vote-state suffix for a major-civ resolution. choicePlayerID is nil when
 -- no civ has been picked yet (the engine's VoteUp click opens the picker;
 -- our equivalent is Enter on the row). votes >= 0 here -- major-civ votes

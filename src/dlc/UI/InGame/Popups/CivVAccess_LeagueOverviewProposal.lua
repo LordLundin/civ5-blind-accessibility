@@ -208,7 +208,14 @@ local function pushSubDecisionPicker(controller, slotIdx, candidate, pLeague)
     HandlerStack.push(sub)
 end
 
-local function buildCandidateGroup(controller, slotIdx, candidate, pLeague, activePlayer, allowCommit)
+-- Build one candidate row inside a section. Actionable candidates (the
+-- player can propose / repeal them right now) become a Group: the user
+-- drills in to read the details and then activates a commit Choice.
+-- Non-actionable candidates (Disabled, or in the "Other resolutions"
+-- section where allowCommit=false) have no commit step, so they collapse
+-- to a single Text whose label is "{name}. {details}" -- no drill needed
+-- to read the catalog entry.
+local function buildCandidateItem(controller, slotIdx, candidate, pLeague, activePlayer, allowCommit)
     local label = LeagueOverviewRow.formatResolutionName(
         pLeague,
         candidate.Type,
@@ -218,24 +225,28 @@ local function buildCandidateGroup(controller, slotIdx, candidate, pLeague, acti
     )
     local detailsText =
         pLeague:GetResolutionDetails(candidate.Type, activePlayer, candidate.ResolutionId, candidate.ProposerDecision)
-    local children = {
-        BaseMenuItems.Text({ labelText = TextFilter.filter(tostring(detailsText or "")) }),
-    }
-    if allowCommit and not candidate.Disabled then
-        local commitKey = candidate.Direction == "Retract" and "TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_THIS"
-            or "TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_THIS"
-        children[#children + 1] = BaseMenuItems.Choice({
-            textKey = commitKey,
-            activate = function()
-                if candidate.ProposerChoices ~= nil and #candidate.ProposerChoices > 0 then
-                    pushSubDecisionPicker(controller, slotIdx, candidate, pLeague)
-                else
-                    fillSlotAndPopAll(controller, slotIdx, candidate, candidate.ProposerDecision)
-                end
-            end,
-        })
+    local details = LeagueOverviewRow.filterTooltip(detailsText)
+    if not (allowCommit and not candidate.Disabled) then
+        return BaseMenuItems.Text({ labelText = LeagueOverviewRow.appendTooltip(label, details) })
     end
-    return BaseMenuItems.Group({ labelText = label, items = children })
+    local commitKey = candidate.Direction == "Retract" and "TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_THIS"
+        or "TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_THIS"
+    return BaseMenuItems.Group({
+        labelText = label,
+        items = {
+            BaseMenuItems.Text({ labelText = details }),
+            BaseMenuItems.Choice({
+                textKey = commitKey,
+                activate = function()
+                    if candidate.ProposerChoices ~= nil and #candidate.ProposerChoices > 0 then
+                        pushSubDecisionPicker(controller, slotIdx, candidate, pLeague)
+                    else
+                        fillSlotAndPopAll(controller, slotIdx, candidate, candidate.ProposerDecision)
+                    end
+                end,
+            }),
+        },
+    })
 end
 
 local function buildSection(headerKey, candidates, controller, slotIdx, pLeague, activePlayer, allowCommit)
@@ -245,7 +256,7 @@ local function buildSection(headerKey, candidates, controller, slotIdx, pLeague,
     local children = {}
     for _, candidate in ipairs(candidates) do
         children[#children + 1] =
-            buildCandidateGroup(controller, slotIdx, candidate, pLeague, activePlayer, allowCommit)
+            buildCandidateItem(controller, slotIdx, candidate, pLeague, activePlayer, allowCommit)
     end
     return BaseMenuItems.Group({
         labelText = Text.key(headerKey),
