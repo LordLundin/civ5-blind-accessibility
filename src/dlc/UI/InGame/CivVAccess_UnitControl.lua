@@ -120,6 +120,15 @@ local PENDING_EXPIRY_FRAMES = 2
 -- damage / kill state needs to settle before we read post-state.
 local COMBAT_PENDING_EXPIRY_FRAMES = 3
 
+-- City combats settle on a delayed event chain: the engine applies city
+-- HP via SerialEventCitySetDamage, which can fire many seconds after
+-- commit (especially under standard combat with animation). The
+-- city-pending snapshot lives until that event matches it; this cap
+-- ignores stale snapshots so a damage event from a much later combat /
+-- non-combat source (healing) doesn't reuse a snapshot from an earlier
+-- attack the user has already moved on from.
+local CITY_COMBAT_MAX_AGE_FRAMES = 600
+
 local _pending = nil
 local _deferred = nil
 local _combatPending = nil
@@ -134,6 +143,24 @@ end
 
 local schedulePendingExpiry
 local scheduleCombatExpiry
+
+-- Look up a unit's current damage by id; returns the snapshot's pre-
+-- recorded MaxHP if the unit has been removed (kill threshold trips so
+-- the formatter speaks "killed"). Hoisted above the listener / timer
+-- definitions so their lexical lookup resolves to this local rather than
+-- a nil global -- a forward reference would silently misfire under
+-- pcall when the listener fires.
+local function liveDamage(playerId, unitId, snapshotMaxHP)
+    local player = Players[playerId]
+    if player == nil then
+        return snapshotMaxHP
+    end
+    local unit = player:GetUnitByID(unitId)
+    if unit == nil then
+        return snapshotMaxHP
+    end
+    return unit:GetDamage()
+end
 
 function UnitControl.registerPending(unit, targetX, targetY)
     if unit == nil then
@@ -191,14 +218,16 @@ end
 
 -- City-defender variant. Same shape as registerCombatPending but the
 -- defender side reads from a city (GetDamage / GetMaxHitPoints / name)
--- rather than a unit. The Quick-Combat gate stays in place: under
--- standard combat the engine still fires EndCombatSim with positional
--- args, and the listener resolves the city via plot lookup.
+-- rather than a unit. NO Quick-Combat gate: city damage settles
+-- asynchronously on a different code path than unit-vs-unit, so polling
+-- for the post-state never catches the value (city:GetDamage stays
+-- pre-attack for many seconds after commit). Instead the snapshot
+-- arms a SerialEventCitySetDamage listener that speaks the result the
+-- moment the engine commits the damage. EndCombatSim is the redundant
+-- fallback under standard combat (animations on); whichever fires first
+-- speaks and clears the pending so the other no-ops.
 function UnitControl.registerCityCombatPending(actor, city)
     if actor == nil or city == nil then
-        return
-    end
-    if not Game.IsOption(GameOptionTypes.GAMEOPTION_QUICK_COMBAT) then
         return
     end
     local atkPlayer = actor:GetOwner()
@@ -777,28 +806,14 @@ end
 -- Events.EndCombatSim args, per Community-Patch-DLL CvUnitCombat.cpp around
 -- line 3306: the third arg per side is damage taken THIS combat (not the
 -- unit's accumulated damage before combat); the fourth is cumulative damage
--- after combat. attackerX/Y and defenderX/Y come after the per-side block
--- (CityBannerManager OnCombatEnd is the canonical signature). Names use
--- the engine convention so the subtractor doesn't get reintroduced.
+-- after combat. Names use the engine convention so the subtractor doesn't
+-- get reintroduced.
 --
--- For attacks against cities the engine still fires EndCombatSim but the
--- defenderUnit may be -1 / unresolvable (no garrison) or resolve to the
--- garrison unit (which gets the damage). When unit lookup fails, fall
--- back to the city at defenderX/Y for the spoken name and city HP, so
--- the result speaks "<city> -N hp" instead of leaving the defender
--- blank.
-local function resolveCityDefender(playerId, x, y)
-    local plot = Map.GetPlot(x, y)
-    if plot == nil or not plot:IsCity() then
-        return nil
-    end
-    local city = plot:GetPlotCity()
-    if city == nil or city:GetOwner() ~= playerId then
-        return nil
-    end
-    return city
-end
-
+-- City defenders are routed to onCitySetDamage (defenderUnit=-1 / empty
+-- name short-circuits below), since SerialEventCitySetDamage is the
+-- canonical event for city HP changes and fires under both Quick Combat
+-- ON and OFF -- whereas this event only fires under standard combat for
+-- units (Quick Combat skips the gDLL->GameplayUnitCombat call).
 local function onEndCombatSim(
     attackerPlayer,
     attackerUnit,
@@ -819,18 +834,16 @@ local function onEndCombatSim(
     if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
         return
     end
-    local defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
-    if defenderName == "" and defenderX ~= nil and defenderY ~= nil then
-        local city = resolveCityDefender(defenderPlayer, defenderX, defenderY)
-        if city ~= nil then
-            defenderName = city:GetName()
-            -- The engine sends defenderMaxHP as MAX_HIT_POINTS (unit
-            -- default) when there's no garrison; rewrite to the city's
-            -- max HP so the kill check doesn't trip on a city that's
-            -- still standing.
-            defenderMaxHP = city:GetMaxHitPoints()
-        end
+    -- City defenders are owned by SerialEventCitySetDamage's listener;
+    -- it speaks the result the moment the engine commits city HP, which
+    -- is reliable under both Quick Combat ON and OFF. EndCombatSim's
+    -- defenderUnit is -1 for city attacks and its damage args track the
+    -- garrison or are zero, so duplicating the announcement here would
+    -- both double-speak under standard combat and risk wrong numbers.
+    if defenderUnit == -1 or UnitSpeech.combatantName(defenderPlayer, defenderUnit) == "" then
+        return
     end
+    local defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
     local text = UnitSpeech.combatResult({
         attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit),
         defenderName = defenderName,
@@ -842,6 +855,50 @@ local function onEndCombatSim(
         defenderMaxHP = defenderMaxHP,
     })
     speakQueued(text)
+end
+
+-- City HP-change announcement. Engine fires SerialEventCitySetDamage
+-- whenever a city's damage value changes (combat hits, healing). Combat-
+-- pending snapshot for a city target is the gate: if no snapshot or the
+-- player/city don't match, this is a non-combat update and we stay
+-- silent. The (damage, previousDamage) args give us the defender delta
+-- directly; attacker delta is read live (unit:GetDamage). This is the
+-- primary city-combat speech path under both Quick Combat and standard
+-- combat -- it fires whenever the engine commits the damage, which is
+-- reliable even when EndCombatSim doesn't (Quick Combat).
+local function onCitySetDamage(cityPlayerID, cityID, damage, previousDamage)
+    local pending = _combatPending
+    if pending == nil or pending.defenderType ~= "city" then
+        return
+    end
+    if pending.defenderPlayer ~= cityPlayerID or pending.defenderCityID ~= cityID then
+        return
+    end
+    if TickPump.frame() - pending.commitFrame > CITY_COMBAT_MAX_AGE_FRAMES then
+        clearCombatPending()
+        return
+    end
+    local atkPost = liveDamage(pending.attackerPlayer, pending.attackerUnitID, pending.attackerMaxHP)
+    local atkDelta = atkPost - pending.attackerPreDamage
+    if atkDelta < 0 then
+        atkDelta = 0
+    end
+    local defDelta = damage - previousDamage
+    if defDelta < 0 then
+        defDelta = 0
+    end
+    local text = UnitSpeech.combatResult({
+        attackerName = pending.attackerName,
+        defenderName = pending.defenderName,
+        attackerDamage = atkDelta,
+        attackerFinalDamage = atkPost,
+        attackerMaxHP = pending.attackerMaxHP,
+        defenderDamage = defDelta,
+        defenderFinalDamage = damage,
+        defenderMaxHP = pending.defenderMaxHP,
+    })
+    speakQueued(text)
+    clearCombatPending()
 end
 
 -- Empty city captures don't fire EndCombatSim -- the unit just walks in.
@@ -905,39 +962,6 @@ schedulePendingExpiry = function(snapshot)
     end)
 end
 
--- Look up a unit's current damage by id; returns the snapshot's pre-
--- recorded MaxHP if the unit has been removed (kill threshold trips so
--- the formatter speaks "killed").
-local function liveDamage(playerId, unitId, snapshotMaxHP)
-    local player = Players[playerId]
-    if player == nil then
-        return snapshotMaxHP
-    end
-    local unit = player:GetUnitByID(unitId)
-    if unit == nil then
-        return snapshotMaxHP
-    end
-    return unit:GetDamage()
-end
-
--- City equivalent. Captured cities change owner before the snapshot
--- fires; falling back to snapshotMaxHP would falsely speak "killed."
--- Cities can't actually be destroyed by combat (HP zero just allows
--- capture), so we report snapshot's pre-damage when the city has moved
--- owners -- the SerialEventCityCaptured listener speaks the capture
--- separately.
-local function liveCityDamage(playerId, cityId, snapshotPreDamage)
-    local player = Players[playerId]
-    if player == nil then
-        return snapshotPreDamage
-    end
-    local city = player:GetCityByID(cityId)
-    if city == nil then
-        return snapshotPreDamage
-    end
-    return city:GetDamage()
-end
-
 -- Quick-Combat speech path. The snapshot is only ever registered when
 -- GAMEOPTION_QUICK_COMBAT is on (see registerCombatPending), where
 -- EndCombatSim never fires; this timer reads post-state damage and
@@ -945,6 +969,13 @@ end
 -- then routes through UnitSpeech.combatResult so both modes speak the
 -- same sentence.
 scheduleCombatExpiry = function(snapshot)
+    -- City snapshots are driven by SerialEventCitySetDamage / capture
+    -- listeners, not by polling. The listener checks snapshot age before
+    -- speaking so a stale snapshot from a missed event doesn't get reused
+    -- by a later unrelated city damage update.
+    if snapshot.defenderType == "city" then
+        return
+    end
     TickPump.runOnce(function()
         if _combatPending ~= snapshot then
             return
@@ -954,12 +985,7 @@ scheduleCombatExpiry = function(snapshot)
             return
         end
         local atkPost = liveDamage(snapshot.attackerPlayer, snapshot.attackerUnitID, snapshot.attackerMaxHP)
-        local defPost
-        if snapshot.defenderType == "city" then
-            defPost = liveCityDamage(snapshot.defenderPlayer, snapshot.defenderCityID, snapshot.defenderPreDamage)
-        else
-            defPost = liveDamage(snapshot.defenderPlayer, snapshot.defenderUnitID, snapshot.defenderMaxHP)
-        end
+        local defPost = liveDamage(snapshot.defenderPlayer, snapshot.defenderUnitID, snapshot.defenderMaxHP)
         local atkDelta = atkPost - snapshot.attackerPreDamage
         if atkDelta < 0 then
             atkDelta = 0
@@ -1117,5 +1143,10 @@ function UnitControl.installListeners()
         Events.SerialEventCityCaptured.Add(onCityCaptured)
     else
         Log.warn("UnitControl: Events.SerialEventCityCaptured missing")
+    end
+    if Events.SerialEventCitySetDamage ~= nil then
+        Events.SerialEventCitySetDamage.Add(onCitySetDamage)
+    else
+        Log.warn("UnitControl: Events.SerialEventCitySetDamage missing")
     end
 end

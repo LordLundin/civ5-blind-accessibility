@@ -410,14 +410,21 @@ local function commitAtCursor(self)
         return
     end
     if willCauseCombat(self._actor, plot, mode) then
+        -- Defender preference depends on attack type. Ranged attacks
+        -- (ranged-strike / airstrike) target the city directly when one
+        -- exists; the engine damages CityHP, not the garrison's. So a
+        -- ranged-vs-defended-city snapshot must read city HP or no
+        -- damage delta surfaces. Melee attacks go through the garrison
+        -- first (engine's MoveOrAttack picks the unit defender as the
+        -- combat target), so unit-first is correct there.
+        local defenderCity = enemyCityAt(plot)
         local defenderUnit = firstEnemyUnit(plot)
-        if defenderUnit ~= nil then
+        if isRangeAttackMode(mode) and defenderCity ~= nil then
+            UnitControl.registerCityCombatPending(self._actor, defenderCity)
+        elseif defenderUnit ~= nil then
             UnitControl.registerCombatPending(self._actor, defenderUnit)
-        else
-            local defenderCity = enemyCityAt(plot)
-            if defenderCity ~= nil then
-                UnitControl.registerCityCombatPending(self._actor, defenderCity)
-            end
+        elseif defenderCity ~= nil then
+            UnitControl.registerCityCombatPending(self._actor, defenderCity)
         end
     else
         UnitControl.registerPending(self._actor, tx, ty)
