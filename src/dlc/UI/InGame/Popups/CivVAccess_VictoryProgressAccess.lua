@@ -98,6 +98,20 @@ local function civDisplayName(pPlayer)
     return Locale.ConvertTextKey("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
 end
 
+-- Civilopedia search string for a civ row's leader article. Nil when the
+-- target has no useful pedia entry: the active player (the user's own
+-- leader) and unmet civs (placeholder name, no concrete leader to look
+-- up). Mirrors WhosWinningPopupAccess's hookup convention.
+local function leaderPediaNameFor(pPlayer)
+    if pPlayer:GetID() == activePlayerId() then
+        return nil
+    end
+    if not playerHasMet(pPlayer) then
+        return nil
+    end
+    return Locale.ConvertTextKey(GameInfo.Leaders[pPlayer:GetLeaderType()].Description)
+end
+
 -- Iterator over major civs that have ever been alive in the game (returns
 -- (id, pPlayer) pairs). Vanilla VictoryProgress filters every list by
 -- IsMinorCiv==false and IsEverAlive==true; we centralize that.
@@ -145,6 +159,7 @@ local function buildScoreRowItems()
         local pPlayer = Players[id]
         items[#items + 1] = BaseMenuItems.Text({
             labelText = scoreRowText(rank, pPlayer),
+            pediaName = leaderPediaNameFor(pPlayer),
         })
     end
     return items
@@ -494,7 +509,10 @@ local function buildDominationItems()
         local pPlayer = Players[id]
         local sentence = dominationCivSentence(pPlayer, state.capitalOwner[id])
         sentence = appendTeamSuffix(sentence, pPlayer)
-        items[#items + 1] = BaseMenuItems.Text({ labelText = sentence })
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = sentence,
+            pediaName = leaderPediaNameFor(pPlayer),
+        })
     end
     return items
 end
@@ -681,7 +699,11 @@ local function buildScienceItems()
         return a < b
     end)
     for _, id in ipairs(rows) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = scienceCivLine(Players[id]) })
+        local pPlayer = Players[id]
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = scienceCivLine(pPlayer),
+            pediaName = leaderPediaNameFor(pPlayer),
+        })
     end
 
     return items
@@ -821,6 +843,7 @@ local function buildCulturalItems()
         end
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Locale.ConvertTextKey(key, pct, pOther:GetCivilizationShortDescriptionKey()),
+            pediaName = leaderPediaNameFor(pOther),
         })
     end
     return items
@@ -828,11 +851,15 @@ end
 
 -- ===== Section group factory ==========================================
 
-local function sectionGroup(buttonKey, builder)
+-- pediaKey routes Ctrl+I to the section's matching Civilopedia concept
+-- article. The text-key form is what searchableTextKeyList is indexed by
+-- (CivilopediaScreen.lua:283 indexes Concepts by Description).
+local function sectionGroup(buttonKey, builder, pediaKey)
     return BaseMenuItems.Group({
         labelText = Text.key(buttonKey),
         cached = false,
         itemsFn = builder,
+        pediaName = pediaKey,
     })
 end
 
@@ -840,11 +867,16 @@ end
 
 local function buildLandingItems()
     local items = buildScoreRowItems()
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_MY_SCORE", buildMyScoreItems)
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION", buildDominationItems)
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE", buildScienceItems)
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_DIPLOMATIC", buildDiplomaticItems)
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_CULTURAL", buildCulturalItems)
+    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_MY_SCORE", buildMyScoreItems,
+        "TXT_KEY_VICTORY_2050ARRIVES_HEADING3_TITLE")
+    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION", buildDominationItems,
+        "TXT_KEY_VICTORY_DOMINATION_HEADING3_TITLE")
+    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE", buildScienceItems,
+        "TXT_KEY_VICTORY_SCIENCE_HEADING3_TITLE")
+    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_DIPLOMATIC", buildDiplomaticItems,
+        "TXT_KEY_VICTORY_DIPLOMATIC_HEADING3_TITLE")
+    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_CULTURAL", buildCulturalItems,
+        "TXT_KEY_VICTORY_CULTURAL_HEADING3_TITLE")
     return items
 end
 

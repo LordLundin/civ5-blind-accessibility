@@ -186,12 +186,21 @@ local function openChooseProduction(city)
     Events.SerialEventGameMessagePopup(popup)
 end
 
+-- Per-stat Civilopedia anchor. Each stat column gets a constant pediaName
+-- routing Ctrl+I to the matching concept article. The strings are the raw
+-- TXT_KEY of each concept's Description, which CivilopediaScreen indexes
+-- in searchableTextKeyList.
+local function constPedia(textKey)
+    return function(_) return textKey end
+end
+
 local function buildCityColumns()
     local cols = {
         {
             name = "TXT_KEY_CIVVACCESS_EO_COL_POPULATION",
             getCell = function(c) return tostring(c:GetPopulation()) end,
             sortKey = function(c) return c:GetPopulation() end,
+            pediaName = constPedia("TXT_KEY_FOOD_CITYGROWTH_HEADING2_TITLE"),
         },
         {
             name = "TXT_KEY_PRODPANEL_CITY_NAME",
@@ -203,11 +212,13 @@ local function buildCityColumns()
             name = "TXT_KEY_CIVVACCESS_EO_COL_STRENGTH",
             getCell = function(c) return tostring(math.floor(c:GetStrengthValue() / 100)) end,
             sortKey = function(c) return c:GetStrengthValue() end,
+            pediaName = constPedia("TXT_KEY_COMBAT_COMBATSTRENGTH_HEADING3_TITLE"),
         },
         {
             name = "TXT_KEY_CIVVACCESS_EO_COL_FOOD",
             getCell = function(c) return formatSigned(c:FoodDifference()) end,
             sortKey = function(c) return c:FoodDifference() end,
+            pediaName = constPedia("TXT_KEY_FOOD_HEADING1_TITLE"),
         },
     }
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_SCIENCE) then
@@ -215,23 +226,27 @@ local function buildCityColumns()
             name = "TXT_KEY_CIVVACCESS_EO_COL_SCIENCE",
             getCell = function(c) return formatSigned(c:GetYieldRate(YieldTypes.YIELD_SCIENCE)) end,
             sortKey = function(c) return c:GetYieldRate(YieldTypes.YIELD_SCIENCE) end,
+            pediaName = constPedia("TXT_KEY_TECH_HEADING1_TITLE"),
         }
     end
     cols[#cols + 1] = {
         name = "TXT_KEY_CIVVACCESS_EO_COL_GOLD",
         getCell = function(c) return formatSigned(c:GetYieldRate(YieldTypes.YIELD_GOLD)) end,
         sortKey = function(c) return c:GetYieldRate(YieldTypes.YIELD_GOLD) end,
+        pediaName = constPedia("TXT_KEY_GOLD_HEADING1_TITLE"),
     }
     cols[#cols + 1] = {
         name = "TXT_KEY_CIVVACCESS_EO_COL_CULTURE",
         getCell = function(c) return formatSigned(c:GetJONSCulturePerTurn()) end,
         sortKey = function(c) return c:GetJONSCulturePerTurn() end,
+        pediaName = constPedia("TXT_KEY_CULTURE_HEADING1_TITLE"),
     }
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
         cols[#cols + 1] = {
             name = "TXT_KEY_CIVVACCESS_EO_COL_FAITH",
             getCell = function(c) return formatSigned(c:GetFaithPerTurn()) end,
             sortKey = function(c) return c:GetFaithPerTurn() end,
+            pediaName = constPedia("TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION"),
         }
     end
     cols[#cols + 1] = {
@@ -239,6 +254,16 @@ local function buildCityColumns()
         getCell = productionColumnCell,
         sortKey = cityProductionPerTurn,
         enterAction = openChooseProduction,
+        -- Ctrl+I jumps to the queued building / unit / process article. The
+        -- production name key is what GetProductionNameKey returns directly;
+        -- localize for the lowercase pedia search index.
+        pediaName = function(c)
+            local key = c:GetProductionNameKey()
+            if key == nil or key == "" then
+                return nil
+            end
+            return Locale.ConvertTextKey(key)
+        end,
     }
     return cols
 end
@@ -482,6 +507,7 @@ local function perLuxuryHappinessEntries()
                     Locale.ConvertTextKey(resource.Description),
                     formatNumber(h)
                 ),
+                pediaName = Locale.ConvertTextKey(resource.Description),
             })
         end
     end
@@ -727,6 +753,7 @@ local function resourceEntries(amountFn)
                         Locale.ConvertTextKey(resource.Description),
                         amount
                     ),
+                    pediaName = Locale.ConvertTextKey(resource.Description),
                 })
             end
         end
