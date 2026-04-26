@@ -61,6 +61,26 @@ local OUTPUT_ORDER = {
     { dir = "NE", key = "TXT_KEY_CIVVACCESS_DIR_NE" },
 }
 
+-- Map engine DirectionTypes constant to the spoken short-token TXT_KEY.
+-- Used by stepListString; populated lazily because DirectionTypes isn't
+-- defined when this file dofiles in some test setups.
+local function dirKey(dir)
+    if dir == DirectionTypes.DIRECTION_EAST then
+        return "TXT_KEY_CIVVACCESS_DIR_E"
+    elseif dir == DirectionTypes.DIRECTION_SOUTHEAST then
+        return "TXT_KEY_CIVVACCESS_DIR_SE"
+    elseif dir == DirectionTypes.DIRECTION_SOUTHWEST then
+        return "TXT_KEY_CIVVACCESS_DIR_SW"
+    elseif dir == DirectionTypes.DIRECTION_WEST then
+        return "TXT_KEY_CIVVACCESS_DIR_W"
+    elseif dir == DirectionTypes.DIRECTION_NORTHWEST then
+        return "TXT_KEY_CIVVACCESS_DIR_NW"
+    elseif dir == DirectionTypes.DIRECTION_NORTHEAST then
+        return "TXT_KEY_CIVVACCESS_DIR_NE"
+    end
+    return nil
+end
+
 -- Returns the concatenated "<n><short-token>, ..." decomposition of the
 -- (fromX, fromY) -> (toX, toY) delta. Empty string at zero delta.
 function HexGeom.directionString(fromX, fromY, toX, toY)
@@ -77,6 +97,37 @@ function HexGeom.directionString(fromX, fromY, toX, toY)
             parts[#parts + 1] = tostring(n) .. Text.key(d.key)
         end
     end
+    return table.concat(parts, ", ")
+end
+
+-- Run-length encoded list of step directions: [E, E, SE, NW, NW, NW]
+-- becomes "2e, 1se, 3nw". Distinct from directionString -- this caller
+-- (Pathfinder move-preview) follows the actual A* path, which can change
+-- direction many times around obstacles, while directionString only
+-- decomposes a single endpoint-to-endpoint delta. Empty list returns "".
+function HexGeom.stepListString(directions)
+    if directions == nil or #directions == 0 then
+        return ""
+    end
+    local parts = {}
+    local runDir = directions[1]
+    local runCount = 1
+    local function flush(dir, n)
+        local key = dirKey(dir)
+        if key ~= nil then
+            parts[#parts + 1] = tostring(n) .. Text.key(key)
+        end
+    end
+    for i = 2, #directions do
+        if directions[i] == runDir then
+            runCount = runCount + 1
+        else
+            flush(runDir, runCount)
+            runDir = directions[i]
+            runCount = 1
+        end
+    end
+    flush(runDir, runCount)
     return table.concat(parts, ", ")
 end
 

@@ -667,10 +667,12 @@ local function scoreOf(turns, mpRemaining, maxMoves)
 end
 
 -- Public entry point. Returns (result, nil) on success where result is
--- { mpCost, turns, mpRemaining, maxMoves } with mpCost and mpRemaining
--- in 60ths; (nil, reason) on failure. mpRemaining is the MP left after
--- the final step on the arrival turn (0 if the last step clamped under
--- partial-MP or triggered end-turn).
+-- { mpCost, turns, mpRemaining, maxMoves, directions } with mpCost and
+-- mpRemaining in 60ths; (nil, reason) on failure. mpRemaining is the MP
+-- left after the final step on the arrival turn (0 if the last step
+-- clamped under partial-MP or triggered end-turn). directions is the
+-- ordered list of DirectionTypes constants the unit walks, start to goal
+-- (one entry per step; #directions == hex distance along the chosen path).
 function Pathfinder.findPath(unit, toPlot)
     if unit == nil then
         return nil, "no_target"
@@ -735,6 +737,8 @@ function Pathfinder.findPath(unit, toPlot)
         f = 0,
         turns = 0,
         mpRemaining = startMP,
+        parent = nil,
+        dirFromParent = nil,
     })
 
     local expansions = 0
@@ -751,11 +755,24 @@ function Pathfinder.findPath(unit, toPlot)
         end
 
         if current.plotIndex == toPlot:GetPlotIndex() then
+            -- Walk parents back to start, collecting each step's
+            -- direction in reverse, then flip in place.
+            local directions = {}
+            local node = current
+            while node ~= nil and node.dirFromParent ~= nil do
+                directions[#directions + 1] = node.dirFromParent
+                node = node.parent
+            end
+            local dn = #directions
+            for i = 1, math.floor(dn / 2) do
+                directions[i], directions[dn - i + 1] = directions[dn - i + 1], directions[i]
+            end
             return {
                 mpCost = math.max(0, current.g - startOffset),
                 turns = current.turns + (current.mpRemaining < maxMoves and 1 or 0),
                 mpRemaining = current.mpRemaining,
                 maxMoves = maxMoves,
+                directions = directions,
             },
                 nil
         end
@@ -782,6 +799,8 @@ function Pathfinder.findPath(unit, toPlot)
                                 f = newG + h,
                                 turns = newTurns,
                                 mpRemaining = newMP,
+                                parent = current,
+                                dirFromParent = dir,
                             })
                         end
                     end

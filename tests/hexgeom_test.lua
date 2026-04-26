@@ -158,4 +158,45 @@ function M.test_directionRank_e_beats_se()
     T.eq(HexGeom.directionRank(0, 0, 0, -1), 2, "pure SE must rank 2")
 end
 
+-- ===== stepListString =====
+-- Run-length grouping over a sequence of DirectionTypes constants. Used
+-- by Pathfinder move-preview to speak the actual step chain. Test relies
+-- on Text.key resolving the DIR_* keys via run.lua's strings dofile.
+local function setupSteps()
+    setup()
+    dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+end
+
+function M.test_stepListString_empty_input_returns_empty()
+    setupSteps()
+    T.eq(HexGeom.stepListString({}), "")
+    T.eq(HexGeom.stepListString(nil), "")
+end
+
+function M.test_stepListString_single_direction_run()
+    setupSteps()
+    local steps = {
+        DirectionTypes.DIRECTION_EAST,
+        DirectionTypes.DIRECTION_EAST,
+        DirectionTypes.DIRECTION_EAST,
+    }
+    T.eq(HexGeom.stepListString(steps), "3e")
+end
+
+function M.test_stepListString_groups_consecutive_only()
+    setupSteps()
+    -- E, E, SE, NW, NW, NW, E -> runs are 2e, 1se, 3nw, 1e (not merged
+    -- with the leading 2e because the SE / NW blocks split them).
+    local steps = {
+        DirectionTypes.DIRECTION_EAST,
+        DirectionTypes.DIRECTION_EAST,
+        DirectionTypes.DIRECTION_SOUTHEAST,
+        DirectionTypes.DIRECTION_NORTHWEST,
+        DirectionTypes.DIRECTION_NORTHWEST,
+        DirectionTypes.DIRECTION_NORTHWEST,
+        DirectionTypes.DIRECTION_EAST,
+    }
+    T.eq(HexGeom.stepListString(steps), "2e, 1se, 3nw, 1e")
+end
+
 return M

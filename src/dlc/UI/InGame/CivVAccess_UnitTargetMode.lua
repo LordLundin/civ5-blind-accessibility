@@ -87,10 +87,21 @@ local function movePathPreview(actor, targetPlot)
     end
     local mpText = formatMP(result.mpCost)
     local leftText = formatMP(result.mpRemaining or 0)
+    local summary
     if result.turns <= 1 then
-        return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN", mpText, leftText)
+        summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN", mpText, leftText)
+    else
+        summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, result.turns, leftText)
     end
-    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, result.turns, leftText)
+    -- Step-by-step append. Our A* may diverge in tie-breaks from the
+    -- engine's drawn line, but the player triggered this preview to know
+    -- what their unit will actually do; trailing position lets users
+    -- ignore it once they've heard the headline numbers.
+    local steps = HexGeom.stepListString(result.directions)
+    if steps ~= "" then
+        return summary .. ", " .. steps
+    end
+    return summary
 end
 
 local function rangedPreview(actor, defender, targetPlot, targetX, targetY)

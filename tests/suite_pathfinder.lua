@@ -1235,4 +1235,48 @@ function M.test_naval_open_borders_city_transit()
     T.eq(result.turns, 1, "city transit fits in one turn")
 end
 
+-- Step list reconstruction: A* must publish the chosen path as an array
+-- of DirectionTypes constants from start to goal, one per hex stepped.
+-- Three eastward grass tiles produce three DIRECTION_EAST entries; this
+-- pins the parent-walk reconstruction order (start at goal, walk back,
+-- then reverse so element 1 is the first step the unit takes).
+function M.test_directions_returned_for_straight_line()
+    setup()
+    local plots = installGrid(4)
+    local unit = mkUnit(plots[0][0], {})
+    local result = Pathfinder.findPath(unit, plots[3][0])
+    T.truthy(result ~= nil, "expected path")
+    T.truthy(result.directions ~= nil, "result must include a directions array")
+    T.eq(#result.directions, 3, "three hexes east means three steps")
+    T.eq(result.directions[1], DirectionTypes.DIRECTION_EAST)
+    T.eq(result.directions[2], DirectionTypes.DIRECTION_EAST)
+    T.eq(result.directions[3], DirectionTypes.DIRECTION_EAST)
+end
+
+-- Detour around a mountain forces the path off the straight line,
+-- exposing the multi-direction step list. Mountain at (1,0) blocks the
+-- direct E-E-E route from (0,0) to (2,0); the detour must take a
+-- non-east step at some point and end at the goal.
+function M.test_directions_track_detour_around_mountain()
+    setup()
+    local plots = installGrid(4, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._isMountain = true
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], {})
+    local result = Pathfinder.findPath(unit, plots[2][0])
+    T.truthy(result ~= nil, "detour must exist")
+    T.truthy(#result.directions >= 2, "detour requires at least two steps")
+    local hasNonEast = false
+    for _, dir in ipairs(result.directions) do
+        if dir ~= DirectionTypes.DIRECTION_EAST then
+            hasNonEast = true
+            break
+        end
+    end
+    T.truthy(hasNonEast, "detour must include at least one non-east step")
+end
+
 return M
