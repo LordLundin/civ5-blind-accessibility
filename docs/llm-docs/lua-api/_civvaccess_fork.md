@@ -4,7 +4,7 @@ Methods added by our `CvGameCore_Expansion2.dll` fork that the auto-extracted pe
 
 ## Source of truth
 
-`src/engine/CvGameCoreDLL_Expansion2/Lua/` — every fork-added binding has a `// CIVVACCESS:` comment block on its method body. Grep that marker for the canonical list and read the C++ for behavior. Bindings only resolve when the deployed `CvGameCore_Expansion2.dll` is our build (`deploy.ps1 -DeployEngine`); on a vanilla deploy `Unit:GeneratePath` raises `luaL_error("NYI")` and the rest produce method-not-found errors.
+`src/engine/CvGameCoreDLL_Expansion2/Lua/` — every fork-added binding has a `// CIVVACCESS:` comment block on its method body. Grep that marker for the canonical list and read the C++ for behavior. Bindings only resolve when the deployed `CvGameCore_Expansion2.dll` is our build (default behavior of `deploy.ps1`; pass `-SkipEngine` to leave the vanilla DLL in place); on a vanilla deploy `Unit:GeneratePath` raises `luaL_error("NYI")` and the rest produce method-not-found errors.
 
 ## Current bindings
 

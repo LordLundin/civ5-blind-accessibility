@@ -12,8 +12,8 @@
         Assets/DLC/Expansion2/, with the original vanilla DLL backed up to
         build/CvGameCore_Expansion2.vanilla.dll.bak on first install.
 
-    Engine deploy is opt-in via -DeployEngine. The engine DLL is large (~4 MB)
-    and most iterations are Lua-only, so it stays out of the default path.
+    The engine DLL is deployed by default; pass -SkipEngine for Lua-only
+    iterations where the (~4 MB) DLL copy isn't worth it.
 
     -Uninstall reverses everything: restores the vanilla engine DLL from the
     backup, restores the original lua51_Win32.dll, removes the DLC and the
@@ -29,10 +29,9 @@
 .PARAMETER SkipDlc
     Skip the DLC payload copy. Useful for proxy-only iteration (rare).
 
-.PARAMETER DeployEngine
-    Copy dist/engine/CvGameCore_Expansion2.dll into the game's
-    Assets/DLC/Expansion2/ directory. Backs up the original on first run.
-    Off by default.
+.PARAMETER SkipEngine
+    Skip copying dist/engine/CvGameCore_Expansion2.dll. Useful for fast
+    Lua-only iterations.
 
 .PARAMETER Uninstall
     Remove the proxy stack, restore the original lua51, remove the DLC,
@@ -43,7 +42,7 @@ param(
     [string]$GameDir,
     [switch]$SkipProxy,
     [switch]$SkipDlc,
-    [switch]$DeployEngine,
+    [switch]$SkipEngine,
     [switch]$Uninstall
 )
 
@@ -357,10 +356,10 @@ if (-not $SkipDlc) {
     Write-Host "Skipping DLC payload (-SkipDlc)."
 }
 
-if ($DeployEngine) {
+if (-not $SkipEngine) {
     Deploy-EngineDll -Game $gameDir
 } else {
-    Write-Host "Skipping engine DLL (pass -DeployEngine to install it)."
+    Write-Host "Skipping engine DLL (-SkipEngine)."
 }
 
 Write-Host ""
