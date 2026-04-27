@@ -575,29 +575,19 @@ local function pocketTooltipFn(controlName)
     end
 end
 
--- Build a "<label>, disabled" pocket leaf whose Enter speaks the engine's
--- live tooltip on the corresponding base-game control if one is set, and
--- otherwise no-ops. Mirrors what sighted players see: the base UI greys
--- the pocket control and (for some items) sets a SetToolTipString
--- explaining why; we surface the same disabled state and the same reason.
--- Takes a pre-composed `label` string so callers can include the duration
--- suffix on items where it's meaningful (the "30 turns" applies whether
--- the item is currently legal or not).
+-- Build a "<label>, disabled" pocket leaf whose announcement appends the
+-- engine's live tooltip on the corresponding base-game control. Mirrors
+-- what sighted players see: the base UI greys the pocket control and
+-- sets a SetToolTipString explaining why; we surface the same disabled
+-- state and the same reason on first navigation, same as enabled items
+-- (whose tooltipFn 4de4407 wired). Takes a pre-composed `label` string
+-- so callers can include the duration suffix on items where it's
+-- meaningful (the "30 turns" applies whether the item is currently legal
+-- or not).
 local function disabledPocketLeaf(label, controlName)
     return BaseMenuItems.Text({
         labelText = label .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
-        onActivate = function()
-            local control = Controls[controlName]
-            if control == nil then
-                return
-            end
-            local ok, tip = pcall(function()
-                return control:GetToolTipString()
-            end)
-            if ok and tip ~= nil and tip ~= "" then
-                SpeechPipeline.speakInterrupt(tostring(tip))
-            end
-        end,
+        tooltipFn = pocketTooltipFn(controlName),
     })
 end
 
@@ -924,136 +914,57 @@ local function availableCitiesGroup(side)
     })
 end
 
--- Mirrors the engine's per-civ disabled-reason switch in
--- ShowOtherPlayerChooser (TradeLogic.lua:3156-3204). Returns the localized
--- reason that ought to appear on the disabled button, or nil if none of
--- the engine's branches match (in which case IsPossibleToTradeItem failed
--- for an unidentified reason and we surface the entry as plain "disabled"
--- without an explanation -- same fallback the engine takes).
---
--- Reads pure engine data (Teams:IsAtWar / IsForcePeace, Player:IsMinorCiv
--- / GetAlly / IsMinorPermanentWar / IsWillAcceptPeaceWithPlayer) so the
--- output stays current per call.
-local function thirdPartyPeaceDisabledReason(iFromPlayer, iLoopPlayer)
-    local pLoopPlayer = Players[iLoopPlayer]
-    local iLoopTeam = pLoopPlayer:GetTeam()
-    local iFromTeam = Players[iFromPlayer]:GetTeam()
-    if not Teams[iLoopTeam]:IsAtWar(iFromTeam) then
-        return Text.key("TXT_KEY_DIPLO_NOT_AT_WAR")
-    end
-    if pLoopPlayer:IsMinorCiv() then
-        local pMinorTeam = Teams[iLoopTeam]
-        local iAlly = pLoopPlayer:GetAlly()
-        if pLoopPlayer:IsMinorPermanentWar(iFromPlayer) then
-            return Text.key("TXT_KEY_DIPLO_MINOR_PERMANENT_WAR")
-        elseif pMinorTeam:IsAtWar(iFromTeam) and iAlly ~= -1 and Teams[Players[iAlly]:GetTeam()]:IsAtWar(iFromTeam) then
-            return Text.key("TXT_KEY_DIPLO_MINOR_ALLY_AT_WAR")
-        end
-        return nil
-    end
-    if not Players[iFromPlayer]:IsWillAcceptPeaceWithPlayer(iLoopPlayer) then
-        return Text.key("TXT_KEY_DIPLO_MINOR_THIS_GUY_WANTS_WAR")
-    elseif not pLoopPlayer:IsWillAcceptPeaceWithPlayer(iFromPlayer) then
-        return Text.key("TXT_KEY_DIPLO_MINOR_OTHER_GUY_WANTS_WAR")
-    end
-    return nil
-end
-
-local function thirdPartyWarDisabledReason(iFromPlayer, iLoopPlayer)
-    local pLoopPlayer = Players[iLoopPlayer]
-    local iLoopTeam = pLoopPlayer:GetTeam()
-    local iFromTeam = Players[iFromPlayer]:GetTeam()
-    if Teams[iLoopTeam]:IsAtWar(iFromTeam) then
-        return Text.key("TXT_KEY_DIPLO_ALREADY_AT_WAR")
-    elseif Teams[iFromTeam]:IsForcePeace(iLoopTeam) then
-        return Text.key("TXT_KEY_DIPLO_FORCE_PEACE")
-    elseif pLoopPlayer:IsMinorCiv() and pLoopPlayer:GetAlly() == iFromPlayer then
-        return Text.key("TXT_KEY_DIPLO_NO_WAR_ALLIES")
-    end
-    return nil
-end
-
--- Other players group: Make Peace With <civ> and Declare War On <civ>.
--- Surfaces every met civ in both sub-groups (matching the engine's
--- ShowOtherPlayerChooser, which lays out all met civs in each sub-table
--- and disables the impossible ones with an explanatory tooltip). Legal
--- targets are activatable Text leaves; illegal targets are Text leaves
--- whose tooltipText carries the engine's per-civ reason so the user hears
--- it on first announce. Skips the same set the engine hides outright
--- (self / current trade partner / civs either side hasn't met).
+-- Other players group: Make Peace With <civ> and Declare War On <civ> for
+-- each legal target. Iterates major civs the active team has met. Civs
+-- where the action would be illegal are dropped rather than surfaced as
+-- disabled-with-reason: the most common reason ("Not at war") would force
+-- the user to walk past every peaceful civ when looking for a war target,
+-- and the engine's own peace/war chooser only earns its keep visually -- a
+-- list-only reader gains nothing from a long list of "disabled, not at
+-- war" entries.
 local function availableOtherPlayersGroup(side)
     local iPlayer = sidePlayer(side)
     local otherPlayer = sideIsUs(side) and g_iThem or g_iUs
-    local pUsTeam = Teams[Players[g_iUs]:GetTeam()]
-    local pThemTeam = Teams[Players[g_iThem]:GetTeam()]
     local makePeace = {}
     local declareWar = {}
     local maxCivs = (GameDefines.MAX_CIV_PLAYERS or 64)
     for i = 0, maxCivs - 1 do
         local pl = Players[i]
-        if pl ~= nil and pl:IsAlive() and not pl:IsBarbarian() and i ~= iPlayer and i ~= otherPlayer then
+        if pl ~= nil and pl:IsEverAlive() and not pl:IsBarbarian() and i ~= iPlayer and i ~= otherPlayer then
             local theirTeam = pl:GetTeam()
-            -- Engine hide-set: civs whose team coincides with either side
-            -- of the deal, or whom either side hasn't met. These never
-            -- appear in the engine's chooser at all.
+            local name = pl:GetName()
+            local leaderInfo = GameInfo.Leaders[pl:GetLeaderType()]
+            local pediaName = leaderInfo and Text.key(leaderInfo.Description) or nil
             if
-                theirTeam ~= pUsTeam:GetID()
-                and theirTeam ~= pThemTeam:GetID()
-                and pUsTeam:IsHasMet(theirTeam)
-                and pThemTeam:IsHasMet(theirTeam)
+                g_Deal:IsPossibleToTradeItem(
+                    iPlayer,
+                    otherPlayer,
+                    TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE,
+                    theirTeam
+                )
             then
-                local name = pl:GetName()
-                local leaderInfo = GameInfo.Leaders[pl:GetLeaderType()]
-                local pediaName = leaderInfo and Text.key(leaderInfo.Description) or nil
                 local capturedTeam = theirTeam
-                if
-                    g_Deal:IsPossibleToTradeItem(
-                        iPlayer,
-                        otherPlayer,
-                        TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE,
-                        capturedTeam
-                    )
-                then
-                    makePeace[#makePeace + 1] = BaseMenuItems.Text({
-                        labelText = name,
-                        pediaName = pediaName,
-                        onActivate = function()
-                            g_Deal:AddThirdPartyPeace(iPlayer, capturedTeam, peaceDuration())
-                            afterLocalDealChange()
-                        end,
-                    })
-                else
-                    local reason = thirdPartyPeaceDisabledReason(iPlayer, i)
-                    makePeace[#makePeace + 1] = BaseMenuItems.Text({
-                        labelText = name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
-                        pediaName = pediaName,
-                        tooltipText = reason,
-                    })
-                end
-                if
-                    g_Deal:IsPossibleToTradeItem(
-                        iPlayer,
-                        otherPlayer,
-                        TradeableItems.TRADE_ITEM_THIRD_PARTY_WAR,
-                        capturedTeam
-                    )
-                then
-                    declareWar[#declareWar + 1] = BaseMenuItems.Text({
-                        labelText = name,
-                        pediaName = pediaName,
-                        onActivate = function()
-                            g_Deal:AddThirdPartyWar(iPlayer, capturedTeam)
-                            afterLocalDealChange()
-                        end,
-                    })
-                else
-                    local reason = thirdPartyWarDisabledReason(iPlayer, i)
-                    declareWar[#declareWar + 1] = BaseMenuItems.Text({
-                        labelText = name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
-                        pediaName = pediaName,
-                        tooltipText = reason,
-                    })
-                end
+                makePeace[#makePeace + 1] = BaseMenuItems.Text({
+                    labelText = name,
+                    pediaName = pediaName,
+                    onActivate = function()
+                        g_Deal:AddThirdPartyPeace(iPlayer, capturedTeam, peaceDuration())
+                        afterLocalDealChange()
+                    end,
+                })
+            end
+            if
+                g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_THIRD_PARTY_WAR, theirTeam)
+            then
+                local capturedTeam = theirTeam
+                declareWar[#declareWar + 1] = BaseMenuItems.Text({
+                    labelText = name,
+                    pediaName = pediaName,
+                    onActivate = function()
+                        g_Deal:AddThirdPartyWar(iPlayer, capturedTeam)
+                        afterLocalDealChange()
+                    end,
+                })
             end
         end
     end
@@ -1234,10 +1145,11 @@ end
 -- Modify / What*-query). Surfaces hidden or disabled buttons as "<label>,
 -- disabled" Text leaves rather than dropping them from navigation, so the
 -- user can find the buttons even when the engine has greyed them out --
--- a hidden button is functionally a disabled one for our purposes. Enter
--- on a disabled leaf reads the engine's live tooltip if set, else no-ops.
--- fallbackLabel fills in when the engine never set the button's text
--- (e.g. a query button that's never been shown this session).
+-- a hidden button is functionally a disabled one for our purposes. The
+-- disabled leaf carries the engine's live tooltip via tooltipFn so the
+-- reason auto-announces alongside the label. fallbackLabel fills in
+-- when the engine never set the button's text (e.g. a query button
+-- that's never been shown this session).
 local function actionButtonLeaf(controlName, activate, fallbackLabel)
     local control = Controls[controlName]
     if control == nil then
@@ -1263,14 +1175,7 @@ local function actionButtonLeaf(controlName, activate, fallbackLabel)
         end
         return BaseMenuItems.Text({
             labelText = label .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
-            onActivate = function()
-                local ok, tip = pcall(function()
-                    return control:GetToolTipString()
-                end)
-                if ok and tip ~= nil and tip ~= "" then
-                    SpeechPipeline.speakInterrupt(tostring(tip))
-                end
-            end,
+            tooltipFn = pocketTooltipFn(controlName),
         })
     end
     return BaseMenuItems.Button({
