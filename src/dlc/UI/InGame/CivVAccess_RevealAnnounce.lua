@@ -68,6 +68,9 @@ function RevealAnnounce._maybeFlush()
         TickPump.runOnce(RevealAnnounce._maybeFlush)
         return
     end
+    -- Clear the deadline before _flush runs so any event that lands
+    -- back in the buffer during the flush gets a fresh schedule rather
+    -- than being silently absorbed into a buffer with no drain queued.
     _flushTargetFrame = -1
     RevealAnnounce._flush()
 end
