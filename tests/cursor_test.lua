@@ -964,6 +964,17 @@ function M.test_combat_tile_cost_zero_feature_movement_does_not_override()
     )
 end
 
+function M.test_combat_includes_route_name()
+    setup()
+    GameInfo.Terrains[1] = { Description = "Plains", Movement = 1 }
+    GameInfo.Routes[1] = { Description = "Road" }
+    local p = T.fakePlot({ terrain = 1, route = 1 })
+    T.truthy(
+        PlotComposers.combat(p):find("Road", 1, true),
+        "combat composer must name the route so the on-demand answer is not just the unmodified tile cost"
+    )
+end
+
 function M.test_combat_tile_cost_mountain_is_impassable()
     setup()
     local p = T.fakePlot({ mountain = true })

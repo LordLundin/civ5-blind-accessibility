@@ -256,5 +256,13 @@ function PlotComposers.combat(plot)
     elseif cost ~= nil then
         out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_MOVES_COST", cost)
     end
+    -- Route presence: the cost above is the unmodified tile cost; a road
+    -- or railroad reduces it for a unit moving in from another routed
+    -- tile. The actual reduced cost needs the from-plot, the unit, and
+    -- the from-to river-edge bridge check (CvUnitMovement.cpp:74), none
+    -- of which the keyboard cursor has. Naming the route keeps the
+    -- on-demand combat answer honest. Duplicates the glance's route token
+    -- intentionally so the X answer is self-contained.
+    readSection(PlotSections.route, plot, {}, out)
     return table.concat(out, ", ")
 end
