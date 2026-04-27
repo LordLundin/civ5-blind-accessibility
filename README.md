@@ -4,7 +4,7 @@ Civ-V-Access is an accessibility mod that makes Sid Meier's Civilization V playa
 
 ## Install
 
-Run `build.ps1` from the repo root with Civilization V closed. The script compiles the proxy DLL, deploys the proxy stack and DLC payload into the Steam install, and bundles every screen-reader bridge it uses (Tolk plus the per-reader DLLs) so no separate setup is needed. `-Uninstall` removes everything.
+With Civilization V closed, run `./deploy.ps1` from the repo root. It copies the committed proxy DLL, DLC payload, and every screen-reader bridge (Tolk plus the per-reader DLLs) into the Steam install — no compile step needed for a normal install. `./deploy.ps1 -Uninstall` removes everything.
 
 When you launch the game and start or load a Brave New World match, the mod speaks "Civilization V accessibility loaded in-game." That confirms the proxy resolved, the DLC activated, and the Lua side is wired. If you don't hear it, something failed silently. See Troubleshooting.
 
