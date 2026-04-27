@@ -141,6 +141,9 @@ local function mkUnit(opts)
     function u:IsOutOfAttacks()
         return self._outOfAttacks
     end
+    function u:CargoSpace()
+        return opts.cargoSpace or 0
+    end
     return u
 end
 

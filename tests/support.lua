@@ -354,6 +354,15 @@ function T.fakeUnit(opts)
     function u:IsRangeAttackIgnoreLOS()
         return opts.ignoresLoS or false
     end
+    -- Cargo capacity. 0 means "not a carrier" (the common case across tests
+    -- that don't care about based-aircraft announcements). Tests that
+    -- exercise carrier behavior set opts.cargoSpace explicitly.
+    function u:CargoSpace()
+        return opts.cargoSpace or 0
+    end
+    function u:GetTransportUnit()
+        return opts.transportUnit
+    end
     return u
 end
 

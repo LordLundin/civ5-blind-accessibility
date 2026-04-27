@@ -52,6 +52,10 @@ local function describeUnit(unit, activeTeam, isDebug)
     if status ~= "" then
         s = s .. ", " .. status
     end
+    local cargo = UnitSpeech.cargoAircraftToken(unit)
+    if cargo ~= "" then
+        s = s .. ", " .. cargo
+    end
     return s
 end
 

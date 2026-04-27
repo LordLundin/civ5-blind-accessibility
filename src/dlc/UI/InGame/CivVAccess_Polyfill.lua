@@ -286,6 +286,9 @@ end
 if GameDefines.MAX_CITY_HIT_POINTS == nil then
     GameDefines.MAX_CITY_HIT_POINTS = 200
 end
+if GameDefines.BASE_CITY_AIR_STACKING == nil then
+    GameDefines.BASE_CITY_AIR_STACKING = 6
+end
 
 -- Unit activity enum. Used by UnitSpeech's status cascade to read
 -- unit:GetActivityType() and classify sentry / heal / sleep / awake states.

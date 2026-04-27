@@ -64,10 +64,18 @@ PlotSections.city = {
         end
         local city = plot:GetPlotCity()
         local owner = Players[city:GetOwner()]
+        local banner
         if owner:IsMinorCiv() then
-            return { Text.format("TXT_KEY_CITY_STATE_OF", owner:GetCivilizationShortDescriptionKey()) }
+            banner = Text.format("TXT_KEY_CITY_STATE_OF", owner:GetCivilizationShortDescriptionKey())
+        else
+            banner = Text.format("TXT_KEY_CITY_OF", owner:GetCivilizationAdjectiveKey(), city:GetName())
         end
-        return { Text.format("TXT_KEY_CITY_OF", owner:GetCivilizationAdjectiveKey(), city:GetName()) }
+        local tokens = { banner }
+        local aircraft = UnitSpeech.cityAircraftToken(plot)
+        if aircraft ~= "" then
+            tokens[#tokens + 1] = aircraft
+        end
+        return tokens
     end,
 }
 

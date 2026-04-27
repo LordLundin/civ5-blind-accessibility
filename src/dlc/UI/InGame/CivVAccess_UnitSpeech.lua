@@ -150,6 +150,90 @@ local function statusToken(unit)
     return ""
 end
 
+-- Counts cargo aircraft sitting on a carrier. Mirrors UnitFlagManager's
+-- UpdateCargo iteration: walks plot:GetNumUnits, keeping units with
+-- IsCargo and a matching transport id. No extra IsInvisible filter --
+-- the engine's plot enumeration already gates by what the active player
+-- can see, and base game's cargo dropdown does no further filtering, so
+-- our announcement matches what a sighted player hears.
+local function cargoAircraftCount(carrier)
+    local plot = carrier:GetPlot()
+    local count = 0
+    local n = plot:GetNumUnits()
+    local carrierId = carrier:GetID()
+    for i = 0, n - 1 do
+        local u = plot:GetUnit(i)
+        if u ~= nil and u:IsCargo() then
+            local transport = u:GetTransportUnit()
+            if transport ~= nil and transport:GetID() == carrierId then
+                count = count + 1
+            end
+        end
+    end
+    return count
+end
+
+-- Public: "X/Y aircraft" for a unit with cargo capacity, or "" when the
+-- unit can't carry aircraft. Always speaks when capacity > 0 so empty
+-- carriers still announce 0/3 -- the user wants to know capacity even
+-- when nothing is loaded.
+function UnitSpeech.cargoAircraftToken(unit)
+    local capacity = unit:CargoSpace()
+    if capacity <= 0 then
+        return ""
+    end
+    local count = cargoAircraftCount(unit)
+    return Text.format("TXT_KEY_CIVVACCESS_AIRCRAFT_COUNT", count, capacity)
+end
+
+-- City air capacity: BASE_CITY_AIR_STACKING + sum of AirModifier across
+-- buildings the city has. Mirrors CvCity::GetMaxAirUnits exactly: the
+-- engine seeds m_iMaxAirUnits to the base define on construction and
+-- adjusts via ChangeMaxAirUnits(pBuildingInfo->GetAirModifier() * iChange)
+-- whenever a building is gained or lost (CvCity.cpp:5901). No other
+-- source of variation in vanilla / G&K / BNW.
+local function cityMaxAir(city)
+    local total = GameDefines.BASE_CITY_AIR_STACKING
+    for row in GameInfo.Buildings() do
+        local mod = row.AirModifier
+        if mod ~= nil and mod ~= 0 and city:IsHasBuilding(row.ID) then
+            total = total + mod
+        end
+    end
+    return total
+end
+
+-- Counts DOMAIN_AIR units on a city plot. Matches UpdateCityCargo's
+-- iteration in UnitFlagManager: every air unit on the tile counts,
+-- including cargo of a docked carrier -- base game's city flag uses the
+-- same flat domain check and we mirror it for parity.
+local function cityAircraftCount(plot)
+    local count = 0
+    local n = plot:GetNumUnits()
+    for i = 0, n - 1 do
+        local u = plot:GetUnit(i)
+        if u ~= nil and u:GetDomainType() == DomainTypes.DOMAIN_AIR then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+-- Public: "X/Y aircraft" for a city plot when at least one aircraft is
+-- stationed; "" otherwise. The X > 0 gate is intentional: most cities
+-- have no aircraft and announcing 0/6 on every city tile would be spam.
+function UnitSpeech.cityAircraftToken(plot)
+    if not plot:IsCity() then
+        return ""
+    end
+    local count = cityAircraftCount(plot)
+    if count == 0 then
+        return ""
+    end
+    local capacity = cityMaxAir(plot:GetPlotCity())
+    return Text.format("TXT_KEY_CIVVACCESS_AIRCRAFT_COUNT", count, capacity)
+end
+
 -- Builds the selection announce string.
 function UnitSpeech.selection(unit, prevX, prevY)
     local parts = {}
@@ -177,6 +261,10 @@ function UnitSpeech.selection(unit, prevX, prevY)
     local status = statusToken(unit)
     if status ~= "" then
         parts[#parts + 1] = status
+    end
+    local cargo = UnitSpeech.cargoAircraftToken(unit)
+    if cargo ~= "" then
+        parts[#parts + 1] = cargo
     end
     return table.concat(parts, ", ")
 end
@@ -265,6 +353,10 @@ function UnitSpeech.info(unit)
                 )
             end
         end
+    end
+    local cargo = UnitSpeech.cargoAircraftToken(unit)
+    if cargo ~= "" then
+        parts[#parts + 1] = cargo
     end
     parts[#parts + 1] = hpFraction(unit)
     return table.concat(parts, ", ")

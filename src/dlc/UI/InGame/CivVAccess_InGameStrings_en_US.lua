@@ -25,6 +25,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE"] = "Cit
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_EMBARKED_PREFIX"] = "embarked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION"] = "{1_Cur}/{2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION"] = "{1_Cur}/{2_Max} moves"
+-- Cargo / stationed aircraft count. Speaks the same X/Y the carrier and
+-- city-flag dropdowns show in UnitFlagManager. "Aircraft" matches the
+-- game's TXT_KEY_STATIONED_AIRCRAFT noun, which covers fighters, bombers,
+-- and missiles (all DOMAIN_AIR). Carrier sites speak the token whenever
+-- the unit has cargo capacity (so empty carriers still announce 0/3);
+-- city sites suppress when X is 0 to avoid spamming every city.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_AIRCRAFT_COUNT"] = "{1_Cur}/{2_Max} aircraft"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PROMOTION_AVAILABLE"] = "promotion available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = "{1_What} {2_Turns} turns"
 -- Spoken when a unit is mid-execution on ACTIVITY_MISSION. For a selectable
