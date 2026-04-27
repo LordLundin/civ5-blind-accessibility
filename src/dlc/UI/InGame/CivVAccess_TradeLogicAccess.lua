@@ -248,14 +248,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
     if itemType == TradeableItems.TRADE_ITEM_GOLD then
         local editName = p .. "GoldAmount"
         local control = Controls[editName]
-        local tableControlName = p .. "TableGold"
-        local goldTooltipFn = function()
-            local c = Controls[tableControlName]
-            if c == nil then
-                return nil
-            end
-            return c:GetToolTipString()
-        end
+        local goldTooltipFn = pocketTooltipFn(p .. "TableGold")
         if control == nil or readOnly then
             -- Read-only drawer or missing EditBox (unlikely): fall through
             -- to a plain Text item showing label + amount.
@@ -289,14 +282,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
     if itemType == TradeableItems.TRADE_ITEM_GOLD_PER_TURN then
         local editName = p .. "GoldPerTurnAmount"
         local control = Controls[editName]
-        local tableControlName = p .. "TableGoldPerTurn"
-        local gptTooltipFn = function()
-            local c = Controls[tableControlName]
-            if c == nil then
-                return nil
-            end
-            return c:GetToolTipString()
-        end
+        local gptTooltipFn = pocketTooltipFn(p .. "TableGoldPerTurn")
         if control == nil or readOnly then
             return BaseMenuItems.Text({
                 labelText = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN")
@@ -501,43 +487,56 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
     -- ResearchAgreement, TradeAgreement, DeclarationOfFriendship. Each has
     -- the same remove shape: RemoveByType(type, player). DoF and DP remove
     -- from BOTH sides (engine invariant); our remove fires the matching
-    -- side too.
+    -- side too. pocketSuffix names the engine pocket control whose tooltip
+    -- we read live for the placed-item announcement -- when an item is in
+    -- the deal the table-row control has no tooltip (engine never sets one
+    -- for booleans), but the pocket control's tooltip (set on the most
+    -- recent RefreshPocketX pass) carries the descriptive copy plus the
+    -- engine's "already in deal" reason.
     local booleanSpecs = {
         [TradeableItems.TRADE_ITEM_ALLOW_EMBASSY] = {
             key = "TXT_KEY_DIPLO_ALLOW_EMBASSY",
             bothSides = false,
+            pocketSuffix = "PocketAllowEmbassy",
         },
         [TradeableItems.TRADE_ITEM_OPEN_BORDERS] = {
             key = "TXT_KEY_DIPLO_OPEN_BORDERS",
             bothSides = false,
+            pocketSuffix = "PocketOpenBorders",
         },
         [TradeableItems.TRADE_ITEM_DEFENSIVE_PACT] = {
             key = "TXT_KEY_DIPLO_DEF_PACT",
             bothSides = true,
+            pocketSuffix = "PocketDefensivePact",
         },
         [TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT] = {
             key = "TXT_KEY_DIPLO_RESCH_AGREEMENT",
             bothSides = true,
+            pocketSuffix = "PocketResearchAgreement",
         },
         [TradeableItems.TRADE_ITEM_TRADE_AGREEMENT] = {
             key = "TXT_KEY_DIPLO_TRADE_AGREEMENT",
             bothSides = false,
+            pocketSuffix = "PocketTradeAgreement",
         },
         [TradeableItems.TRADE_ITEM_DECLARATION_OF_FRIENDSHIP] = {
             key = "TXT_KEY_DIPLO_DECLARATION_OF_FRIENDSHIP",
             bothSides = true,
+            pocketSuffix = "PocketDoF",
         },
     }
     local bSpec = booleanSpecs[itemType]
     if bSpec ~= nil then
         local label = Text.key(bSpec.key) .. turnsSuffix(duration)
+        local tipFn = pocketTooltipFn(prefix(side) .. bSpec.pocketSuffix)
         if readOnly then
-            return BaseMenuItems.Text({ labelText = label })
+            return BaseMenuItems.Text({ labelText = label, tooltipFn = tipFn })
         end
         local capturedType = itemType
         local bothSides = bSpec.bothSides
         return BaseMenuItems.Text({
             labelText = label,
+            tooltipFn = tipFn,
             onActivate = function()
                 g_Deal:RemoveByType(capturedType, iPlayer)
                 if bothSides then
@@ -560,6 +559,22 @@ end
 -- Gold / GPT leaves push NumberEntry on activate with an engine-derived
 -- max. onCommit invokes the engine's own Add* function, then
 -- afterLocalDealChange repaints + rebuilds.
+
+-- Closure over a base-game control name that returns its current
+-- SetToolTipString live. Used as `tooltipFn` on items whose engine
+-- counterpart owns a contextual tooltip the user should hear (disabled
+-- reason, descriptive copy, cost / duration text). Returns nil when the
+-- control or its tooltip is missing so appendTooltip skips silently.
+local function pocketTooltipFn(controlName)
+    return function()
+        local c = Controls[controlName]
+        if c == nil then
+            return nil
+        end
+        return c:GetToolTipString()
+    end
+end
+
 -- Build a "<label>, disabled" pocket leaf whose Enter speaks the engine's
 -- live tooltip on the corresponding base-game control if one is set, and
 -- otherwise no-ops. Mirrors what sighted players see: the base UI greys
@@ -599,13 +614,7 @@ local function availableGoldLeaf(side)
     end
     return BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_DIPLO_GOLD"),
-        tooltipFn = function()
-            local c = Controls[pocketControlName]
-            if c == nil then
-                return nil
-            end
-            return c:GetToolTipString()
-        end,
+        tooltipFn = pocketTooltipFn(pocketControlName),
         onActivate = function()
             local maxGold = g_Deal:GetGoldAvailable(iPlayer, -1) or 0
             if maxGold <= 0 then
@@ -638,13 +647,7 @@ local function availableGoldPerTurnLeaf(side)
     end
     return BaseMenuItems.Text({
         labelText = label,
-        tooltipFn = function()
-            local c = Controls[pocketControlName]
-            if c == nil then
-                return nil
-            end
-            return c:GetToolTipString()
-        end,
+        tooltipFn = pocketTooltipFn(pocketControlName),
         onActivate = function()
             local pPlayer = Players[iPlayer]
             local maxGPT = pPlayer and pPlayer:CalculateGoldRate() or 0
@@ -744,13 +747,7 @@ local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix,
     -- announce reflects whatever the engine last computed.
     return BaseMenuItems.Text({
         labelText = label,
-        tooltipFn = function()
-            local c = Controls[pocketControlName]
-            if c == nil then
-                return nil
-            end
-            return c:GetToolTipString()
-        end,
+        tooltipFn = pocketTooltipFn(pocketControlName),
         onActivate = function()
             if bothSides then
                 addFn(g_iUs)
@@ -785,16 +782,24 @@ local function availableResourceGroups(side)
             end
         end
     end
+    -- Engine sets per-side / per-state tooltips on Us/ThemPocketLuxury and
+    -- Us/ThemPocketStrategic in RefreshPocketLuxury / RefreshPocketStrategic
+    -- ("can be traded" / "no luxuries available", etc.). Surface the parent
+    -- pocket's live tooltip on the group label so the user hears the same
+    -- summary sighted players read on hover.
+    local p = prefix(side)
     local groups = {}
     if #luxuries > 0 then
         groups[#groups + 1] = BaseMenuItems.Group({
             labelText = Text.key("TXT_KEY_TRADE_ITEM_LUXURY_RESOURCES"),
+            tooltipFn = pocketTooltipFn(p .. "PocketLuxury"),
             items = luxuries,
         })
     end
     if #strategics > 0 then
         groups[#groups + 1] = BaseMenuItems.Group({
             labelText = Text.key("TXT_KEY_TRADE_ITEM_STRATEGIC_RESOURCES"),
+            tooltipFn = pocketTooltipFn(p .. "PocketStrategic"),
             items = strategics,
         })
     end
@@ -873,6 +878,7 @@ local function availableVotesGroup(side)
     end
     return BaseMenuItems.Group({
         labelText = Text.key("TXT_KEY_TRADE_ITEM_VOTES"),
+        tooltipFn = pocketTooltipFn(prefix(side) .. "PocketVote"),
         items = items,
     })
 end
@@ -913,55 +919,141 @@ local function availableCitiesGroup(side)
     end
     return BaseMenuItems.Group({
         labelText = Text.key("TXT_KEY_DIPLO_CITIES"),
+        tooltipFn = pocketTooltipFn(prefix(side) .. "PocketCities"),
         items = items,
     })
 end
 
--- Other players group: Make Peace With <civ> and Declare War On <civ> for
--- each legal target. Iterates major civs the active team has met.
+-- Mirrors the engine's per-civ disabled-reason switch in
+-- ShowOtherPlayerChooser (TradeLogic.lua:3156-3204). Returns the localized
+-- reason that ought to appear on the disabled button, or nil if none of
+-- the engine's branches match (in which case IsPossibleToTradeItem failed
+-- for an unidentified reason and we surface the entry as plain "disabled"
+-- without an explanation -- same fallback the engine takes).
+--
+-- Reads pure engine data (Teams:IsAtWar / IsForcePeace, Player:IsMinorCiv
+-- / GetAlly / IsMinorPermanentWar / IsWillAcceptPeaceWithPlayer) so the
+-- output stays current per call.
+local function thirdPartyPeaceDisabledReason(iFromPlayer, iLoopPlayer)
+    local pLoopPlayer = Players[iLoopPlayer]
+    local iLoopTeam = pLoopPlayer:GetTeam()
+    local iFromTeam = Players[iFromPlayer]:GetTeam()
+    if not Teams[iLoopTeam]:IsAtWar(iFromTeam) then
+        return Text.key("TXT_KEY_DIPLO_NOT_AT_WAR")
+    end
+    if pLoopPlayer:IsMinorCiv() then
+        local pMinorTeam = Teams[iLoopTeam]
+        local iAlly = pLoopPlayer:GetAlly()
+        if pLoopPlayer:IsMinorPermanentWar(iFromPlayer) then
+            return Text.key("TXT_KEY_DIPLO_MINOR_PERMANENT_WAR")
+        elseif pMinorTeam:IsAtWar(iFromTeam) and iAlly ~= -1 and Teams[Players[iAlly]:GetTeam()]:IsAtWar(iFromTeam) then
+            return Text.key("TXT_KEY_DIPLO_MINOR_ALLY_AT_WAR")
+        end
+        return nil
+    end
+    if not Players[iFromPlayer]:IsWillAcceptPeaceWithPlayer(iLoopPlayer) then
+        return Text.key("TXT_KEY_DIPLO_MINOR_THIS_GUY_WANTS_WAR")
+    elseif not pLoopPlayer:IsWillAcceptPeaceWithPlayer(iFromPlayer) then
+        return Text.key("TXT_KEY_DIPLO_MINOR_OTHER_GUY_WANTS_WAR")
+    end
+    return nil
+end
+
+local function thirdPartyWarDisabledReason(iFromPlayer, iLoopPlayer)
+    local pLoopPlayer = Players[iLoopPlayer]
+    local iLoopTeam = pLoopPlayer:GetTeam()
+    local iFromTeam = Players[iFromPlayer]:GetTeam()
+    if Teams[iLoopTeam]:IsAtWar(iFromTeam) then
+        return Text.key("TXT_KEY_DIPLO_ALREADY_AT_WAR")
+    elseif Teams[iFromTeam]:IsForcePeace(iLoopTeam) then
+        return Text.key("TXT_KEY_DIPLO_FORCE_PEACE")
+    elseif pLoopPlayer:IsMinorCiv() and pLoopPlayer:GetAlly() == iFromPlayer then
+        return Text.key("TXT_KEY_DIPLO_NO_WAR_ALLIES")
+    end
+    return nil
+end
+
+-- Other players group: Make Peace With <civ> and Declare War On <civ>.
+-- Surfaces every met civ in both sub-groups (matching the engine's
+-- ShowOtherPlayerChooser, which lays out all met civs in each sub-table
+-- and disables the impossible ones with an explanatory tooltip). Legal
+-- targets are activatable Text leaves; illegal targets are Text leaves
+-- whose tooltipText carries the engine's per-civ reason so the user hears
+-- it on first announce. Skips the same set the engine hides outright
+-- (self / current trade partner / civs either side hasn't met).
 local function availableOtherPlayersGroup(side)
     local iPlayer = sidePlayer(side)
     local otherPlayer = sideIsUs(side) and g_iThem or g_iUs
+    local pUsTeam = Teams[Players[g_iUs]:GetTeam()]
+    local pThemTeam = Teams[Players[g_iThem]:GetTeam()]
     local makePeace = {}
     local declareWar = {}
     local maxCivs = (GameDefines.MAX_CIV_PLAYERS or 64)
     for i = 0, maxCivs - 1 do
         local pl = Players[i]
-        if pl ~= nil and pl:IsEverAlive() and not pl:IsBarbarian() and i ~= iPlayer and i ~= otherPlayer then
+        if pl ~= nil and pl:IsAlive() and not pl:IsBarbarian() and i ~= iPlayer and i ~= otherPlayer then
             local theirTeam = pl:GetTeam()
-            local name = pl:GetName()
-            local leaderInfo = GameInfo.Leaders[pl:GetLeaderType()]
-            local pediaName = leaderInfo and Text.key(leaderInfo.Description) or nil
+            -- Engine hide-set: civs whose team coincides with either side
+            -- of the deal, or whom either side hasn't met. These never
+            -- appear in the engine's chooser at all.
             if
-                g_Deal:IsPossibleToTradeItem(
-                    iPlayer,
-                    otherPlayer,
-                    TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE,
-                    theirTeam
-                )
+                theirTeam ~= pUsTeam:GetID()
+                and theirTeam ~= pThemTeam:GetID()
+                and pUsTeam:IsHasMet(theirTeam)
+                and pThemTeam:IsHasMet(theirTeam)
             then
+                local name = pl:GetName()
+                local leaderInfo = GameInfo.Leaders[pl:GetLeaderType()]
+                local pediaName = leaderInfo and Text.key(leaderInfo.Description) or nil
                 local capturedTeam = theirTeam
-                makePeace[#makePeace + 1] = BaseMenuItems.Text({
-                    labelText = name,
-                    pediaName = pediaName,
-                    onActivate = function()
-                        g_Deal:AddThirdPartyPeace(iPlayer, capturedTeam, peaceDuration())
-                        afterLocalDealChange()
-                    end,
-                })
-            end
-            if
-                g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_THIRD_PARTY_WAR, theirTeam)
-            then
-                local capturedTeam = theirTeam
-                declareWar[#declareWar + 1] = BaseMenuItems.Text({
-                    labelText = name,
-                    pediaName = pediaName,
-                    onActivate = function()
-                        g_Deal:AddThirdPartyWar(iPlayer, capturedTeam)
-                        afterLocalDealChange()
-                    end,
-                })
+                if
+                    g_Deal:IsPossibleToTradeItem(
+                        iPlayer,
+                        otherPlayer,
+                        TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE,
+                        capturedTeam
+                    )
+                then
+                    makePeace[#makePeace + 1] = BaseMenuItems.Text({
+                        labelText = name,
+                        pediaName = pediaName,
+                        onActivate = function()
+                            g_Deal:AddThirdPartyPeace(iPlayer, capturedTeam, peaceDuration())
+                            afterLocalDealChange()
+                        end,
+                    })
+                else
+                    local reason = thirdPartyPeaceDisabledReason(iPlayer, i)
+                    makePeace[#makePeace + 1] = BaseMenuItems.Text({
+                        labelText = name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
+                        pediaName = pediaName,
+                        tooltipText = reason,
+                    })
+                end
+                if
+                    g_Deal:IsPossibleToTradeItem(
+                        iPlayer,
+                        otherPlayer,
+                        TradeableItems.TRADE_ITEM_THIRD_PARTY_WAR,
+                        capturedTeam
+                    )
+                then
+                    declareWar[#declareWar + 1] = BaseMenuItems.Text({
+                        labelText = name,
+                        pediaName = pediaName,
+                        onActivate = function()
+                            g_Deal:AddThirdPartyWar(iPlayer, capturedTeam)
+                            afterLocalDealChange()
+                        end,
+                    })
+                else
+                    local reason = thirdPartyWarDisabledReason(iPlayer, i)
+                    declareWar[#declareWar + 1] = BaseMenuItems.Text({
+                        labelText = name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
+                        pediaName = pediaName,
+                        tooltipText = reason,
+                    })
+                end
             end
         end
     end
@@ -983,6 +1075,7 @@ local function availableOtherPlayersGroup(side)
     end
     return BaseMenuItems.Group({
         labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_OTHER_PLAYERS"),
+        tooltipFn = pocketTooltipFn(prefix(side) .. "PocketOtherPlayer"),
         items = subs,
     })
 end
