@@ -62,15 +62,13 @@ end
 
 -- Space-preview announcement. Distinguishes three cases the user can land
 -- on while roaming the map:
---   1. Plot the city CAN strike -- speak target identity (city or unit).
+--   1. Plot the city CAN strike -- speak target identity plus the
+--      engine-computed damage prediction (CitySpeech.rangedPreview).
 --   2. Plot the city cannot strike (out of range, no visible enemy, etc.) --
 --      speak "cannot strike" so the user knows Enter would be rejected.
 --   3. Plot the city can strike but with no surfaceable target -- speak
 --      "cannot strike" too (rare; visible-enemy gate keeps these out of
 --      CanRangeStrikeAt's true cases).
--- The engine exposes no Lua-side city-to-target damage function, so the
--- preview is target identity only -- the user decides from HP and
--- strength whether to commit.
 local function targetAnnouncement(city, plot, x, y)
     if plot == nil then
         return ""
@@ -81,11 +79,11 @@ local function targetAnnouncement(city, plot, x, y)
     local targetCity = plot:GetPlotCity()
     local activePlayer = Game.GetActivePlayer()
     if targetCity ~= nil and targetCity:GetOwner() ~= activePlayer then
-        return CitySpeech.identity(targetCity)
+        return CitySpeech.identity(targetCity) .. ", " .. CitySpeech.rangedPreview(city, nil, targetCity)
     end
     local unit = topEnemyUnitAt(plot)
     if unit ~= nil then
-        return UnitSpeech.info(unit)
+        return UnitSpeech.info(unit) .. ", " .. CitySpeech.rangedPreview(city, unit, nil)
     end
     return Text.key("TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE")
 end

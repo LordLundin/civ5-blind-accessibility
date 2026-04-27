@@ -375,3 +375,37 @@ function CitySpeech.politics(city)
     end
     return table.concat(parts, ", ")
 end
+
+-- Damage preview for `city` ranged-attacking either a unit OR another
+-- city. Pass exactly one of (defenderUnit, defenderCity) and leave the
+-- other nil. Mirrors shipped EnemyUnitPanel.lua UpdateCombatOddsCityVsUnit
+-- (line ~1684): City:RangeCombatDamage runs the engine's damage roll
+-- (bIncludeRand=false for a deterministic preview matching what the
+-- panel shows on hover); defender strength comes from
+-- City:RangeCombatUnitDefense for unit defenders and the target city's
+-- GetStrengthValue for city defenders. Damage is clamped to the
+-- defender's max HP, matching the panel's clamp at line 1703.
+--
+-- Caller speaks the target's identity (CitySpeech.identity for city
+-- defenders, UnitSpeech.info for unit defenders) before this; this
+-- function returns the engine-strength + damage suffix only.
+function CitySpeech.rangedPreview(city, defenderUnit, defenderCity)
+    local damage, theirStrength, maxHP
+    if defenderUnit ~= nil then
+        damage = city:RangeCombatDamage(defenderUnit, nil, false)
+        theirStrength = city:RangeCombatUnitDefense(defenderUnit)
+        maxHP = defenderUnit:GetMaxHitPoints()
+    elseif defenderCity ~= nil then
+        damage = city:RangeCombatDamage(nil, defenderCity, false)
+        theirStrength = defenderCity:GetStrengthValue()
+        maxHP = defenderCity:GetMaxHitPoints()
+    else
+        return ""
+    end
+    if damage > maxHP then
+        damage = maxHP
+    end
+    local myStr = Locale.ToNumber(city:GetStrengthValue() / 100, "#.##")
+    local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
+    return Text.format("TXT_KEY_CIVVACCESS_CITY_RANGED_PREVIEW", myStr, theirStr, damage)
+end
