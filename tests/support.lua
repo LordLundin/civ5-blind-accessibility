@@ -327,6 +327,18 @@ function T.fakeUnit(opts)
     function u:GetBuildType()
         return self._buildType
     end
+    function u:GetID()
+        return opts.id or 1
+    end
+    function u:GetMissionQueue()
+        return opts.missionQueue or {}
+    end
+    function u:GetX()
+        return opts.x or 0
+    end
+    function u:GetY()
+        return opts.y or 0
+    end
     return u
 end
 

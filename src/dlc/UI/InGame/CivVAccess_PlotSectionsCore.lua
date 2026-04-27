@@ -283,3 +283,17 @@ PlotSections.recommendation = {
         return settlerRecTokens(player, plot, x, y) or workerRecTokens(player, plot, x, y) or {}
     end,
 }
+
+-- Tail-fact "btw, this hex is on the selected unit's queued path." Reads
+-- the same WaypointsCore cache the scanner uses, so the K of N numbers
+-- agree across the cursor glance and the scanner readout for one
+-- selection frame.
+PlotSections.waypoint = {
+    Read = function(plot)
+        local hit = Waypoints.atXY(plot:GetX(), plot:GetY())
+        if hit == nil then
+            return {}
+        end
+        return { Text.format("TXT_KEY_CIVVACCESS_PLOT_WAYPOINT", hit.index, hit.total) }
+    end,
+}

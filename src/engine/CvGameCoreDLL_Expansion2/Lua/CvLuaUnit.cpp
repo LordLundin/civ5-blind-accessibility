@@ -41,6 +41,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetPathEndTurnPlot);
 	Method(GeneratePath);
 	Method(GetPath);
+	Method(ComputePath);
 	Method(GetMissionQueue);
 
 	Method(CanEnterTerritory);
@@ -613,6 +614,63 @@ int CvLuaUnit::lGetPath(lua_State* L)
 		lua_rawseti(L, -2, i + 1);
 	}
 	return 1;
+}
+//------------------------------------------------------------------------------
+// CIVVACCESS: Run the pathfinder for this unit between two arbitrary
+// plots without disturbing the unit's m_kLastPath cache. GeneratePath /
+// GetPath always start from the unit's current position and update the
+// cache used by mission processing; queued-waypoint computation needs to
+// chain pathfinder runs from each prior leg's destination, which a
+// cache-clobbering call would corrupt.
+//
+// Returns (nodes, ok, legTurns). Nodes is a 1-indexed Lua array ordered
+// start-to-destination (origin at [1], destination at [#nodes]); each
+// entry is { x, y, moves, turn, flags } matching GetPath's shape.
+// legTurns is INT_MAX-equivalent on failure; caller treats ok==false as
+// "skip this leg." Empty array on failure.
+int CvLuaUnit::lComputePath(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvPlot* pkFromPlot = CvLuaPlot::GetInstance(L, 2);
+	CvPlot* pkToPlot = CvLuaPlot::GetInstance(L, 3);
+	const int iFlags = luaL_optint(L, 4, 0);
+
+	CvTwoLayerPathFinder& kPathFinder = GC.getPathFinder();
+	const bool bSuccess = pkFromPlot && pkToPlot && kPathFinder.GenerateUnitPath(
+		pkUnit,
+		pkFromPlot->getX(), pkFromPlot->getY(),
+		pkToPlot->getX(), pkToPlot->getY(),
+		iFlags, false);
+
+	CvPathNodeArray kNodes;
+	if(bSuccess)
+	{
+		CvAStar::CopyPath(kPathFinder.GetLastNode(), kNodes);
+	}
+	const int iCount = (int)kNodes.size();
+
+	lua_createtable(L, iCount, 0);
+	for(int i = 0; i < iCount; ++i)
+	{
+		// CopyPath stores destination-first; flip on push so [1] is the
+		// origin and [#nodes] is the destination, matching GetPath.
+		const CvPathNode& kNode = kNodes[iCount - 1 - i];
+		lua_createtable(L, 0, 5);
+		lua_pushinteger(L, kNode.m_iX);     lua_setfield(L, -2, "x");
+		lua_pushinteger(L, kNode.m_iY);     lua_setfield(L, -2, "y");
+		lua_pushinteger(L, kNode.m_iData1); lua_setfield(L, -2, "moves");
+		lua_pushinteger(L, kNode.m_iData2); lua_setfield(L, -2, "turn");
+		lua_pushinteger(L, kNode.m_iFlags); lua_setfield(L, -2, "flags");
+		lua_rawseti(L, -2, i + 1);
+	}
+
+	lua_pushboolean(L, bSuccess);
+	// Front of the destination-first array is the destination node; its
+	// turn value is the leg's total turn count (matches CvUnit::GeneratePath
+	// piPathTurns assignment).
+	const int iLegTurns = (bSuccess && iCount > 0) ? kNodes.front().m_iData2 : 0;
+	lua_pushinteger(L, iLegTurns);
+	return 3;
 }
 //------------------------------------------------------------------------------
 // CIVVACCESS: Returns the unit's pending mission queue as a 1-indexed

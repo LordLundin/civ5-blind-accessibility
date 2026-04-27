@@ -139,6 +139,13 @@ end
 
 local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    -- Required by UnitSpeech.statusToken's ACTIVITY_MISSION rung (calls
+    -- Waypoints.finalAndTurns when the head-selected unit matches). The
+    -- module's lookup paths short-circuit on the polyfill's nil
+    -- UI.GetHeadSelectedUnit, so loading is enough; tests that exercise
+    -- the queued-to rung set their own UI / Waypoints fixtures.
+    civvaccess_shared = civvaccess_shared or {}
+    dofile("src/dlc/UI/InGame/CivVAccess_WaypointsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_UnitSpeech.lua")
 
     GameInfo = GameInfo or {}
@@ -165,6 +172,13 @@ local function setup()
     GameDefines = GameDefines or {}
     GameDefines.MAX_HIT_POINTS = 100
     GameDefines.MOVE_DENOMINATOR = 60
+    -- Reset UI.GetHeadSelectedUnit each setup so a prior suite's fixture
+    -- (cursor_test installs a fakeUnit) can't leak into the queued-rung
+    -- branch of statusToken, which compares head:GetID against unit:GetID.
+    UI = UI or {}
+    UI.GetHeadSelectedUnit = function()
+        return nil
+    end
 end
 
 -- ===== Selection: direction prefix =====

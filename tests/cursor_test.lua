@@ -11,6 +11,11 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_UnitSpeech.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_RecommendationsCore.lua")
+    -- WaypointsCore is referenced by PlotSections.waypoint, which the
+    -- glance composer pulls in. atXY short-circuits on the polyfill's
+    -- nil UI.GetHeadSelectedUnit so cursor tests that don't set up a
+    -- selection see no waypoint tokens.
+    dofile("src/dlc/UI/InGame/CivVAccess_WaypointsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionUnits.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionRiver.lua")

@@ -16,6 +16,9 @@ include("CivVAccess_Nav")
 -- PlotSections.recommendation Read function invokes, so load it before
 -- PlotSectionsCore. The scanner backend further down also uses it.
 include("CivVAccess_RecommendationsCore")
+-- WaypointsCore feeds PlotSections.waypoint and the waypoints scanner
+-- backend; same load-ordering rationale as RecommendationsCore.
+include("CivVAccess_WaypointsCore")
 include("CivVAccess_PlotSectionsCore")
 include("CivVAccess_PlotSectionUnits")
 include("CivVAccess_PlotSectionRiver")
@@ -74,6 +77,7 @@ include("CivVAccess_ScannerBackendImprovements")
 include("CivVAccess_ScannerBackendSpecial")
 include("CivVAccess_ScannerBackendTerrain")
 include("CivVAccess_ScannerBackendRecommendations")
+include("CivVAccess_ScannerBackendWaypoints")
 include("CivVAccess_ScannerSnap")
 include("CivVAccess_ScannerSearch")
 include("CivVAccess_ScannerInput")

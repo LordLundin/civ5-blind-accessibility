@@ -18,9 +18,10 @@
 --     on-map path line. For a selectable player unit that falls through
 --     to this rung, the engine mission is MISSION_MOVE_TO / ROUTE_TO
 --     (build missions get caught by the build rung; one-shot missions
---     resolve within the turn). Lua exposes ACTIVITY_MISSION but not
---     the mission type or destination, so we can label it "move" but
---     not name where.
+--     resolve within the turn). With waypoints computed by WaypointsCore
+--     we can name the destination as a direction prefix ("3e 2se") and
+--     the total turn count; bare "queued move" is the fallback when the
+--     queue's path-bearing legs all fail to resolve a path.
 
 UnitSpeech = {}
 
@@ -121,6 +122,21 @@ local function statusToken(unit)
         return Text.format("TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING", Text.key(buildRow.Description), turns)
     end
     if activity == ActivityTypes.ACTIVITY_MISSION then
+        -- Waypoints.finalAndTurns reads the cached queue waypoints for
+        -- the active selected unit. statusToken is also called from
+        -- PlotSectionUnits against arbitrary units on the cursor plot;
+        -- the cache only matches the head-selected unit, so an unselected
+        -- friendly mid-mission falls through to the bare queued rung.
+        local head = UI.GetHeadSelectedUnit()
+        if head ~= nil and head:GetID() == unit:GetID() then
+            local fin = Waypoints.finalAndTurns()
+            if fin ~= nil then
+                local dir = HexGeom.directionString(unit:GetX(), unit:GetY(), fin.x, fin.y)
+                if dir ~= "" then
+                    return Text.format("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO", dir, fin.turns)
+                end
+            end
+        end
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED")
     end
     return ""

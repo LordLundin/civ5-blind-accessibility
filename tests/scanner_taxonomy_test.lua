@@ -40,6 +40,7 @@ function M.test_category_order_fixed()
         "special",
         "terrain",
         "recommendations",
+        "waypoints",
     }
     local actual = catKeys()
     T.eq(#actual, #expected)
@@ -135,6 +136,14 @@ function M.test_recommendations_has_no_named_subs()
     setup()
     local subs = subKeys("recommendations")
     T.eq(#subs, 0, "recommendations must declare no named subs")
+end
+
+function M.test_waypoints_has_no_named_subs()
+    -- Waypoints is selection-scoped to one unit at a time; a leg-based
+    -- split would force a navigation step with no disambiguation payoff.
+    setup()
+    local subs = subKeys("waypoints")
+    T.eq(#subs, 0, "waypoints must declare no named subs")
 end
 
 function M.test_all_category_labels_resolve_to_text_keys()

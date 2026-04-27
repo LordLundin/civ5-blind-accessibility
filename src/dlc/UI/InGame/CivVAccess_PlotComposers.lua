@@ -53,9 +53,11 @@ function PlotComposers.glance(plot, opts)
     readSection(PlotSections.resource, plot, ctx, tokens)
     readSection(PlotSections.improvement, plot, ctx, tokens)
     readSection(PlotSectionRiver, plot, ctx, tokens)
-    -- Recommendation tail: tells the user what the engine's anchor would
-    -- say on this plot if they could see it. Last so it reads as a
-    -- separate "btw, here's a suggestion" after the factual description.
+    -- Tail facts. Waypoint hit reads first because it identifies the
+    -- plot by its role in the user's own plan ("waypoint 3 of 12"); the
+    -- recommendation tail is the engine's hint about a different plan
+    -- the unit could pursue. Both are "btw"; user intent wins the slot.
+    readSection(PlotSections.waypoint, plot, ctx, tokens)
     readSection(PlotSections.recommendation, plot, ctx, tokens)
     return table.concat(tokens, ", ")
 end

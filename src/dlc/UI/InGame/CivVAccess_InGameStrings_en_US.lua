@@ -35,6 +35,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = "{1_What} {2_Tur
 -- etc.) resolve within the turn and never reach selection. The Lua API does
 -- not expose mission type or destination plot, so we cannot say where.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "queued move"
+-- Engine-fork form of the queued rung: when WaypointsCore can compute a
+-- destination and turn count for the head-selected unit's queued path,
+-- the rung becomes "queued move {dir}, N turns" so the user hears where
+-- the unit is going and how long it takes.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = "queued move {1_Dir}, {2_Turns} turns"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} melee"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} ranged, range {2_Range}"
 -- Enemy form of ranged strength: range distance is hidden to match base
@@ -66,6 +71,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_ACTIVATE_MENU_NAME"] = "Activate t
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "Promotions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Worker builds"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"] = "target mode"
+-- Confirms when shift+enter appends a leg to the unit's mission queue.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"] = "queued"
+-- Spoken when shift+enter is pressed in a non-queueable mode (melee
+-- attack). The engine has no queued-attack semantics that resolve into
+-- meaningful gameplay -- a queued attack pushes the mission and resolves
+-- on the same turn the queue head reaches it, but we have no
+-- pre-snapshot for the eventual combat -- so we reject.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"] = "cannot queue attack"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CANCELED"] = "canceled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE"] = "out of range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK"] =
@@ -212,6 +225,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_PREFIX"] = "river"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES"] = "river all sides"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"] = "fresh water"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE"] = "trade route"
+-- Numbered step on the head-selected unit's queued path. Speaks on cursor
+-- glance and as the scanner item name for the "waypoints" category.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT"] = "waypoint {1_Index} of {2_Total}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PILLAGED_SUFFIX"] = "pillaged"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HILLS"] = "hills"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOUNTAIN"] = "mountain"

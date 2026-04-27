@@ -28,6 +28,7 @@
 UnitTargetMode = {}
 
 local MOD_NONE = 0
+local MOD_SHIFT = 1
 local MOD_ALT = 4
 
 -- CvAStar.h MOVE_DECLARE_WAR. Lets the unit pathfinder route through
@@ -529,7 +530,20 @@ local function willCauseCombat(actor, plot, mode)
     return false
 end
 
-local function commitAtCursor(self)
+-- queued=true is shift+enter: append the mission to the unit's queue
+-- via bShift on the engine's PUSH_MISSION net message (matches base
+-- WorldView.lua's mouse-shift-click path), skip pending registration
+-- (the move won't necessarily resolve this turn, so the SerialEventUnit*
+-- "moved / stopped short" announcement isn't ours to make), and stay in
+-- target mode so the user can chain more shift+enters to add legs. Plain
+-- enter (queued=false) keeps the existing replace-and-resolve flow.
+--
+-- queued mode skips melee attack and combat-pending paths entirely:
+-- combat doesn't queue meaningfully (the engine still resolves on the
+-- following turn but we have no pre-snapshot for the eventual combat),
+-- and bShift on a non-MOVE mission is a base-engine pass-through with
+-- no on-screen path line for sighted players either.
+local function commitAtCursor(self, queued)
     local plot, tx, ty = cursorPlot()
     if plot == nil then
         SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
@@ -552,6 +566,15 @@ local function commitAtCursor(self)
         SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
         HandlerStack.removeByName("UnitTargetMode", false)
         restoreSelection()
+        return
+    end
+    if queued then
+        if isMeleeAttackMode(mode) then
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"))
+            return
+        end
+        Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, true)
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
         return
     end
     if willCauseCombat(self._actor, plot, mode) then
@@ -613,6 +636,9 @@ function UnitTargetMode.enter(actor, iAction, mode)
         bind(Keys.VK_RETURN, MOD_NONE, function()
             commitAtCursor(self)
         end, "Commit target"),
+        bind(Keys.VK_RETURN, MOD_SHIFT, function()
+            commitAtCursor(self, true)
+        end, "Queue target"),
         bind(Keys.VK_ESCAPE, MOD_NONE, function()
             HandlerStack.removeByName("UnitTargetMode", false)
             restoreSelection()

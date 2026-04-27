@@ -39,6 +39,7 @@ protected:
 	static int lGetPathEndTurnPlot(lua_State* L);
 	static int lGeneratePath(lua_State* L);
 	static int lGetPath(lua_State* L);
+	static int lComputePath(lua_State* L);
 	static int lGetMissionQueue(lua_State* L);
 
 	static int lCanEnterTerritory(lua_State* L);

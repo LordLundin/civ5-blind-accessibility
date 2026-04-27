@@ -148,6 +148,18 @@ ScannerCore.CATEGORIES = {
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_RECOMMENDATIONS",
         subcategories = {},
     },
+    {
+        -- Per-step plots the active selected unit will traverse on its
+        -- queued mission, sourced from Waypoints.list(). Selection-scoped:
+        -- the backend emits nothing when no friendly unit is selected
+        -- (waypoints are only meaningful for the player's own queued
+        -- moves). No named subs: waypoints belong to one unit at a time
+        -- and a leg-based split would force a navigation step with no
+        -- disambiguation payoff.
+        key = "waypoints",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_WAYPOINTS",
+        subcategories = {},
+    },
 }
 
 -- Lookup table for O(1) category-by-key access. Built at load time from
