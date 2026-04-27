@@ -343,7 +343,6 @@ function LeagueOverviewVote.row(controller, idx, pLeague, activePlayer)
         end
         local delta = (big and BIG_STEP or STEP) * dir
         local priorVotes = entry.votes
-        local priorState = currentVoteState()
         if isMajorCivProposal(entry.proposal) then
             controller:adjustMajorCiv(idx, delta)
         else
@@ -356,9 +355,7 @@ function LeagueOverviewVote.row(controller, idx, pLeague, activePlayer)
             SpeechPipeline.speakInterrupt(self:announce(menu))
             return
         end
-        SpeechPipeline.speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_CHANGE", priorState, currentVoteState())
-        )
+        SpeechPipeline.speakInterrupt(currentVoteState())
     end
     return item
 end
