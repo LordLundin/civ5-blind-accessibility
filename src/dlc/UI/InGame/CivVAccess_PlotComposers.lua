@@ -39,6 +39,12 @@ function PlotComposers.glance(plot, opts)
     local visible = plot:IsVisible(team, debug)
     local ctx = { cueOnly = cueOnly }
     local tokens = {}
+    -- Waypoint heads the glance: when the user is scanning the queued
+    -- path of their selected unit, "waypoint K of N" is the
+    -- distinguishing fact between adjacent path plots, and per CLAUDE.md
+    -- the distinguishing word goes first so the user can keep going
+    -- without listening past the shared prefix.
+    readSection(PlotSections.waypoint, plot, ctx, tokens)
     if not visible and not cueOnly then
         tokens[#tokens + 1] = Text.key("TXT_KEY_CIVVACCESS_FOG")
     end
@@ -53,11 +59,9 @@ function PlotComposers.glance(plot, opts)
     readSection(PlotSections.resource, plot, ctx, tokens)
     readSection(PlotSections.improvement, plot, ctx, tokens)
     readSection(PlotSectionRiver, plot, ctx, tokens)
-    -- Tail facts. Waypoint hit reads first because it identifies the
-    -- plot by its role in the user's own plan ("waypoint 3 of 12"); the
-    -- recommendation tail is the engine's hint about a different plan
-    -- the unit could pursue. Both are "btw"; user intent wins the slot.
-    readSection(PlotSections.waypoint, plot, ctx, tokens)
+    -- Recommendation tail: the engine's hint about a different plan the
+    -- unit could pursue. Last because it's auxiliary to the factual
+    -- description above.
     readSection(PlotSections.recommendation, plot, ctx, tokens)
     return table.concat(tokens, ", ")
 end
