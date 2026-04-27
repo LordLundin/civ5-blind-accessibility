@@ -348,11 +348,7 @@ function LeagueOverviewVote.row(controller, idx, pLeague, activePlayer)
         else
             controller:adjustYesNo(idx, delta)
         end
-        -- Clamped at the row's max (or the vote pool exhausted): no change to
-        -- speak, so re-announce the full row so the user has context for why
-        -- the press did nothing.
         if entry.votes == priorVotes then
-            SpeechPipeline.speakInterrupt(self:announce(menu))
             return
         end
         SpeechPipeline.speakInterrupt(currentVoteState())
