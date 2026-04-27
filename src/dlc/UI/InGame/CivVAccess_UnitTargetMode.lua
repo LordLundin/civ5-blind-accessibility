@@ -30,6 +30,11 @@ UnitTargetMode = {}
 local MOD_NONE = 0
 local MOD_ALT = 4
 
+-- CvAStar.h MOVE_DECLARE_WAR. Lets the unit pathfinder route through
+-- tiles whose entry would declare war (peaceful rival territory),
+-- matching the engine's interface pathfinder for hover-path display.
+local MOVE_DECLARE_WAR = 0x00000020
+
 -- Tracks the actor's unit ID while this handler is on the stack.
 -- Exposed via UnitTargetMode.currentActorID so UnitControl's selection-
 -- changed listener can tell whether a selection event reflects a cycle
@@ -77,42 +82,97 @@ local function movePathPreview(actor, targetPlot)
     if fromPlot:GetPlotIndex() == targetPlot:GetPlotIndex() then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
     end
-    local team = actor:GetTeam()
-    local isDebug = Game.IsDebugMode()
-    if not isDebug and not targetPlot:IsRevealed(team, isDebug) then
-        return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
-    end
+    -- Match the engine's interface pathfinder (CvDllContext.cpp:1269):
+    -- it pathfinds through fog (no MOVE_TERRITORY_NO_UNEXPLORED) and uses
+    -- MOVE_DECLARE_WAR so peaceful rival tiles still route. Try the plain
+    -- search first; if it fails, retry with MOVE_DECLARE_WAR so we can
+    -- distinguish "would declare war" from "physically unreachable".
     local ok = actor:GeneratePath(targetPlot)
+    local declaresWar = false
+    if not ok then
+        ok = actor:GeneratePath(targetPlot, MOVE_DECLARE_WAR)
+        declaresWar = ok
+    end
     if not ok then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
     end
     local path = actor:GetPath()
-    local maxMoves = actor:MaxMoves()
-    local startMP = actor:MovesLeft()
-    if startMP < 0 then startMP = maxMoves end
     -- Engine path nodes carry m_iData1=moves remaining and m_iData2=turn
     -- count after arriving at that node. Front of GetPath() is the start
-    -- (we reverse in the binding); end is the destination.
+    -- (we reverse in the binding); end is the destination. iData2 starts
+    -- at 1 and increments only when the parent node had 0 moves left
+    -- (turn boundary crossed). Engine's CvUnit::GeneratePath exposes the
+    -- destination's iData2 as iPathTurns; so "turns=1" means the unit
+    -- arrives this turn.
     local lastNode = path[#path]
-    local mpRemaining = lastNode.moves
-    -- iData2 starts at 1 and increments only when the parent node had 0
-    -- moves left (turn boundary crossed). Engine's CvUnit::GeneratePath
-    -- exposes the destination's iData2 as iPathTurns; so "turns=1" means
-    -- the unit arrives this turn.
     local turns = lastNode.turn
-    -- Total MP spent from start to destination, in 60ths.
-    local mpCost = (math.max(0, turns - 1)) * maxMoves + (startMP - mpRemaining)
-    local mpText = formatMP(mpCost)
-    local leftText = formatMP(mpRemaining)
-    local summary
-    if turns <= 1 then
-        summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN", mpText, leftText)
-    else
-        summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, turns, leftText)
+    -- The engine's interface pathfinder routes optimistically through
+    -- fog: PathValid (CvAStar.cpp:1361-1370) skips the land-vs-water
+    -- check on unrevealed destinations, and CvUnitMovement::MovementCost
+    -- (CvUnitMovement.cpp:184-189) applies ConsumesAllMoves to every
+    -- unrevealed tile for human units, so each fogged hex costs a full
+    -- turn regardless of underlying terrain. Turn count is therefore a
+    -- pure path-length-through-fog signal, not a terrain leak; sighted
+    -- gets the same number from PathHelpManager turn numerals at Z=15
+    -- above the fog overlay (PathHelpManager.lua:30-48). What sighted
+    -- can NOT see is the per-tile route shape inside the fog.
+    --
+    -- Match that: speak per-tile geometry up to the last revealed hex
+    -- (sighted players visually trace this through the map), then "then
+    -- unexplored" plus the turn count. Stops at the first fogged hex; if
+    -- the path re-emerges into revealed terrain after that, we don't try
+    -- to stitch the segments -- those re-emergence cases are uncommon
+    -- and the saved info isn't worth the parse complexity.
+    local team = actor:GetTeam()
+    local isDebug = Game.IsDebugMode()
+    local crossesFog = false
+    local revealedPrefix
+    if not isDebug then
+        revealedPrefix = {}
+        for _, node in ipairs(path) do
+            local p = Map.GetPlot(node.x, node.y)
+            if p ~= nil and not p:IsRevealed(team, isDebug) then
+                crossesFog = true
+                break
+            end
+            revealedPrefix[#revealedPrefix + 1] = node
+        end
     end
-    local steps = HexGeom.stepListFromPath(path)
-    if steps ~= "" then
-        return summary .. ", " .. steps
+    local summary
+    if crossesFog then
+        local prefixSteps = HexGeom.stepListFromPath(revealedPrefix)
+        if prefixSteps ~= "" then
+            if turns <= 1 then
+                summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_THIS_TURN", prefixSteps)
+            else
+                summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_TURN", turns, prefixSteps)
+            end
+        elseif turns <= 1 then
+            summary = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_THIS_TURN")
+        else
+            summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_MULTI_TURN", turns)
+        end
+    else
+        local maxMoves = actor:MaxMoves()
+        local startMP = actor:MovesLeft()
+        if startMP < 0 then startMP = maxMoves end
+        local mpRemaining = lastNode.moves
+        -- Total MP spent from start to destination, in 60ths.
+        local mpCost = (math.max(0, turns - 1)) * maxMoves + (startMP - mpRemaining)
+        local mpText = formatMP(mpCost)
+        local leftText = formatMP(mpRemaining)
+        if turns <= 1 then
+            summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN", mpText, leftText)
+        else
+            summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, turns, leftText)
+        end
+        local steps = HexGeom.stepListFromPath(path)
+        if steps ~= "" then
+            summary = summary .. ", " .. steps
+        end
+    end
+    if declaresWar then
+        summary = summary .. ", " .. Text.key("TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR")
     end
     return summary
 end
