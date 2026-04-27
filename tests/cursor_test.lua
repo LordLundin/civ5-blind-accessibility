@@ -537,17 +537,6 @@ function M.test_economy_barren_tile_speaks_no_yield()
     )
 end
 
-function M.test_economy_reports_trade_route_on_fogged_revealed_tile()
-    -- Matches base PlotHelpManager: economy detail runs under IsRevealed,
-    -- not IsVisible. Fogged-but-revealed plot still reports trade route.
-    setup()
-    local fogged = T.fakePlot({ revealed = true, visible = false, tradeRoute = true })
-    T.truthy(
-        PlotComposers.economy(fogged):find("trade route", 1, true),
-        "trade route should be announced on fogged revealed tiles (matches base)"
-    )
-end
-
 function M.test_economy_reports_working_city_on_fogged_revealed_tile()
     setup()
     local city = T.fakeCity({ name = "Rome" })

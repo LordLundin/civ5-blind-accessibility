@@ -98,15 +98,15 @@ local function readBuildProgress(plot, out)
     end
 end
 
--- Yields, trade route, worker builds, and working city all read live
--- state; the engine exposes no GetRevealedX variants. Base game's plot
--- tooltip (PlotHelpManager.lua) shows all of them on any IsRevealed plot
--- without an IsVisible gate, so a fogged tile reports current yields /
--- current trade route / current worker turns / current working city --
--- possibly stale relative to what the player last saw. Match the engine's
--- exposure rather than gate tighter: the game treats this as the
--- player's view of "what they remember," and our speech output should
--- surface the same facts a sighted player would see in the tooltip.
+-- Yields, worker builds, and working city all read live state; the engine
+-- exposes no GetRevealedX variants. Base game's plot tooltip
+-- (PlotHelpManager.lua) shows all of them on any IsRevealed plot without
+-- an IsVisible gate, so a fogged tile reports current yields / current
+-- worker turns / current working city -- possibly stale relative to what
+-- the player last saw. Match the engine's exposure rather than gate
+-- tighter: the game treats this as the player's view of "what they
+-- remember," and our speech output should surface the same facts a
+-- sighted player would see in the tooltip.
 function PlotComposers.economy(plot, opts)
     opts = opts or {}
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
@@ -117,9 +117,6 @@ function PlotComposers.economy(plot, opts)
     readYields(plot, out)
     if plot:IsFreshWater() then
         out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_FRESH_WATER")
-    end
-    if plot:IsTradeRoute() then
-        out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE")
     end
     local workingCity = plot:GetWorkingCity()
     if workingCity ~= nil then

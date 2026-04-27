@@ -65,7 +65,6 @@ function T.fakePlot(opts)
         _isHills = opts.hills or false,
         _isMountain = opts.mountain or false,
         _isFreshWater = opts.freshWater or false,
-        _isTradeRoute = opts.tradeRoute or false,
         _isImpPillaged = opts.improvementPillaged or false,
         _isRoutePillaged = opts.routePillaged or false,
         _terrain = opts.terrain or -1,
@@ -122,9 +121,6 @@ function T.fakePlot(opts)
     end
     function p:IsFreshWater()
         return self._isFreshWater
-    end
-    function p:IsTradeRoute()
-        return self._isTradeRoute
     end
     function p:IsImprovementPillaged()
         return self._isImpPillaged

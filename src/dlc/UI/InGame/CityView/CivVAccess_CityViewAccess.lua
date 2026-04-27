@@ -1320,17 +1320,9 @@ local function hexTileAnnouncement(plot)
         return ""
     end
     local parts = {}
-    -- contextCity collapses economy's "controlled by <this city>" line to just
-    -- "controlled" -- the user already knows which city they're managing.
-    -- Split-ring tiles (another of our cities owns the plot) still get the
-    -- full "controlled by X" since that IS distinguishing info.
-    local yieldText = PlotComposers.economy(plot, { contextCity = city })
-    if yieldText ~= nil and yieldText ~= "" then
-        parts[#parts + 1] = yieldText
-    end
     local px, py = plot:GetX(), plot:GetY()
     local isCenter = (px == city:GetX() and py == city:GetY())
-    -- Three disjoint cases past the yield line:
+    -- Three disjoint cases that lead the announcement:
     -- 1) Center -- the yield line and glance cover it; skip state.
     -- 2) In working area (this city owns and can reach the tile) -- emit
     --    worked / pinned / blocked tokens.
@@ -1352,6 +1344,14 @@ local function hexTileAnnouncement(plot)
                 parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_UNAFFORDABLE", cost)
             end
         end
+    end
+    -- contextCity collapses economy's "controlled by <this city>" line to just
+    -- "controlled" -- the user already knows which city they're managing.
+    -- Split-ring tiles (another of our cities owns the plot) still get the
+    -- full "controlled by X" since that IS distinguishing info.
+    local yieldText = PlotComposers.economy(plot, { contextCity = city })
+    if yieldText ~= nil and yieldText ~= "" then
+        parts[#parts + 1] = yieldText
     end
     local glance = PlotComposers.glance(plot, {})
     if glance ~= nil and glance ~= "" then
