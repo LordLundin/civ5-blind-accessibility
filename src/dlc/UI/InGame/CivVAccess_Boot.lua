@@ -101,6 +101,7 @@ civvaccess_shared.modules.ScannerNav = ScannerNav
 civvaccess_shared.modules.ScannerHandler = ScannerHandler
 civvaccess_shared.modules.SurveyorCore = SurveyorCore
 civvaccess_shared.modules.PlotComposers = PlotComposers
+civvaccess_shared.modules.HexGeom = HexGeom
 civvaccess_shared.modules.CityRangeStrikeMode = CityRangeStrikeMode
 civvaccess_shared.modules.GiftMode = GiftMode
 civvaccess_shared.modules.UnitControl = UnitControl

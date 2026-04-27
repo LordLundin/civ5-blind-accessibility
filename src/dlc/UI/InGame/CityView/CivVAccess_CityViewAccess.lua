@@ -1243,6 +1243,7 @@ local ScannerNav = _hexDeps.ScannerNav
 local ScannerHandler = _hexDeps.ScannerHandler
 local SurveyorCore = _hexDeps.SurveyorCore
 local PlotComposers = _hexDeps.PlotComposers
+local HexGeom = _hexDeps.HexGeom
 --
 -- Enter actions mirror vanilla's left-click callbacks: a workable ring
 -- plot fires TASK_CHANGE_WORKING_PLOT with the city-plot index (same as
@@ -1454,17 +1455,80 @@ local function activateHexTile()
     end
 end
 
+-- L: speak every tile this city is currently working as one utterance,
+-- ordered by cube distance from the live cursor (then directionRank to
+-- mirror the scanner / surveyor tiebreak). The city center is filtered
+-- because it's auto-worked, not a citizen choice -- IsWorkingPlot returns
+-- true for it but the player never "picks" the center. The pinned suffix
+-- only appears on tiles the player has explicitly forced; auto-assigned
+-- worked tiles are bare.
+local function listWorkedTilesFromCursor()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+    local cx, cy = Cursor.position()
+    if cx == nil then
+        return
+    end
+    local cityX, cityY = city:GetX(), city:GetY()
+    local entries = {}
+    for i = 0, city:GetNumCityPlots() - 1 do
+        local plot = city:GetCityIndexPlot(i)
+        if plot ~= nil and city:IsWorkingPlot(plot) then
+            local px, py = plot:GetX(), plot:GetY()
+            if not (px == cityX and py == cityY) then
+                entries[#entries + 1] = {
+                    plot = plot,
+                    px = px,
+                    py = py,
+                    distance = HexGeom.cubeDistance(cx, cy, px, py),
+                    rank = HexGeom.directionRank(cx, cy, px, py),
+                }
+            end
+        end
+    end
+    if #entries == 0 then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_LIST_NONE"))
+        return
+    end
+    table.sort(entries, function(a, b)
+        if a.distance ~= b.distance then
+            return a.distance < b.distance
+        end
+        return a.rank < b.rank
+    end)
+    local parts = {}
+    for _, e in ipairs(entries) do
+        local pieces = {}
+        if e.distance == 0 then
+            pieces[#pieces + 1] = Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
+        else
+            pieces[#pieces + 1] = HexGeom.directionString(cx, cy, e.px, e.py)
+        end
+        local glance = PlotComposers.glance(e.plot, {})
+        if glance ~= nil and glance ~= "" then
+            pieces[#pieces + 1] = glance
+        end
+        if city:IsForcedWorkingPlot(e.plot) then
+            pieces[#pieces + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_PINNED")
+        end
+        parts[#parts + 1] = table.concat(pieces, ", ")
+    end
+    SpeechPipeline.speakInterrupt(table.concat(parts, ". ") .. ".")
+end
+
 local function pushHexMap()
     local city = UI.GetHeadSelectedCity()
     if city == nil then
         return
     end
-    -- Required module refs. Cursor + ScannerNav + PlotComposers are load-
-    -- bearing; ScannerHandler / SurveyorCore are optional extras wired at
-    -- push time. A missing Cursor means the sub is unusable -- bail before
+    -- Required module refs. Cursor + ScannerNav + PlotComposers + HexGeom are
+    -- load-bearing; ScannerHandler / SurveyorCore are optional extras wired
+    -- at push time. A missing Cursor means the sub is unusable -- bail before
     -- any shared state mutation so a broken Boot doesn't leave mapScope
     -- dangling and permanently jam the world cursor.
-    if Cursor == nil or ScannerNav == nil or PlotComposers == nil then
+    if Cursor == nil or ScannerNav == nil or PlotComposers == nil or HexGeom == nil then
         Log.error("CityView hex: civvaccess_shared.modules missing required entries; hex sub unavailable")
         return
     end
@@ -1490,6 +1554,7 @@ local function pushHexMap()
     local bindings = {
         { key = Keys.VK_ESCAPE, mods = MOD_NONE, description = "Back", fn = popSelf },
         { key = Keys.VK_RETURN, mods = MOD_NONE, description = "Activate tile", fn = activateHexTile },
+        { key = Keys.L, mods = MOD_NONE, description = "List worked tiles", fn = listWorkedTilesFromCursor },
         { key = Keys.Q, mods = MOD_NONE, description = "Move NW", fn = moveDir(DirectionTypes.DIRECTION_NORTHWEST) },
         { key = Keys.E, mods = MOD_NONE, description = "Move NE", fn = moveDir(DirectionTypes.DIRECTION_NORTHEAST) },
         { key = Keys.A, mods = MOD_NONE, description = "Move W", fn = moveDir(DirectionTypes.DIRECTION_WEST) },
@@ -1505,6 +1570,10 @@ local function pushHexMap()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_ENTER",
             description = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_ENTER",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_LIST",
+            description = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_LIST",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_BACK",
