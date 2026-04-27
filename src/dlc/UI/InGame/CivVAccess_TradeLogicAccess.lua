@@ -612,8 +612,14 @@ local function availableResourceLeaf(side, resType, resInfo)
     local isStrategic = resInfo.ResourceUsage == 1
     local label = resName .. turnsSuffix(dealDuration())
     if not isStrategic then
+        -- Append the tradeable copy count after the duration so the player
+        -- knows up-front whether giving this away costs the only copy (1)
+        -- or just an extra. Trailing position avoids the "Wine, 2" reading
+        -- of "trading away 2 Wine" -- luxuries are always 1-quantity.
+        local qty = g_Deal:GetNumResource(iPlayer, resType) or 0
+        local luxuryLabel = resName .. turnsSuffix(dealDuration()) .. ", " .. tostring(qty)
         return BaseMenuItems.Text({
-            labelText = label,
+            labelText = luxuryLabel,
             onActivate = function()
                 -- Luxuries are 1-quantity; engine hardcodes to 1 in
                 -- PocketResource handlers.
