@@ -220,12 +220,23 @@ end
 -- there is no keyboard route to queue ahead. Plain Enter at 0 MP on
 -- a path-bearing mission still falls through to commitAtCursor's
 -- CanDoInterfaceMode rejection and speaks "action failed."
+-- GameInfoActions Types for path-bearing interface modes. Move To,
+-- Route To, Embark, Disembark all back the MISSION_MOVE_TO /
+-- MISSION_ROUTE_TO / MISSION_EMBARK / MISSION_DISEMBARK missions
+-- (CIV5InterfaceModes.xml Mission field) -- the engine accepts a
+-- queued PUSH_MISSION on those at 0 MP. MOVE_TO_TYPE / MOVE_TO_ALL
+-- are the shift-modifier-on-click variants for moving same-type or
+-- all selected units; same MISSION_MOVE_TO backing, same queue
+-- semantics. ATTACK / AIRSTRIKE also back MISSION_MOVE_TO but are
+-- combat-class (the action verb is attack-into-tile); those stay
+-- hidden at 0 MP because there's no queueable-attack semantics.
 local QUEUEABLE_AT_ZERO_MP = {
-    MISSION_MOVE_TO = true,
-    MISSION_ROUTE_TO = true,
-    MISSION_MOVE_TO_UNIT = true,
-    MISSION_EMBARK = true,
-    MISSION_DISEMBARK = true,
+    INTERFACEMODE_MOVE_TO = true,
+    INTERFACEMODE_MOVE_TO_TYPE = true,
+    INTERFACEMODE_MOVE_TO_ALL = true,
+    INTERFACEMODE_ROUTE_TO = true,
+    INTERFACEMODE_EMBARK = true,
+    INTERFACEMODE_DISEMBARK = true,
 }
 
 local function isAvailable(unit, iAction, action)
