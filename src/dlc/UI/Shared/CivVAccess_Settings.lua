@@ -48,12 +48,14 @@ local function setReadSubtitles(v)
     Prefs.setBool("ReadSubtitles", b)
 end
 
--- Cursor-follows-selection toggle. On by default: when a unit is
--- selected, the hex cursor jumps to its tile. Flipping it off keeps the
--- cursor put; the selection announcement still includes the direction
--- from cursor to unit so the player can tell where the new selection
--- sits. UnitControl reads civvaccess_shared.cursorFollowsSelection live
--- on every UnitSelectionChanged so toggling takes effect immediately.
+-- Cursor-follows-selected-unit toggle. On by default: the hex cursor
+-- jumps to the unit's tile both when the unit becomes selected and when
+-- it finishes a move. Flipping it off keeps the cursor put in both
+-- cases; the selection announcement still includes the direction from
+-- cursor to unit, and the explicit "speak current unit" hotkey
+-- recenters on demand. UnitControl reads
+-- civvaccess_shared.cursorFollowsSelection live on every event so
+-- toggling takes effect immediately.
 if civvaccess_shared.cursorFollowsSelection == nil then
     civvaccess_shared.cursorFollowsSelection = Prefs.getBool("CursorFollowsSelection", true)
 end
