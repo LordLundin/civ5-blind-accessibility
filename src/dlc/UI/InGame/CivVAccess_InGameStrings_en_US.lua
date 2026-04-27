@@ -1532,6 +1532,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY_ONE"] = "1 Nay"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY"] = "{1_N} Nay"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV_ONE"] = "1 for {1_Civ}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV"] = "{1_N} for {2_Civ}"
+-- Spoken on slider adjust: only the transition, not the full row.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_CHANGE"] = "from {1_From} to {2_To}"
 -- Footer button labels reuse engine keys verbatim
 -- (TXT_KEY_LEAGUE_OVERVIEW_RESET_PROPOSALS / _COMMIT_PROPOSALS /
 -- _RESET_VOTES / _COMMIT_VOTES / _VIEW_ALL_RESOLUTIONS).

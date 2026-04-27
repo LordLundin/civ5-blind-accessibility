@@ -309,6 +309,12 @@ end
 
 function LeagueOverviewVote.row(controller, idx, pLeague, activePlayer)
     local entry = controller.entries[idx]
+    local function currentVoteState()
+        if isMajorCivProposal(entry.proposal) then
+            return LeagueOverviewRow.formatMajorCivVoteState(entry.votes, entry.choice)
+        end
+        return LeagueOverviewRow.formatYesNoVoteState(entry.votes)
+    end
     local item = {
         kind = "slider",
         step = STEP,
@@ -321,13 +327,7 @@ function LeagueOverviewVote.row(controller, idx, pLeague, activePlayer)
         return true
     end
     function item:announce(menu)
-        local voteState
-        if isMajorCivProposal(entry.proposal) then
-            voteState = LeagueOverviewRow.formatMajorCivVoteState(entry.votes, entry.choice)
-        else
-            voteState = LeagueOverviewRow.formatYesNoVoteState(entry.votes)
-        end
-        return LeagueOverviewRow.formatProposalWithDetails(pLeague, entry.proposal, activePlayer, voteState)
+        return LeagueOverviewRow.formatProposalWithDetails(pLeague, entry.proposal, activePlayer, currentVoteState())
     end
     function item:activate(menu)
         if isMajorCivProposal(entry.proposal) and entry.choice == nil then
@@ -342,12 +342,23 @@ function LeagueOverviewVote.row(controller, idx, pLeague, activePlayer)
             return
         end
         local delta = (big and BIG_STEP or STEP) * dir
+        local priorVotes = entry.votes
+        local priorState = currentVoteState()
         if isMajorCivProposal(entry.proposal) then
             controller:adjustMajorCiv(idx, delta)
         else
             controller:adjustYesNo(idx, delta)
         end
-        SpeechPipeline.speakInterrupt(self:announce(menu))
+        -- Clamped at the row's max (or the vote pool exhausted): no change to
+        -- speak, so re-announce the full row so the user has context for why
+        -- the press did nothing.
+        if entry.votes == priorVotes then
+            SpeechPipeline.speakInterrupt(self:announce(menu))
+            return
+        end
+        SpeechPipeline.speakInterrupt(
+            Text.format("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_CHANGE", priorState, currentVoteState())
+        )
     end
     return item
 end
