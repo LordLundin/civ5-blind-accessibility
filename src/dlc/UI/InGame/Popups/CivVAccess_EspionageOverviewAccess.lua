@@ -432,12 +432,16 @@ end
 -- Per-city status struct enriched with CivilizationName / CivilizationNameKey
 -- the engine's RefreshMyCities and RefreshTheirCities (lines 1003-1006 and
 -- 1361-1378) patch on. The engine table itself omits these fields; we mirror
--- the patch at read time rather than mutate the engine table.
+-- the patch at read time rather than mutate the engine table. Name is also
+-- resolved here: the engine puts pCity->getNameKey() (a raw TXT_KEY) in the
+-- Name field, and our mod-authored format slots do not auto-resolve, so a
+-- bare concat or our %_CITY_LABEL substitute would speak the raw key.
 local function enrichCityStatus(v)
     local out = {}
     for k, val in pairs(v) do
         out[k] = val
     end
+    out.Name = Text.key(v.Name)
     local pPlayer = Players[v.PlayerID]
     if pPlayer:IsMinorCiv() then
         local minor = GameInfo.MinorCivilizations[pPlayer:GetMinorCivType()]
