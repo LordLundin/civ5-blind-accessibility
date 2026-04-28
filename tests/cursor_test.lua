@@ -2001,17 +2001,13 @@ function M.test_targetability_speaks_prefix_alone_on_featureless_plot()
     T.truthy(out:find("unseen", 1, true), "featureless plot in ranged mode must still speak prefix: '" .. out .. "'")
 end
 
-function M.test_targetability_city_ranged_mode_uses_city_attacker()
-    -- INTERFACEMODE_CITY_RANGE_ATTACK: attacker is the head-selected city,
-    -- not a unit. LoS blocked from city plot must speak unseen.
+local function setupCityRangedScene(opts)
     setup()
     Players[0] = T.fakePlayer({ team = 0 })
     GameInfo.Terrains[1] = { Description = "Plains" }
     local cityPlot = T.fakePlot({
         x = 0, y = 0, terrain = 1,
-        canSeePlot = function()
-            return false
-        end,
+        canSeePlot = opts.canSeePlot,
     })
     local rome = T.fakeCity({ owner = 0, plot = cityPlot })
     cityPlot._city = rome
@@ -2043,10 +2039,40 @@ function M.test_targetability_city_ranged_mode_uses_city_attacker()
     -- Cursor.init falls back to the active player's capital when no unit
     -- is selected; wire Rome up as the capital so init lands on city plot.
     Players[0]._capital = rome
+    GameDefines.CAN_CITY_USE_INDIRECT_FIRE = opts.indirectFire and 1 or 0
+end
+
+function M.test_targetability_city_ranged_los_required_speaks_unseen()
+    -- CAN_CITY_USE_INDIRECT_FIRE = 0 (base / G&K, or BNW with the global
+    -- flipped off): cities need LoS, so a Bresenham-blocked target must
+    -- prefix "unseen".
+    setupCityRangedScene({
+        canSeePlot = function()
+            return false
+        end,
+        indirectFire = false,
+    })
     Cursor.init()
     Cursor.move(DirectionTypes.DIRECTION_EAST) -- (1,0)
     local out = Cursor.move(DirectionTypes.DIRECTION_EAST) -- (2,0)
-    T.truthy(out:find("unseen", 1, true), "city ranged mode with LoS-blocked target must speak unseen: " .. out)
+    T.truthy(out:find("unseen", 1, true), "LoS-required city must speak unseen on blocked target: " .. out)
+end
+
+function M.test_targetability_city_ranged_indirect_fire_skips_los()
+    -- CAN_CITY_USE_INDIRECT_FIRE = 1 (BNW default): cities ignore LoS, so
+    -- the same Bresenham-blocked target gets no "unseen" prefix -- the
+    -- engine's CanRangeStrikeAt would happily fire and we'd be lying to
+    -- the user if we said the target was unseen.
+    setupCityRangedScene({
+        canSeePlot = function()
+            return false
+        end,
+        indirectFire = true,
+    })
+    Cursor.init()
+    Cursor.move(DirectionTypes.DIRECTION_EAST) -- (1,0)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST) -- (2,0)
+    T.truthy(not out:find("unseen", 1, true), "indirect-fire city must not flag LoS-blocked target: " .. out)
 end
 
 function M.test_activate_major_out_of_turn_is_silent()

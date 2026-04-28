@@ -41,45 +41,82 @@ local function resolveCity(ownerID, cityID)
     return owner:GetCityByID(cityID)
 end
 
--- Best defender at plot for a city ranged strike. Wraps the engine's
--- getBestDefender (CvPlot.cpp:2627) -- the same pick the engine uses to
--- resolve combat. bTestPotentialEnemy=true includes peaceful rivals (city
--- ranged strikes accept them; war-confirm popup queues at commit) and
--- excludes allies. bNoncombatAllowed=true since ranged strikes hit
--- civilians too. pAttacker=nil because the attacker is a city, not a unit.
-local function topEnemyUnitAt(plot)
+-- Defender unit on the plot the city would actually strike. The Lua
+-- GetBestDefender binding (CvLuaPlot.cpp:572) only exposes six args and
+-- defaults bNoncombatAllowed to false, so it drops civilians -- but
+-- CvCity::canRangedStrikeTarget passes bNoncombatAllowed=true, so the
+-- engine accepts strikes against workers / settlers / great people.
+-- bTestPotentialEnemy is also unusable: the gate it triggers bottoms out
+-- in isPotentialEnemy, a Firaxis stub that always returns false, which
+-- silently drops every defender. Walk units manually with a plain at-war
+-- filter so the preview surfaces the same target the engine commits on.
+local function topStrikableTargetAt(plot)
     if plot == nil then
         return nil
     end
-    return plot:GetBestDefender(-1, Game.GetActivePlayer(), nil, 0, 1, 0, 1)
+    local activeTeam = Teams[Game.GetActiveTeam()]
+    if activeTeam == nil then
+        return nil
+    end
+    local fallback = nil
+    for i = 0, plot:GetNumUnits() - 1 do
+        local u = plot:GetUnit(i)
+        if u ~= nil and activeTeam:IsAtWar(u:GetTeam()) then
+            if u:IsCanDefend() then
+                return u
+            end
+            fallback = fallback or u
+        end
+    end
+    return fallback
 end
 
--- Space-preview announcement. Distinguishes three cases the user can land
--- on while roaming the map:
---   1. Plot the city CAN strike -- speak target identity plus the
---      engine-computed damage prediction (CitySpeech.rangedPreview).
---   2. Plot the city cannot strike (out of range, no visible enemy, etc.) --
---      speak "cannot strike" so the user knows Enter would be rejected.
---   3. Plot the city can strike but with no surfaceable target -- speak
---      "cannot strike" too (rare; visible-enemy gate keeps these out of
---      CanRangeStrikeAt's true cases).
-local function targetAnnouncement(city, plot, x, y)
+-- Diagnostic walk for a city strike attempt at (tx, ty). Returns nil if
+-- the strike is legal (caller should speak the preview / commit), or a
+-- TXT key naming the specific failure reason. Mirrors UnitTargetMode's
+-- commitFailureReason pattern: instead of a blanket "cannot strike",
+-- drill into the same gates the engine's canRangeStrikeAt walks
+-- (CvCity.cpp:14299) so the user hears why -- range, visibility, LoS
+-- (when CAN_CITY_USE_INDIRECT_FIRE is off), city-on-city ban, no defender.
+local function strikeFailureReason(city, plot, tx, ty)
     if plot == nil then
-        return ""
-    end
-    if not city:CanRangeStrikeAt(x, y, true, true) then
         return Text.key("TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE")
     end
-    local targetCity = plot:GetPlotCity()
-    local activePlayer = Game.GetActivePlayer()
-    if targetCity ~= nil and targetCity:GetOwner() ~= activePlayer then
-        return CitySpeech.identity(targetCity) .. ", " .. CitySpeech.rangedPreview(city, nil, targetCity)
+    if city:CanRangeStrikeAt(tx, ty) then
+        return nil
     end
-    local unit = topEnemyUnitAt(plot)
-    if unit ~= nil then
-        return UnitSpeech.info(unit) .. ", " .. CitySpeech.rangedPreview(city, unit, nil)
+    local team = Players[city:GetOwner()]:GetTeam()
+    local cityX, cityY = city:GetX(), city:GetY()
+    if Map.PlotDistance(cityX, cityY, tx, ty) > GameDefines.CITY_ATTACK_RANGE then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE")
     end
+    if not plot:IsVisible(team, Game.IsDebugMode()) then
+        return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN")
+    end
+    local indirectFireOn = (GameDefines.CAN_CITY_USE_INDIRECT_FIRE or 0) ~= 0
+    if not indirectFireOn and not city:Plot():HasLineOfSight(plot, team) then
+        return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN")
+    end
+    if topStrikableTargetAt(plot) == nil then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+    end
+    -- Fall-through covers the city-on-city ban (CvCity.cpp:14342 rejects
+    -- when target plot is a city) and any other engine reason we haven't
+    -- modeled. Generic "cannot strike" rather than inventing a specific
+    -- string for an edge case.
     return Text.key("TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE")
+end
+
+local function targetAnnouncement(city, plot, x, y)
+    local reason = strikeFailureReason(city, plot, x, y)
+    if reason ~= nil then
+        return reason
+    end
+    local unit = topStrikableTargetAt(plot)
+    if unit == nil then
+        return Text.key("TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE")
+    end
+    return UnitSpeech.info(unit) .. ", " .. CitySpeech.rangedPreview(city, unit, nil)
 end
 
 -- Initial landing target: first plot inside the city's max strike range
@@ -96,7 +133,7 @@ local function findFirstTarget(city)
                 local plot = Map.PlotXYWithRangeCheck(cx, cy, dx, dy, r)
                 if plot ~= nil then
                     local px, py = plot:GetX(), plot:GetY()
-                    if city:CanRangeStrikeAt(px, py, true, true) then
+                    if city:CanRangeStrikeAt(px, py) then
                         return plot
                     end
                 end
@@ -159,8 +196,9 @@ function CityRangeStrikeMode.enter(city)
             popHandler()
             return
         end
-        if not c:CanRangeStrikeAt(cx, cy, true, true) then
-            speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE"))
+        local reason = strikeFailureReason(c, Map.GetPlot(cx, cy), cx, cy)
+        if reason ~= nil then
+            speakInterrupt(reason)
             return
         end
         -- Re-select the city right before sending. The engine's late-firing

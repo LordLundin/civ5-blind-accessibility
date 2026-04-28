@@ -295,6 +295,9 @@ end
 if GameDefines.CITY_ATTACK_RANGE == nil then
     GameDefines.CITY_ATTACK_RANGE = 2
 end
+if GameDefines.CAN_CITY_USE_INDIRECT_FIRE == nil then
+    GameDefines.CAN_CITY_USE_INDIRECT_FIRE = 1
+end
 
 -- Unit activity enum. Used by UnitSpeech's status cascade to read
 -- unit:GetActivityType() and classify sentry / heal / sleep / awake states.
