@@ -524,7 +524,7 @@ function UnitControl.getBindings()
         bind(Keys.F, MOD_ALT, quickAction(ALT_ACTION_TYPES.SLEEP), "Sleep or fortify"),
         bind(Keys.S, MOD_ALT, quickAction(ALT_ACTION_TYPES.SENTRY), "Sentry"),
         bind(Keys.W, MOD_ALT, quickAction(ALT_ACTION_TYPES.WAKE), "Wake or cancel"),
-        bind(Keys.VK_SPACE, MOD_ALT, quickAction(ALT_ACTION_TYPES.SKIP), "Skip turn"),
+        bind(Keys.X, MOD_ALT, quickAction(ALT_ACTION_TYPES.SKIP), "Skip turn"),
         bind(Keys.H, MOD_ALT, quickAction(ALT_ACTION_TYPES.HEAL), "Heal"),
         bind(Keys.R, MOD_ALT, quickAction(ALT_ACTION_TYPES.RANGED), "Ranged attack"),
         bind(Keys.P, MOD_ALT, quickAction(ALT_ACTION_TYPES.PILLAGE), "Pillage"),
