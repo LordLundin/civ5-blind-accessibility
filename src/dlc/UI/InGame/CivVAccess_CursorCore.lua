@@ -113,7 +113,7 @@ local function targetabilityPrefix(plot)
         end
         attackerPlot = city:Plot()
         team = Players[city:GetOwner()]:GetTeam()
-        range = city:GetCityRangedStrikeRange()
+        range = GameDefines.CITY_ATTACK_RANGE
         ignoresLoS = false
     else
         return ""

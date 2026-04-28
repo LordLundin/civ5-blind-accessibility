@@ -455,9 +455,6 @@ function T.fakeCity(opts)
     function c:Plot()
         return self._plot
     end
-    function c:GetCityRangedStrikeRange()
-        return opts.range or 2
-    end
     function c:GetOriginalOwner()
         return self._originalOwner
     end

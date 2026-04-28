@@ -2013,7 +2013,7 @@ function M.test_targetability_city_ranged_mode_uses_city_attacker()
             return false
         end,
     })
-    local rome = T.fakeCity({ owner = 0, plot = cityPlot, range = 2 })
+    local rome = T.fakeCity({ owner = 0, plot = cityPlot })
     cityPlot._city = rome
     cityPlot._isCity = true
     local stepPlot = T.fakePlot({ x = 1, y = 0, terrain = 1 })
