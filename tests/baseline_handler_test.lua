@@ -150,6 +150,15 @@ local function setup()
             { keyLabel = "SCAN_KEY_1", description = "SCAN_DESC_1" },
         },
     }
+    -- Bookmarks contributes Ctrl/Shift/Alt + 1-0 to Baseline's bindings
+    -- and three help-row entries. Its own behavior is covered by
+    -- bookmarks_test; the stub here just exposes a non-nil getBindings so
+    -- BaselineHandler.create doesn't index nil.
+    Bookmarks = {
+        getBindings = function()
+            return { bindings = {}, helpEntries = {} }
+        end,
+    }
     dofile("src/dlc/UI/InGame/CivVAccess_BaselineHandler.lua")
 end
 

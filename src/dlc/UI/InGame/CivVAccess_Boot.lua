@@ -83,6 +83,10 @@ include("CivVAccess_ScannerSearch")
 include("CivVAccess_ScannerInput")
 include("CivVAccess_ScannerNav")
 include("CivVAccess_ScannerHandler")
+-- Bookmarks loads after the scanner: jumpTo calls ScannerNav.markPreJump
+-- so backspace returns work. BaselineHandler.create pulls the bindings
+-- at LoadScreenClose, which fires after every include here completes.
+include("CivVAccess_Bookmarks")
 include("CivVAccess_NotificationAnnounce")
 include("CivVAccess_RevealAnnounce")
 include("CivVAccess_ForeignUnitWatch")
@@ -130,6 +134,9 @@ local function onInGameBoot()
     -- initialized. Setting before loadAll would be a silent no-op.
     VolumeControl.restore()
     TaskList.resetForNewGame()
+    -- Bookmarks are session-only and tied to the active map's geometry;
+    -- a different game has different cells under those (x, y) pairs.
+    Bookmarks.resetForNewGame()
     HandlerStack.removeByName("Baseline")
     HandlerStack.push(BaselineHandler.create())
     -- Scanner sits directly above Baseline. capturesAllInput=false so

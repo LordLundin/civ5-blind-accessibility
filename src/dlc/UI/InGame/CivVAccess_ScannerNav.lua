@@ -589,6 +589,14 @@ function ScannerNav.toggleAutoMove()
     end
 end
 
+-- Public seam for cross-module pre-jump tracking. Bookmarks calls this
+-- before its own Cursor.jumpTo so the scanner's Backspace return still
+-- works after a Shift+digit jump. ScannerNav.jumpToEntry / autoMoveIfEnabled
+-- writes the same upvalue pair internally.
+function ScannerNav.markPreJump(x, y)
+    _preJumpX, _preJumpY = x, y
+end
+
 -- Backspace: restore the cursor to the cell saved at the most recent
 -- scanner-driven jump. No-op (speak JUMP_NO_RETURN) when no such jump
 -- has happened since the last restore.

@@ -1774,3 +1774,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_OTHER"] = "shared
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_UNKNOWN"] = "unknown"
 -- Move-agent sub.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_MOVE_DISPLAY"] = "Move {1_Rank} {2_Name}"
+
+-- Bookmarks: per-session digit-keyed cursor positions. Ctrl + 1-0 saves
+-- the cursor cell, Shift + 1-0 jumps there (with scanner backspace return),
+-- Alt + 1-0 speaks distance and direction (and capital-relative coord when
+-- the scanner coord setting is on -- so empty / saved direction / coord
+-- fragments stay byte-identical with the scanner's End readout).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_ADDED"] = "bookmark added"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_EMPTY"] = "no bookmark"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_SAVE"] = "Control plus a number key"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_SAVE"] = "Save a bookmark at the cursor in the matching slot"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_JUMP"] = "Shift plus a number key"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_JUMP"] =
+    "Jump cursor to the bookmark in that slot, backspace returns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_DIRECTION"] = "Alt plus a number key"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_DIRECTION"] =
+    "Distance and direction from cursor to the bookmark in that slot"

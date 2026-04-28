@@ -28,16 +28,16 @@
 -- hotkey for advisor counsel is KB_V, which Baseline swallows as an
 -- unbound letter.
 --
--- Help entries are composed as one unified map-mode list in seven sections:
+-- Help entries are composed as one unified map-mode list in eight sections:
 -- tile info (cursor cluster), game info (T/R/G/H/F/P/I empire-status keys),
 -- unit control, turn lifecycle, surveyor, scanner (pulled from
--- ScannerHandler.HELP_ENTRIES), and function-row keys that open engine
--- screens (F1-F9, plus our F10 rebind). Scanner is always on the stack
--- alongside Baseline in-game, so its entries belong inside this ordered
--- list rather than at the top (which is what a top-down
--- HandlerStack.collectHelpEntries walk would produce if Scanner authored
--- its own helpEntries). The F1-F9 entries describe engine behavior reached
--- via passthroughKeys; they have no Baseline binding.
+-- ScannerHandler.HELP_ENTRIES), bookmarks (Ctrl/Shift/Alt + digit), and
+-- function-row keys that open engine screens (F1-F9, plus our F10 rebind).
+-- Scanner is always on the stack alongside Baseline in-game, so its entries
+-- belong inside this ordered list rather than at the top (which is what a
+-- top-down HandlerStack.collectHelpEntries walk would produce if Scanner
+-- authored its own helpEntries). The F1-F9 entries describe engine behavior
+-- reached via passthroughKeys; they have no Baseline binding.
 
 BaselineHandler = {}
 
@@ -335,11 +335,13 @@ function BaselineHandler.create()
     local turn = Turn.getBindings()
     local empireStatus = EmpireStatus.getBindings()
     local taskList = TaskList.getBindings()
+    local bookmarks = Bookmarks.getBindings()
     appendAll(bindings, surveyor.bindings)
     appendAll(bindings, unitControl.bindings)
     appendAll(bindings, turn.bindings)
     appendAll(bindings, empireStatus.bindings)
     appendAll(bindings, taskList.bindings)
+    appendAll(bindings, bookmarks.bindings)
 
     -- Help list, one unified map-mode list. Sections, in order:
     -- 1) tile info (cursor cluster, S/W/X tile queries, 1/2/3 city queries,
@@ -353,7 +355,9 @@ function BaselineHandler.create()
     -- 5) surveyor radius queries,
     -- 6) scanner (from ScannerHandler.HELP_ENTRIES because its own
     --    handler.helpEntries is intentionally empty; see ScannerHandler),
-    -- 7) function-row keys (engine passthroughs plus our F10 rebind).
+    -- 7) bookmarks (digit-keyed cursor positions; sit after scanner
+    --    because they share the "go somewhere fast" purpose),
+    -- 8) function-row keys (engine passthroughs plus our F10 rebind).
     local helpEntries = {}
     appendAll(helpEntries, MOVEMENT_AND_INFO_HELP_ENTRIES)
     appendAll(helpEntries, empireStatus.helpEntries)
@@ -362,6 +366,7 @@ function BaselineHandler.create()
     appendAll(helpEntries, turn.helpEntries)
     appendAll(helpEntries, surveyor.helpEntries)
     appendAll(helpEntries, ScannerHandler.HELP_ENTRIES)
+    appendAll(helpEntries, bookmarks.helpEntries)
     appendAll(helpEntries, FUNCTION_KEY_HELP_ENTRIES)
 
     -- F12 is intentionally absent: InputRouter's pre-walk hook claims it
