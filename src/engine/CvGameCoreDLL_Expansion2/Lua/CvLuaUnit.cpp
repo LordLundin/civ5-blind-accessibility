@@ -751,7 +751,10 @@ int CvLuaUnit::lCanMoveOrAttackInto(lua_State* L)
 	bool bResult = false;
 	if(pkPlot)
 	{
-		pkUnit->canMoveOrAttackInto(*pkPlot, bMoveFlags);
+		// CIVVACCESS: vanilla SDK discards the return value here, so the
+		// stock binding always returns false. Assigning the result lets
+		// Lua callers actually use this gate.
+		bResult = pkUnit->canMoveOrAttackInto(*pkPlot, bMoveFlags);
 	}
 
 	lua_pushboolean(L, bResult);

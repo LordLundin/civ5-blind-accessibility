@@ -421,6 +421,45 @@ local function commitDirectMove(unit, target, targetX, targetY, defender, defend
     Game.SelectionListMove(target, false, false, false)
 end
 
+-- Precheck: would a melee attack from this unit be allowed at all? Order
+-- of checks is most-actionable first so the user hears the suggestion
+-- closest to their next keystroke. IsRanged / DOMAIN_AIR get their own
+-- messages because the right action exists (Alt+R) -- the user just
+-- picked the wrong key. IsCanAttack catches civilians and units the
+-- engine has flagged as non-attackers. MovesLeft is last because it's
+-- transient (next turn fixes it).
+local function preflightAttack(unit)
+    if unit:IsRanged() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_RANGED")
+    end
+    if unit:GetDomainType() == DomainTypes.DOMAIN_AIR then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR")
+    end
+    if not unit:IsCanAttack() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK")
+    end
+    if unit:MovesLeft() <= 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES")
+    end
+    return nil
+end
+
+-- Precheck: can this unit enter the target plot at all? bDeclareWar=true
+-- so a step into a peaceful rival's tile passes the gate -- the engine
+-- will queue BUTTONPOPUP_DECLAREWARMOVE downstream and DeclareWarPopup
+-- Access speaks the confirmation prompt. bDestination=true so destination
+-- -only checks (e.g., transport offload at the final tile) apply. No MP
+-- check: a 0-MP move is legitimately queued for next turn and the
+-- expiry path announces "queued" rather than treating it as failure.
+local function preflightMove(unit, target)
+    -- Flags are int, not bool: the binding uses luaL_optint and rejects
+    -- Lua true/false outright. 1 = bDeclareWar, 1 = bDestination.
+    if not unit:CanMoveOrAttackInto(target, 1, 1) then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED")
+    end
+    return nil
+end
+
 local function directMove(dir)
     local unit = selectedUnit()
     if unit == nil then
@@ -441,7 +480,23 @@ local function directMove(dir)
     end
     if enemy == nil and enemyCity == nil then
         clearCombatConfirm()
+        local moveReason = preflightMove(unit, target)
+        if moveReason ~= nil then
+            speakInterrupt(moveReason)
+            return
+        end
         commitDirectMove(unit, target, tx, ty, nil, false)
+        return
+    end
+    -- Combat case. Precheck runs on the first tap so a unit that can't
+    -- melee (ranged, air, civilian, 0 MP) never gets a misleading combat
+    -- preview. The mouse hover panel the engine shows for sighted users
+    -- gates similarly (EnemyUnitPanel.lua ~1846); we do the same gate so
+    -- the hotkey path matches what a sighted player sees.
+    local attackReason = preflightAttack(unit)
+    if attackReason ~= nil then
+        clearCombatConfirm()
+        speakInterrupt(attackReason)
         return
     end
     -- Melee-attack confirm gate. Screen-reader users can't see the
@@ -878,7 +933,17 @@ schedulePendingExpiry = function(snapshot)
         end
         local unit = resolvePendingUnit()
         if unit ~= nil and unit:GetX() == snapshot.startX and unit:GetY() == snapshot.startY then
-            speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
+            -- Engine accepted the mission but no MP this turn: it sits
+            -- in the queue under ACTIVITY_HOLD until next turn. Speak
+            -- "queued" rather than "action failed" so the user knows
+            -- the move will resolve, just not now. Empty queue = genuine
+            -- rejection (engine refused the PUSH_MISSION outright); fall
+            -- back to the generic message there.
+            if #unit:GetMissionQueue() > 0 then
+                speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_QUEUED_NEXT_TURN"))
+            else
+                speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
+            end
         end
         clearPending()
     end)
