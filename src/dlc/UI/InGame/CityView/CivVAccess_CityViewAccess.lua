@@ -553,6 +553,9 @@ end
 -- in the city, grouped by building in the label (plan-mandated shape).
 -- labelFn flips "empty" / "filled" on the next read, so the state stays
 -- current across Enter-driven add / remove without rebuilding the list.
+-- tooltipFn mirrors the base CityView tooltip's per-yield breakdown so
+-- the user hears what the specialist actually does (e.g. "+6 science,
+-- +3 great people points") rather than just its name.
 -- A Manual Specialist Control toggle lands at the bottom; its checkbox
 -- state mirrors pCity:IsNoAutoAssignSpecialists().
 --
@@ -571,6 +574,35 @@ local function cityHasAnySpecialistSlots(city)
         end
     end
     return false
+end
+
+-- Per-city yield/culture/great-people breakdown for a slot's tooltip.
+-- Mirrors base CityView's specialist tooltip (Expansion2 CityView.lua:480-512):
+-- iterate yields via pCity:GetSpecialistYield, pCity:GetCultureFromSpecialist
+-- for the separate culture path, and the schema's flat GreatPeopleRateChange.
+-- Same content for empty and filled slots — what the slot WOULD give if filled
+-- is the same explanation the user wants while it's empty (the engine itself
+-- just wraps the filled tooltip in parentheses for empty slots).
+local function buildSpecialistTooltip(city, specID, specInfo)
+    local parts = {}
+    for yieldInfo in GameInfo.Yields() do
+        local amt = city:GetSpecialistYield(specID, yieldInfo.ID)
+        if amt > 0 then
+            parts[#parts + 1] = "+" .. amt .. " " .. yieldInfo.IconString
+        end
+    end
+    local culture = city:GetCultureFromSpecialist(specID)
+    if culture > 0 then
+        parts[#parts + 1] = "+" .. culture .. " [ICON_CULTURE]"
+    end
+    if (specInfo.GreatPeopleRateChange or 0) > 0 then
+        parts[#parts + 1] =
+            Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_GP_POINTS", specInfo.GreatPeopleRateChange)
+    end
+    if #parts == 0 then
+        return nil
+    end
+    return table.concat(parts, ", ")
 end
 
 local function pushSpecialists()
@@ -621,6 +653,13 @@ local function pushSpecialists()
                             capturedSlot,
                             Text.key(stateKey)
                         )
+                    end,
+                    tooltipFn = function()
+                        local c = UI.GetHeadSelectedCity()
+                        if c == nil then
+                            return nil
+                        end
+                        return buildSpecialistTooltip(c, specID, specialistInfo)
                     end,
                     pediaName = specName,
                     onActivate = function()

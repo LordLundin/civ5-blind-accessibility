@@ -40,6 +40,11 @@ local ICON_KEYS = {
     -- faith-purchase cost on units (costString = cost .. " [ICON_PEACE]").
     ICON_PEACE = "TXT_KEY_CIVVACCESS_ICON_FAITH",
     ICON_TOURISM = "TXT_KEY_CIVVACCESS_ICON_TOURISM",
+    -- Specialist slots / GP-progress rows show "+N[ICON_GREAT_PEOPLE]"
+    -- standalone (no adjacent label), so the icon carries the word.
+    -- Pedia and tooltip prose pair it with "Great People" / "Great Person",
+    -- handled by the dedup adjacency check + the alias below.
+    ICON_GREAT_PEOPLE = "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE",
 
     -- Combat / movement --------------------------------------------------
     ICON_STRENGTH = "TXT_KEY_CIVVACCESS_ICON_STRENGTH",
@@ -75,6 +80,8 @@ local ICON_KEYS = {
 local ALIAS_KEYS = {
     ["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = { "TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT" },
     ["TXT_KEY_CIVVACCESS_ICON_UNHAPPY"] = { "TXT_KEY_CIVVACCESS_ICON_UNHAPPY_ALT" },
+    -- Singular form for "Great Person Focus" / "a Great Person of your choice".
+    ["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = { "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT" },
 }
 
 for name, key in pairs(ICON_KEYS) do
