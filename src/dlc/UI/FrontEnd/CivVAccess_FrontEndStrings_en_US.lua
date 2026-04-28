@@ -247,6 +247,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_DETAILS_TAB"] = "Replay details"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_DELETED"] = "Replay deleted."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_NO_SELECTION"] =
     "No replay selected. Switch to the replays tab to pick one."
+-- ReplayViewer (the per-turn event log viewer that opens after picking a
+-- replay file). Same {Turn, Text} message shape end-game uses, populated
+-- from g_ReplayInfo.Messages here. Panel label is the screen-reader name
+-- of the engine's ReplayInfoPulldown (Messages / Graphs / Map selector).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_REPLAY_VIEWER"] = "Replay"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_PANEL_LABEL"] = "panel"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_MESSAGE_ROW"] = "Turn {1_Turn}, {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"] = "No content for this entry."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"] =
     "No save selected. Switch to the saves tab to pick one."
