@@ -434,62 +434,52 @@ end
 -- ===== Buildings sub-handler (§3.7) =====
 --
 -- Flat list of non-wonder buildings constructed in this city. Enter on a
--- sellable, non-puppet building pushes a modal confirm that speaks the
--- engine's TXT_KEY_SELL_BUILDING_INFO so blind and sighted users land on
--- the same confirmation wording. Y / Enter confirms and fires
--- Network.SendSellBuilding, then pops back to the hub so the list
--- rebuilds; N / Esc cancels. Enter on a non-sellable building is a no-op.
+-- sellable, non-puppet building pushes a flat-list Yes/No confirm whose
+-- displayName carries the engine's TXT_KEY_SELL_BUILDING_INFO so blind and
+-- sighted users land on the same confirmation wording. Yes fires
+-- Network.SendSellBuilding and pops back to the hub so the list rebuilds;
+-- No / Esc cancels via escapePops. Enter on a non-sellable building is a
+-- no-op.
 --
 -- The engine's inline SellBuildingConfirm overlay is NOT driven here --
 -- we bypass it and go straight to the network message. A sighted observer
 -- wouldn't see a confirmation; acceptable because sighted users open the
 -- CityView via mouse, and this path only fires from our keyboard flow.
 
-local function makeSellConfirmHandler(buildingID)
-    local function dismiss(reactivate)
-        HandlerStack.removeByName("CityView.SellConfirm", reactivate ~= false)
-    end
-    local function pressYes()
-        local city = UI.GetHeadSelectedCity()
-        if city ~= nil and isTurnActive() then
-            Network.SendSellBuilding(city:GetID(), buildingID)
-        end
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SELL_DONE"))
-        -- Pop the modal and the Buildings sub back to the hub; the hub's
-        -- onActivate rebuilds items so the sold building drops from the list.
-        if hubHandler ~= nil then
-            HandlerStack.popAbove(hubHandler)
-        else
-            dismiss()
-        end
-    end
-    local function pressNo()
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SELL_CANCELLED"))
-        dismiss()
-    end
-    return {
-        name = "CityView.SellConfirm",
-        capturesAllInput = true,
-        bindings = {
-            { key = Keys.Y, mods = 0, description = "Confirm", fn = pressYes },
-            { key = Keys.VK_RETURN, mods = 0, description = "Confirm", fn = pressYes },
-            { key = Keys.N, mods = 0, description = "Cancel", fn = pressNo },
-            { key = Keys.VK_ESCAPE, mods = 0, description = "Cancel", fn = pressNo },
+local function pushSellConfirmSub(buildingID)
+    local subName = "CityView.SellConfirm"
+    local refund = UI.GetHeadSelectedCity():GetSellBuildingRefund(buildingID)
+    local maint = GameInfo.Buildings[buildingID].GoldMaintenance or 0
+    local prompt = Text.format("TXT_KEY_SELL_BUILDING_INFO", refund, maint)
+    local sub = BaseMenu.create({
+        name = subName,
+        displayName = prompt,
+        -- No first so arrow-down to Yes is an explicit affirmative step;
+        -- accidental Enter on the default cancels rather than sells.
+        items = {
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_NO_BUTTON",
+                activate = function()
+                    HandlerStack.removeByName(subName, true)
+                end,
+            }),
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_YES_BUTTON",
+                activate = function()
+                    local city = UI.GetHeadSelectedCity()
+                    if city ~= nil and isTurnActive() then
+                        Network.SendSellBuilding(city:GetID(), buildingID)
+                    end
+                    HandlerStack.removeByName(subName, false)
+                    if hubHandler ~= nil then
+                        HandlerStack.popAbove(hubHandler)
+                    end
+                end,
+            }),
         },
-        helpEntries = {},
-        onActivate = function(_self)
-            local city = UI.GetHeadSelectedCity()
-            if city == nil then
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SELL_CONFIRM"))
-                return
-            end
-            local refund = city:GetSellBuildingRefund(buildingID)
-            local row = GameInfo.Buildings[buildingID]
-            local maint = (row ~= nil and row.GoldMaintenance) or 0
-            SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_SELL_BUILDING_INFO", refund, maint))
-            SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SELL_YES"))
-        end,
-    }
+        escapePops = true,
+    })
+    HandlerStack.push(sub)
 end
 
 local function pushBuildings()
@@ -528,7 +518,7 @@ local function pushBuildings()
                     if not isTurnActive() then
                         return
                     end
-                    HandlerStack.push(makeSellConfirmHandler(capturedID))
+                    pushSellConfirmSub(capturedID)
                 end,
             })
             items[#items + 1] = item

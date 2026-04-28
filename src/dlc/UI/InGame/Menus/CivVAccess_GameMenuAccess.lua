@@ -2,10 +2,11 @@
 --
 -- ExitConfirm yes/no is an overlay inside this Context, not a separate
 -- LuaContext -- clicking Main Menu toggles Controls.ExitConfirm visible
--- rather than queuing a new popup. So we push a modal sub-handler with
--- capturesAllInput on the same Context, and its tick watches
--- ExitConfirm:IsHidden() to pop itself when any other path (debug
--- hot-reload, a future base-code edit we haven't traced) dismisses it.
+-- rather than queuing a new popup. We push a flat-list confirm sub on the
+-- same Context (matches LoadMenu / InstalledPanel delete-confirm pattern),
+-- and its tick watches ExitConfirm:IsHidden() to pop itself when any
+-- other path (debug hot-reload, a future base-code edit we haven't
+-- traced) dismisses the engine overlay out from under us.
 --
 -- Details labelFns re-query on every navigate so hotseat hand-offs show
 -- the new active player's handicap without rebuilding the list. Victory
@@ -62,61 +63,68 @@ end
 
 -- ExitConfirm modal ----------------------------------------------------
 
-local function makeExitConfirmHandler()
-    local function closeSub(reactivate)
-        HandlerStack.removeByName("GameMenuExitConfirm", reactivate ~= false)
-    end
-    local function pressYes()
-        local ok, err = pcall(OnYes)
-        if not ok then
-            Log.error("GameMenuAccess: OnYes failed: " .. tostring(err))
+local function exitConfirmPrompt()
+    if Controls.Message ~= nil then
+        local ok, t = pcall(function()
+            return Controls.Message:GetText()
+        end)
+        if ok and t ~= nil and t ~= "" then
+            return t
         end
-        -- reactivate=false: OnYes fires Events.ExitToMainMenu which tears
-        -- down the session; re-announcing the parent GameMenu handler's
-        -- focused item mid-teardown is garbage speech.
-        closeSub(false)
     end
-    local function pressNo()
-        local ok, err = pcall(OnNo)
-        if not ok then
-            Log.error("GameMenuAccess: OnNo failed: " .. tostring(err))
-        end
-        closeSub()
-    end
-    return {
-        name = "GameMenuExitConfirm",
-        capturesAllInput = true,
-        bindings = {
-            { key = Keys.Y, mods = 0, description = "Confirm", fn = pressYes },
-            { key = Keys.VK_RETURN, mods = 0, description = "Confirm", fn = pressYes },
-            { key = Keys.N, mods = 0, description = "Cancel", fn = pressNo },
-            { key = Keys.VK_ESCAPE, mods = 0, description = "Cancel", fn = pressNo },
+    return Text.key("TXT_KEY_MENU_RETURN_MM_WARN")
+end
+
+local function pushExitConfirmSub()
+    local subName = "GameMenuExitConfirm"
+    local sub = BaseMenu.create({
+        name = subName,
+        displayName = exitConfirmPrompt(),
+        items = {
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_NO_BUTTON",
+                activate = function()
+                    local ok, err = pcall(OnNo)
+                    if not ok then
+                        Log.error("GameMenuAccess: OnNo failed: " .. tostring(err))
+                    end
+                    HandlerStack.removeByName(subName, true)
+                end,
+            }),
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_YES_BUTTON",
+                activate = function()
+                    local ok, err = pcall(OnYes)
+                    if not ok then
+                        Log.error("GameMenuAccess: OnYes failed: " .. tostring(err))
+                    end
+                    -- reactivate=false: OnYes fires Events.ExitToMainMenu
+                    -- which tears down the session; re-announcing the
+                    -- parent GameMenu handler's focused item mid-teardown
+                    -- is garbage speech.
+                    HandlerStack.removeByName(subName, false)
+                end,
+            }),
         },
-        -- Empty by deliberate decision: Y/N/Enter/Esc on a yes/no prompt is
-        -- the screen-reader-idiomatic chord set; listing it in the help
-        -- overlay is noise.
-        helpEntries = {},
-        onActivate = function(self)
-            local text
-            if Controls.Message ~= nil then
-                local ok, t = pcall(function()
-                    return Controls.Message:GetText()
-                end)
-                if ok and t ~= nil and t ~= "" then
-                    text = t
-                end
+    })
+    sub.bindings[#sub.bindings + 1] = {
+        key = Keys.VK_ESCAPE,
+        mods = 0,
+        description = "Cancel",
+        fn = function()
+            local ok, err = pcall(OnNo)
+            if not ok then
+                Log.error("GameMenuAccess: OnNo failed: " .. tostring(err))
             end
-            if text == nil then
-                text = Text.key("TXT_KEY_MENU_RETURN_MM_WARN")
-            end
-            SpeechPipeline.speakInterrupt(text)
-        end,
-        tick = function(self)
-            if Controls.ExitConfirm:IsHidden() then
-                closeSub()
-            end
+            HandlerStack.removeByName(subName, true)
         end,
     }
+    sub.tick = function(self)
+        if Controls.ExitConfirm:IsHidden() then
+            HandlerStack.removeByName(subName, true)
+        end
+    end
+    HandlerStack.push(sub)
 end
 
 -- Actions tab ----------------------------------------------------------
@@ -127,7 +135,7 @@ local function mainMenuActivate()
         Log.error("GameMenuAccess: OnMainMenu failed: " .. tostring(err))
         return
     end
-    HandlerStack.push(makeExitConfirmHandler())
+    pushExitConfirmSub()
 end
 
 local function buildActionsItems()

@@ -8,10 +8,10 @@
 --
 -- MainMenu opens an in-Context ExitConfirm (a hidden yes/no overlay that
 -- the base screen toggles by swapping MainContainer / ExitConfirm
--- visibility). Mirrors GameMenu's ExitConfirm treatment: push a modal
--- sub-handler with Y/N/Enter/Esc; the tick watches ExitConfirm:IsHidden()
--- so any other dismissal path (active-player change, debug reload) pops
--- the sub cleanly.
+-- visibility). Mirrors GameMenu's ExitConfirm treatment: push a flat-list
+-- confirm sub (No / Yes Choice items, Esc cancels via OnNo); the tick
+-- watches ExitConfirm:IsHidden() so any other dismissal path (active-
+-- player change, debug reload) pops the sub cleanly.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -37,58 +37,68 @@ include("CivVAccess_Help")
 local priorShowHide = ShowHideHandler
 local priorInput = InputHandler
 
-local function makeExitConfirmHandler()
-    local function closeSub(reactivate)
-        HandlerStack.removeByName("PlayerChangeExitConfirm", reactivate ~= false)
-    end
-    local function pressYes()
-        local ok, err = pcall(OnYes)
-        if not ok then
-            Log.error("PlayerChangeAccess: OnYes failed: " .. tostring(err))
+local function exitConfirmPrompt()
+    if Controls.Message ~= nil then
+        local ok, t = pcall(function()
+            return Controls.Message:GetText()
+        end)
+        if ok and t ~= nil and t ~= "" then
+            return t
         end
-        -- reactivate=false: OnYes fires Events.ExitToMainMenu which tears
-        -- down the session; re-announcing the parent handler's focused
-        -- item mid-teardown is garbage speech.
-        closeSub(false)
     end
-    local function pressNo()
-        local ok, err = pcall(OnNo)
-        if not ok then
-            Log.error("PlayerChangeAccess: OnNo failed: " .. tostring(err))
-        end
-        closeSub()
-    end
-    return {
-        name = "PlayerChangeExitConfirm",
-        capturesAllInput = true,
-        bindings = {
-            { key = Keys.Y, mods = 0, description = "Confirm", fn = pressYes },
-            { key = Keys.VK_RETURN, mods = 0, description = "Confirm", fn = pressYes },
-            { key = Keys.N, mods = 0, description = "Cancel", fn = pressNo },
-            { key = Keys.VK_ESCAPE, mods = 0, description = "Cancel", fn = pressNo },
+    return Text.key("TXT_KEY_MENU_RETURN_MM_WARN")
+end
+
+local function pushExitConfirmSub()
+    local subName = "PlayerChangeExitConfirm"
+    local sub = BaseMenu.create({
+        name = subName,
+        displayName = exitConfirmPrompt(),
+        items = {
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_NO_BUTTON",
+                activate = function()
+                    local ok, err = pcall(OnNo)
+                    if not ok then
+                        Log.error("PlayerChangeAccess: OnNo failed: " .. tostring(err))
+                    end
+                    HandlerStack.removeByName(subName, true)
+                end,
+            }),
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_YES_BUTTON",
+                activate = function()
+                    local ok, err = pcall(OnYes)
+                    if not ok then
+                        Log.error("PlayerChangeAccess: OnYes failed: " .. tostring(err))
+                    end
+                    -- reactivate=false: OnYes fires Events.ExitToMainMenu
+                    -- which tears down the session; re-announcing the
+                    -- parent handler's focused item mid-teardown is
+                    -- garbage speech.
+                    HandlerStack.removeByName(subName, false)
+                end,
+            }),
         },
-        helpEntries = {},
-        onActivate = function(self)
-            local text
-            if Controls.Message ~= nil then
-                local ok, t = pcall(function()
-                    return Controls.Message:GetText()
-                end)
-                if ok and t ~= nil and t ~= "" then
-                    text = t
-                end
+    })
+    sub.bindings[#sub.bindings + 1] = {
+        key = Keys.VK_ESCAPE,
+        mods = 0,
+        description = "Cancel",
+        fn = function()
+            local ok, err = pcall(OnNo)
+            if not ok then
+                Log.error("PlayerChangeAccess: OnNo failed: " .. tostring(err))
             end
-            if text == nil then
-                text = Text.key("TXT_KEY_MENU_RETURN_MM_WARN")
-            end
-            SpeechPipeline.speakInterrupt(text)
-        end,
-        tick = function(self)
-            if Controls.ExitConfirm:IsHidden() then
-                closeSub()
-            end
+            HandlerStack.removeByName(subName, true)
         end,
     }
+    sub.tick = function(self)
+        if Controls.ExitConfirm:IsHidden() then
+            HandlerStack.removeByName(subName, true)
+        end
+    end
+    HandlerStack.push(sub)
 end
 
 local function mainMenuActivate()
@@ -97,7 +107,7 @@ local function mainMenuActivate()
         Log.error("PlayerChangeAccess: OnMainMenu failed: " .. tostring(err))
         return
     end
-    HandlerStack.push(makeExitConfirmHandler())
+    pushExitConfirmSub()
 end
 
 local function wrappedShowHide(bIsHide, bIsInit)

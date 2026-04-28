@@ -760,10 +760,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SLACKER_ASSIGNED"] = "assigned"
 -- so blind and sighted players see / hear the same confirmation text.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"] = "Buildings"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_BUILDINGS_EMPTY"] = "No buildings."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SELL_CONFIRM"] = "Sell confirmation"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SELL_YES"] = "Y to confirm, N to cancel"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SELL_DONE"] = "sold"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SELL_CANCELLED"] = "cancelled"
 -- Specialists sub-handler (§3.6). One item per slot across specialist-
 -- capable buildings. Labels use labelFn so Enter-driven add/remove flips
 -- the "empty" / "filled" suffix on the next navigate without rebuilding.
