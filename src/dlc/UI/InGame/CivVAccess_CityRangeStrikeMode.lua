@@ -41,34 +41,19 @@ local function resolveCity(ownerID, cityID)
     return owner:GetCityByID(cityID)
 end
 
--- Defender unit on the plot the city would actually strike. The Lua
--- GetBestDefender binding (CvLuaPlot.cpp:572) only exposes six args and
--- defaults bNoncombatAllowed to false, so it drops civilians -- but
--- CvCity::canRangedStrikeTarget passes bNoncombatAllowed=true, so the
--- engine accepts strikes against workers / settlers / great people.
--- bTestPotentialEnemy is also unusable: the gate it triggers bottoms out
--- in isPotentialEnemy, a Firaxis stub that always returns false, which
--- silently drops every defender. Walk units manually with a plain at-war
--- filter so the preview surfaces the same target the engine commits on.
+-- Defender unit on the plot the city would actually strike. Mirrors the
+-- engine's getBestDefender call at CvCity.cpp:14425 (canRangedStrikeTarget):
+-- at-war filter, civilians allowed (cities accept workers / settlers /
+-- great people as ranged targets). bTestPotentialEnemy stays off because
+-- the gate it triggers routes through isPotentialEnemy, a Firaxis stub
+-- that always returns false and would drop every defender. The 7th arg
+-- (bNoncombatAllowed) is the engine fork's CvLuaPlot extension; the
+-- vanilla binding stops at bTestCanMove and would silently miss civilians.
 local function topStrikableTargetAt(plot)
     if plot == nil then
         return nil
     end
-    local activeTeam = Teams[Game.GetActiveTeam()]
-    if activeTeam == nil then
-        return nil
-    end
-    local fallback = nil
-    for i = 0, plot:GetNumUnits() - 1 do
-        local u = plot:GetUnit(i)
-        if u ~= nil and activeTeam:IsAtWar(u:GetTeam()) then
-            if u:IsCanDefend() then
-                return u
-            end
-            fallback = fallback or u
-        end
-    end
-    return fallback
+    return plot:GetBestDefender(-1, Game.GetActivePlayer(), nil, 1, 0, 0, 1)
 end
 
 -- Diagnostic walk for a city strike attempt at (tx, ty). Returns nil if
