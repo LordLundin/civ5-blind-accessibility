@@ -1048,9 +1048,18 @@ function BaseMenu.create(spec)
     end
 
     -- Re-evaluate a function preamble; speakInterrupt if the result changed
-    -- from what was last spoken. No-op for string preambles.
+    -- from what was last spoken. No-op for string preambles. Also no-op
+    -- before first onActivate (and after a hide): _initialized is the
+    -- "user is currently on this screen" flag, so a refresh fired against
+    -- a hidden or pre-push handler has nothing useful to say -- and
+    -- speaking the preamble before displayName would invert the open-
+    -- speech order on a deferActivate screen whose AILeaderMessage
+    -- listener fires between onShow and the deferred push.
     function self.refresh()
         if type(self.preamble) ~= "function" then
+            return
+        end
+        if not self._initialized then
             return
         end
         local text = resolvePreamble(self)

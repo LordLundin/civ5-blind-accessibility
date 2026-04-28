@@ -79,6 +79,14 @@ local handler = TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, 
     -- match the subtitle text, so we don't suppress the open-speech --
     -- the subtitle is the only canonical content for this screen.
     fallbackDisplayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_TRADE"),
+    -- TradeLogic.LeaderMessageHandler calls UIManager:QueuePopup *before*
+    -- Controls.DiscussionText:SetText(szLeaderMessage), so the synchronous
+    -- ShowHide that fires inside QueuePopup would read the previous open's
+    -- speech text. Defer the push one tick so onActivate runs after the
+    -- handler has finished setting fresh text on the controls. Subsequent
+    -- AILeaderMessage updates on the already-open screen reach speech via
+    -- TradeLogicAccess.rebuild -> handler.refresh().
+    deferActivate = true,
 })
 
 -- F2 reads the AI leader's portrait description. TradeLogic exposes the

@@ -150,6 +150,19 @@ local handler = BaseMenu.install(ContextPtr, {
     },
 })
 
+-- Re-read the preamble when a new AILeaderMessage updates mood / speech
+-- on the already-open screen. Base's LeaderMessageHandler precedes ours
+-- in dispatch order and finishes setting MoodText / LeaderSpeech (or the
+-- "Anything else?" seed when the new state belongs to another screen)
+-- before this listener runs. refresh is gated on _initialized so a
+-- transition into trade / discussion -- which hides LeaderHeadRoot in
+-- the same dispatch chain -- can't speak the seed text on the way out.
+Events.AILeaderMessage.Add(function()
+    if handler ~= nil then
+        handler.refresh()
+    end
+end)
+
 LeaderDescription.bindF2(handler, function()
     return currentAIPlayer
 end)

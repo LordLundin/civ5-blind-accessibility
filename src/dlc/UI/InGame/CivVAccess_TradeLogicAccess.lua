@@ -1310,6 +1310,7 @@ function TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, descrip
         displayName = descriptor.fallbackDisplayName or Text.key("TXT_KEY_CIVVACCESS_SCREEN_TRADE"),
         preamble = descriptor.preambleFn,
         silentFirstOpen = descriptor.silentFirstOpen,
+        deferActivate = descriptor.deferActivate,
         priorInput = priorInput,
         priorShowHide = priorShowHide,
         onTab = descriptor.onTab,

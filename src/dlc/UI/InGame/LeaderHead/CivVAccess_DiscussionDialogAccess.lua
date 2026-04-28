@@ -318,6 +318,13 @@ local handler = BaseMenu.install(ContextPtr, {
     preamble = composePreamble,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
+    -- Base sets MoodText before QueuePopup but writes LeaderSpeech *after*
+    -- the QueuePopup that fires our synchronous ShowHide, so onShow's
+    -- composePreamble would read the previous open's speech text. Defer
+    -- the push one tick so the first-open announce runs after base has
+    -- finished setting the fresh leader speech. The AILeaderMessage
+    -- listener below catches subsequent updates while the screen is open.
+    deferActivate = true,
     onShow = function(handler)
         local title = Controls.TitleText:GetText()
         if title ~= nil and title ~= "" then
@@ -327,22 +334,28 @@ local handler = BaseMenu.install(ContextPtr, {
     items = items,
 })
 
--- Re-clamp the cursor when the engine reshuffles button visibility for a
--- new DiploUIState. Base's LeaderMessageHandler runs first on the shared
--- AILeaderMessage dispatch (its Add precedes ours by include order),
--- driving our onShow against whatever button visibility was set for the
--- *previous* state; by the time our listener runs base has finished
--- updating button hidden flags. setItems(items) repoints the items field
--- at the same list and re-clamps _indices to the first navigable item
--- per BaseMenuCore.setItems, so a cursor stranded on a now-hidden button
--- (e.g. Button1 after the AI's "Very well." flips state to
--- BLANK_DISCUSSION, leaving only BackButton visible) jumps to the live
--- one before the next Enter.
+-- Re-clamp the cursor and re-read the preamble when the engine reshuffles
+-- the dialog for a new DiploUIState. Base's LeaderMessageHandler runs
+-- first on the shared AILeaderMessage dispatch (its Add precedes ours by
+-- include order), so by the time we run base has finished updating mood
+-- and speech text and button hidden flags. setItems(items) repoints the
+-- items field at the same list and re-clamps _indices to the first
+-- navigable item per BaseMenuCore.setItems, so a cursor stranded on a
+-- now-hidden button (e.g. Button1 after the AI's "Very well." flips
+-- state to BLANK_DISCUSSION, leaving only BackButton visible) jumps to
+-- the live one before the next Enter. handler.refresh() then resolves
+-- the live preamble and speakInterrupts the new mood + speech, which is
+-- how the user hears follow-up dialog like "Perhaps another time then."
+-- on a screen that was already open. refresh is gated on _initialized
+-- so a transition that hides DiscussionDialog (e.g. CONFRONT_YOU_KILLED_-
+-- MY_SPY -> trade) cannot speak the engine's seed-text that base writes
+-- on the way out.
 Events.AILeaderMessage.Add(function()
     if handler == nil then
         return
     end
     handler.setItems(items)
+    handler.refresh()
 end)
 
 LeaderDescription.bindF2(handler, function()
