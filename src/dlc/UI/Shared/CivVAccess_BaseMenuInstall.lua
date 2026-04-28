@@ -68,11 +68,15 @@ function BaseMenu.install(ContextPtr, spec)
             end
         end
         -- bIsInit=true fires once per Context at boot so the engine can
-        -- prime it; the screen isn't actually open to the user. Pushing
-        -- here would land our handler on top of whatever is genuinely
-        -- visible (LoadScreen at game start) with capturesAllInput=true,
-        -- trapping input until the real screen finally closes.
-        if bIsInit then
+        -- prime it; for in-game popups pre-loaded at game start, the
+        -- screen isn't actually open to the user (LoadScreen is) and
+        -- pushing here would trap input behind capturesAllInput=true.
+        -- For DeferLoad popups, however, the file load (and bIsInit) only
+        -- fires on the first user open, so init coincides with bIsHide=false
+        -- and we DO need to push. Gating on (bIsInit AND bIsHide) keeps
+        -- the engine-boot guard intact while letting deferred-load first
+        -- opens reach the push.
+        if bIsInit and bIsHide then
             return
         end
         -- On show (bIsHide=false): reactivate=false so the handler we're
