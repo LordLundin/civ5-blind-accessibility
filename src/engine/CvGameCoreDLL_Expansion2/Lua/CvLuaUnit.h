@@ -41,6 +41,8 @@ protected:
 	static int lGetPath(lua_State* L);
 	static int lComputePath(lua_State* L);
 	static int lGetMissionQueue(lua_State* L);
+	// CIVVACCESS: route-type picker for ROUTE_TO previews.
+	static int lGetBestBuildRoute(lua_State* L);
 
 	static int lCanEnterTerritory(lua_State* L);
 	static int lCanEnterArea(lua_State* L);

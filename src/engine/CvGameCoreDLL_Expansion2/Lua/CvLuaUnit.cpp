@@ -43,6 +43,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetPath);
 	Method(ComputePath);
 	Method(GetMissionQueue);
+	Method(GetBestBuildRoute);
 
 	Method(CanEnterTerritory);
 	Method(GetDeclareWarRangeStrike);
@@ -715,6 +716,23 @@ int CvLuaUnit::lGetMissionQueue(lua_State* L)
 		lua_rawseti(L, -2, i + 1);
 	}
 	return 1;
+}
+//------------------------------------------------------------------------------
+// CIVVACCESS: Wraps CvUnit::GetBestBuildRoute (CvUnit.cpp:18793). Returns
+// (routeId, buildId) for the best route the unit's owner has tech for that
+// can be built on the given plot. NO_ROUTE / NO_BUILD when the unit can't
+// build any route there. Replaces a Lua-side reimplementation that walked
+// GameInfo.Builds and re-applied tech / Routes.Value comparisons; the
+// engine's picker is one call.
+int CvLuaUnit::lGetBestBuildRoute(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvPlot* pkPlot = CvLuaPlot::GetInstance(L, 2);
+	BuildTypes eBestBuild = NO_BUILD;
+	const RouteTypes eBestRoute = pkUnit->GetBestBuildRoute(pkPlot, &eBestBuild);
+	lua_pushinteger(L, eBestRoute);
+	lua_pushinteger(L, eBestBuild);
+	return 2;
 }
 //------------------------------------------------------------------------------
 //bool canEnterTerritory(int /*TeamTypes*/ eTeam, bool bIgnoreRightOfPassage = false, bool bIsCity = false);

@@ -296,45 +296,6 @@ end
 -- the path length (tiles excluding the worker's start) and the total
 -- build turns across plots that still need a route built.
 
--- Pick the build the engine will queue per tile. Mirrors the engine's
--- GetBestBuildRouteForRoadTo: highest-Routes.Value build the player has
--- tech for. Resolved once per preview; tech doesn't change mid-preview.
-local function pickBestRouteBuild(team)
-    local bestValue = -1
-    local bestBuild, bestRoute = nil, nil
-    if GameInfo == nil or GameInfo.Builds == nil then
-        return nil, nil, -1
-    end
-    for buildRow in GameInfo.Builds() do
-        local routeName = buildRow.RouteType
-        if routeName ~= nil and routeName ~= "NONE" then
-            local routeId = GameInfoTypes and GameInfoTypes[routeName]
-            if routeId ~= nil then
-                local routeRow = GameInfo.Routes[routeId]
-                if routeRow ~= nil then
-                    local prereq = buildRow.PrereqTech
-                    local hasTech = true
-                    if prereq ~= nil and prereq ~= "NONE" then
-                        local techId = GameInfoTypes and GameInfoTypes[prereq]
-                        if techId == nil or team == nil or not team:IsHasTech(techId) then
-                            hasTech = false
-                        end
-                    end
-                    if hasTech then
-                        local value = routeRow.Value or 0
-                        if value > bestValue then
-                            bestValue = value
-                            bestBuild = buildRow.ID
-                            bestRoute = routeId
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return bestBuild, bestRoute, bestValue
-end
-
 -- Per-plot build turns under the worker's contribution rate. Cities and
 -- plots already at-or-above the target route tier are zero-cost. The
 -- start plot zeroes the extra-rate when the worker is mid-build of this
@@ -363,15 +324,20 @@ local function routePathPreview(actor, targetPlot)
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
     end
     local team = actor:GetTeam()
-    local pTeam = Teams[team]
     local isDebug = Game.IsDebugMode()
     if not isDebug and not targetPlot:IsRevealed(team, isDebug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
     end
-    local buildId, routeId, routeValue = pickBestRouteBuild(pTeam)
-    if buildId == nil then
+    -- Engine's CvUnit::GetBestBuildRoute (CvUnit.cpp:18793) picks the
+    -- highest-Routes.Value build the worker can build on the given plot
+    -- given the player's tech. Asking against the worker's current plot
+    -- gives the route the engine will queue along the path's land tiles.
+    local routeId, buildId = actor:GetBestBuildRoute(fromPlot)
+    if buildId < 0 or routeId < 0 then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD")
     end
+    local routeRow = GameInfo.Routes[routeId]
+    local routeValue = (routeRow ~= nil and routeRow.Value) or 0
     local owner = actor:GetOwner()
     local path = Game.GetBuildRoutePath(fromPlot:GetX(), fromPlot:GetY(), targetPlot:GetX(), targetPlot:GetY(), owner)
     if #path == 0 then
