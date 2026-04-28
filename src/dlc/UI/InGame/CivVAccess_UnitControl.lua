@@ -669,12 +669,14 @@ end
 --   1 = air sweep against ground AA (one-sided): "interception" prefix
 --   2 = air sweep against an air interceptor (dogfight): "dogfight" prefix
 --
--- visibleToActiveTeam mirrors the engine's animation gate. Combats fire
--- this hook regardless of who's involved; the speech filter speaks when
--- the active player is a participant OR when the combat is visible on
--- the active team's view -- matching what a sighted player sees as the
--- engine's animation between turns. Off-map AI-vs-AI stays silent on
--- both vectors (no animation, no speech).
+-- plotVisibleToActiveTeam / attackerKnown / defenderKnown drive the
+-- AI-vs-AI parity gate. Active-player-involved combats ignore the
+-- known flags -- attacking reveals identity (base game names attackers
+-- in defender-side messages, even submarines that ambush). For
+-- AI-vs-AI on a plot the active player can see, an invisible side
+-- substitutes "unknown" in the readout, matching the sighted view of
+-- "an unseen hit landing on a visible target". Both sides invisible
+-- on a visible plot stays silent (no actor to name).
 local function onCombatResolved(
     attackerPlayer,
     attackerUnit,
@@ -691,25 +693,40 @@ local function onCombatResolved(
     interceptorUnit,
     interceptorDamage,
     combatKind,
-    visibleToActiveTeam
+    plotVisibleToActiveTeam,
+    attackerKnown,
+    defenderKnown
 )
     local activePlayer = Game.GetActivePlayer()
     local activeInvolved = (attackerPlayer == activePlayer or defenderPlayer == activePlayer)
-    if not activeInvolved and visibleToActiveTeam ~= 1 then
-        return
+    if not activeInvolved then
+        if plotVisibleToActiveTeam ~= 1 then
+            return
+        end
+        if attackerKnown ~= 1 and defenderKnown ~= 1 then
+            return
+        end
     end
-    local attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit)
-    if attackerName == "" then
-        Log.warn(
-            "onCombatResolved: attacker name empty for player="
-                .. tostring(attackerPlayer)
-                .. " unit="
-                .. tostring(attackerUnit)
-        )
-        return
+    local resolvedAttackerName
+    if not activeInvolved and attackerKnown ~= 1 then
+        resolvedAttackerName = Text.key("TXT_KEY_CIVVACCESS_COMBAT_UNKNOWN_COMBATANT")
+    else
+        resolvedAttackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit)
+        if resolvedAttackerName == "" then
+            Log.warn(
+                "onCombatResolved: attacker name empty for player="
+                    .. tostring(attackerPlayer)
+                    .. " unit="
+                    .. tostring(attackerUnit)
+            )
+            return
+        end
     end
+    local attackerName = resolvedAttackerName
     local defenderName
-    if defenderUnit ~= -1 then
+    if not activeInvolved and defenderKnown ~= 1 then
+        defenderName = Text.key("TXT_KEY_CIVVACCESS_COMBAT_UNKNOWN_COMBATANT")
+    elseif defenderUnit ~= -1 then
         defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
     else
         defenderName = UnitSpeech.cityCombatantName(defenderPlayer, defenderCity)

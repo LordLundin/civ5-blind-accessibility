@@ -223,6 +223,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_DAMAGE"] = "defender {1_N
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_UNHURT"] = "attacker {1_Name} unhurt"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_UNHURT"] = "defender {1_Name} unhurt"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_KILLED"] = "{1_Name} killed"
+-- Substituted for the attacker / defender name in AI-vs-AI combat on a
+-- visible plot when one side is invisible to the active team (e.g., AI
+-- submarine ambushing AI ship). Matches what sighted players perceive:
+-- an unseen hit on a visible target. Active-player-involved combats
+-- always use full names regardless of invisibility because attacks
+-- reveal identity in base game's defender-side messages.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_UNKNOWN_COMBATANT"] = "unknown"
 -- Air-strike intercept clause. Omitted unless the engine fork's hook
 -- reports a landed intercept (interceptorDamage > 0); failed / evaded
 -- intercepts surface no clause to match base game's UI.
