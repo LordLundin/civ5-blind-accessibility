@@ -242,15 +242,21 @@ function PopulateLeaderboardResults()
 			controlTable.WinType:LocalizeAndSetText("");
 		end
 			
+		-- Civ V Access: vanilla declared `mapScript` as a global without
+		-- resetting it per iteration, so a row whose v.MapName has no match
+		-- in GameInfo.MapScripts() falls through to the next line indexing
+		-- whatever stale value (or nil on the first row) was there. Localize
+		-- it and guard the IconIndex read.
+		local mapScript;
 		for row in GameInfo.MapScripts() do
 			if(row.FileName == v.MapName) then
 				mapScript = row;
 				break;
 			end
 		end
-		
+
 		local mapInfo = MapUtilities.GetBasicInfo(v.MapName);
-        IconHookup( mapScript.IconIndex or 0, 32, mapInfo.IconAtlas, controlTable.MapType );        
+        IconHookup( (mapScript and mapScript.IconIndex) or 0, 32, mapInfo.IconAtlas, controlTable.MapType );
 		controlTable.MapType:SetToolTipString( Locale.ConvertTextKey( mapInfo.Name ) );
 		
 		info = GameInfo.Worlds[ v.WorldSize ];
