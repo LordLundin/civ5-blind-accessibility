@@ -767,6 +767,7 @@ local function onCombatResolved(
         combatKind = combatKind,
     })
     speakQueued(text)
+    CombatLog.recordCombat(text)
 end
 
 -- GameEvents.CivVAccessAirSweepNoTarget listener. Engine fork fires this

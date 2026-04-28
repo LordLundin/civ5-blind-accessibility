@@ -620,9 +620,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY_CITY"] = "{1_Rank}. {2
 -- AdvisorInfoPopup that question buttons drill into.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_ADVISOR_TUTORIAL"] = "Tutorial Advisor"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE"] = "Active"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_TURN_LOG"] = "Turn Log"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED"] = "Dismissed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY"] = "No notifications."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turn {2_Turn}"
+-- Combat Log group inside the Turn Log tab. Contains one entry per combat
+-- announced to the player while the AI was taking its turn (between End
+-- Turn and the next turn start). Drilled into from the level-0 group label.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "Combat Log"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "No combat this turn."
 -- MilitaryOverview (BUTTONPOPUP_MILITARY_OVERVIEW, F3). Level 0 reads GP
 -- progress + supply line as Text widgets; drill-ins hold the unit rows. The
 -- GP line combines the engine's own label (TXT_KEY_CITYVIEW_GG_PROGRGRESS /

@@ -1,8 +1,13 @@
 -- NotificationLogPopup accessibility. BUTTONPOPUP_NOTIFICATION_LOG lists
 -- every notification the active player has received this game, dismissed
--- or not. Two tabs:
+-- or not. Three tabs:
 --   Active    notifications whose dismissed flag is false (still on the
 --             right-side stack for a sighted player).
+--   Turn Log  mod-authored cross-turn surfaces that don't live on the
+--             engine's notification list: the ForeignUnitWatch four-line
+--             delta (units entered / left view during the AI turn) and
+--             the CombatLog group (one entry per combat announced while
+--             the player was waiting). Both clear at the next TurnEnd.
 --   Dismissed notifications whose dismissed flag is true (activated,
 --             right-clicked, or auto-expired by the engine).
 -- Enter on an active entry calls NotificationSelected(id), which is the
@@ -69,19 +74,7 @@ local function buildItems()
     local player = Players[Game.GetActivePlayer()]
     if player == nil then
         Log.warn("NotificationLogPopupAccess: active player is nil")
-        return { emptyItem() }, { emptyItem() }
-    end
-    -- Foreign-unit-watch deltas at the very top of the Active tab,
-    -- scoped to the current player turn. Cleared at every TurnEnd, set
-    -- at every TurnStart by ForeignUnitWatch as a flat array of non-
-    -- empty strings in the same order they were spoken. Plain Text
-    -- items because there's no plot or popup to activate; the user
-    -- reads them and moves on to the engine notifications below.
-    local delta = civvaccess_shared.foreignUnitDelta
-    if delta ~= nil then
-        for _, line in ipairs(delta) do
-            active[#active + 1] = BaseMenuItems.Text({ labelText = line })
-        end
+        return { emptyItem() }, { emptyItem() }, { emptyItem() }
     end
     local num = player:GetNumNotifications()
     for i = num - 1, 0, -1 do
@@ -105,13 +98,44 @@ local function buildItems()
     end
     if #active == 0 then active[1] = emptyItem() end
     if #dismissed == 0 then dismissed[1] = emptyItem() end
-    return active, dismissed
+
+    -- Turn Log tab: ForeignUnitWatch's four-line entered / left summary
+    -- (flat array of non-empty strings parked on civvaccess_shared at
+    -- TurnStart, cleared at TurnEnd) followed by the Combat Log group
+    -- whose children are the per-combat lines CombatLog accumulated
+    -- across the AI turn. Plain Text items for the foreign-unit lines
+    -- because there's no plot or popup to activate; the Combat Log
+    -- group drills into the per-combat entries.
+    local turnLog = {}
+    local delta = civvaccess_shared.foreignUnitDelta
+    if delta ~= nil then
+        for _, line in ipairs(delta) do
+            turnLog[#turnLog + 1] = BaseMenuItems.Text({ labelText = line })
+        end
+    end
+    local combatChildren = {}
+    local combatLog = civvaccess_shared.combatLog
+    if combatLog ~= nil then
+        for _, line in ipairs(combatLog) do
+            combatChildren[#combatChildren + 1] = BaseMenuItems.Text({ labelText = line })
+        end
+    end
+    if #combatChildren == 0 then
+        combatChildren[1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY") })
+    end
+    turnLog[#turnLog + 1] = BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"),
+        items = combatChildren,
+    })
+
+    return active, turnLog, dismissed
 end
 
 local function onShow(handler)
-    local active, dismissed = buildItems()
+    local active, turnLog, dismissed = buildItems()
     handler.setItems(active, 1)
-    handler.setItems(dismissed, 2)
+    handler.setItems(turnLog, 2)
+    handler.setItems(dismissed, 3)
 end
 
 BaseMenu.install(ContextPtr, {
@@ -123,6 +147,10 @@ BaseMenu.install(ContextPtr, {
     tabs = {
         {
             name  = "TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE",
+            items = { emptyItem() },
+        },
+        {
+            name  = "TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_TURN_LOG",
             items = { emptyItem() },
         },
         {
