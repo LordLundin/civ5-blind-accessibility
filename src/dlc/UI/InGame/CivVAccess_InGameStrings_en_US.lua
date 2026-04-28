@@ -1638,3 +1638,38 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC"] = "Open Relig
 -- that could otherwise read as a list of names stay disambiguated.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] =
     "{1_Religion}, holy city {2_HolyCity}, founded by {3_Founder}, {4_NumCities} cities"
+-- Espionage Overview (BNW only). TabbedShell over the engine's
+-- BUTTONPOPUP_ESPIONAGE_OVERVIEW: tab 1 agents (flat list, drill in for
+-- actions), tab 2 cities (Your / Their groups, drill in for per-column
+-- detail with engine tooltips), tab 3 intrigue messages. Screen title and
+-- the Your / Their / Agents / View / Coup / Relocate row labels reuse
+-- engine TXT_KEY_EO_* keys directly.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_KEY"] = "Control plus E"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_DESC"] = "Open Espionage Overview"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_AGENTS"] = "Agents"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_CITIES"] = "Cities"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_INTRIGUE"] = "Intrigue"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_DISABLED"] = "Espionage is disabled in this game"
+-- Agent row.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE"] = "{1_Rank} {2_Name}, {3_Where}, {4_Activity}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE_TURNS"] =
+    "{1_Rank} {2_Name}, {3_Where}, {4_Activity}, {5_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_KIA"] = "{1_Rank} {2_Name} killed in action"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_TAIL"] = ", diplomat"
+-- City row pieces. Civ + city + potential + population + spy clause.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_CIV_LABEL"] = "civilization {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_CITY_LABEL"] = "city {1_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_POPULATION"] = "population {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_VALUE"] = "potential {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_BASE"] = "base potential {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_RIG_ELECTION_AVAILABLE"] = "city-state, election riggable"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_RIG_ELECTION_ACTIVE"] = "city-state, rigging election"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_CITY_AGENT_CLAUSE"] = "agent {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_CITY_DIPLOMAT_CLAUSE"] = "diplomat {1_Name}"
+-- Intrigue row.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_TURN"] = "Turn {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_OWN"] = "from your spy {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_OTHER"] = "shared by {1_Leader}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_UNKNOWN"] = "unknown"
+-- Move-agent sub.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_MOVE_DISPLAY"] = "Move {1_Rank} {2_Name}"

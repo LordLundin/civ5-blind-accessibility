@@ -159,6 +159,12 @@ local FUNCTION_KEY_HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_KEY",
         description = "TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC",
     },
+    -- Espionage Overview (BNW only). Re-fires the engine's native Ctrl+E
+    -- which Baseline's capture would otherwise swallow.
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_DESC",
+    },
 }
 
 local function appendAll(dst, src)
@@ -302,6 +308,24 @@ function BaselineHandler.create()
                 Data1 = 1,
             })
         end, "Open Religion Overview"),
+        -- Espionage Overview (BNW only). Engine's native Ctrl+E was added in
+        -- G&K and kept in BNW for this same popup; Baseline's
+        -- capturesAllInput barrier already swallows it, so we re-fire the
+        -- engine event here. Data1=1 toggles closed if already visible
+        -- (matches the Culture / Trade Route / Religion Overview pattern).
+        -- Gated on GAMEOPTION_NO_ESPIONAGE so the binding speaks a disabled
+        -- state rather than silently no-opping when the host disabled
+        -- espionage.
+        bind(Keys.E, MOD_CTRL, function()
+            if Game.IsOption("GAMEOPTION_NO_ESPIONAGE") then
+                speak(Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_DISABLED"))
+                return
+            end
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_ESPIONAGE_OVERVIEW,
+                Data1 = 1,
+            })
+        end, "Open Espionage Overview"),
     }
 
     -- Pull sibling modules' bindings into Baseline's list, and their help
