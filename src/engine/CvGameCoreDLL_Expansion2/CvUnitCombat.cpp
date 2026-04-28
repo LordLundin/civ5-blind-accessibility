@@ -2442,9 +2442,15 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 
 	// CIVVACCESS: snapshot pre-combat damage so the post-resolve hook can
 	// compute per-combat deltas without the accessibility mod having to poll
-	// damage settlement Lua-side.
+	// damage settlement Lua-side. pAttackerCityForHook covers the city-as-
+	// attacker ranged-strike path (ResolveRangedCityVsUnitCombat); cities
+	// don't take damage from their own ranged strikes so iAtkCityPreDamage
+	// is captured but the post-combat delta will always be 0 (mod-side
+	// "unhurt" branch handles the readout naturally).
 	CvCity* pDefenderCityForHook = kInfo.getCity(BATTLE_UNIT_DEFENDER);
+	CvCity* pAttackerCityForHook = kInfo.getCity(BATTLE_UNIT_ATTACKER);
 	const int iAtkPreDamage = pAttacker ? pAttacker->getDamage() : 0;
+	const int iAtkCityPreDamage = pAttackerCityForHook ? pAttackerCityForHook->getDamage() : 0;
 	const int iDefUnitPreDamage = pDefender ? pDefender->getDamage() : 0;
 	const int iDefCityPreDamage = pDefenderCityForHook ? pDefenderCityForHook->getDamage() : 0;
 	// Nuclear Mission
@@ -2511,15 +2517,15 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 	// animation completes; CvPreGame::quickCombat() bypasses that, and
 	// city defenders never get an EndCombatSim regardless of mode (city
 	// HP is announced via SerialEventCitySetDamage). Firing from here --
-	// the post-resolve point inside the dispatcher every unit-attacker
-	// combat funnels through -- gives the mod one synchronous signal that
-	// covers Quick + standard, units + cities, melee + ranged + air
-	// sweep. Nuclear is excluded (different announcement path). Hook
+	// the post-resolve point inside the dispatcher every combat funnels
+	// through -- gives the mod one synchronous signal that covers
+	// Quick + standard, units + cities on both sides, melee + ranged +
+	// air sweep. Nuclear is excluded (different announcement path). Hook
 	// fires unconditionally for the cases it covers; mod-side dedupe
 	// (clearing any combat-pending snapshot) ensures only one spoken
 	// result per combat even if both this hook and EndCombatSim fire in
 	// sequence.
-	if(pAttacker
+	if((pAttacker != NULL || pAttackerCityForHook != NULL)
 	    && (pDefender != NULL || pDefenderCityForHook != NULL)
 	    && !kInfo.getAttackIsNuclear())
 	{
@@ -2529,8 +2535,8 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			// 15-arg payload, decoded by the Lua handler at
 			// UnitControl.onCombatResolved:
 			//   1: attackerPlayerId
-			//   2: attackerUnitId
-			//   3: attackerDamageThisCombat   (post - pre, >= 0; includes intercept hits folded in by ResolveAirUnitVsCombat)
+			//   2: attackerUnitId              (-1 sentinel when attacker is a city)
+			//   3: attackerDamageThisCombat   (post - pre, >= 0; includes intercept hits folded in by ResolveAirUnitVsCombat; always 0 for city attackers since cities take no damage from their own ranged strikes)
 			//   4: attackerFinalDamage         (cumulative; kill at >= maxHP)
 			//   5: attackerMaxHP
 			//   6: defenderPlayerId
@@ -2566,6 +2572,16 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			//                                   Always 1 for city defenders.
 			//                                   Same parity-driven masking
 			//                                   path as attackerKnown.)
+			//   19: attackerCityId             (-1 sentinel when attacker is a
+			//                                   unit. Cities can range-strike
+			//                                   units (ResolveRangedCityVs
+			//                                   UnitCombat); the city stays
+			//                                   undamaged so attacker damage
+			//                                   fields read as 0/preDmg/maxHP.
+			//                                   Lua dispatches on
+			//                                   attackerCityId != -1 to pick
+			//                                   the city-name path for the
+			//                                   attacker side.)
 			// Lua dispatches on (defenderUnitId != -1) to pick unit vs city naming.
 			// Adding fields means updating both branches AND the Lua handler;
 			// the unit branch uses (unit, -1) and the city branch (-1, city) so
@@ -2614,11 +2630,22 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 				iCombatKind = (pDefender->getDomainType() == DOMAIN_AIR) ? 2 : 1;
 			}
 			CvLuaArgsHandle args;
-			args->Push(pAttacker->getOwner());
-			args->Push(pAttacker->GetID());
-			args->Push(pAttacker->getDamage() - iAtkPreDamage);
-			args->Push(pAttacker->getDamage());
-			args->Push(pAttacker->GetMaxHitPoints());
+			if(pAttacker != NULL)
+			{
+				args->Push(pAttacker->getOwner());
+				args->Push(pAttacker->GetID());
+				args->Push(pAttacker->getDamage() - iAtkPreDamage);
+				args->Push(pAttacker->getDamage());
+				args->Push(pAttacker->GetMaxHitPoints());
+			}
+			else
+			{
+				args->Push(pAttackerCityForHook->getOwner());
+				args->Push(-1);
+				args->Push(pAttackerCityForHook->getDamage() - iAtkCityPreDamage);
+				args->Push(pAttackerCityForHook->getDamage());
+				args->Push(pAttackerCityForHook->GetMaxHitPoints());
+			}
 			if(pDefender != NULL)
 			{
 				args->Push(pDefender->getOwner());
@@ -2652,11 +2679,15 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			args->Push(iCombatKind);
 			CvPlot* pHookPlot = kInfo.getPlot();
 			bool bPlotVisible = pHookPlot != NULL && pHookPlot->isActiveVisible(false);
-			bool bAttackerKnown = !pAttacker->isInvisible(eActiveTeam, false);
+			// Cities are always known if their plot is visible (no per-city
+			// invisibility); the unit branch checks isInvisible against the
+			// active team.
+			bool bAttackerKnown = (pAttacker == NULL) || !pAttacker->isInvisible(eActiveTeam, false);
 			bool bDefenderKnown = (pDefender == NULL) || !pDefender->isInvisible(eActiveTeam, false);
 			args->Push(bPlotVisible ? 1 : 0);
 			args->Push(bAttackerKnown ? 1 : 0);
 			args->Push(bDefenderKnown ? 1 : 0);
+			args->Push(pAttackerCityForHook ? pAttackerCityForHook->GetID() : -1);
 			bool bResult;
 			LuaSupport::CallHook(pkScriptSystem, "CivVAccessCombatResolved", args.get(), bResult);
 		}

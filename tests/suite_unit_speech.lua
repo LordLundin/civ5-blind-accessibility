@@ -1015,6 +1015,25 @@ function M.test_combat_result_no_interceptor_no_intercept_clause()
     T.truthy(not out:find("intercept", 1, true), "no intercept clause when interceptor is nil: " .. out)
 end
 
+-- City-as-attacker (city ranged strike) reuses the combat formatter with
+-- a bare-city-name attacker. City takes no damage from its own strike,
+-- so the attacker line falls into the unhurt branch.
+function M.test_combat_result_city_attacker_uses_bare_city_name()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "Babylon",
+        attackerDamage = 0,
+        attackerFinalDamage = 0,
+        attackerMaxHP = 200,
+        defenderName = "Roman Warrior",
+        defenderDamage = 15,
+        defenderFinalDamage = 15,
+        defenderMaxHP = 100,
+    })
+    T.truthy(out:find("attacker Babylon unhurt", 1, true), "city attacker should read as unhurt with bare name: " .. out)
+    T.truthy(out:find("defender Roman Warrior %-15 hp"), "defender damage expected: " .. out)
+end
+
 -- Air sweep into ground AA prepends "interception" so the user knows the
 -- damage line came from a sweep, not a strike. Defender (the AA) takes
 -- zero damage in this engine path; the unhurt branch handles that

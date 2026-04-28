@@ -695,7 +695,8 @@ local function onCombatResolved(
     combatKind,
     plotVisibleToActiveTeam,
     attackerKnown,
-    defenderKnown
+    defenderKnown,
+    attackerCity
 )
     local activePlayer = Game.GetActivePlayer()
     local activeInvolved = (attackerPlayer == activePlayer or defenderPlayer == activePlayer)
@@ -710,17 +711,21 @@ local function onCombatResolved(
     local resolvedAttackerName
     if not activeInvolved and attackerKnown ~= 1 then
         resolvedAttackerName = Text.key("TXT_KEY_CIVVACCESS_COMBAT_UNKNOWN_COMBATANT")
+    elseif attackerCity ~= -1 then
+        resolvedAttackerName = UnitSpeech.cityCombatantName(attackerPlayer, attackerCity)
     else
         resolvedAttackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit)
-        if resolvedAttackerName == "" then
-            Log.warn(
-                "onCombatResolved: attacker name empty for player="
-                    .. tostring(attackerPlayer)
-                    .. " unit="
-                    .. tostring(attackerUnit)
-            )
-            return
-        end
+    end
+    if resolvedAttackerName == "" then
+        Log.warn(
+            "onCombatResolved: attacker name empty for player="
+                .. tostring(attackerPlayer)
+                .. " unit="
+                .. tostring(attackerUnit)
+                .. " city="
+                .. tostring(attackerCity)
+        )
+        return
     end
     local attackerName = resolvedAttackerName
     local defenderName
