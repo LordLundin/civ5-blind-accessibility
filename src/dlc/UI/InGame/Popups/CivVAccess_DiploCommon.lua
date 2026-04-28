@@ -5,6 +5,24 @@
 
 DiploCommon = {}
 
+-- BaseMenuInstall's bIsInit guard skips pushes only when bIsInit AND
+-- bIsHide are both true (so DeferLoad popups -- HallOfFame, Leaderboard,
+-- Credits -- whose first user open coincides with init+show=false can
+-- still push). The DiploOverview tab panels (Relations / CurrentDeals /
+-- Global) are embedded LuaContexts inside DiploOverview.xml; the panel
+-- whose container starts visible (RelationsPanel by default) receives
+-- ShowHide(bIsInit=true, bIsHide=false) during the engine's popup-priming
+-- pass at game start, slipping past the guard. Without this check the
+-- sub-panel's BaseMenu lands on the stack on top of LoadScreen and traps
+-- input there once LoadScreen pops.
+--
+-- During real opens (F4 or mouse-corner) the LoadScreen handler is
+-- already off the stack, so this returns true.
+function DiploCommon.shouldActivate()
+    local top = HandlerStack.active()
+    return top == nil or top.name ~= "LoadScreen"
+end
+
 -- Join non-empty parts with ", ". Used to compose per-civ speech lines
 -- from a fixed sequence of optional fields; nil or empty entries drop
 -- out so a civ with no tradeable resources doesn't read "...,,,".

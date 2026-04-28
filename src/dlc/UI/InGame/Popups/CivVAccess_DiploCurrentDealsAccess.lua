@@ -30,6 +30,7 @@ include("CivVAccess_BaseMenuHelp")
 include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
+include("CivVAccess_DiploCommon")
 include("CivVAccess_Help")
 
 -- Tab / Shift+Tab cycle to Global / Relations. See
@@ -244,6 +245,7 @@ BaseMenu.install(ContextPtr, {
     displayName = Text.key("TXT_KEY_DO_CURRENT_DEALS"),
     priorInput = priorInput,
     priorShowHide = priorShowHide,
+    shouldActivate = DiploCommon.shouldActivate,
     onShow = function(h)
         h.setItems(buildItems())
     end,

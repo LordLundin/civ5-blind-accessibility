@@ -216,6 +216,7 @@ BaseMenu.install(ContextPtr, {
     displayName = Text.key("TXT_KEY_DO_GLOBAL_RELATIONS"),
     priorInput = InputHandler,
     priorShowHide = ShowHideHandler,
+    shouldActivate = DiploCommon.shouldActivate,
     onShow = function(h)
         h.setItems(buildItems())
     end,
