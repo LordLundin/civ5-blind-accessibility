@@ -71,6 +71,23 @@ local function buildItems()
         Log.warn("NotificationLogPopupAccess: active player is nil")
         return { emptyItem() }, { emptyItem() }
     end
+    -- Foreign-unit-watch deltas at the very top of the Active tab,
+    -- scoped to the current player turn. Cleared at every TurnEnd, set
+    -- at every TurnStart by ForeignUnitWatch. Plain Text items because
+    -- there's no plot or popup to activate; the user reads them and
+    -- moves on to the engine notifications below.
+    local delta = civvaccess_shared.foreignUnitDelta
+    if delta ~= nil then
+        local order = {
+            delta.hostileEntered, delta.hostileLeft,
+            delta.neutralEntered, delta.neutralLeft,
+        }
+        for _, line in ipairs(order) do
+            if line ~= nil and line ~= "" then
+                active[#active + 1] = BaseMenuItems.Text({ labelText = line })
+            end
+        end
+    end
     local num = player:GetNumNotifications()
     for i = num - 1, 0, -1 do
         local text = player:GetNotificationStr(i)

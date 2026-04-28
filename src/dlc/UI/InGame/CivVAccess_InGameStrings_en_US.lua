@@ -897,6 +897,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_ENEMY"] = "Enemy: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_UNITS"] = "Units: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_CITIES"] = "Cities: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_RESOURCES"] = "Resources: {1_List}"
+-- Foreign-unit watch. Four lines spoken at the start of each player turn
+-- summarising what foreign units entered / left view during the AI turn
+-- just past, split by hostile (at-war + barb) and neutral (everyone else
+-- not on the active team). The list arg is comma-joined "{count} {civ-
+-- adjective} {unit-name}" pieces; count is omitted when 1. Bare unit name
+-- without a plural suffix is intentional (Civ V text data has no plural
+-- TXT keys; hand-rolling per-locale plural rules is a maintenance trap).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"] = "New hostile units in view: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"] = "Hostile units no longer in view: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] = "New neutral units in view: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] = "Neutral units no longer in view: {1_List}"
 -- Turn lifecycle speech. Turn-start is the game-side "Turn: N" label plus
 -- the game's AD/BC year, joined by a comma so the moving parts (number
 -- first, year second) read as a single line.

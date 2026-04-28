@@ -85,6 +85,7 @@ include("CivVAccess_ScannerNav")
 include("CivVAccess_ScannerHandler")
 include("CivVAccess_NotificationAnnounce")
 include("CivVAccess_RevealAnnounce")
+include("CivVAccess_ForeignUnitWatch")
 include("CivVAccess_CameraTracker")
 
 -- Publish mod modules to other in-game Contexts. Civ V sandboxes Lua
@@ -141,6 +142,7 @@ local function onInGameBoot()
     Turn.installListeners()
     NotificationAnnounce.install()
     RevealAnnounce.installListeners()
+    ForeignUnitWatch.installListeners()
     CameraTracker.install()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
 end
