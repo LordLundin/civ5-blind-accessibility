@@ -1851,12 +1851,15 @@ end
 -- ===== Hub item list =====
 --
 -- Rebuilt on every hub activation (initial push + sub-handler pop). Order:
--- Stats / Production / Hex / Ranged Strike / Buildings / Wonders / Worker
+-- Ranged Strike / Stats / Production / Hex / Buildings / Wonders / Worker
 -- focus / Specialists / Great works / Great people / Unemployed / Rename /
--- Raze. Stats leads because it absorbed the seven-yield run that used to
--- pad the preamble; the user reaches yields and the rest of the city's
--- numbers in one place at the top of the list. Conditional items drop out
--- when their gating predicate is false without reshuffling the survivors.
+-- Raze. Ranged Strike leads when available so the user can fire without
+-- arrowing past the city's reporting items first; combat is the time-
+-- critical action and the rest of the hub is read-mostly. Stats follows
+-- because it absorbed the seven-yield run that used to pad the preamble;
+-- the user reaches yields and the rest of the city's numbers in one
+-- place near the top of the list. Conditional items drop out when their
+-- gating predicate is false without reshuffling the survivors.
 
 -- Hub items are gated per plan §3: an item is present only when its sub-
 -- handler would land the user on at least one real entry, so arrowing
@@ -1865,14 +1868,14 @@ end
 -- whose label carries its own zero-state).
 local function buildHubItems(city)
     local items = {}
-    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS") }, pushStats)
-    items[#items + 1] =
-        makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") }, pushProductionQueue)
-    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, pushHexMap)
     if city:CanRangeStrikeNow() then
         items[#items + 1] =
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE") }, pushRangedStrike)
     end
+    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS") }, pushStats)
+    items[#items + 1] =
+        makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") }, pushProductionQueue)
+    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, pushHexMap)
     if cityHasAnyNonWonderBuilding(city) then
         items[#items + 1] =
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") }, pushBuildings)
