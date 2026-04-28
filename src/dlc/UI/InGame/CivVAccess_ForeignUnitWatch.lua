@@ -139,12 +139,17 @@ local function buildVisibleSet()
     return set
 end
 
--- "3 Arabian Warrior" form, comma-joined. No plural -- Civ V's text data
--- has no TXT_KEY_UNIT_*_PLURAL keys, hand-rolling per-unit / per-locale
--- plural rules is a maintenance trap, and screen readers parse "3
--- Warrior" as plural from context.
+-- "3 Arabian Warrior" form, comma-joined, sorted alphabetically by
+-- (civAdjKey, unitDescKey). Sorting matters: pairs() on the counts
+-- table is non-deterministic, and an unsorted output reorders the
+-- list every turn even when the content is identical, which sounds
+-- "wrong" to a screen-reader user who's tracking a familiar list. No
+-- plural form -- Civ V's text data has no TXT_KEY_UNIT_*_PLURAL keys,
+-- hand-rolling per-unit / per-locale plural rules is a maintenance
+-- trap, and screen readers parse "3 Warrior" as plural from context.
 local function formatList(entries)
     local counts = {}
+    local order = {}
     for _, e in ipairs(entries) do
         local key = e.civAdjKey .. "|" .. e.unitDescKey
         local bucket = counts[key]
@@ -154,12 +159,15 @@ local function formatList(entries)
                 civ = Text.key(e.civAdjKey),
                 unit = Text.key(e.unitDescKey),
             }
+            order[#order + 1] = key
         else
             bucket.count = bucket.count + 1
         end
     end
+    table.sort(order)
     local pieces = {}
-    for _, b in pairs(counts) do
+    for _, k in ipairs(order) do
+        local b = counts[k]
         if b.count > 1 then
             pieces[#pieces + 1] = tostring(b.count) .. " " .. b.civ .. " " .. b.unit
         else
