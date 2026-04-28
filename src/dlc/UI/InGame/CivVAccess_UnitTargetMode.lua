@@ -179,7 +179,13 @@ local function movePathPreview(actor, targetPlot)
 end
 
 local function rangedPreview(actor, defender, targetPlot, targetX, targetY)
-    if not actor:CanRangeStrikeAt(targetX, targetY, true, true) then
+    -- bNeedWar=false so a strike on a peaceful rival's tile passes the
+    -- gate and gets the full damage preview; the engine will queue
+    -- BUTTONPOPUP_DECLAREWARRANGESTRIKE on commit and GenericPopupAccess
+    -- speaks the confirmation. With bNeedWar=true the preview wrongly
+    -- collapsed to "out of range" for any peaceful target the commit
+    -- path would actually allow.
+    if not actor:CanRangeStrikeAt(targetX, targetY, false, true) then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE")
     end
     return UnitSpeech.rangedPreview(actor, defender, targetPlot)
@@ -667,7 +673,7 @@ end
 local function commitAtCursor(self, queued)
     local plot, tx, ty = cursorPlot()
     if plot == nil then
-        SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
         return
     end
     local mode = UI.GetInterfaceMode()
@@ -722,7 +728,7 @@ local function commitAtCursor(self, queued)
         end
     end
     if reason ~= nil then
-        SpeechPipeline.speakQueued(reason)
+        SpeechPipeline.speakInterrupt(reason)
         HandlerStack.removeByName("UnitTargetMode", false)
         restoreSelection()
         return
