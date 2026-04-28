@@ -191,19 +191,27 @@ local function rangedPreview(actor, defender, targetPlot, targetX, targetY)
     return UnitSpeech.rangedPreview(actor, defender, targetPlot)
 end
 
-local function firstEnemyUnit(plot)
+-- Plot defender for combat preview / commit. Wraps the engine's
+-- getBestDefender (CvPlot.cpp:2627) -- the same pick the engine uses to
+-- resolve combat -- with the filters the target-mode UI needs:
+--
+--   bTestAtWar=false + bTestPotentialEnemy=true: peaceful rivals are
+--   included. The engine accepts them as range-strike / move-into targets
+--   and queues a war-confirm popup at commit. Allies stay filtered out.
+--
+--   bNoncombatAllowed: for range previews, civilians are valid strike
+--   targets; for melee previews, melee-into-civilian is a capture, not
+--   combat, so the civilian isn't a defender.
+--
+-- Passing the actor as pAttacker improves the air-strike damage-cap pick
+-- when the attacker is an air unit. NO_PLAYER (-1) leaves the unit-owner
+-- filter off so any non-allied unit on the plot is considered.
+local function defenderAt(plot, ranged, actor)
     if plot == nil then
         return nil
     end
-    local team = Game.GetActiveTeam()
-    local isDebug = Game.IsDebugMode()
-    for i = 0, plot:GetNumUnits() - 1 do
-        local u = plot:GetUnit(i)
-        if u ~= nil and not u:IsInvisible(team, isDebug) and u:GetOwner() ~= Game.GetActivePlayer() then
-            return u
-        end
-    end
-    return nil
+    local activePlayer = Game.GetActivePlayer()
+    return plot:GetBestDefender(-1, activePlayer, actor, 0, 1, 0, ranged and 1 or 0)
 end
 
 -- Enemy city at plot if any. The active team must be at war with the city's
@@ -391,7 +399,7 @@ end
 -- through the garrison's stats, undefended cities use city stats. Returns
 -- nil if the plot has no enemy combat target (caller speaks EMPTY).
 local function combatPreviewAt(actor, plot, tx, ty, ranged)
-    local defenderUnit = firstEnemyUnit(plot)
+    local defenderUnit = defenderAt(plot, ranged, actor)
     if defenderUnit ~= nil then
         if ranged then
             return rangedPreview(actor, defenderUnit, plot, tx, ty)
@@ -442,7 +450,7 @@ local function buildPreview(self)
         -- the path as a regular move. War-declaration on move is
         -- surfaced by the engine's popup at commit time (routed through
         -- GenericPopupAccess), so no pre-commit detection here.
-        local hasEnemy = firstEnemyUnit(plot) ~= nil or enemyCityAt(plot) ~= nil
+        local hasEnemy = defenderAt(plot, false, actor) ~= nil or enemyCityAt(plot) ~= nil
         local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
         if hasEnemy and dist == 1 then
             local text = combatPreviewAt(actor, plot, tx, ty, false)
@@ -575,7 +583,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
         if dist ~= 1 then
             return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT")
         end
-        if firstEnemyUnit(plot) == nil and enemyCityAt(plot) == nil then
+        if defenderAt(plot, false, actor) == nil and enemyCityAt(plot) == nil then
             return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         end
         return nil
@@ -599,7 +607,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
             -- range / LoS while the user navigates, but commit-time also
             -- emits them so a user who pressed enter without hearing the
             -- prefix still gets a clear reason.
-            if firstEnemyUnit(plot) == nil and enemyCityAt(plot) == nil then
+            if defenderAt(plot, true, actor) == nil and enemyCityAt(plot) == nil then
                 return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
             end
             local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
@@ -742,7 +750,7 @@ local function commitAtCursor(self, queued)
         -- first (engine's MoveOrAttack picks the unit defender as the
         -- combat target), so unit-first is correct there.
         local defenderCity = enemyCityAt(plot)
-        local defenderUnit = firstEnemyUnit(plot)
+        local defenderUnit = defenderAt(plot, isRangeAttackMode(mode), self._actor)
         if isRangeAttackMode(mode) and defenderCity ~= nil then
             UnitControl.registerCityCombatPending(self._actor, defenderCity)
         elseif defenderUnit ~= nil then

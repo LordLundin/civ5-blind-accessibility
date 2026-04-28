@@ -275,24 +275,19 @@ local function plotAt(x, y)
     return Map.GetPlot(x, y)
 end
 
+-- At-war defender at plot, used by directMove to gate Alt+QAZEDC into
+-- combat-pending vs. plain-move. bTestAtWar=true means at-war or
+-- barbarian (CvUnit::isEnemy at CvUnit.cpp:18255 checks atWar; barbarians
+-- are always at war with all civs). bTestPotentialEnemy=false so peaceful
+-- rivals don't trigger combat-pending: entering a peaceful rival's tile
+-- queues BUTTONPOPUP_DECLAREWARMOVE, not direct combat, and the popup
+-- path freezes pending into a deferred slot. bNoncombatAllowed=false so
+-- a civilian-only plot is treated as a move (capture), not an attack.
 function UnitControl.enemyAt(plot)
     if plot == nil then
         return nil
     end
-    local activePlayer = Game.GetActivePlayer()
-    local team = Game.GetActiveTeam()
-    local isDebug = Game.IsDebugMode()
-    local teamObj = Teams[team]
-    for i = 0, plot:GetNumUnits() - 1 do
-        local u = plot:GetUnit(i)
-        if u ~= nil and not u:IsInvisible(team, isDebug) and u:GetOwner() ~= activePlayer then
-            local owner = Players[u:GetOwner()]
-            if owner ~= nil and (owner:IsBarbarian() or teamObj:IsAtWar(owner:GetTeam())) then
-                return u
-            end
-        end
-    end
-    return nil
+    return plot:GetBestDefender(-1, Game.GetActivePlayer(), nil, 1, 0, 0, 0)
 end
 
 -- ===== Cycle =====

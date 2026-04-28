@@ -41,23 +41,17 @@ local function resolveCity(ownerID, cityID)
     return owner:GetCityByID(cityID)
 end
 
--- First non-invisible enemy unit at plot (plot defender priority). Mirrors
--- UnitTargetMode.firstEnemyUnit. Used for the Space preview fallback when
--- the plot has no enemy city.
+-- Best defender at plot for a city ranged strike. Wraps the engine's
+-- getBestDefender (CvPlot.cpp:2627) -- the same pick the engine uses to
+-- resolve combat. bTestPotentialEnemy=true includes peaceful rivals (city
+-- ranged strikes accept them; war-confirm popup queues at commit) and
+-- excludes allies. bNoncombatAllowed=true since ranged strikes hit
+-- civilians too. pAttacker=nil because the attacker is a city, not a unit.
 local function topEnemyUnitAt(plot)
     if plot == nil then
         return nil
     end
-    local team = Game.GetActiveTeam()
-    local activePlayer = Game.GetActivePlayer()
-    local isDebug = Game.IsDebugMode()
-    for i = 0, plot:GetNumUnits() - 1 do
-        local u = plot:GetUnit(i)
-        if u ~= nil and not u:IsInvisible(team, isDebug) and u:GetOwner() ~= activePlayer then
-            return u
-        end
-    end
-    return nil
+    return plot:GetBestDefender(-1, Game.GetActivePlayer(), nil, 0, 1, 0, 1)
 end
 
 -- Space-preview announcement. Distinguishes three cases the user can land
