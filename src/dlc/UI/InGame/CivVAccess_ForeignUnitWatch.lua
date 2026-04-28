@@ -2,9 +2,10 @@
 -- foreign units that entered or walked out of the active team's view
 -- during the AI turn just past. Splits hostile (at-war + barb) from
 -- neutral (every foreign owner you can see who isn't at war with you,
--- civilians included). The same four strings are parked on
--- civvaccess_shared so NotificationLogPopupAccess can prepend them at
--- the top of F7 for the duration of the player's turn.
+-- civilians included). The same lines (as a flat array of non-empty
+-- strings) are parked on civvaccess_shared so NotificationLogPopupAccess
+-- can prepend them at the top of F7 for the duration of the player's
+-- turn.
 --
 -- Strategy is snapshot-diff at turn boundaries. A unit walks-into-view
 -- and back-out within the same AI turn nets to nothing in the diff and
@@ -13,22 +14,39 @@
 -- player only by design: simultaneous-turn multiplayer has no clean
 -- turn boundary to anchor the snapshot pair to.
 --
--- Destroyed units are excluded from both directions. A unit in the
--- prior snapshot but not in the current visible set is "left" only if
--- Players[i]:GetUnitByID(id) still resolves -- the unit is alive but
--- has walked into fog. If the engine no longer has the unit, it's been
--- destroyed and we drop it: "no longer in view" misframes a death, the
--- combat readout already speaks kills the active player participated
--- in, and witnessing third-party kills reliably would need a death-
--- event listener with runtime-uncertain visibility queries.
+-- War declared during the AI turn. A unit that was in your view as
+-- neutral at end of turn and is still in your view at the next turn-
+-- start, but whose owner is now at war with you, is included in the
+-- hostile-entered list. The bucket transition is the announce signal:
+-- the engine fires its own war-declared notification, but doesn't say
+-- "and they have units in your face." Without this synthesized entry
+-- the unit silently changes bucket without a word to the user. Peace
+-- the other way (hostile to neutral mid-turn) isn't synthesized: the
+-- engine's peace notification covers it and "now neutral in view"
+-- isn't actionable.
 --
--- Bucket is locked at snapshot time per side. For the entered list we
--- bucket against current world state at announce time; for left we use
--- the bucket cached on the snapshot entry. A unit you last saw as
--- neutral that walks into fog after a war declaration still announces
--- as a neutral departure: we describe what you saw, not retcon the
--- bucket. The engine's own war-declared notification covers the war
--- event itself.
+-- Destroyed and captured units are excluded from both directions. A
+-- unit in the prior snapshot but not in the current visible set is
+-- "left" only if Players[i]:GetUnitByID(id) still resolves -- the unit
+-- is alive under its original owner and has walked into fog. If the
+-- engine no longer has it under that owner, it's been destroyed or
+-- captured, and we drop it: the combat readout already speaks kills
+-- the active player participated in, and there's no clean engine-side
+-- signal to distinguish capture from death without an event listener
+-- (which we deliberately don't have here -- snapshot-diff is the whole
+-- design). A captured civilian that's still in the same plot under the
+-- new owner does show up in the entered list under the new owner's
+-- bucket on the next turn, so the user isn't completely blind to the
+-- transition; they just don't hear an explicit "left" line for the
+-- old-owner instance.
+--
+-- Bucket is locked at snapshot time per side. For the entered list
+-- (and the war-reclassified entries) we bucket against current world
+-- state at announce time. For left we use the bucket cached on the
+-- snapshot entry. A unit you last saw as neutral that walks into fog
+-- after a war declaration still announces as a neutral departure: we
+-- describe what you saw, not retcon the bucket. The engine's own war-
+-- declared notification covers the war event itself.
 --
 -- Game-load priming. The snapshot is module-local state and dies on
 -- env reload (load-game-from-game or fresh-process load). install-
@@ -71,9 +89,12 @@ local function classifyOwner(ownerId, activePlayerId, activeTeam)
     return "neutral"
 end
 
+-- Caller (buildVisibleSet) has already proved Players[ownerId] alive,
+-- so the lookup here doesn't need a nil guard. The unit description
+-- row check guards a real edge case (mod content with missing
+-- Description) and stays.
 local function unitMetadata(unit, ownerId, bucket)
-    local owner = Players[ownerId]
-    local civAdjKey = owner and owner:GetCivilizationAdjectiveKey() or nil
+    local civAdjKey = Players[ownerId]:GetCivilizationAdjectiveKey()
     local row = GameInfo.Units[unit:GetUnitType()]
     local unitDescKey = row and row.Description or nil
     return {
@@ -155,18 +176,6 @@ local function formatLine(entries, txtKey)
     return Text.format(txtKey, formatList(entries))
 end
 
-local function bucketByCategory(entries)
-    local hostile, neutral = {}, {}
-    for _, e in ipairs(entries) do
-        if e.bucket == "hostile" then
-            hostile[#hostile + 1] = e
-        else
-            neutral[#neutral + 1] = e
-        end
-    end
-    return hostile, neutral
-end
-
 function ForeignUnitWatch._onTurnEnd()
     local ok, err = pcall(function()
         _snapshot = buildVisibleSet()
@@ -181,55 +190,74 @@ function ForeignUnitWatch._onTurnStart()
     local ok, err = pcall(function()
         local current = buildVisibleSet()
 
-        local enteredAll = {}
-        for key, entry in pairs(current) do
-            if _snapshot[key] == nil then
-                enteredAll[#enteredAll + 1] = entry
+        local hE, hL, nE, nL = {}, {}, {}, {}
+
+        -- Walk current: newly visible go into the appropriate entered
+        -- bucket. Already-visible units that flipped neutral -> hostile
+        -- (war declared mid-AI-turn while the unit stood in your view)
+        -- get synthesized into hostile-entered so the announcement
+        -- carries the new threat list, not just the engine's bare war
+        -- notification.
+        for key, curr in pairs(current) do
+            local prev = _snapshot[key]
+            if prev == nil then
+                if curr.bucket == "hostile" then
+                    hE[#hE + 1] = curr
+                else
+                    nE[#nE + 1] = curr
+                end
+            elseif prev.bucket == "neutral" and curr.bucket == "hostile" then
+                hE[#hE + 1] = curr
             end
         end
 
-        local leftAll = {}
-        for key, entry in pairs(_snapshot) do
+        -- Walk snapshot: units no longer visible go into the left bucket
+        -- only when the engine still has them under their original
+        -- owner. GetUnitByID returns nil for both deaths and captures;
+        -- we drop both per the design (see file header).
+        for key, prev in pairs(_snapshot) do
             if current[key] == nil then
-                local owner = Players[entry.ownerId]
-                if owner ~= nil and owner:GetUnitByID(entry.unitId) ~= nil then
-                    leftAll[#leftAll + 1] = entry
+                local owner = Players[prev.ownerId]
+                if owner ~= nil and owner:GetUnitByID(prev.unitId) ~= nil then
+                    if prev.bucket == "hostile" then
+                        hL[#hL + 1] = prev
+                    else
+                        nL[#nL + 1] = prev
+                    end
                 end
             end
         end
 
-        local hE, nE = bucketByCategory(enteredAll)
-        local hL, nL = bucketByCategory(leftAll)
-
-        local lines = {
-            hostileEntered = formatLine(hE, "TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"),
-            hostileLeft    = formatLine(hL, "TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"),
-            neutralEntered = formatLine(nE, "TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"),
-            neutralLeft    = formatLine(nL, "TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"),
+        -- Stable order: entered before left, hostile before neutral.
+        -- Keeps the audible shape predictable for the user.
+        local rawLines = {
+            formatLine(hE, "TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"),
+            formatLine(hL, "TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"),
+            formatLine(nE, "TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"),
+            formatLine(nL, "TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"),
         }
-        local anything = false
-        for _, line in pairs(lines) do
+        local nonEmpty = {}
+        for _, line in ipairs(rawLines) do
             if line ~= "" then
-                anything = true
-                break
+                nonEmpty[#nonEmpty + 1] = line
             end
         end
-        if anything then
-            civvaccess_shared.foreignUnitDelta = lines
+
+        if #nonEmpty > 0 then
+            civvaccess_shared.foreignUnitDelta = nonEmpty
+            -- First line interrupts: turn-start summary isn't a follow-
+            -- up to anything specific, and the project default is
+            -- speakInterrupt unless we have a reason to queue. The
+            -- remaining lines queue so the four-line summary plays as a
+            -- single coherent block instead of cutting itself off.
+            SpeechPipeline.speakInterrupt(nonEmpty[1])
+            for i = 2, #nonEmpty do
+                SpeechPipeline.speakQueued(nonEmpty[i])
+            end
         else
             civvaccess_shared.foreignUnitDelta = nil
         end
-        -- Stable speech order: entered before left, hostile before
-        -- neutral. Keeps the audible shape predictable for the user.
-        local order = {
-            lines.hostileEntered, lines.hostileLeft,
-            lines.neutralEntered, lines.neutralLeft,
-        }
-        for _, line in ipairs(order) do
-            if line ~= "" then
-                SpeechPipeline.speakQueued(line)
-            end
-        end
+
         _snapshot = current
     end)
     if not ok then

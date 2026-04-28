@@ -73,19 +73,14 @@ local function buildItems()
     end
     -- Foreign-unit-watch deltas at the very top of the Active tab,
     -- scoped to the current player turn. Cleared at every TurnEnd, set
-    -- at every TurnStart by ForeignUnitWatch. Plain Text items because
-    -- there's no plot or popup to activate; the user reads them and
-    -- moves on to the engine notifications below.
+    -- at every TurnStart by ForeignUnitWatch as a flat array of non-
+    -- empty strings in the same order they were spoken. Plain Text
+    -- items because there's no plot or popup to activate; the user
+    -- reads them and moves on to the engine notifications below.
     local delta = civvaccess_shared.foreignUnitDelta
     if delta ~= nil then
-        local order = {
-            delta.hostileEntered, delta.hostileLeft,
-            delta.neutralEntered, delta.neutralLeft,
-        }
-        for _, line in ipairs(order) do
-            if line ~= nil and line ~= "" then
-                active[#active + 1] = BaseMenuItems.Text({ labelText = line })
-            end
+        for _, line in ipairs(delta) do
+            active[#active + 1] = BaseMenuItems.Text({ labelText = line })
         end
     end
     local num = player:GetNumNotifications()
