@@ -16,6 +16,7 @@
         <Skin>
             <Directory>UI/FrontEnd</Directory>
             <Directory>UI/Shared</Directory>
+            <Directory>UI/InGame/Popups</Directory>
         </Skin>
         <GameplaySkin>
             <Directory>UI/InGame</Directory>

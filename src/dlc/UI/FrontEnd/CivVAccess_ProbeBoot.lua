@@ -39,6 +39,8 @@ PullDownProbe.installFromControls({
     "MaxTurnsPullDown",
     -- LoadMenu
     "SortByPullDown",
+    -- Leaderboard popup
+    "LeaderboardPull",
 }, {
     -- OptionsMenu
     "MusicVolumeSlider",

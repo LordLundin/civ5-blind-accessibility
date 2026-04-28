@@ -3,6 +3,8 @@
 -- needs its own strings file with the keys relevant to that Context.
 CivVAccess_Strings = CivVAccess_Strings or {}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Accessibility mod ready."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_PREV_PAGE"] = "Previous page"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_NEXT_PAGE"] = "Next page"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAIN_MENU"] = "Main menu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_OTHER_MENU"] = "Other"
