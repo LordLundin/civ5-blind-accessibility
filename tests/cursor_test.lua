@@ -453,36 +453,38 @@ function M.test_river_self_edge_only()
     Map.PlotDirection = function()
         return nil
     end -- no neighbors
+    -- IsNEOfRiver means "this plot is NE of a river" -- river is on SW edge.
     local p = T.fakePlot({ neOfRiver = true })
-    T.eq(PlotSectionRiver.Read(p, {})[1], "river ne")
+    T.eq(PlotSectionRiver.Read(p, {})[1], "river sw")
 end
 
 function M.test_river_neighbor_sourced_edge()
     setup()
-    -- E edge of self == W edge of east neighbor.
-    local east = T.fakePlot({ wOfRiver = true })
+    -- NE edge of self == NE neighbor's IsNEOfRiver (its SW edge faces us).
+    local ne = T.fakePlot({ neOfRiver = true })
     Map.PlotDirection = function(_, _, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then
-            return east
+        if dir == DirectionTypes.DIRECTION_NORTHEAST then
+            return ne
         end
         return nil
     end
     local p = T.fakePlot({})
-    T.eq(PlotSectionRiver.Read(p, {})[1], "river e")
+    T.eq(PlotSectionRiver.Read(p, {})[1], "river ne")
 end
 
 function M.test_river_all_six_collapses()
     setup()
-    -- Force every neighbor to provide its share: E, SE, SW.
+    -- Self owns SW (neOfRiver), E (wOfRiver), SE (nwOfRiver). The other
+    -- three edges live on the same-direction neighbor's same flag.
     Map.PlotDirection = function(_, _, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then
+        if dir == DirectionTypes.DIRECTION_NORTHEAST then
+            return T.fakePlot({ neOfRiver = true })
+        end
+        if dir == DirectionTypes.DIRECTION_WEST then
             return T.fakePlot({ wOfRiver = true })
         end
-        if dir == DirectionTypes.DIRECTION_SOUTHEAST then
+        if dir == DirectionTypes.DIRECTION_NORTHWEST then
             return T.fakePlot({ nwOfRiver = true })
-        end
-        if dir == DirectionTypes.DIRECTION_SOUTHWEST then
-            return T.fakePlot({ neOfRiver = true })
         end
         return nil
     end
@@ -492,13 +494,14 @@ end
 
 function M.test_river_edges_in_clockwise_order_from_ne()
     setup()
-    -- Edges: NE (self), E (neighbor), SW (neighbor), W (self), but not NW.
+    -- Edges: NE (NE neighbor), E (self wOfRiver), SW (self neOfRiver),
+    -- W (W neighbor), no SE, no NW.
     Map.PlotDirection = function(_, _, dir)
-        if dir == DirectionTypes.DIRECTION_EAST then
-            return T.fakePlot({ wOfRiver = true })
-        end
-        if dir == DirectionTypes.DIRECTION_SOUTHWEST then
+        if dir == DirectionTypes.DIRECTION_NORTHEAST then
             return T.fakePlot({ neOfRiver = true })
+        end
+        if dir == DirectionTypes.DIRECTION_WEST then
+            return T.fakePlot({ wOfRiver = true })
         end
         return nil
     end

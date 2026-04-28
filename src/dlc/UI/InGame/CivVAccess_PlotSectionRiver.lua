@@ -1,6 +1,13 @@
--- River edges section. Civ V stores rivers per hex edge but only on three
--- of a plot's six edges (W, NW, NE). The opposite three (E, SE, SW) live
--- on the W / NW / NE flag of the plot's E / SE / SW neighbor respectively.
+-- River edges section. Civ V's plot stores river presence for three of the
+-- six hex edges as flags whose names look like edge labels but are actually
+-- positional: IsNEOfRiver means "this plot is NE of a river," i.e. the
+-- river runs along the plot's SW edge. By the same inversion IsWOfRiver
+-- maps to the E edge and IsNWOfRiver to the SE edge. The other three edges
+-- (NE, W, NW) live on the same flag of the neighbor in that direction --
+-- e.g. the NE neighbor's IsNEOfRiver puts a river on its SW edge, which is
+-- our NE edge. Authoritative source: CvPlot::updateRiverCrossing in the
+-- SDK (CvGameCoreDLL_Expansion2/CvPlot.cpp).
+--
 -- We assemble all six edges and announce them in a fixed clockwise order
 -- starting from NE so the same river always reads the same way regardless
 -- of cursor approach. Six-of-six collapses to a single "river all sides"
@@ -8,17 +15,18 @@
 -- effectively "you are on a river island."
 
 local SELF_EDGES = {
-    { dir = "TXT_KEY_CIVVACCESS_DIR_NE", method = "IsNEOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_W", method = "IsWOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_NW", method = "IsNWOfRiver" },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_SW", method = "IsNEOfRiver" },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_E", method = "IsWOfRiver" },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_SE", method = "IsNWOfRiver" },
 }
 
--- (neighbor direction, method on neighbor returning true if THAT edge of
--- ours is a river). The neighbor's W flag is our E edge, etc.
+-- The neighbor in direction D, checked with the same flag, owns our D edge:
+-- "neighbor is D of a river" means the river is on the side of the neighbor
+-- facing us.
 local NEIGHBOR_EDGES = {
-    { dir = "TXT_KEY_CIVVACCESS_DIR_E", neighborDir = "DIRECTION_EAST", method = "IsWOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_SE", neighborDir = "DIRECTION_SOUTHEAST", method = "IsNWOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_SW", neighborDir = "DIRECTION_SOUTHWEST", method = "IsNEOfRiver" },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_NE", neighborDir = "DIRECTION_NORTHEAST", method = "IsNEOfRiver" },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_W", neighborDir = "DIRECTION_WEST", method = "IsWOfRiver" },
+    { dir = "TXT_KEY_CIVVACCESS_DIR_NW", neighborDir = "DIRECTION_NORTHWEST", method = "IsNWOfRiver" },
 }
 
 -- Spoken order (clockwise from NE), independent of how we collected the
