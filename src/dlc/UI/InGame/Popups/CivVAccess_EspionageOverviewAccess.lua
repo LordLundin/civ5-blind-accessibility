@@ -863,13 +863,6 @@ local function buildMoveSubItems(agent)
         end,
     })
 
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = Text.key("TXT_KEY_CANCEL_BUTTON"),
-        onActivate = function()
-            HandlerStack.removeByName("EspionageOverview/Move", true)
-        end,
-    })
-
     -- Per-row item builder. Civ is dropped on every move-flow row: own
     -- cities sit under Your Cities, foreign-major rows sit under a per-civ
     -- group, and city-states sit under the combined City-States group, so
@@ -885,8 +878,13 @@ local function buildMoveSubItems(agent)
         end
         local plot = Map.GetPlot(ci.CityX, ci.CityY)
         local pCity = plot and plot:GetPlotCity() or nil
+        -- The diplomat fork applies only when relocating a spy to a foreign
+        -- major-civ capital we're at peace with. Own capitals reach this
+        -- branch (peace-with-self trivially holds and we're a major civ),
+        -- but sending yourself a diplomat is meaningless and the engine
+        -- no-ops it -- skip the picker so the move commits as a regular spy.
         local needsDiplomatChoice = false
-        if pCity ~= nil and pCity:IsCapital() then
+        if pCity ~= nil and pCity:IsCapital() and ci.PlayerID ~= Game.GetActivePlayer() then
             local owner = Players[ci.PlayerID]
             if not owner:IsMinorCiv() and not pMyTeam:IsAtWar(pCity:GetTeam()) then
                 needsDiplomatChoice = true
@@ -935,6 +933,9 @@ local function buildMoveSubItems(agent)
         end
     end
 
+    -- Track the first city group so the cursor lands on a destination
+    -- list rather than on the Hideout / Cancel action buttons at the top.
+    local firstGroupIdx
     if #yourCities > 0 then
         local yourGroupItems = {}
         for _, ci in ipairs(yourCities) do
@@ -944,6 +945,7 @@ local function buildMoveSubItems(agent)
             labelText = Text.key("TXT_KEY_EO_YOUR_CITIES"),
             items = yourGroupItems,
         })
+        firstGroupIdx = firstGroupIdx or #items
     end
     for _, key in ipairs(civOrder) do
         local bucket = byCiv[key]
@@ -955,6 +957,7 @@ local function buildMoveSubItems(agent)
             labelText = bucket.civName,
             items = groupItems,
         })
+        firstGroupIdx = firstGroupIdx or #items
     end
     if #cityStateCities > 0 then
         local csGroupItems = {}
@@ -965,16 +968,19 @@ local function buildMoveSubItems(agent)
             labelText = Text.key("TXT_KEY_ADVISOR_CITY_STATES_INTRO_DISPLAY"),
             items = csGroupItems,
         })
+        firstGroupIdx = firstGroupIdx or #items
     end
-    return items
+    return items, firstGroupIdx
 end
 
 pushMoveSub = function(agent)
+    local items, initialIndex = buildMoveSubItems(agent)
     local sub = BaseMenu.create({
         name = "EspionageOverview/Move",
         displayName = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_MOVE_DISPLAY", Text.key(agent.Rank), Text.key(agent.Name)),
         preamble = Text.format("TXT_KEY_MOVE_SPY_INSTRUCTIONS", agent.Rank, agent.Name),
-        items = buildMoveSubItems(agent),
+        items = items,
+        initialIndex = initialIndex,
         capturesAllInput = true,
         escapePops = true,
         escapeAnnounce = Text.key("TXT_KEY_CIVVACCESS_CANCELED"),
