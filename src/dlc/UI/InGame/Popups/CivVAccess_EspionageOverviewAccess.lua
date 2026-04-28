@@ -505,7 +505,9 @@ local function potentialClause(cityInfo, isCityState, spy)
         return Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_RIG_ELECTION_AVAILABLE")
     end
     if cityInfo.BasePotential <= 0 then
-        return Text.key("TXT_KEY_EO_UNKNOWN_POTENTIAL")
+        -- Engine TXT_KEY_EO_UNKNOWN_POTENTIAL is literally "?" -- a glyph
+        -- for the visual meter that would speak as the symbol name.
+        return Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_UNKNOWN")
     end
     if cityInfo.PlayerID == Game.GetActivePlayer() then
         return Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_VALUE", cityInfo.BasePotential)
@@ -516,14 +518,20 @@ local function potentialClause(cityInfo, isCityState, spy)
     return Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_BASE", cityInfo.BasePotential)
 end
 
--- City row label: Civ, City, population, +spy clause, potential, +breakdown.
+-- City row label: [Civ,] City, population, +spy clause, potential, +breakdown.
 -- Potential is held to the end so the breakdown (modifier list) follows it
 -- naturally as a single trailing detail clause; sighted players read those
 -- numbers off the potential-meter tooltip and we surface the same data here
--- since tab 2 has no per-row drill anymore.
-local function cityRowLabel(cityInfo, isCityState, spy)
+-- since tab 2 has no per-row drill anymore. Civ is dropped when the row sits
+-- under a per-civ group (the group label already names the civ).
+local function cityRowLabel(cityInfo, isCityState, spy, dropCiv)
     local popText = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POPULATION", cityInfo.Population)
-    local parts = { cityInfo.CivilizationName, cityInfo.Name, popText }
+    local parts = {}
+    if not dropCiv then
+        parts[#parts + 1] = cityInfo.CivilizationName
+    end
+    parts[#parts + 1] = cityInfo.Name
+    parts[#parts + 1] = popText
     local spyClause = spyPresenceClause(spy)
     if spyClause ~= "" then
         parts[#parts + 1] = spyClause
@@ -538,15 +546,17 @@ local function cityRowLabel(cityInfo, isCityState, spy)
     return table.concat(parts, ", ")
 end
 
--- Flat city row. Eligible for View City (foreign non-city-state with
--- established surveillance, mirroring engine RefreshTheirCities lines 1289 /
--- 1326 / 1347's DisabledViewCityIcon gating) -> Choice that opens the city
--- screen on activate. Everything else is an inert Text row -- the row label
--- already carries civ, name, population, spy presence, potential, and the
--- modifier breakdown, so there is no further drill content worth surfacing.
-local function buildCityRow(cityInfo, isCityState, spies)
+-- City row. Eligible for View City (foreign non-city-state with established
+-- surveillance, mirroring engine RefreshTheirCities lines 1289 / 1326 / 1347
+-- and RefreshMyCities line 1062's ViewCityIcon:SetHide(true)) -> Choice that
+-- opens the city screen on activate. Everything else is an inert Text row;
+-- the engine doesn't expose a clickable view in those cases because the
+-- city panel lacks spy-derived data, and we mirror that so a user pressing
+-- Enter on an unviewable city doesn't get phantom feedback. dropCiv is
+-- forwarded to cityRowLabel for rows nested under a per-civ group.
+local function buildCityRow(cityInfo, isCityState, spies, dropCiv)
     local spy = agentInCity(cityInfo.PlayerID, cityInfo.CityID, spies)
-    local label = cityRowLabel(cityInfo, isCityState, spy)
+    local label = cityRowLabel(cityInfo, isCityState, spy, dropCiv)
     local viewable = not isCityState
         and cityInfo.PlayerID ~= Game.GetActivePlayer()
         and spy ~= nil
@@ -578,30 +588,69 @@ local function buildCitiesTabItems()
     local activeTeam = pPlayer:GetTeam()
     local cityStatus = pPlayer:GetEspionageCityStatus()
     local spies = pPlayer:GetEspionageSpies()
-    local yourCities, theirCities = {}, {}
+
+    -- Split: own cities, foreign-major cities bucketed by civ (preserving
+    -- engine's first-occurrence order so groups stay stable across
+    -- refreshes), and city-states pooled into a single combined group.
+    local yourCities = {}
+    local byCiv = {}
+    local civOrder = {}
+    local cityStateCities = {}
     for _, v in ipairs(cityStatus) do
         local enriched = enrichCityStatus(v)
         if v.PlayerID == Game.GetActivePlayer() then
             yourCities[#yourCities + 1] = enriched
         elseif v.Team ~= activeTeam then
-            theirCities[#theirCities + 1] = enriched
+            local owner = Players[v.PlayerID]
+            if owner:IsMinorCiv() then
+                cityStateCities[#cityStateCities + 1] = enriched
+            else
+                local key = enriched.CivilizationNameKey
+                local bucket = byCiv[key]
+                if bucket == nil then
+                    bucket = { civName = enriched.CivilizationName, cities = {} }
+                    byCiv[key] = bucket
+                    civOrder[#civOrder + 1] = key
+                end
+                bucket.cities[#bucket.cities + 1] = enriched
+            end
         end
     end
-    -- Section headers as Text rows (not drillable Groups) so the tab is a
-    -- single flat scrollable list -- the city rows themselves carry every
-    -- piece of data the old per-city drill exposed.
+
     local items = {}
     if #yourCities > 0 then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_EO_YOUR_CITIES") })
+        local yourGroupItems = {}
         for _, ci in ipairs(yourCities) do
-            items[#items + 1] = buildCityRow(ci, false, spies)
+            yourGroupItems[#yourGroupItems + 1] = buildCityRow(ci, false, spies, false)
         end
+        items[#items + 1] = BaseMenuItems.Group({
+            labelText = Text.key("TXT_KEY_EO_YOUR_CITIES"),
+            items = yourGroupItems,
+        })
     end
-    if #theirCities > 0 then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_EO_THEIR_CITIES") })
-        for _, ci in ipairs(theirCities) do
-            items[#items + 1] = buildCityRow(ci, Players[ci.PlayerID]:IsMinorCiv(), spies)
+    -- One drillable per foreign major civ. Group label is the civ's short
+    -- description so the level-1 listing reads as Your Cities, then each
+    -- foreign civ in turn, then the combined city-states group.
+    for _, key in ipairs(civOrder) do
+        local bucket = byCiv[key]
+        local groupItems = {}
+        for _, ci in ipairs(bucket.cities) do
+            groupItems[#groupItems + 1] = buildCityRow(ci, false, spies, true)
         end
+        items[#items + 1] = BaseMenuItems.Group({
+            labelText = bucket.civName,
+            items = groupItems,
+        })
+    end
+    if #cityStateCities > 0 then
+        local csGroupItems = {}
+        for _, ci in ipairs(cityStateCities) do
+            csGroupItems[#csGroupItems + 1] = buildCityRow(ci, true, spies, true)
+        end
+        items[#items + 1] = BaseMenuItems.Group({
+            labelText = Text.key("TXT_KEY_ADVISOR_CITY_STATES_INTRO_DISPLAY"),
+            items = csGroupItems,
+        })
     end
     return items
 end
