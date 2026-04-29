@@ -84,21 +84,56 @@ end
 -- TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV. In some non-English locales
 -- (notably French) the localized template uses a gender-form selector
 -- on the adjective that requires gender metadata on the unit-name row.
--- For unit names whose row lacks that tag the engine logs "Could not
--- deduce form based on gender and plurality" and returns the template
--- with {  ^  *  syntax characters still in it instead of taking the
--- explicit fallback the format provides. Detect that residue and
--- compose the pieces ourselves so the player always hears a usable
--- name. Adjective ends up in default form and word order is adjective-
--- then-noun (English-like), which is suboptimal grammar in romance
--- locales but always intelligible -- and only kicks in for entries
--- the format would have mangled anyway.
+-- When that tag is missing the engine logs "Could not deduce form
+-- based on gender and plurality" and the result is unusable for
+-- speech: it may contain raw template-syntax residue ({, ^, *, @) or
+-- be empty/whitespace-only. Treat any of those as broken and compose
+-- the pieces ourselves. Adjective ends up in default form and word
+-- order is adjective-then-noun (English-like), which is suboptimal
+-- grammar in romance locales but always intelligible -- and only
+-- kicks in for entries the format would have mangled anyway.
+local function looksBroken(s)
+    if s == nil then
+        return true
+    end
+    if s:find("^%s*$") then
+        return true
+    end
+    if s:find("[{}@^*]") then
+        return true
+    end
+    return false
+end
+
+local loggedFallbackPairs = {}
+
 function Text.unitWithCiv(adjKey, nameKey)
     local out = Locale.ConvertTextKey(
         "TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", adjKey, nameKey
     )
-    if out and not out:find("[{^]") then
+    if not looksBroken(out) then
         return out
     end
-    return Locale.ConvertTextKey(adjKey) .. " " .. Locale.ConvertTextKey(nameKey)
+    local adj = Locale.ConvertTextKey(adjKey)
+    local name = Locale.ConvertTextKey(nameKey)
+    local fallback = adj .. " " .. name
+    local pairKey = tostring(adjKey) .. "|" .. tostring(nameKey)
+    if not loggedFallbackPairs[pairKey] then
+        loggedFallbackPairs[pairKey] = true
+        Log.warn(
+            "Text.unitWithCiv fallback: adjKey="
+                .. tostring(adjKey)
+                .. " nameKey="
+                .. tostring(nameKey)
+                .. " out="
+                .. string.format("%q", tostring(out))
+                .. " adj="
+                .. string.format("%q", tostring(adj))
+                .. " name="
+                .. string.format("%q", tostring(name))
+                .. " fallback="
+                .. string.format("%q", fallback)
+        )
+    end
+    return fallback
 end
