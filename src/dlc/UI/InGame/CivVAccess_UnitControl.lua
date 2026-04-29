@@ -805,8 +805,8 @@ end
 -- (no interceptor in range / with charges left at the target plot). No
 -- combat resolves and CombatResolved doesn't fire, so without this hook
 -- the user's sweep would be a silent no-op. Engine-side AddMessage that
--- lands the same info in the notification panel for sighted players is
--- not subscribed to from Lua.
+-- lands the same info in the on-screen message strip for sighted players
+-- has no Lua subscription hook.
 local function onAirSweepNoTarget(attackerPlayer, _attackerUnit)
     if attackerPlayer ~= Game.GetActivePlayer() then
         return
