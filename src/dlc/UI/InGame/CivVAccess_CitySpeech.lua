@@ -91,10 +91,12 @@ end
 function CitySpeech.statusTokens(city)
     local parts = {}
     if city:IsRazing() then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_RAZING", city:GetRazingTurns())
+        local razingTurns = city:GetRazingTurns()
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_RAZING", razingTurns, razingTurns)
     end
     if city:IsResistance() then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_RESISTANCE", city:GetResistanceTurns())
+        local resistanceTurns = city:GetResistanceTurns()
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_RESISTANCE", resistanceTurns, resistanceTurns)
     end
     if city:IsOccupied() and not city:IsNoOccupiedUnhappiness() then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_OCCUPIED")
@@ -131,7 +133,8 @@ function CitySpeech.growthToken(city)
     if foodDiff100 < 0 then
         return Text.key("TXT_KEY_CIVVACCESS_CITY_STARVING")
     end
-    return Text.format("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", city:GetFoodTurnsLeft())
+    local foodTurnsLeft = city:GetFoodTurnsLeft()
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", foodTurnsLeft, foodTurnsLeft)
 end
 
 -- Short production token: name + turns-left, or "not producing" / process
@@ -149,7 +152,7 @@ function CitySpeech.productionToken(city)
     if city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
         turnsLeft = city:GetProductionTurnsLeft()
     end
-    return Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING", Text.key(prodKey), turnsLeft)
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_PRODUCING", turnsLeft, Text.key(prodKey), turnsLeft)
 end
 
 -- Enemy city HP: band color rather than exact fraction, matching what
@@ -276,7 +279,8 @@ function CitySpeech.development(city)
         if city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
             turnsLeft = city:GetProductionTurnsLeft()
         end
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING", Text.key(prodKey), turnsLeft)
+        parts[#parts + 1] =
+            Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_PRODUCING", turnsLeft, Text.key(prodKey), turnsLeft)
         parts[#parts + 1] =
             Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PROGRESS", city:GetProduction(), city:GetProductionNeeded())
     end
@@ -306,7 +310,8 @@ function CitySpeech.development(city)
     elseif foodDiff100 < 0 then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_STARVING")
     else
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", city:GetFoodTurnsLeft())
+        local growsInTurns = city:GetFoodTurnsLeft()
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", growsInTurns, growsInTurns)
     end
 
     return table.concat(parts, ", ")

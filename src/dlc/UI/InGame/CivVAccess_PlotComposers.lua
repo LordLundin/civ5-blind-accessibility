@@ -93,7 +93,8 @@ local function readBuildProgress(plot, out)
         -- PlotHelpManager filters with > 0 and < a large constant. Use the
         -- same shape: a real worker build has a positive small turn count.
         if turns ~= nil and turns > 0 and turns < 1000 then
-            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_BUILD_PROGRESS", Text.key(buildInfo.Description), turns)
+            out[#out + 1] =
+                Text.formatPlural("TXT_KEY_CIVVACCESS_BUILD_PROGRESS", turns, Text.key(buildInfo.Description), turns)
         end
     end
 end
@@ -238,7 +239,7 @@ function PlotComposers.combat(plot)
     if impassable then
         out[#out + 1] = Text.key("TXT_KEY_PEDIA_IMPASSABLE")
     elseif cost ~= nil then
-        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_MOVES_COST", cost)
+        out[#out + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_MOVES_COST", cost, cost)
     end
     -- Route presence: the cost above is the unmodified tile cost; a road
     -- or railroad reduces it for a unit moving in from another routed

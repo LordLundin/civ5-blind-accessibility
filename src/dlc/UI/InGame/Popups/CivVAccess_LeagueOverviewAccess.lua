@@ -32,6 +32,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
@@ -338,20 +339,14 @@ local function buildActionsLine(mode, pLeague, activePlayer)
         return BaseMenuItems.Text({
             labelFn = function()
                 local n = m_voteController and m_voteController:availableVotes() or 0
-                if n == 1 then
-                    return Text.key("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING_ONE")
-                end
-                return Text.format("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING", n)
+                return Text.formatPlural("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING", n, n)
             end,
         })
     end
     if mode == "Propose" then
         local available = pLeague:GetRemainingProposalsForMember(activePlayer)
-        if available == 1 then
-            return BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE_ONE") })
-        end
         return BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE", available),
+            labelText = Text.formatPlural("TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE", available, available),
         })
     end
     return BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_NO_ACTIONS") })
@@ -389,11 +384,7 @@ local function buildVoteFooter(pLeague, activePlayer)
             end
             m_voteController:reset()
             local n = m_voteController:availableVotes()
-            if n == 1 then
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING_ONE"))
-            else
-                SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING", n))
-            end
+            SpeechPipeline.speakInterrupt(Text.formatPlural("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING", n, n))
         end,
     })
     resetBtn.isActivatable = function(self)

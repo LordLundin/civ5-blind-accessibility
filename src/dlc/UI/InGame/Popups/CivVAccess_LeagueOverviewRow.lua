@@ -90,10 +90,7 @@ function LeagueOverviewRow.orderedMembers(pLeague)
 end
 
 local function delegatesPhrase(n)
-    if n == 1 then
-        return Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATE_ONE")
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATES", n)
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATES", n, n)
 end
 
 LeagueOverviewRow._delegatesPhrase = delegatesPhrase
@@ -202,15 +199,9 @@ function LeagueOverviewRow.formatYesNoVoteState(votes)
     end
     local n = math.abs(votes)
     if votes > 0 then
-        if n == 1 then
-            return Text.key("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_YEA_ONE")
-        end
-        return Text.format("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_YEA", n)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_YEA", n, n)
     end
-    if n == 1 then
-        return Text.key("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY_ONE")
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY", n)
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY", n, n)
 end
 
 -- Engine multi-line tooltips (GetMemberDetails / GetResolutionDetails /
@@ -260,9 +251,6 @@ function LeagueOverviewRow.formatMajorCivVoteState(votes, choicePlayerID)
         return Text.key("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_ABSTAIN")
     end
     local civLabel = leaderOfCiv(choicePlayerID)
-    if votes == 1 then
-        return Text.format("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV_ONE", civLabel)
-    end
     return Text.format("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV", votes, civLabel)
 end
 

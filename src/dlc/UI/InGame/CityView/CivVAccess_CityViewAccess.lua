@@ -15,6 +15,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
@@ -586,8 +587,8 @@ local function buildSpecialistTooltip(city, specID, specInfo)
         parts[#parts + 1] = "+" .. culture .. " [ICON_CULTURE]"
     end
     if (specInfo.GreatPeopleRateChange or 0) > 0 then
-        parts[#parts + 1] =
-            Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_GP_POINTS", specInfo.GreatPeopleRateChange)
+        local gpRate = specInfo.GreatPeopleRateChange
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_GP_POINTS", gpRate, gpRate)
     end
     if #parts == 0 then
         return nil
@@ -964,7 +965,7 @@ local function slotOneLabel(city, orderType, data1)
     local pct = (needed > 0) and math.floor((stored / needed) * 100) or 0
     if isGeneratingProduction(city) then
         local turns = slotTurnsLeft(city, orderType, data1, 0)
-        return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN", name, turns, pct, help)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN", turns, name, turns, pct, help)
     end
     return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN_INFINITE", name, pct, help)
 end
@@ -976,7 +977,7 @@ local function slotNLabel(city, displaySlot, zeroIdx, orderType, data1)
     end
     if isGeneratingProduction(city) then
         local turns = slotTurnsLeft(city, orderType, data1, zeroIdx)
-        return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN", displaySlot, name, turns)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN", turns, displaySlot, name, turns)
     end
     return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN_INFINITE", displaySlot, name)
 end

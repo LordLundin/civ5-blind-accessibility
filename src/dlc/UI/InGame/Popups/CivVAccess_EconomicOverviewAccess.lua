@@ -32,6 +32,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_SpeechEngine")
 include("CivVAccess_SpeechPipeline")
@@ -152,7 +153,7 @@ local function productionCellText(city)
         and city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
         local turns = city:GetProductionTurnsLeft()
         if turns ~= nil and turns > 0 then
-            return Text.format("TXT_KEY_CIVVACCESS_EO_PROD_CELL", turns, nameText)
+            return Text.formatPlural("TXT_KEY_CIVVACCESS_EO_PROD_CELL", turns, turns, nameText)
         end
     end
     return nameText

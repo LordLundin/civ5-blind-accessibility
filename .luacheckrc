@@ -110,7 +110,7 @@ globals = {
 
     -- Shared modules (UI/Shared/)
     "HandlerStack", "InputRouter", "TickPump", "BaselineHandler",
-    "SpeechEngine", "SpeechPipeline", "TextFilter", "Text",
+    "SpeechEngine", "SpeechPipeline", "TextFilter", "Text", "PluralRules",
     "Log", "Help", "Nav", "Icons",
     "PickerReader", "PullDownProbe", "TypeAheadSearch",
     "BaseMenu", "BaseMenuItems", "BaseMenuTabs", "BaseMenuHelp", "BaseMenuEditMode",

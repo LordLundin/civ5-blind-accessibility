@@ -389,7 +389,7 @@ function M.test_unexplored_suffix_appended_when_fogged_plots_in_range()
     end)
     initCursorAtOrigin(plots)
     local out = SurveyorCore.yields()
-    T.truthy(out:find("1 tiles unexplored", 1, true), "unexplored suffix must reflect fogged count: " .. out)
+    T.truthy(out:find("1 tile unexplored", 1, true), "unexplored suffix must reflect fogged count: " .. out)
 end
 
 function M.test_unexplored_suffix_appended_even_on_empty_scope()

@@ -159,7 +159,7 @@ local function researchLine()
         local turns = player:GetResearchTurnsLeft(currentTech, true)
         local techInfo = GameInfo.Technologies[currentTech]
         local techName = Text.key(techInfo.Description)
-        return Text.format("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_ACTIVE", turns, techName, rate)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_ACTIVE", turns, turns, techName, rate)
     end
     local team = Teams[player:GetTeam()]
     local lastTech = team:GetTeamTechs():GetLastTechAcquired()
@@ -183,9 +183,9 @@ local function goldLine()
     local used = player:GetNumInternationalTradeRoutesUsed()
     local avail = player:GetNumInternationalTradeRoutesAvailable()
     if rate < 0 then
-        return Text.format("TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE", -rate, total, used, avail)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE", avail, -rate, total, used, avail)
     end
-    return Text.format("TXT_KEY_CIVVACCESS_STATUS_GOLD_POSITIVE", rate, total, used, avail)
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_GOLD_POSITIVE", avail, rate, total, used, avail)
 end
 
 -- Happiness with golden age always trailing. User asked for fixed ordering
@@ -194,7 +194,7 @@ end
 local function goldenAgeClause(player)
     local turns = player:GetGoldenAgeTurns()
     if turns > 0 then
-        return Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_ACTIVE", turns)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_GA_ACTIVE", turns, turns)
     end
     local cur = player:GetGoldenAgeProgressMeter()
     local threshold = player:GetGoldenAgeProgressThreshold()
@@ -275,7 +275,7 @@ local function policyLine()
         return Text.format("TXT_KEY_CIVVACCESS_STATUS_POLICY_STALLED", stored, cost)
     end
     turns = math.ceil(needed / rate)
-    return Text.format("TXT_KEY_CIVVACCESS_STATUS_POLICY", rate, turns)
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_POLICY", turns, rate, turns)
 end
 
 -- Influential-civ count for cultural-victory tracking. Iterates the major-
@@ -309,9 +309,9 @@ local function tourismLine()
         return Text.format("TXT_KEY_CIVVACCESS_STATUS_TOURISM", rate)
     end
     if total - count <= 2 then
-        return Text.format("TXT_KEY_CIVVACCESS_STATUS_TOURISM_WITHIN_REACH", rate, count, total)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_TOURISM_WITHIN_REACH", total, rate, count, total)
     end
-    return Text.format("TXT_KEY_CIVVACCESS_STATUS_TOURISM_INFLUENTIAL", rate, count)
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_TOURISM_INFLUENTIAL", count, rate, count)
 end
 
 -- Detail builder. Items are joined with ", " inside a section, sections

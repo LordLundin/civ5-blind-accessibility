@@ -132,7 +132,7 @@ local function produceCost(city, entry)
     if turns == nil then
         return nil
     end
-    return Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TURNS", turns)
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TURNS", turns, turns)
 end
 
 local function purchaseCost(city, entry)

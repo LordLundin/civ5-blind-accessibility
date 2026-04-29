@@ -33,6 +33,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_SpeechEngine")
 include("CivVAccess_SpeechPipeline")
@@ -216,7 +217,7 @@ local function rowLabel(route, isInbound)
 
     local turns = route.TurnsLeft
     if turns ~= nil and turns >= 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT", turns)
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT", turns, turns)
     end
 
     return table.concat(parts, ". ") .. "."

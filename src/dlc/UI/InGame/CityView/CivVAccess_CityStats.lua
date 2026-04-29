@@ -215,7 +215,8 @@ function CityStats.growthRows(city)
     elseif foodDiff100 < 0 then
         rows[#rows + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_STARVING")
     else
-        rows[#rows + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", city:GetFoodTurnsLeft())
+        local foodTurnsLeft = city:GetFoodTurnsLeft()
+        rows[#rows + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", foodTurnsLeft, foodTurnsLeft)
     end
     return rows
 end
@@ -250,7 +251,7 @@ function CityStats.cultureRows(city)
         if turns < 1 then
             turns = 1
         end
-        rows[#rows + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_IN", turns)
+        rows[#rows + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_IN", turns, turns)
     else
         rows[#rows + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED")
     end
@@ -328,9 +329,21 @@ function CityStats.religionRows(city)
         local pressure = pressureToken(pressureRaw)
         local label
         if city:IsHolyCityForReligion(religionId) then
-            label = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_HOLY_LINE", religionName, followers, pressure)
+            label = Text.formatPlural(
+                "TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_HOLY_LINE",
+                followers,
+                religionName,
+                followers,
+                pressure
+            )
         else
-            label = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_LINE", religionName, followers, pressure)
+            label = Text.formatPlural(
+                "TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_LINE",
+                followers,
+                religionName,
+                followers,
+                pressure
+            )
         end
         rows[#rows + 1] = label
         seen[religionId] = true

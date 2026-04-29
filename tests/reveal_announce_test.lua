@@ -427,7 +427,7 @@ function M.test_reveal_uses_civ_adjective_and_aggregates()
     T.eq(#SpeechPipeline._calls, 1, "single combined reveal line")
     T.eq(
         SpeechPipeline._calls[1].text,
-        "1 tiles revealed: Enemy: 2 Roman Warrior",
+        "1 tile revealed: Enemy: 2 Roman Warrior",
         "civ adjective prefixes the unit and identical units aggregate"
     )
 end

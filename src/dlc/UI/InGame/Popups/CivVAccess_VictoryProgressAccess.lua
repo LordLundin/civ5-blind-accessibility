@@ -27,6 +27,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_SpeechEngine")
 include("CivVAccess_SpeechPipeline")
@@ -580,7 +581,7 @@ local function partsBuiltSummary(pTeam)
     local parts = {}
     local boosters = teamPartCount(pTeam, "PROJECT_SS_BOOSTER")
     if boosters > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_BOOSTERS", boosters)
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_BOOSTERS", boosters, boosters)
     end
     local cockpit = teamPartCount(pTeam, "PROJECT_SS_COCKPIT")
     if cockpit > 0 then
@@ -660,7 +661,7 @@ local function buildScienceItems()
         else
             local got, total = activeTeamPrereqsResearched()
             items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.format("TXT_KEY_CIVVACCESS_VP_SCIENCE_PREREQ_PROGRESS", got, total),
+                labelText = Text.formatPlural("TXT_KEY_CIVVACCESS_VP_SCIENCE_PREREQ_PROGRESS", total, got, total),
             })
         end
 

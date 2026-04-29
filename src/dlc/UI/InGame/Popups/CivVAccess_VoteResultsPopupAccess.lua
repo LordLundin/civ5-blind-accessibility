@@ -18,6 +18,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
@@ -110,11 +111,14 @@ end
 local function buildItems()
     local items = {}
     for _, e in ipairs(capturedEntries) do
-        local label = Text.format("TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY",
+        local label = Text.formatPlural(
+            "TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY",
+            e.iVotes,
             e.iRank,
             teamLabel(e.iTeam, false),
             voteCastLabel(e.iTeam),
-            tostring(e.iVotes))
+            tostring(e.iVotes)
+        )
         items[#items + 1] = BaseMenuItems.Text({ labelText = label })
     end
     items[#items + 1] = BaseMenuItems.Button({

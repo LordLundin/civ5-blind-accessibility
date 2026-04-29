@@ -21,6 +21,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
@@ -97,7 +98,7 @@ local function rowLabel(dest, originCity, targetPlayer)
     parts[#parts + 1] = destIdentifier(dest, targetPlayer)
 
     local distance = Map.PlotDistance(originCity:GetX(), originCity:GetY(), dest.X, dest.Y)
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_TRADE_ROUTE_DISTANCE", distance)
+    parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_TRADE_ROUTE_DISTANCE", distance, distance)
 
     local mine = sideList(dest, true)
     if mine ~= "" then

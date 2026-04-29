@@ -21,10 +21,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_ENEMY_UNITS"] = "no enemy 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES"] = "no cities in range"
 
 -- ===== Unexplored suffix =====
--- Singular/plural relaxed to "tiles" across the board; mirrors the icon
--- strings convention that screen-reader users tolerate minor grammar over
--- awkward branching.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_UNEXPLORED_SUFFIX"] = "{1_N} tiles unexplored"
+-- Plural-form bundle: forms keyed by CLDR keyword (one / few / many /
+-- other), selected at format time by PluralRules for the active locale.
+-- Looked up via Text.formatPlural; the count is passed once for plural
+-- selection and again as the {1_N} substitution arg.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_UNEXPLORED_SUFFIX"] = {
+    one = "{1_N} tile unexplored",
+    other = "{1_N} tiles unexplored",
+}
 
 -- ===== Help overlay entries =====
 -- One entry per scope key; radius grow / shrink share a label.

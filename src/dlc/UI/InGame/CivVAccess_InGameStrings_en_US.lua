@@ -38,7 +38,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION"] = "{1_Cur}/{2_Max} 
 -- city sites suppress when X is 0 to avoid spamming every city.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AIRCRAFT_COUNT"] = "{1_Cur}/{2_Max} aircraft"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PROMOTION_AVAILABLE"] = "promotion available"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = "{1_What} {2_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
+    one = "{1_What} {2_Turns} turn",
+    other = "{1_What} {2_Turns} turns",
+}
 -- Spoken when a unit is mid-execution on ACTIVITY_MISSION. For a selectable
 -- player-controlled unit the cascade falls through to this rung only for
 -- multi-turn movement missions (MISSION_MOVE_TO / MISSION_ROUTE_TO) -- build
@@ -51,7 +54,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "queued move"
 -- destination and turn count for the head-selected unit's queued path,
 -- the rung becomes "queued move {dir}, N turns" so the user hears where
 -- the unit is going and how long it takes.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = "queued move {1_Dir}, {2_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
+    one = "queued move {1_Dir}, {2_Turns} turn",
+    other = "queued move {1_Dir}, {2_Turns} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} melee"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} ranged, range {2_Range}"
 -- Enemy form of ranged strength: range distance is hidden to match base
@@ -92,9 +98,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HP_FULL"] = "full"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_LEVEL_XP"] = "level {1_Lvl}, {2_Cur}/{3_Next} xp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_UPGRADE"] = "upgrade to {1_Name}, {2_Gold} gold"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PROMOTIONS_LABEL"] = "promotions: {1_List}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVED_TO"] = "moved, {1_Num} moves left"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVED_TO"] = {
+    one = "moved, {1_Num} move left",
+    other = "moved, {1_Num} moves left",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT"] = "stopped short"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT_TURNS"] = "stopped short, {1_Num} turns till arrival"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT_TURNS"] = {
+    one = "stopped short, {1_Num} turn till arrival",
+    other = "stopped short, {1_Num} turns till arrival",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"] = "action failed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_QUEUED_NEXT_TURN"] = "queued for next turn"
 -- Alt+QAZEDC prechecks. Spoken before the combat preview / move commit
@@ -147,17 +159,27 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_CITY"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED_CITY"] =
     "city {1_Name}, {2_MyStr} vs {3_TheirStr}, {4_DmgToThem} damage to them"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE"] = "{1_Dmg} to me"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS"] = "{1_N} interceptors"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS"] = {
+    one = "{1_N} interceptor",
+    other = "{1_N} interceptors",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_TO"] = "move to {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN"] = "{1_MP} MP, {2_Left} unspent"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN"] =
-    "{1_MP} MP, {2_Turns} turns, {3_Left} unspent"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN"] = {
+    one = "{1_MP} MP, {2_Turns} turn, {3_Left} unspent",
+    other = "{1_MP} MP, {2_Turns} turns, {3_Left} unspent",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_THIS_TURN"] = "this turn, unexplored area"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_MULTI_TURN"] = "{1_Turns} turns, unexplored area"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_MULTI_TURN"] = {
+    one = "{1_Turns} turn, unexplored area",
+    other = "{1_Turns} turns, unexplored area",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_THIS_TURN"] =
     "this turn, {1_Steps} then unexplored"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_TURN"] =
-    "{1_Turns} turns, {2_Steps} then unexplored"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_TURN"] = {
+    one = "{1_Turns} turn, {2_Steps} then unexplored",
+    other = "{1_Turns} turns, {2_Steps} then unexplored",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE"] = "no path"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_TOO_FAR"] = "too far to compute"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"] = "no target here"
@@ -168,8 +190,25 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"] = "no target here"
 -- (and city tiles) contribute zero. ALREADY_DONE fires when the path
 -- exists but every tile already has the target route, so the mission
 -- completes the moment the worker walks the chain.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE"] = "{1_Tiles} tiles, {2_Turns} turns"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = "{1_Tiles} tiles, no work needed"
+-- Route preview is two independently-pluralized counts (tiles + turns).
+-- A single bundle can't carry combinations like "1 tile, 5 turns" vs
+-- "5 tiles, 1 turn", so each clause has its own bundle and the parent
+-- key is a scalar combiner with positional placeholders. Translators
+-- can reorder ({2_TurnsClause}, {1_TilesClause}) or change punctuation
+-- in the combiner without touching plural rules.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_TILES_CLAUSE"] = {
+    one = "{1_N} tile",
+    other = "{1_N} tiles",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_TURNS_CLAUSE"] = {
+    one = "{1_N} turn",
+    other = "{1_N} turns",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE"] = "{1_TilesClause}, {2_TurnsClause}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
+    one = "{1_Tiles} tile, no work needed",
+    other = "{1_Tiles} tiles, no work needed",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "no route available"
 -- Per-mode "cannot X here" strings for the special interface modes whose
 -- legality is the only sighted feedback (highlight tint). Spoken when the
@@ -326,7 +365,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "capital"
 -- Modified-offset coordinate, capital-relative. {1_X} can be a half-integer
 -- (NE / NW / SE / SW steps land on .5); {2_Y} is always an integer.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = "{1_Moves} moves"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
+    one = "{1_Moves} move",
+    other = "{1_Moves} moves",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_DIRECTIONS"] = "river {1_Directions}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES"] = "river all sides"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"] = "fresh water"
@@ -338,7 +380,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HILLS"] = "hills"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOUNTAIN"] = "mountain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAKE"] = "lake"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HP_FORMAT"] = "{1_Num} hp"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_PROGRESS"] = "{1_Build} {2_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_PROGRESS"] = {
+    one = "{1_Build} {2_Turns} turn",
+    other = "{1_Build} {2_Turns} turns",
+}
 -- Yield + count glue used by per-plot yields and the surveyor radius
 -- sum. {2_Yield} is a pre-resolved noun ("food", "production"...);
 -- positional template lets number-after-noun locales reorder.
@@ -398,8 +443,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CS_FRIEND"] = "friend"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CS_ALLY"] = "ally"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CS_WAR"] = "war"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CS_PERMANENT_WAR"] = "permanent war"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RAZING"] = "razing {1_Turns} turns"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RESISTANCE"] = "resistance {1_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RAZING"] = {
+    one = "razing {1_Turns} turn",
+    other = "razing {1_Turns} turns",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RESISTANCE"] = {
+    one = "resistance {1_Turns} turn",
+    other = "resistance {1_Turns} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_OCCUPIED"] = "occupied"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PUPPET"] = "puppet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_BLOCKADED"] = "blockaded"
@@ -407,7 +458,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} population"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEFENSE"] = "{1_Num} defense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} of {2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GARRISON"] = "garrisoned {1_Name}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING"] = "producing {1_Name} {2_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING"] = {
+    one = "producing {1_Name} {2_Turns} turn",
+    other = "producing {1_Name} {2_Turns} turns",
+}
 -- Process production (Wealth / Research / etc.) has no completion turn or
 -- progress fraction -- absence of the turn count is the audible signal that
 -- this is a perpetual process rather than a buildable item.
@@ -415,7 +469,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING_PROCESS"] = "producing {1_
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_NOT_PRODUCING"] = "not producing"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PROGRESS"] = "{1_Cur} of {2_Needed} production"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PER_TURN"] = "{1_Num} per turn"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GROWS_IN"] = "grows in {1_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GROWS_IN"] = {
+    one = "grows in {1_Turns} turn",
+    other = "grows in {1_Turns} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_STARVING"] = "starving"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING"] = "stopped growing"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS"] = "{1_Cur} of {2_Threshold} food"
@@ -652,8 +709,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROJECT_TIER_NONE"] = "no reward"
 -- VoteResultsPopup (BUTTONPOPUP_VOTE_RESULTS). Each entry is rank, voter,
 -- who they voted for, and the votes they themselves received.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_VOTE_RESULTS"] = "Vote Results"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] =
-    "{1_Rank}, {2_Name} voted for {3_Cast}, received {4_Votes} votes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] = {
+    one = "{1_Rank}, {2_Name} voted for {3_Cast}, received {4_Votes} vote",
+    other = "{1_Rank}, {2_Name} voted for {3_Cast}, received {4_Votes} votes",
+}
 -- WhosWinningPopup (BUTTONPOPUP_WHOS_WINNING). Engine-fired ranking pop with
 -- a randomly-chosen metric. Player rows mirror the engine's "rank, name,
 -- score" order so the user hears the rank first; the active player's tag
@@ -728,7 +787,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_CITY_ROW"] =
     "{1_City}: {2_Turns}, {3_Progress} of {4_Threshold}, plus {5_Rate} per turn"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_CITY_NO_PROGRESS"] = "{1_City}: {2_Progress} of {3_Threshold}, no progress"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_TURNS_NEXT"] = "next turn"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_TURNS_N"] = "{1_N} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_TURNS_N"] = {
+    one = "{1_N} turn",
+    other = "{1_N} turns",
+}
 -- AdvisorCounselPopup (BUTTONPOPUP_ADVISOR_COUNSEL). Four tabs, one per
 -- advisor. Page item label is composed at Lua level from the engine's
 -- TXT_KEY_ADVISOR_COUNSEL_PAGE_DISPLAY fraction + the counsel body so the
@@ -819,7 +881,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"] = "Specialists
 -- paired-text contexts (where it dedups against the adjacent label), but
 -- here the number is a per-turn point count and "great people" alone reads
 -- as a count of GP units, not a rate. Render this line as literal text.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_GP_POINTS"] = "+{1_N} great people points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_GP_POINTS"] = {
+    one = "+{1_N} great people point",
+    other = "+{1_N} great people points",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_EMPTY"] = "No specialist slots."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_SLOT"] = "{1_Building} {2_Specialist} slot {3_N}, {4_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_EMPTY"] = "empty"
@@ -851,12 +916,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GW_EMPTY_LIST"] = "No great work
 -- Drill-in moves and removes via GAMEMESSAGE_SWAP_ORDER / _POP_ORDER.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION"] = "Production queue"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_EMPTY"] = "Queue empty."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN"] =
-    "Slot 1, {1_Name}, {2_Turns} turns, {3_Percent} percent. {4_Help}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN"] = {
+    one = "Slot 1, {1_Name}, {2_Turns} turn, {3_Percent} percent. {4_Help}",
+    other = "Slot 1, {1_Name}, {2_Turns} turns, {3_Percent} percent. {4_Help}",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN_INFINITE"] =
     "Slot 1, {1_Name}, {2_Percent} percent. {3_Help}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_PROCESS"] = "Slot 1, {1_Name}. {2_Help}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN"] = "Slot {1_N}, {2_Name}, {3_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN"] = {
+    one = "Slot {1_N}, {2_Name}, {3_Turns} turn",
+    other = "Slot {1_N}, {2_Name}, {3_Turns} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN_INFINITE"] = "Slot {1_N}, {2_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_PROCESS"] = "Slot {1_N}, {2_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS"] = "{1_Name} actions"
@@ -956,7 +1026,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "razing stopped"
 -- multiple plots). HIDDEN_HEADER prefixes the inverse direction (foreign
 -- units that just left view); cities and resources don't reappear in
 -- fog, so the hide line has no count and only the unit sub-payloads.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_COUNT"] = "{1_Num} tiles revealed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_COUNT"] = {
+    one = "{1_Num} tile revealed",
+    other = "{1_Num} tiles revealed",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_HEADER"] = "Revealed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_ENEMY"] = "Enemy: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_UNITS"] = "Units: {1_List}"
@@ -989,14 +1062,23 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
 -- entries describe the underlying readout, not the panel item, since the
 -- speech composes data from multiple panel surfaces.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SUPPLY_OVER"] = "{1_Num} over unit cap"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_ACTIVE"] = "{1_Turns} turns to {2_Tech}, science +{3_Rate}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_ACTIVE"] = {
+    one = "{1_Turns} turn to {2_Tech}, science +{3_Rate}",
+    other = "{1_Turns} turns to {2_Tech}, science +{3_Rate}",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_DONE"] = "{1_Tech} done, science +{2_Rate}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_NONE"] = "No research, science +{1_Rate}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_OFF"] = "Science off"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_POSITIVE"] =
-    "+{1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] =
-    "minus {1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes"
+-- Plural is driven by {4_Avail}: "1 of 1 trade route" vs "1 of 5 trade
+-- routes". The Used count can be 1 even when Avail is many.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_POSITIVE"] = {
+    one = "+{1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade route",
+    other = "+{1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] = {
+    one = "minus {1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade route",
+    other = "minus {1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "no {1_Resource}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 -- Section labels for Shift+letter detail readouts. Inserted as
@@ -1010,7 +1092,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_INFLUENCE"] = "Influence"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HAPPY"] = "+{1_Excess} happiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_UNHAPPY"] = "Unhappy minus {1_Deficit}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_VERY_UNHAPPY"] = "Very unhappy minus {1_Deficit}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_ACTIVE"] = "golden age for {1_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_ACTIVE"] = {
+    one = "golden age for {1_Turns} turn",
+    other = "golden age for {1_Turns} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_PROGRESS"] = "{1_Cur} of {2_Threshold} to golden age"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HAPPINESS_OFF"] = "Happiness off"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH"] = "+{1_Rate} faith, {2_Total} total"
@@ -1029,14 +1114,24 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH_NEXT_PROPHET"] = "{1_Num} fa
 -- policy version also tacks on a "don't expand too much!" rules nudge.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TECH_CITY_COST"] = "+{1_Pct}% tech cost per city"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_CITY_COST"] = "+{1_Pct}% policy cost per city"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY"] = "+{1_Rate} culture, {2_Turns} turns to policy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY"] = {
+    one = "+{1_Rate} culture, {2_Turns} turn to policy",
+    other = "+{1_Rate} culture, {2_Turns} turns to policy",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_NONE_LEFT"] = "+{1_Rate} culture, no policies left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_STALLED"] = "no culture, {1_Cur} of {2_Cost} to next policy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_OFF"] = "Policies off"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM"] = "+{1_Rate} tourism"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_INFLUENTIAL"] = "+{1_Rate} tourism, influential on {2_Count} civs"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_WITHIN_REACH"] =
-    "+{1_Rate} tourism, influential on {2_Count} of {3_Total} civs"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_INFLUENTIAL"] = {
+    one = "+{1_Rate} tourism, influential on {2_Count} civ",
+    other = "+{1_Rate} tourism, influential on {2_Count} civs",
+}
+-- Plural is driven by {3_Total}: "1 of 1 civ" vs "1 of 5 civs". {2_Count}
+-- can be 1 even when Total is many.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_WITHIN_REACH"] = {
+    one = "+{1_Rate} tourism, influential on {2_Count} of {3_Total} civ",
+    other = "+{1_Rate} tourism, influential on {2_Count} of {3_Total} civs",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TURN"] = "T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TURN"] =
     "Turn and date, with unit supply when over cap and any strategic resource shortages"
@@ -1149,12 +1244,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT"] = "added, s
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_FULL"] = "queue full"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_EMPTY"] = "queue is empty"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PREAMBLE_QUEUE_COUNT"] = "queue has {1_N}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TURNS"] = "{1_Num} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TURNS"] = {
+    one = "{1_Num} turn",
+    other = "{1_Num} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_GOLD"] = "{1_Num} gold"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_FAITH"] = "{1_Num} faith"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_BUILDING"] = "building {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED"] = "purchased {1_Name}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT"] = "{1_Name}, {2_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT"] = {
+    one = "{1_Name}, {2_Turns} turn",
+    other = "{1_Name}, {2_Turns} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT_PROCESS"] = "{1_Name}"
 -- ChooseTech popup. Flat BaseMenu list of researchable techs with the current
 -- research pinned on top in free / stealing modes. Activate commits via
@@ -1164,11 +1265,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_TECH"] = "Choose Research"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_FREE"] = "free tech, {1_N} remaining"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_STEALING"] = "stealing from {1_Civ}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_SCIENCE"] = "{1_N} science per turn"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_CURRENT_PIN"] = "currently researching {1_Name}, {2_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_CURRENT_PIN"] = {
+    one = "currently researching {1_Name}, {2_Turns} turn",
+    other = "currently researching {1_Name}, {2_Turns} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_FREE"] = "free"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_CURRENT"] = "currently researching"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_QUEUED"] = "queued slot {1_Slot}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS"] = "{1_Num} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS"] = {
+    one = "{1_Num} turn",
+    other = "{1_Num} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_OPEN_TREE"] = "Open Tech Tree"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT"] = "researching {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_FREE"] = "gained {1_Name}"
@@ -1226,9 +1333,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED"] = "locked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED_REQUIRES"] = "locked, requires {1_Prereqs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_OPEN_BRANCH_ITEM"] = "open {1_Branch}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_CULTURE"] = "{1_Cur} of {2_Cost} culture, {3_Per} per turn"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_TURNS"] = "{1_Turns} turns to next policy"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_POLICIES"] = "{1_Num} free policies available"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_TENETS"] = "{1_Num} free tenets available"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_TURNS"] = {
+    one = "{1_Turns} turn to next policy",
+    other = "{1_Turns} turns to next policy",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_POLICIES"] = {
+    one = "{1_Num} free policy available",
+    other = "{1_Num} free policies available",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_TENETS"] = {
+    one = "{1_Num} free tenet available",
+    other = "{1_Num} free tenets available",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_NOT_STARTED"] = "ideology not yet embraced"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_DISABLED"] = "ideology disabled in this game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_LEVEL_1"] = "Level 1 tenets"
@@ -1319,7 +1435,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_FAITH"] = "+{1_N} faith"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_FOOD_CAPITAL"] = "+{1_N} food in capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_FOOD_OTHER"] = "+{1_N} food in other cities"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_SCIENCE"] = "+{1_N} science"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_MILITARY"] = "next gift unit in {1_N} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_MILITARY"] = {
+    one = "next gift unit in {1_N} turn",
+    other = "next gift unit in {1_N} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_EXPORTS_LIST"] = "exporting {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPEN_BORDERS"] = "open borders"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BULLYABLE"] = "bullyable"
@@ -1354,7 +1473,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_CULTURE"] = "culture {1_N
 -- next-tile countdown that the engine hides when culture per turn is zero.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PROGRESS"] = "{1_Stored} of {2_Needed} culture"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PER_TURN"] = "{1_Num} per turn"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_IN"] = "next tile in {1_Num} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_IN"] = {
+    one = "next tile in {1_Num} turn",
+    other = "next tile in {1_Num} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED"] = "tile expansion stalled"
 -- Happiness group: local-only contribution from buildings here, plus the
 -- per-city slice of the empire's unhappiness pool (population / occupied /
@@ -1364,10 +1486,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_UNHAPPINESS"] = "unha
 -- Religion group: one row per religion present, holy-city flag inlined
 -- when applicable so the user hears it together with that religion's
 -- numbers rather than as a separate line.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_LINE"] =
-    "{1_Religion}, {2_Followers} followers, {3_Pressure} pressure"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_HOLY_LINE"] =
-    "{1_Religion}, holy city, {2_Followers} followers, {3_Pressure} pressure"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_LINE"] = {
+    one = "{1_Religion}, {2_Followers} follower, {3_Pressure} pressure",
+    other = "{1_Religion}, {2_Followers} followers, {3_Pressure} pressure",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_HOLY_LINE"] = {
+    one = "{1_Religion}, holy city, {2_Followers} follower, {3_Pressure} pressure",
+    other = "{1_Religion}, holy city, {2_Followers} followers, {3_Pressure} pressure",
+}
 -- Trade group: direction first so the partner city name lands second
 -- (matches the way GetTradeRoutes presents from / to).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_OUTGOING"] = "to"
@@ -1382,7 +1508,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_ROUTE"] = "{1_Direction} 
 -- Community-Patch-DLL CvLuaPlayer.cpp lGetPotentialInternationalTrade
 -- RouteDestinations.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_DEST_INTL"] = "{1_Civ}, {2_City}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_DISTANCE"] = "{1_Num} hexes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_DISTANCE"] = {
+    one = "{1_Num} hex",
+    other = "{1_Num} hexes",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_YOU_GET"] = "You get {1_Yields}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET"] = "They get {1_Yields}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE"] = "{1_Num} {2_Religion} pressure"
@@ -1397,7 +1526,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_LAND"] = "caravan"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_SEA"] = "cargo ship"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ROUTE_HEADER"] =
     "{1_Domain}, {2_FromCity} ({3_FromCiv}) to {4_ToCity} ({5_ToCiv})"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT"] = "{1_Num} turns left"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT"] = {
+    one = "{1_Num} turn left",
+    other = "{1_Num} turns left",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_ROUTES"] = "No routes."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_DETAILS"] = "No source breakdown available."
 -- Defense group: each defensive building announces with the same {Building}
@@ -1518,7 +1650,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_CITY_LINE"] = "{1_Name}, {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_CITY_LINE_ANNOT"] = "{1_Name}, {2_Value} ({3_Annot})"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_EMPTY"] = "no entries"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_NONE"] = "no production"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_CELL"] = "{1_Turns} turns: {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_CELL"] = {
+    one = "{1_Turns} turn: {2_Name}",
+    other = "{1_Turns} turns: {2_Name}",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_FULL"] = "{1_PerTurn} per turn, {2_Cell}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_NONE"] = "none"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_TOTAL"] = "Treasury, {1_Value}"
@@ -1573,7 +1708,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_LABEL_VALUE"] = "{1_Label}, {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCORE_ROW"] = "{1_Name}, score {2_Score}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCORE_ROW_LOST"] = "{1_Name}, score {2_Score}, capital lost"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TEAM_SUFFIX"] = "team {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_BOOSTERS"] = "{1_Num} boosters"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_BOOSTERS"] = {
+    one = "{1_Num} booster",
+    other = "{1_Num} boosters",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_COCKPIT"] = "cockpit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_CHAMBER"] = "stasis chamber"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_ENGINE"] = "engine"
@@ -1582,7 +1720,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_ROW_APOLLO_BARE"] = "{1_Name},
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_ROW_APOLLO_BARE_SELF"] = "Apollo built, no parts"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_ROW_APOLLO_PARTS"] = "{1_Name}, Apollo built, {2_Parts}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_SELF_PARTS"] = "Apollo built, {1_Parts}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PREREQ_PROGRESS"] = "{1_Have} of {2_Total} prerequisites researched"
+-- Plural is driven by {2_Total}: "1 of 1 prerequisite researched" vs
+-- "1 of 5 prerequisites researched".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PREREQ_PROGRESS"] = {
+    one = "{1_Have} of {2_Total} prerequisite researched",
+    other = "{1_Have} of {2_Total} prerequisites researched",
+}
 -- Demographics (F9): one row per metric, speaking name, rank, the active
 -- player's value, then rival best (with civ name), average, and worst
 -- (with civ name) -- vanilla column order. Metric name and unmet-civ /
@@ -1612,10 +1755,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES"] = "Antiquity sites: 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HIDDEN_SITES"] = "Hidden antiquity sites: {1_Num}"
 -- Per-city label. {1_Name} already includes the capital/puppet/occupied
 -- prefix when applicable (mirrors engine's CityDisplayName composition).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_LABEL"] =
-    "{1_Name}, culture {2_Cul}, tourism {3_Tou}, great works {4_Filled} of {5_Total}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_LABEL_DAMAGED"] =
-    "{1_Name}, culture {2_Cul}, tourism {3_Tou}, great works {4_Filled} of {5_Total}, damaged {6_Pct} percent"
+-- Plural is driven by {5_Total}: when the city has 1 great-work slot
+-- ("1 of 1 great work") vs many ("3 of 5 great works").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_LABEL"] = {
+    one = "{1_Name}, culture {2_Cul}, tourism {3_Tou}, great work {4_Filled} of {5_Total}",
+    other = "{1_Name}, culture {2_Cul}, tourism {3_Tou}, great works {4_Filled} of {5_Total}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_LABEL_DAMAGED"] = {
+    one = "{1_Name}, culture {2_Cul}, tourism {3_Tou}, great work {4_Filled} of {5_Total}, damaged {6_Pct} percent",
+    other = "{1_Name}, culture {2_Cul}, tourism {3_Tou}, great works {4_Filled} of {5_Total}, damaged {6_Pct} percent",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_PREFIX_CAPITAL"] = "capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_PREFIX_PUPPET"] = "puppet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_PREFIX_OCCUPIED"] = "occupied"
@@ -1703,7 +1852,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE"] = "Perspective
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOURISM"] = "Tourism per turn: {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_ROW"] =
     "{1_Civ}, influence: {2_Level}, {3_Pct} percent, {4_PerTurn} tourism per turn"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TURNS_TO"] = "estimated {1_N} turns to influential"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TURNS_TO"] = {
+    one = "estimated {1_N} turn to influential",
+    other = "estimated {1_N} turns to influential",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_YOURS"] = "your tourism on them: {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_THEIRS"] = "their lifetime culture: {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_NO_TARGETS"] = "No civs with influence levels"
@@ -1725,8 +1877,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_EFFECTS"] = "Effects"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_RENAME"] = "Rename"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_YOU"] = "(you)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_HOST"] = "host"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATE_ONE"] = "1 delegate"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATES"] = "{1_N} delegates"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATES"] = {
+    one = "{1_N} delegate",
+    other = "{1_N} delegates",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_CAN_PROPOSE"] = "can propose"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DIPLOMAT_VISITING"] = "Diplomat in their capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_LEAGUE"] = "No World Congress"
@@ -1736,10 +1890,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_LEAGUE"] = "No World Congress"
 -- LeagueOverviewRow.formatStatusPill.
 -- Tab 2 actions line.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_ACTIONS"] = "No actions available this session."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE_ONE"] = "1 proposal available."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE"] = "{1_N} proposals available."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING_ONE"] = "1 delegate remaining."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING"] = "{1_N} delegates remaining."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE"] = {
+    one = "{1_N} proposal available.",
+    other = "{1_N} proposals available.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING"] = {
+    one = "{1_N} delegate remaining.",
+    other = "{1_N} delegates remaining.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_PROPOSALS_THIS_SESSION"] = "No proposals this session."
 -- Proposal row composition.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_ENACT_PREFIX"] = "Enact: {1_Name}"
@@ -1750,11 +1908,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_ON_HOLD"] = "On hold"
 -- Vote-state suffix appended to proposal row in Vote mode.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_STATE_LABEL"] = "your vote: {1_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_ABSTAIN"] = "abstain"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_YEA_ONE"] = "1 Yea"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_YEA"] = "{1_N} Yea"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY_ONE"] = "1 Nay"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY"] = "{1_N} Nay"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV_ONE"] = "1 for {1_Civ}"
+-- Yea / Nay are invariant in English ("1 Yea" / "5 Yea"); bundle stays
+-- degenerate but lets a future translator pluralize for languages that
+-- inflect the vote-label noun.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_YEA"] = {
+    one = "{1_N} Yea",
+    other = "{1_N} Yea",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY"] = {
+    one = "{1_N} Nay",
+    other = "{1_N} Nay",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV"] = "{1_N} for {2_Civ}"
 -- Footer button labels reuse engine keys verbatim
 -- (TXT_KEY_LEAGUE_OVERVIEW_RESET_PROPOSALS / _COMMIT_PROPOSALS /
@@ -1782,8 +1946,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC"] = "Open Relig
 -- World Religions row composition. Distinguishing word (religion name) leads;
 -- holy city / founder / city count follow with brief framing words so values
 -- that could otherwise read as a list of names stay disambiguated.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] =
-    "{1_Religion}, holy city {2_HolyCity}, founded by {3_Founder}, {4_NumCities} cities"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] = {
+    one = "{1_Religion}, holy city {2_HolyCity}, founded by {3_Founder}, {4_NumCities} city",
+    other = "{1_Religion}, holy city {2_HolyCity}, founded by {3_Founder}, {4_NumCities} cities",
+}
 -- Espionage Overview (BNW only). TabbedShell over the engine's
 -- BUTTONPOPUP_ESPIONAGE_OVERVIEW: tab 1 agents (flat list, drill in for
 -- actions), tab 2 cities (Your / Their groups, drill in for per-column
@@ -1798,8 +1964,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_INTRIGUE"] = "Intrigue"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_DISABLED"] = "Espionage is disabled in this game"
 -- Agent row.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE"] = "{1_Rank} {2_Name}, {3_Where}, {4_Activity}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE_TURNS"] =
-    "{1_Rank} {2_Name}, {3_Where}, {4_Activity}, {5_Turns} turns"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE_TURNS"] = {
+    one = "{1_Rank} {2_Name}, {3_Where}, {4_Activity}, {5_Turns} turn",
+    other = "{1_Rank} {2_Name}, {3_Where}, {4_Activity}, {5_Turns} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_KIA"] = "{1_Rank} {2_Name} killed in action"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_TAIL"] = ", diplomat"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_ACTIONS_DISPLAY"] = "{1_Rank} {2_Name} actions"

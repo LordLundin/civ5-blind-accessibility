@@ -994,7 +994,7 @@ function M.test_combat_tile_cost_flat_terrain_is_one_move()
     setup()
     GameInfo.Terrains[1] = { Description = "Plains", Movement = 1 }
     local p = T.fakePlot({ terrain = 1 })
-    T.truthy(PlotComposers.combat(p):find("1 moves", 1, true), "flat terrain should read '1 moves'")
+    T.truthy(PlotComposers.combat(p):find("1 move", 1, true), "flat terrain should read '1 move'")
 end
 
 function M.test_combat_tile_cost_hills_adds_one()
@@ -1023,7 +1023,7 @@ function M.test_combat_tile_cost_zero_feature_movement_does_not_override()
     GameInfo.Features[9] = { Description = "Lake", Type = "FEATURE_LAKE", Movement = 0 }
     local p = T.fakePlot({ terrain = 1, feature = 9 })
     T.truthy(
-        PlotComposers.combat(p):find("1 moves", 1, true),
+        PlotComposers.combat(p):find("1 move", 1, true),
         "feature with Movement=0 should leave terrain cost unchanged"
     )
 end

@@ -80,6 +80,46 @@ function Text.format(keyName, ...)
     return out
 end
 
+-- Plural-aware lookup for mod-authored keys. Bundles in CivVAccess_Strings
+-- look like { one = "1 tile", other = "{1_N} tiles" }; this picks the
+-- right form via PluralRules and substitutes positional args. The count
+-- argument drives plural selection only -- if the count also appears in
+-- the template (as {N_X}), the caller passes it again as a substitution
+-- arg in `...`.
+--
+-- Bundle resolution: requested form -> "other" -> "one" -> first form
+-- found. The fallback chain lets a translator who only authored one and
+-- other still produce something for Russian's "few" / "many" rather than
+-- a missing-key warning, at the cost of awkward agreement that still
+-- conveys the information.
+--
+-- For non-mod keys or scalar entries, falls through to Text.format with
+-- the supplied substitution args; the count is dropped (the caller must
+-- pass count again in `...` if the engine template needs it).
+function Text.formatPlural(keyName, count, ...)
+    if type(keyName) == "string" and keyName:sub(1, 19) == "TXT_KEY_CIVVACCESS_" then
+        local mapped = CivVAccess_Strings and CivVAccess_Strings[keyName]
+        if type(mapped) == "table" then
+            local form = PluralRules.select(count)
+            local template = mapped[form] or mapped.other or mapped.one
+            if template == nil then
+                local _k, anyValue = next(mapped)
+                template = anyValue
+            end
+            if template == nil then
+                Log.warn("Text.formatPlural: bundle for " .. tostring(keyName) .. " has no forms")
+                return tostring(keyName)
+            end
+            local argCount = select("#", ...)
+            if argCount == 0 then
+                return template
+            end
+            return substitute(template, { ... }, argCount)
+        end
+    end
+    return Text.format(keyName, ...)
+end
+
 -- Compose "<civ adjective> <unit name>" through the base-game format
 -- TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV. In some non-English locales
 -- (notably French) the localized template uses a gender-form selector

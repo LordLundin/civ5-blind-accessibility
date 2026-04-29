@@ -16,10 +16,18 @@ Locale = Locale
         Lookup = function(key)
             return key
         end,
+        GetCurrentSpokenLanguage = function()
+            return { Type = "en_US", DisplayName = "English (US)" }
+        end,
     }
 if Locale.Lookup == nil then
     Locale.Lookup = function(key)
         return key
+    end
+end
+if Locale.GetCurrentSpokenLanguage == nil then
+    Locale.GetCurrentSpokenLanguage = function()
+        return { Type = "en_US", DisplayName = "English (US)" }
     end
 end
 

@@ -202,10 +202,8 @@ function ChooseTechLogic.buildLabel(entry, player)
     end
 
     if player:GetScience() > 0 and entry.mode ~= "stealing" then
-        parts[#parts + 1] = Text.format(
-            "TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS",
-            player:GetResearchTurnsLeft(entry.techID, true)
-        )
+        local turns = player:GetResearchTurnsLeft(entry.techID, true)
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
     end
 
     local advisors = ChooseTechLogic.advisorSuffix(entry.techID)

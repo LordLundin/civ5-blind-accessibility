@@ -32,6 +32,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
@@ -129,8 +130,9 @@ local function buildItems()
     if currentEntry ~= nil then
         local turns = player:GetResearchTurnsLeft(currentEntry.techID, true)
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.format(
+            labelText = Text.formatPlural(
                 "TXT_KEY_CIVVACCESS_CHOOSETECH_CURRENT_PIN",
+                turns,
                 Text.key(currentEntry.info.Description),
                 turns
             ),

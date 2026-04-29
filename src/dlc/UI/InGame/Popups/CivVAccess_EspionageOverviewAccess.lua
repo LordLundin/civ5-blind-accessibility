@@ -45,6 +45,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
@@ -199,8 +200,9 @@ local function agentRowLabel(agent)
     local activity = Text.key(activityKey(agent))
     local diplomatTail = agent.IsDiplomat and Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_TAIL") or ""
     if agent.TurnsLeft and agent.TurnsLeft > 0 then
-        return Text.format(
+        return Text.formatPlural(
             "TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE_TURNS",
+            agent.TurnsLeft,
             rank,
             name,
             where,

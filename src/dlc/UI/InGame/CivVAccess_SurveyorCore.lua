@@ -68,7 +68,7 @@ local function appendUnexplored(body, unexplored)
     if unexplored == nil or unexplored <= 0 then
         return body
     end
-    local suffix = Text.format("TXT_KEY_CIVVACCESS_SURVEYOR_UNEXPLORED_SUFFIX", unexplored)
+    local suffix = Text.formatPlural("TXT_KEY_CIVVACCESS_SURVEYOR_UNEXPLORED_SUFFIX", unexplored, unexplored)
     if body == nil or body == "" then
         return suffix
     end

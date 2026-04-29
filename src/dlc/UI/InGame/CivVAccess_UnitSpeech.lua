@@ -176,7 +176,12 @@ local function statusToken(unit)
         -- Engine adds +1 to turns-left (see UnitPanel.lua:392) so a
         -- build finishing at end-of-turn reads as 1 rather than 0.
         local turns = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0) + 1
-        return Text.format("TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING", Text.key(buildRow.Description), turns)
+        return Text.formatPlural(
+            "TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING",
+            turns,
+            Text.key(buildRow.Description),
+            turns
+        )
     end
     if activity == ActivityTypes.ACTIVITY_MISSION then
         -- Waypoints.finalAndTurns reads the cached queue waypoints for
@@ -190,7 +195,7 @@ local function statusToken(unit)
             if fin ~= nil then
                 local dir = HexGeom.directionString(unit:GetX(), unit:GetY(), fin.x, fin.y)
                 if dir ~= "" then
-                    return Text.format("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO", dir, fin.turns)
+                    return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO", fin.turns, dir, fin.turns)
                 end
             end
         end
@@ -933,7 +938,8 @@ function UnitSpeech.rangedPreview(actor, defender, targetPlot)
     -- player understands air combat the class warning adds noise without
     -- information.
     if interceptors > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors)
+        parts[#parts + 1] =
+            Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors, interceptors)
     end
 
     local mine = attackerMods(actor, defender, targetPlot, true)
@@ -1037,7 +1043,8 @@ function UnitSpeech.cityRangedPreview(actor, city, targetPlot)
     -- is dropped: terse speech turns the base game's mechanics-class note
     -- into a misleading per-strike prediction.
     if interceptors > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors)
+        parts[#parts + 1] =
+            Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors, interceptors)
     end
     return table.concat(parts, ", ")
 end
@@ -1160,10 +1167,10 @@ end
 function UnitSpeech.moveResult(unit, targetX, targetY, turnsToArrival)
     if unit:GetX() == targetX and unit:GetY() == targetY then
         local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)
-        return Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVED_TO", movesLeft)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_MOVED_TO", movesLeft, movesLeft)
     end
     if turnsToArrival ~= nil and turnsToArrival > 0 then
-        return Text.format("TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT_TURNS", turnsToArrival)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT_TURNS", turnsToArrival, turnsToArrival)
     end
     return Text.key("TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT")
 end

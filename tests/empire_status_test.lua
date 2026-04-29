@@ -481,7 +481,7 @@ function M.test_policy_rounds_up_fractional_turn()
     -- needed = 1, rate = 8; ceil(1/8) = 1, not 0.
     setup()
     cultureData = { culture = 84, cost = 85, rate = 8 }
-    T.eq(EmpireStatus._policyLine(), "+8 culture, 1 turns to policy")
+    T.eq(EmpireStatus._policyLine(), "+8 culture, 1 turn to policy")
 end
 
 function M.test_policy_speaks_no_policies_left_when_cost_zero()

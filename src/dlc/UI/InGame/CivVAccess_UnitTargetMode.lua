@@ -144,13 +144,17 @@ local function movePathPreview(actor, targetPlot)
             if turns <= 1 then
                 summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_THIS_TURN", prefixSteps)
             else
-                summary =
-                    Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_TURN", turns, prefixSteps)
+                summary = Text.formatPlural(
+                    "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_TURN",
+                    turns,
+                    turns,
+                    prefixSteps
+                )
             end
         elseif turns <= 1 then
             summary = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_THIS_TURN")
         else
-            summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_MULTI_TURN", turns)
+            summary = Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_MULTI_TURN", turns, turns)
         end
     else
         local maxMoves = actor:MaxMoves()
@@ -166,7 +170,13 @@ local function movePathPreview(actor, targetPlot)
         if turns <= 1 then
             summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN", mpText, leftText)
         else
-            summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, turns, leftText)
+            summary = Text.formatPlural(
+                "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN",
+                turns,
+                mpText,
+                turns,
+                leftText
+            )
         end
         local steps = HexGeom.stepListFromPath(path)
         if steps ~= "" then
@@ -312,7 +322,8 @@ local function airSweepPreview(actor, plot)
     local interceptors = actor:GetInterceptorCount(plot, nil, true, true)
     local parts = {}
     if interceptors > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors)
+        parts[#parts + 1] =
+            Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors, interceptors)
     else
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NO_INTERCEPTORS")
     end
@@ -385,9 +396,11 @@ local function routePathPreview(actor, targetPlot)
     end
     local tileCount = #path - 1
     if buildTurns == 0 then
-        return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE", tileCount)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE", tileCount, tileCount)
     end
-    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE", tileCount, buildTurns)
+    local tilesClause = Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_TILES_CLAUSE", tileCount, tileCount)
+    local turnsClause = Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_TURNS_CLAUSE", buildTurns, buildTurns)
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE", tilesClause, turnsClause)
 end
 
 -- Range / melee preview that prefers a unit garrison over the city

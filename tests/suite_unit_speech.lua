@@ -827,7 +827,7 @@ function M.test_move_result_clean_arrival()
     local u = mkUnit({ x = 4, y = 4, moves = 60 })
     local out = UnitSpeech.moveResult(u, 4, 4)
     T.truthy(out:find("moved", 1, true), "clean arrival expected: " .. out)
-    T.truthy(out:find("1 moves left", 1, true), "moves-left should be 1: " .. out)
+    T.truthy(out:find("1 move left", 1, true), "moves-left should be 1: " .. out)
 end
 
 function M.test_move_result_short_stop()

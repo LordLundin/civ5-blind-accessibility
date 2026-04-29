@@ -32,6 +32,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
@@ -246,7 +247,7 @@ local function buildQueueItems(city)
         end
         local label
         if turns ~= nil then
-            label = Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT", name, turns)
+            label = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT", turns, name, turns)
         else
             label = Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT_PROCESS", name)
         end

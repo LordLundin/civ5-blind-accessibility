@@ -61,6 +61,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_SpeechEngine")
 include("CivVAccess_SpeechPipeline")
@@ -604,8 +605,9 @@ local function buildCityGroup(city)
             local tou = city:GetBaseTourism()
             local damagePct = math.floor((city:GetDamage() / city:GetMaxHitPoints()) * 100 + 0.5)
             if damagePct > 0 then
-                return Text.format(
+                return Text.formatPlural(
                     "TXT_KEY_CIVVACCESS_CO_CITY_LABEL_DAMAGED",
+                    total,
                     namePart,
                     cul,
                     tou,
@@ -614,7 +616,15 @@ local function buildCityGroup(city)
                     damagePct
                 )
             end
-            return Text.format("TXT_KEY_CIVVACCESS_CO_CITY_LABEL", namePart, cul, tou, filled, total)
+            return Text.formatPlural(
+                "TXT_KEY_CIVVACCESS_CO_CITY_LABEL",
+                total,
+                namePart,
+                cul,
+                tou,
+                filled,
+                total
+            )
         end,
         tooltipFn = function()
             return city:GetTourismTooltip()
@@ -1158,7 +1168,7 @@ local function buildInfluenceRowGroup(targetID)
                 and level < InfluenceLevelTypes.INFLUENCE_LEVEL_INFLUENTIAL
             then
                 items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TURNS_TO", turnsTo),
+                    labelText = Text.formatPlural("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TURNS_TO", turnsTo, turnsTo),
                 })
             end
             -- Bar tooltips: your tourism on them vs their lifetime

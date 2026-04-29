@@ -416,7 +416,7 @@ function RevealAnnounce._flushBody()
     -- a unit slipping into fog still needs to fire the "Hidden" line.
     local revealLine
     if revealedCount > 0 then
-        local headline = Text.format("TXT_KEY_CIVVACCESS_REVEAL_COUNT", revealedCount)
+        local headline = Text.formatPlural("TXT_KEY_CIVVACCESS_REVEAL_COUNT", revealedCount, revealedCount)
         if #payload > 0 then
             revealLine = headline .. ": " .. table.concat(payload, ". ")
         else

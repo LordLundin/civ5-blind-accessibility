@@ -7,6 +7,8 @@ local T = require("support")
 -- The polyfill's sentinel check keeps it a no-op in-game; here it fires.
 dofile("src/dlc/UI/InGame/CivVAccess_Polyfill.lua")
 dofile("src/dlc/UI/InGame/CivVAccess_InGameStrings_en_US.lua")
+dofile("src/dlc/UI/InGame/CivVAccess_SurveyorStrings_en_US.lua")
+dofile("src/dlc/UI/Shared/CivVAccess_PluralRules.lua")
 -- UserPrefs must load before any ScannerNav-touching suite so the
 -- Prefs.getBool / setBool calls ScannerNav makes at dofile time and
 -- inside toggleAutoMove resolve to the real production module. The
@@ -114,6 +116,8 @@ T.register("text_filter", require("text_filter_test"))
 T.register("speech_pipeline", require("speech_pipeline_test"))
 T.register("text", require("text_test"))
 T.register("text_rule", require("text_rule_test"))
+T.register("plural_rules", require("plural_rules_test"))
+T.register("text_plural", require("text_plural_test"))
 T.register("handler_stack", require("handler_stack_test"))
 T.register("input_router", require("input_router_test"))
 T.register("tick_pump", require("tick_pump_test"))

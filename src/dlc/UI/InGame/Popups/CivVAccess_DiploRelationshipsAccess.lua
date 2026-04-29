@@ -18,6 +18,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
@@ -389,7 +390,7 @@ local function minorBonusFragments(iUs, pOther)
     end
     local spawn = pOther:GetCurrentSpawnEstimate(iUs)
     if spawn ~= 0 then
-        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_BONUS_MILITARY", spawn)
+        out[#out + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_DIPLO_BONUS_MILITARY", spawn, spawn)
     end
     return out
 end

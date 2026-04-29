@@ -313,15 +313,17 @@ function SocialPolicyLogic.buildPreamble(player)
         else
             turns = math.floor(needed / per) + 1
         end
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_TURNS", turns)
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_TURNS", turns, turns)
     end
     local freePolicies = player:GetNumFreePolicies()
     if freePolicies > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_POLICIES", freePolicies)
+        parts[#parts + 1] =
+            Text.formatPlural("TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_POLICIES", freePolicies, freePolicies)
     end
     local freeTenets = player:GetNumFreeTenets()
     if freeTenets > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_TENETS", freeTenets)
+        parts[#parts + 1] =
+            Text.formatPlural("TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_TENETS", freeTenets, freeTenets)
     end
     return table.concat(parts, ", ")
 end

@@ -29,6 +29,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
@@ -248,8 +249,9 @@ local function buildWorldReligionsItems()
             end
             items[#items + 1] = BaseMenuItems.Text({
                 labelText = TextFilter.filter(
-                    Text.format(
+                    Text.formatPlural(
                         "TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW",
+                        Game.GetNumCitiesFollowing(eReligion),
                         Text.key(Game.GetReligionName(eReligion)),
                         Text.key(holyCityName),
                         Text.key(founderName),
