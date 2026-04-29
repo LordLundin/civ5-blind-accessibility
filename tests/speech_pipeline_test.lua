@@ -54,6 +54,34 @@ function M.test_set_enabled_coerces_nil_to_false()
     T.falsy(SpeechPipeline.isActive())
 end
 
+-- Hotseat hard-mute via civvaccess_shared.muted. Shared rather than the
+-- _enabled upvalue so the InputRouter toggle reaches every Context's
+-- SpeechPipeline include from one flip.
+
+function M.test_shared_muted_blocks_speech()
+    setup()
+    civvaccess_shared.muted = true
+    SpeechPipeline.speakInterrupt("hello")
+    T.eq(#spoken, 0)
+end
+
+function M.test_shared_unmuted_resumes_speech()
+    setup()
+    civvaccess_shared.muted = true
+    SpeechPipeline.speakInterrupt("muted")
+    civvaccess_shared.muted = false
+    SpeechPipeline.speakInterrupt("resumed")
+    T.eq(#spoken, 1)
+    T.eq(spoken[1].text, "resumed")
+end
+
+function M.test_reset_clears_shared_muted()
+    setup()
+    civvaccess_shared.muted = true
+    SpeechPipeline._reset()
+    T.falsy(civvaccess_shared.muted)
+end
+
 -- Happy path --------------------------------------------------------------
 
 function M.test_interrupt_speaks_with_interrupt_true()

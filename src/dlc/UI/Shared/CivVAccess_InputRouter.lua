@@ -3,16 +3,36 @@
 -- front-end screens, directly from in-game handlers).
 --
 -- Pre-walk hooks (run before the binding walk):
---   1. Shift+? opens the Help overlay built from HandlerStack.collectHelpEntries.
+--   1. Ctrl+Shift+F12 toggles the hotseat hard-mute. Runs first so the
+--      toggle works in both states; on enter-mute it cuts in-flight speech
+--      and short-circuits all subsequent dispatch (no Help, no Settings,
+--      no search, no bindings) so the sighted player's keys reach the
+--      engine. HandlerStack push/pop continue normally so the stack stays
+--      consistent for unmute.
+--   2. Shift+? opens the Help overlay built from HandlerStack.collectHelpEntries.
 --      Gated so pressing ? while Help is on top doesn't re-enter.
---   2. F12 opens the Settings overlay. Gated so the in-menu close binding
+--   3. F12 opens the Settings overlay. Gated so the in-menu close binding
 --      can fire when Settings is already on top.
---   3. Type-ahead search: if the top handler exposes handleSearchInput, route
+--   4. Type-ahead search: if the top handler exposes handleSearchInput, route
 --      printable / Backspace / Space through it so every BaseMenu-backed
 --      handler (installed or pushed directly) gets search without needing 40+
 --      per-letter bindings.
 
 InputRouter = {}
+
+civvaccess_shared = civvaccess_shared or {}
+
+-- Test seam for the debounce clock. Production reads os.clock; tests
+-- swap this to a controllable source so they can drive key-repeat scenarios
+-- without sleeping.
+InputRouter._timeSource = os.clock
+
+local _lastMuteToggleTime = -math.huge
+-- Windows default key-repeat rate is ~30/s (33ms). 0.2s blocks a held
+-- chord from flipping mute back and forth (the failure mode is silent --
+-- a stuck-muted mod has no way to announce that it's stuck) while still
+-- accepting an intentional re-press.
+local MUTE_TOGGLE_DEBOUNCE_SECONDS = 0.2
 
 local WM_KEYDOWN = 256
 local WM_SYSKEYDOWN = 260
@@ -48,6 +68,28 @@ end
 -- before trying.
 function InputRouter.dispatch(keyCode, modMask, msg)
     if msg ~= WM_KEYDOWN and msg ~= WM_SYSKEYDOWN then
+        return false
+    end
+
+    -- On exit-mute, flip the flag BEFORE the resume announcement so
+    -- SpeechPipeline's own gate doesn't swallow it.
+    if keyCode == VK_F12 and modMask == (MOD_CTRL + MOD_SHIFT) then
+        local now = InputRouter._timeSource()
+        if (now - _lastMuteToggleTime) < MUTE_TOGGLE_DEBOUNCE_SECONDS then
+            return true
+        end
+        _lastMuteToggleTime = now
+        if civvaccess_shared.muted then
+            civvaccess_shared.muted = false
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_MUTE_RESUMED"))
+        else
+            SpeechPipeline.stop()
+            civvaccess_shared.muted = true
+        end
+        return true
+    end
+
+    if civvaccess_shared.muted then
         return false
     end
 

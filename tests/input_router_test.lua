@@ -25,6 +25,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_InputRouter.lua")
     HandlerStack._reset()
+    civvaccess_shared.muted = false
 end
 
 local WM_KEYDOWN = 256
@@ -416,6 +417,107 @@ function M.test_search_hook_error_logged_and_falls_through()
     InputRouter.dispatch(65, 0, WM_KEYDOWN)
     T.truthy(#errors >= 1)
     T.eq(bindingFired, 1, "binding still fires after search hook error")
+end
+
+-- Hotseat hard-mute toggle (Ctrl+Shift+F12) ------------------------------
+-- The dispatch-time logic this section guards: stop-then-flip on enter,
+-- flip-then-speak on exit, debounce against key-repeat, short-circuit
+-- subsequent dispatch while muted.
+
+local VK_F12 = 123
+local MOD_CTRL_SHIFT = 1 + 2
+
+local function setupMute()
+    setup()
+    UI.CtrlKeyDown = function()
+        return true
+    end
+    UI.ShiftKeyDown = function()
+        return true
+    end
+    civvaccess_shared.muted = false
+    local clock = 0
+    InputRouter._timeSource = function()
+        return clock
+    end
+    local spoken = {}
+    local stopCount = 0
+    SpeechPipeline = {
+        speakInterrupt = function(text)
+            spoken[#spoken + 1] = { text = text, mutedAtSpeak = civvaccess_shared.muted }
+        end,
+        stop = function()
+            stopCount = stopCount + 1
+        end,
+    }
+    Text = {
+        key = function(k)
+            return k
+        end,
+    }
+    local function advance(dt)
+        clock = clock + dt
+    end
+    return spoken, function()
+        return stopCount
+    end, advance
+end
+
+function M.test_mute_toggle_enters_mute_and_stops_speech()
+    local spoken, stopCount, advance = setupMute()
+    advance(1)
+    T.truthy(InputRouter.dispatch(VK_F12, MOD_CTRL_SHIFT, WM_KEYDOWN))
+    T.truthy(civvaccess_shared.muted, "muted flag set on enter")
+    T.eq(stopCount(), 1, "in-flight speech stopped on enter")
+    T.eq(#spoken, 0, "no announcement spoken on enter (hard mute)")
+end
+
+function M.test_mute_toggle_exits_mute_and_speaks_resumed_after_flip()
+    local spoken, stopCount, advance = setupMute()
+    civvaccess_shared.muted = true
+    advance(1)
+    T.truthy(InputRouter.dispatch(VK_F12, MOD_CTRL_SHIFT, WM_KEYDOWN))
+    T.falsy(civvaccess_shared.muted, "muted flag cleared on exit")
+    T.eq(#spoken, 1)
+    T.eq(spoken[1].text, "TXT_KEY_CIVVACCESS_MUTE_RESUMED")
+    T.falsy(
+        spoken[1].mutedAtSpeak,
+        "flag must be cleared before speak so SpeechPipeline's own gate doesn't swallow the announcement"
+    )
+end
+
+function M.test_mute_toggle_debounces_key_repeat()
+    local _, _, advance = setupMute()
+    InputRouter.dispatch(VK_F12, MOD_CTRL_SHIFT, WM_KEYDOWN)
+    T.truthy(civvaccess_shared.muted, "first press enters mute")
+    advance(0.05)
+    InputRouter.dispatch(VK_F12, MOD_CTRL_SHIFT, WM_KEYDOWN)
+    T.truthy(civvaccess_shared.muted, "repeat within debounce window does not flip")
+    advance(0.5)
+    InputRouter.dispatch(VK_F12, MOD_CTRL_SHIFT, WM_KEYDOWN)
+    T.falsy(civvaccess_shared.muted, "press past debounce window does flip")
+end
+
+function M.test_dispatch_is_short_circuited_while_muted()
+    setupMute()
+    civvaccess_shared.muted = true
+    UI.CtrlKeyDown = function()
+        return false
+    end
+    UI.ShiftKeyDown = function()
+        return false
+    end
+    local fired = 0
+    HandlerStack.push({
+        name = "a",
+        bindings = {
+            { key = 65, mods = 0, fn = function()
+                fired = fired + 1
+            end },
+        },
+    })
+    T.falsy(InputRouter.dispatch(65, 0, WM_KEYDOWN), "muted dispatch returns false to fall through to engine")
+    T.eq(fired, 0, "no binding fires while muted")
 end
 
 return M

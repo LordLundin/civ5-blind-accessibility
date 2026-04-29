@@ -3,6 +3,8 @@
 
 SpeechPipeline = {}
 
+civvaccess_shared = civvaccess_shared or {}
+
 local DEDUPE_WINDOW_SECONDS = 0.05
 
 local _enabled = true
@@ -27,10 +29,15 @@ function SpeechPipeline._reset()
     _lastInterruptText = nil
     _lastInterruptTime = 0
     _enabled = true
+    civvaccess_shared.muted = false
 end
 
+-- Hotseat hard mute. Set by the Ctrl+Shift+F12 hook in InputRouter; lives
+-- on civvaccess_shared so every Context's SpeechPipeline include reads the
+-- same flag (each Context has its own _enabled upvalue, which would
+-- otherwise need cross-Context coordination).
 function SpeechPipeline.speakInterrupt(text)
-    if not _enabled then
+    if not _enabled or civvaccess_shared.muted then
         return
     end
     local filtered = TextFilter.filter(text)
@@ -47,7 +54,7 @@ function SpeechPipeline.speakInterrupt(text)
 end
 
 function SpeechPipeline.speakQueued(text)
-    if not _enabled then
+    if not _enabled or civvaccess_shared.muted then
         return
     end
     local filtered = TextFilter.filter(text)
