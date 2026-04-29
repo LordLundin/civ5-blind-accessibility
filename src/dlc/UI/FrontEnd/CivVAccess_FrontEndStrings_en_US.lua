@@ -1,16 +1,59 @@
 -- Mod-authored localized strings, front-end Context.
 -- The FrontEnd and InGame skin directories are separate VFS Contexts, so each
--- needs its own strings file with the keys relevant to that Context.
+-- needs its own strings file with the keys relevant to that Context. The
+-- in-game equivalent lives at UI/InGame/CivVAccess_InGameStrings_en_US.lua;
+-- some keys are duplicated between the two files because each Context has its
+-- own sandboxed CivVAccess_Strings table.
+--
+-- Translator orientation:
+-- - Every string here is spoken by a screen reader (Tolk into SAPI / NVDA /
+--   JAWS), never displayed visually. There is no graphical fallback. If a
+--   translation is missing or wrong the user has no way to recover, so accuracy
+--   matters more than tone.
+-- - Strings should read naturally as speech. Avoid emdashes, smart quotes,
+--   ellipses, slashes that read as "slash", and decorative punctuation. Plain
+--   hyphens, "to", "of", and short clauses are best.
+-- - Lead with the distinguishing word. A screen-reader user can interrupt as
+--   soon as they have what they need; putting the unique part first lets them
+--   move on faster ("warrior, embarked" not "embarked unit, warrior").
+-- - Game proper nouns (civilization names, leader names, unit names, building
+--   names, technology names, policy names, etc.) come from the base game's
+--   own TXT_KEY_* entries and are already localized by Firaxis. They are NOT
+--   in this file. Strings here are the connective tissue: state words
+--   ("ready", "selected", "disabled"), screen labels ("Main menu"), and
+--   composed templates ("{1_Name}, {2_Civ}, {3_Team}").
+-- - Format placeholders are positional and explicit: {1_Name}, {2_Cur},
+--   {3_Max}. The number is the 1-based argument index; the suffix is a hint
+--   for translators about what the substituted value carries. Reorder freely
+--   to fit target-language word order; do not change the index numbers.
+-- - Plural-form bundles use CLDR keywords (one / few / many / other). Provide
+--   the forms required by the target language; the runtime selects via the
+--   active locale's PluralRules at format time.
 CivVAccess_Strings = CivVAccess_Strings or {}
+-- Spoken once, after the front-end Boot Lua finishes installing handlers, so
+-- the user knows the mod attached.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Accessibility mod ready."
 -- Hotseat-mute toggle (Ctrl+Shift+F12). Mirrored from the in-game strings
 -- file because the toggle lives in InputRouter, which routes both
--- front-end and in-game dispatch.
+-- front-end and in-game dispatch. The pause text speaks before the flag
+-- flips so the screen reader hears it; the resume speaks after the flag
+-- clears so SpeechPipeline's gate doesn't swallow it.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod paused"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "mod resumed"
+-- Leaderboard pagination buttons. Spoken when the focus lands on the prev /
+-- next page control of the friend / global leaderboard sub-screens.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_PREV_PAGE"] = "Previous page"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_NEXT_PAGE"] = "Next page"
+-- Generic "this control is currently un-clickable" suffix appended to button
+-- labels whose engine control reports IsDisabled. See LABEL_DISABLED below
+-- for the compositional form ("<label>, disabled").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
+-- Front-end screen handler display names. Spoken when a screen opens to
+-- identify which surface is now active; one entry per Context our front-end
+-- handler stack registers a handler for. Many of these mirror the engine's
+-- own popup titles but are kept mod-authored so the spoken form can stay
+-- short and consistent (the engine's own labels often include "Main Menu -"
+-- prefixes or all-caps decoration that read poorly).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAIN_MENU"] = "Main menu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_OTHER_MENU"] = "Other"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SINGLE_PLAYER"] = "Single player"
@@ -45,6 +88,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEAM"] = "Team"
 -- BaseMenu.create's required-displayName assertion when the user activates
 -- the pulldown. Mod-owned plain label instead.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CIVILIZATION"] = "Civilization"
+-- Tail tag on a slot summary when the engine's per-player ready flag is
+-- set; humans only (AI slots are always implicitly ready and do not get
+-- this tag). HOST is the matching tail tag for the slot whose player
+-- owns the lobby.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_READY"] = "ready"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST"] = "host"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_STATUS"] = "{1_Name}, {2_Status}"
@@ -85,6 +132,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SORT_ASC"] = "ascending"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SORT_DESC"] = "descending"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_NO_SELECTION"] =
     "No server selected. Switch to the servers tab to pick one."
+-- More front-end screen handler display names (continuation of the cluster
+-- above; split only because LOAD-screen and choice-marker keys live between
+-- the two sets). Each is spoken when the matching front-end Context opens.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_OPTIONS"] = "Options"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CREDITS"] = "Credits"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GAME_SETUP"] = "Set up game"
@@ -94,6 +144,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DIFFICULTY"] = "Difficulty"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GAME_SPEED"] = "Game speed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CIVILIZATION"] = "Civilization"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SET_CIV_NAMES"] = "Name civilization"
+-- Mod / scenario / DLC browser screens (continuation of the same cluster).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SCENARIOS"] = "Scenarios"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CUSTOM_MOD_GAME"] = "Custom mod game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_TUTORIAL"] = "Tutorial"
@@ -135,11 +186,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_STATE"] = "{1_Label}, {2_State}"
 -- Generic "<label> <list>" template used by the mods-in-use preamble
 -- (and by ReligionOverview in-game). Same key in both Contexts.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABELED_LIST"] = "{1_Label} {2_List}"
+-- Generic widget state words. Spoken by BaseMenuItems Checkbox / Textfield
+-- and by VirtualToggle items as the trailing token after the control's own
+-- label (e.g. "Quick Movement, on" / "Game name, edit"). Distinct keys so
+-- locales can use different particles for boolean state vs editing state.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"] = "on"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"] = "off"
+-- Static suffix announcing a Textfield item is editable; spoken on focus.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "edit"
+-- Spoken when the field is empty (no value to read out).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "blank"
+-- Spoken on Enter when the user opens the in-place editor for the field.
+-- {1_Label} is the field's normal label.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"] = "editing {1_Label}"
+-- Spoken on Escape when a mid-edit value is reverted to its prior value.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
 -- Disambiguating labels: the game's UI reuses a single label for two visually-
 -- separated controls (grid header or fullscreen/windowed toggle distinguishes
@@ -157,6 +217,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_TURN_TIMER"] = "Timer seconds"
 -- change; auto-reverts if the user takes no action.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_INTRO"] = "{1_Message}. Reverting in 20 seconds."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_EXPIRED"] = "Time expired, reverted."
+-- Spoken when the engine's Reconnect overlay (CONNECTION_STATUS_RECONNECTING)
+-- becomes visible after a multiplayer link drop. Stays on screen until the
+-- session resumes or aborts.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_RECONNECTING"] = "Reconnecting"
 -- Advanced Setup + MP Setup (nested menus).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_ADVANCED_SETUP"] = "Advanced setup"
@@ -177,6 +240,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_DLC_ALLOWED"] = "DLC allowed"
 -- AI is disabled. Tell the user why and point at the remedy.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNKNOWN_PLAYERS_STATUS"] =
     "AI players cannot be customized while random map size is selected. Pick a specific map size to edit the player list."
+-- Textfield label for the multiplayer game-name input. The engine's TextEntry
+-- has no visible label (the field sits beneath an unrelated header), so the
+-- accessibility layer supplies its own.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_GAME_NAME"] = "Game name"
 -- Map-type entry suffix announced after the map's name/description when
 -- the map's Map_Sizes rows constrain the available world sizes. {1} is a
@@ -186,13 +252,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED"] = "sizes: {1_Sizes}"
 -- Type-ahead search feedback. NO_MATCH is spoken when a buffer narrows to
 -- zero results; CLEARED fires on backspace-to-empty or Esc while search is
 -- active. Buffer is echoed raw so the user can hear what they typed.
+-- Mirrored in the InGame strings file because TypeAheadSearch runs from
+-- both front-end and in-game BaseMenu Contexts.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"] = "no match for {1_Buffer}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"] = "search cleared"
 -- Help overlay (Shift+?). keyLabels use "or" (not slash) so screen readers
 -- speak them cleanly; descriptions stay purpose-centric ("Navigate items"
 -- not "Previous item" / "Next item"). Pairs must match across handlers or
 -- the keyLabel dedupe in HandlerStack.collectHelpEntries won't collapse
--- equivalent entries.
+-- equivalent entries. Mirrored in the InGame strings file because the
+-- help overlay is reachable from every Context that routes through
+-- InputRouter.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_HELP"] = "Help"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_ENTRY"] = "{1_Key}, {2_Description}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_AZ09"] = "Letters"

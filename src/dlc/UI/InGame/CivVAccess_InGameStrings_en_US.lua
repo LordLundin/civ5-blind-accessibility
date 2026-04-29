@@ -1,12 +1,58 @@
 -- Mod-authored localized strings, in-game Context.
 -- Looked up by Text.key / Text.format in CivVAccess_Text.lua. Sets a global
 -- (rather than returning) so the offline test harness can dofile() it without
--- relying on Civ V's include() semantics.
+-- relying on Civ V's include() semantics. The front-end equivalent lives at
+-- UI/FrontEnd/CivVAccess_FrontEndStrings_en_US.lua; the scanner and surveyor
+-- subsystems extend this table from companion files in the same directory
+-- (CivVAccess_ScannerStrings_en_US.lua and CivVAccess_SurveyorStrings_en_US.lua),
+-- which Boot includes after this file.
+--
+-- Translator orientation:
+-- - Every string in this file is spoken by a screen reader (Tolk into SAPI /
+--   NVDA / JAWS), never displayed visually. There is no graphical fallback.
+--   If a translation is missing or wrong the user has no way to recover, so
+--   accuracy matters more than tone.
+-- - Strings should read naturally as speech. Avoid emdashes, smart quotes,
+--   ellipses, slashes that read as "slash", and decorative punctuation. Plain
+--   hyphens, "to", "of", and short clauses are best. Screen readers announce
+--   each non-letter character separately at default verbosity, so symbols add
+--   noise without information.
+-- - Lead with the distinguishing word. A screen-reader user can interrupt as
+--   soon as they have what they need; putting the unique part first lets them
+--   move on faster ("warrior, embarked" not "embarked unit, warrior").
+-- - Concise but not lossy. Strip fluff and decorative framing; never strip
+--   gameplay-relevant detail. The mod's house rule is that length is fine if
+--   every word is earned.
+-- - Game proper nouns (civilization names, leader names, unit names, building
+--   names, technology names, policy names, resource names, etc.) come from
+--   the base game's own TXT_KEY_* entries and are already localized by Firaxis.
+--   They are NOT in this file. Strings here are the connective tissue: state
+--   words ("razing", "queued"), labels ("Pause Menu", "Choose Production"),
+--   composed templates ("{1_Cur} of {2_Max} hp"), and prose-only descriptions
+--   (the leader-portrait block).
+-- - Format placeholders are positional and explicit: {1_Name}, {2_Cur},
+--   {3_Max}. The number is the 1-based argument index; the suffix is a hint
+--   for translators about what the substituted value carries. Reorder freely
+--   to fit target-language word order; do not change the index numbers.
+-- - Plural-form bundles use CLDR keywords (one / few / many / other). Provide
+--   the forms required by the target language; the runtime selects via the
+--   active locale's PluralRules at format time. Where two clauses each pluralize
+--   independently (e.g. "{tiles} tiles, {turns} turns"), each clause is its own
+--   bundle and a parent template combines them.
+-- - Some keys are mirrored across InGame and FrontEnd because each Context
+--   is a sandboxed Lua state with its own CivVAccess_Strings table. Keep
+--   the two sides in sync when adding or modifying mirrored keys (the help-
+--   overlay, settings-overlay, generic widget, and icon-substitution blocks
+--   are the main examples).
 CivVAccess_Strings = CivVAccess_Strings or {}
+-- Spoken once, after the in-game Boot Lua finishes installing handlers, so
+-- the user knows the mod attached.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization V accessibility loaded in-game."
 -- Hotseat-mute toggle (Ctrl+Shift+F12). The pause announcement speaks
 -- before the flag flips so the screen reader hears it; the resume speaks
 -- after the flag clears so SpeechPipeline's gate doesn't swallow it.
+-- Mirrored in the FrontEnd strings file because InputRouter routes both
+-- front-end and in-game dispatch.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod paused"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "mod resumed"
 -- Unit speech. Selection, info dump, action result, and target preview
@@ -37,6 +83,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION"] = "{1_Cur}/{2_Max} 
 -- the unit has cargo capacity (so empty carriers still announce 0/3);
 -- city sites suppress when X is 0 to avoid spamming every city.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AIRCRAFT_COUNT"] = "{1_Cur}/{2_Max} aircraft"
+-- Trailing token on the unit info line when the unit has earned enough
+-- experience to take a new promotion (CanPromote is true).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PROMOTION_AVAILABLE"] = "promotion available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
     one = "{1_What} {2_Turns} turn",
@@ -95,6 +143,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HP_GREEN"] = "green"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HP_YELLOW"] = "yellow"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HP_RED"] = "red"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HP_FULL"] = "full"
+-- Unit info-line tokens. Spoken in the cursor's tile glance and on the
+-- "/" info-dump key. Level / XP and upgrade-cost are surfaced because the
+-- sighted UI pairs them with icons that get stripped; promotions list
+-- joins all earned promotion names. The MOVED_TO and STOPPED_SHORT pairs
+-- are post-move feedback after a single Alt+key step: MOVED_TO speaks the
+-- remaining moves left after a successful step, STOPPED_SHORT fires when
+-- the path was longer than the budget allowed.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_LEVEL_XP"] = "level {1_Lvl}, {2_Cur}/{3_Next} xp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_UPGRADE"] = "upgrade to {1_Name}, {2_Gold} gold"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PROMOTIONS_LABEL"] = "promotions: {1_List}"
@@ -107,6 +162,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT_TURNS"] = {
     one = "stopped short, {1_Num} turn till arrival",
     other = "stopped short, {1_Num} turns till arrival",
 }
+-- Generic "the action you tried did not happen" tail spoken when an Alt+key
+-- attempt completes without effect (engine refused but did not fire a
+-- specific reason). QUEUED_NEXT_TURN fires when shift+enter on a path
+-- successfully appends the leg but the unit is already out of moves so the
+-- mission won't actually start until the next turn.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"] = "action failed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_QUEUED_NEXT_TURN"] = "queued for next turn"
 -- Alt+QAZEDC prechecks. Spoken before the combat preview / move commit
@@ -120,13 +180,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED"] = "cannot enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"] =
     "aircraft can't be moved this way, use rebase"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT"] = "not adjacent"
+-- Empty-state tokens spoken when a unit-related key fires with nothing to
+-- act on: NO_UNITS when the active player owns zero selectable units,
+-- NO_ACTIONS when the unit-action menu has no entries to show.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_NO_UNITS"] = "no units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_NO_ACTIONS"] = "no actions"
+-- Suffix appended to action / move announcements when committing the action
+-- would trigger a war declaration with the target's owner. Spoken before
+-- the final confirm so the user can cancel.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR"] = "will declare war"
+-- Display names for the in-place menus pushed by Tab and Enter on the hex
+-- cursor. UNIT_MENU_NAME is the unit-action menu pushed by Tab on a
+-- selected unit; CURSOR_ACTIVATE_MENU_NAME is the multi-target menu pushed
+-- by Enter on a tile holding more than one activatable thing. The two
+-- _MENU_PROMOTIONS / _BUILDS labels are sub-menu group names within those
+-- menus.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_NAME"] = "Unit actions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_ACTIVATE_MENU_NAME"] = "Activate tile"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "Promotions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Worker builds"
+-- Spoken on entering a target-picker mode (ranged attack, paradrop, etc.)
+-- as the audible confirmation that the cursor's keys are now picking a
+-- target rather than navigating freely.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"] = "target mode"
 -- Confirms when shift+enter appends a leg to the unit's mission queue.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"] = "queued"
@@ -136,7 +211,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"] = "queued"
 -- on the same turn the queue head reaches it, but we have no
 -- pre-snapshot for the eventual combat -- so we reject.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"] = "cannot queue attack"
+-- Generic "the action was abandoned" feedback. Spoken when a target-picker
+-- or popup is dismissed with Escape; consumed by code paths that need to
+-- speak any single word but for which "canceled" is the audible default.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CANCELED"] = "canceled"
+-- Combat preview vocabulary. Spoken on Space inside a target-picker mode
+-- (Alt+QAZEDC for melee, Alt+R for ranged, Alt+air-strike, etc.) before
+-- the user commits with a second press / Enter. The PREVIEW_ATTACK and
+-- PREVIEW_RANGED templates are the one-line full preview; SUPPORT_FIRE
+-- and CAPTURE_CHANCE are appended clauses; MODS_MY / MODS_THEIR are
+-- pre-amble lists composed from MOD_POS / MOD_NEG entries that name each
+-- combat modifier as "plus N percent <reason>" or "minus N percent <reason>".
+-- {4_Result} in the preview templates is the engine's verdict word
+-- ("decisive victory", "stalemate", etc.) computed from CombatPrediction.
+-- OUT_OF_RANGE fires when the cursor sits on a plot the active mode
+-- cannot strike; preview is suppressed.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE"] = "out of range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK"] =
     "{1_Name}, {2_MyStr} vs {3_TheirStr}, {4_Result}, {5_DmgToMe} damage to me, {6_DmgToThem} to them"
@@ -326,6 +415,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_UPGRADE"] = "upgraded"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_CANCEL"] = "canceled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_BUILD_START"] = "started {1_Build}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_PROMOTION"] = "promoted to {1_Name}"
+-- Generic "this control is currently un-clickable" suffix appended to
+-- button labels whose engine control reports IsDisabled. Mirrored from
+-- the FrontEnd copy (the front-end Context has its own sandboxed table).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
 -- Compositional form: "<label>, disabled" for buttons that surface a
 -- pre-composed label (an engine control's GetText / a built-up offer
@@ -351,6 +443,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "edge of map"
 -- Generic wording rather than CityView-specific so Phase 8's ranged-strike
 -- target picker (scope = valid strike targets) reuses it verbatim.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_SCOPE"] = "edge of range"
+-- Tile-state words appended to the cursor glance when the plot is unowned
+-- (UNCLAIMED), never seen by the active player (UNEXPLORED), or seen once
+-- but currently outside view (FOG). UNEXPLORED hides every other plot detail
+-- because the user does not yet have rights to know what is there.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNCLAIMED"] = "unclaimed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNEXPLORED"] = "unexplored"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOG"] = "fog"
@@ -369,6 +465,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
     one = "{1_Moves} move",
     other = "{1_Moves} moves",
 }
+-- River and fresh-water tokens spoken in the cursor's tile glance.
+-- {1_Directions} is a comma-joined run of short edge tokens (e.g. "ne, se, s")
+-- naming the hex sides the river touches; ALL_SIDES is the degenerate
+-- six-edge case. FRESH_WATER fires for tiles adjacent to a river or lake.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_DIRECTIONS"] = "river {1_Directions}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES"] = "river all sides"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"] = "fresh water"
@@ -376,9 +476,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"] = "fresh water"
 -- glance and as the scanner item name for the "waypoints" category.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT"] = "waypoint {1_Index} of {2_Total}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PILLAGED_NAMED"] = "{1_Name} pillaged"
+-- Macro-terrain tokens. Spoken inside the cursor glance for plots the engine
+-- does not give a per-terrain TXT key for (hills are a flag on top of base
+-- terrain, lakes are technically a feature, mountains are a base-terrain
+-- type but the engine's TXT key includes punctuation we strip).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HILLS"] = "hills"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOUNTAIN"] = "mountain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAKE"] = "lake"
+-- Generic HP format used wherever a single HP number is spoken without a
+-- max (cursor glance for friendly units below full HP, etc.). The
+-- max-bearing form is UNIT_HP_FRACTION above.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HP_FORMAT"] = "{1_Num} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_PROGRESS"] = {
     one = "{1_Build} {2_Turns} turn",
@@ -430,6 +537,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "Articles at t
 -- then pop/defense/HP, then garrison on team banners. Enemy HP reuses the
 -- unit color-band keys so "hp full / green / yellow / red" stays one
 -- vocabulary across unit and city queries.
+-- Spoken alone (no further fields) for cities whose owner the active
+-- player has not yet met; everything else in the city info line is
+-- suppressed because the engine does not reveal those fields.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNMET"] = "unmet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CAN_ATTACK"] = "can attack"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CITY"] = "no city here"
@@ -466,6 +576,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING"] = {
 -- progress fraction -- absence of the turn count is the audible signal that
 -- this is a perpetual process rather than a buildable item.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING_PROCESS"] = "producing {1_Name}"
+-- City development tokens (the "2" key, second tier of the city-info
+-- triplet). Production block: NOT_PRODUCING when the queue is empty,
+-- PRODUCTION_PROGRESS / PRODUCTION_PER_TURN to read the current item's
+-- meter and rate. Growth block: GROWS_IN for next-pop ETA, STARVING when
+-- food is negative and population will shrink, STOPPED_GROWING when food
+-- is exactly zero and population holds, plus the FOOD_PROGRESS /
+-- FOOD_PER_TURN / FOOD_LOSING readouts.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_NOT_PRODUCING"] = "not producing"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PROGRESS"] = "{1_Cur} of {2_Needed} production"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PER_TURN"] = "{1_Num} per turn"
@@ -478,11 +595,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING"] = "stopped growing
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS"] = "{1_Cur} of {2_Threshold} food"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PER_TURN"] = "{1_Num} per turn"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_LOSING"] = "losing {1_Num} per turn"
+-- Spoken when development info is being read on a foreign city the active
+-- player has not met or cannot see; the engine hides production / growth
+-- numbers in this state and we mirror that.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEVELOPMENT_NOT_VISIBLE"] = "not visible"
+-- City politics tokens (the "3" key, third tier). Warmonger / liberation
+-- previews are spoken when hovering a city you could capture: the engine
+-- computes the diplomatic consequence and we read it as a sentence rather
+-- than the colored numeric badge sighted players see. SPY / DIPLOMAT
+-- announce the active foreign agent in the city; rank is the engine's tier
+-- name (Recruit, Agent, Special Agent, etc.).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_WARMONGER_PREVIEW"] = "warmonger preview: {1_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_LIBERATION_PREVIEW"] = "liberation preview: {1_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_SPY"] = "spy {1_Name}, {2_Rank}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DIPLOMAT"] = "diplomat {1_Name}, {2_Rank}"
+-- Spoken when the politics readout has nothing to surface (no agents, no
+-- preview applicable) so the user knows the key fired but had no payload.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_NO_POLITICS"] = "no political information"
 -- Spoken when Scanner becomes the top handler: on boot, after a popup
 -- closes, after a sub-handler (ScannerInput, UnitActionMenu) pops. Gives
@@ -516,6 +644,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_I"] = "Control plus I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ESC"] = "Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ENTER"] = "Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_QUESTION"] = "Question mark"
+-- Description tokens of the help overlay (paired with the KEY_* labels
+-- above; the two halves combine via HELP_ENTRY = "{1_Key}, {2_Description}").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_SEARCH"] = "Type to search"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS"] = "Navigate items"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_FIRST_LAST"] = "Jump to first or last"
@@ -730,6 +860,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY_CITY"] = "{1_Rank}. {2
 -- surface from the combat-interrupt AdvisorModal and the concept-browser
 -- AdvisorInfoPopup that question buttons drill into.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_ADVISOR_TUTORIAL"] = "Tutorial Advisor"
+-- NotificationLogPopup tab labels and item format. The popup itself has
+-- its title at SCREEN_NOTIFICATION_LOG; these are its three tabs (Active
+-- holds undismissed alerts the user can act on, Turn Log is the read-only
+-- per-turn event stream, Dismissed is the archive), the placeholder
+-- spoken when a tab has no rows, and the item-row format combining the
+-- engine-supplied notification text with the turn it fired on.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE"] = "Active"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_TURN_LOG"] = "Turn Log"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED"] = "Dismissed"
@@ -740,14 +876,23 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turn {2_
 -- Turn and the next turn start). Drilled into from the level-0 group label.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "Combat Log"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "No combat this turn."
--- MilitaryOverview (BUTTONPOPUP_MILITARY_OVERVIEW, F3). Level 0 reads GP
--- progress + supply line as Text widgets; drill-ins hold the unit rows. The
--- GP line combines the engine's own label (TXT_KEY_CITYVIEW_GG_PROGRGRESS /
--- TXT_KEY_MO_GA_PROGRESS) with the numerator/denominator the sighted tooltip
--- shows first. Supply collapses the sighted screen's six-to-seven-row stack
--- (base, cities, population, cap, use, remaining OR deficit+penalty) into a
--- single line; current state leads ("in use", "remaining" or "over"), then
--- the three-component breakdown the sighted player gets above the divider.
+-- MilitaryOverview (BUTTONPOPUP_MILITARY_OVERVIEW, F3). Key prefix MO_*
+-- throughout. Glossary for the abbreviations used here and below: GP =
+-- Great People (the umbrella term), GG = Great General (military land
+-- specialist), GA = Great Admiral (military naval specialist).
+--
+-- Level 0 reads GP progress + supply line as Text widgets; drill-ins hold
+-- the unit rows. The GP line combines the engine's own label
+-- (TXT_KEY_CITYVIEW_GG_PROGRGRESS / TXT_KEY_MO_GA_PROGRESS) with the
+-- numerator/denominator the sighted tooltip shows first. Supply
+-- collapses the sighted screen's six-to-seven-row stack (base, cities,
+-- population, cap, use, remaining OR deficit+penalty) into a single
+-- line; current state leads ("in use", "remaining" or "over"), then the
+-- three-component breakdown the sighted player gets above the divider.
+-- The SUPPLY_NORMAL placeholders {4_Base} {5_Cities} {6_Pop} are each a
+-- numeric contribution (base supply allowance, cities-built bonus,
+-- population bonus); SUPPLY_DEFICIT shifts them by one because it inserts
+-- {3_Deficit} {4_Penalty} ahead of the breakdown.
 -- Sort selector verbalizes current mode; menu label is independent so the
 -- user hears "sort by: name" at the selector and just "sort by" as the
 -- title of the picker that opens. Row strength/ranged use bare nouns (not
@@ -888,6 +1033,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_GP_POINTS"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_EMPTY"] = "No specialist slots."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_SLOT"] = "{1_Building} {2_Specialist} slot {3_N}, {4_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_EMPTY"] = "empty"
+-- _FILLED_STATE substitutes into SPECIALIST_SLOT's {4_State} as the
+-- in-list state token. _FILLED is the standalone confirmation spoken on
+-- Enter when an unfilled slot just became filled. Two keys with identical
+-- value so each can move independently if a future tense / particle
+-- requires divergent forms in the target language.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_STATE"] = "filled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED"] = "filled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED"] = "unfilled"
@@ -920,6 +1070,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN"] = {
     one = "Slot 1, {1_Name}, {2_Turns} turn, {3_Percent} percent. {4_Help}",
     other = "Slot 1, {1_Name}, {2_Turns} turns, {3_Percent} percent. {4_Help}",
 }
+-- _TRAIN_INFINITE fires for buildable items (units / buildings / wonders)
+-- whose remaining turns cannot be estimated from the current production
+-- rate (typical for queued slots 2+ where the city has not yet started
+-- accumulating progress towards the item). _PROCESS fires for
+-- ORDER_MAINTAIN entries (Wealth, Research, Faith, Defense) that have no
+-- completion turn or progress meter at any slot because they are
+-- perpetual conversions, not buildable items.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN_INFINITE"] =
     "Slot 1, {1_Name}, {2_Percent} percent. {3_Help}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_PROCESS"] = "Slot 1, {1_Name}. {2_Help}"
@@ -955,6 +1112,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_WORKED"] = "worked"
 -- the engine's TASK_CHANGE_WORKING_PLOT both assigns and forces in a single
 -- task, same as a mouse left-click.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_PINNED"] = "pinned"
+-- BLOCKED: tile cannot be worked at all (enemy unit on it, foreign
+-- territory, or otherwise outside the city's reachable working set).
+-- NOT_WORKED: workable in principle but no citizen is currently assigned
+-- (an Enter press here triggers TASK_CHANGE_WORKING_PLOT to assign one).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_BLOCKED"] = "blocked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_NOT_WORKED"] = "not worked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_COST"] = "purchasable, {1_Gold} gold"
@@ -1089,6 +1250,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_GOLDEN_AGE"] = "Golden age"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_RELIGIONS"] = "Religions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_GREAT_PEOPLE"] = "Great people"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_INFLUENCE"] = "Influence"
+-- Empire status readout payloads. Each STATUS_* below is one composed line
+-- spoken by a bare-letter empire-status key (T/R/G/H/F/P/I) or its Shift+
+-- detail variant; the active variant is selected by the live engine state
+-- (e.g. STATUS_HAPPY when net happiness is non-negative, STATUS_UNHAPPY
+-- between -1 and -9, STATUS_VERY_UNHAPPY below). _OFF tokens fire when the
+-- corresponding system is disabled in the game options. The HELP_KEY /
+-- HELP_DESC pairs further down cover all of these for the help overlay.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HAPPY"] = "+{1_Excess} happiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_UNHAPPY"] = "Unhappy minus {1_Deficit}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_VERY_UNHAPPY"] = "Very unhappy minus {1_Deficit}"
@@ -1132,7 +1300,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_WITHIN_REACH"] = {
     one = "+{1_Rate} tourism, influential on {2_Count} of {3_Total} civ",
     other = "+{1_Rate} tourism, influential on {2_Count} of {3_Total} civs",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TURN"] = "T"
+-- Help-overlay entries for the empire status readout keys above. Each
+-- pair is one row in the help screen: KEY_* names the keystroke, DESC_*
+-- summarises what the key reads. The bare-letter variants (T R G H F P I)
+-- speak the headline summary; the Shift+letter _DETAIL variants speak the
+-- per-source breakdown.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TURN"] =
     "Turn and date, with unit supply when over cap and any strategic resource shortages"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_RESEARCH"] = "R"
@@ -1167,11 +1339,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM_DETAIL"] =
 -- active tasks exist (the common case outside scenarios and tutorials).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_KEY"] = "Shift plus T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_DESC"] = "Read active scenario tasks"
+-- GameMenu (Esc pause menu) tab labels and mod-list payloads. Tab labels
+-- sit alongside the engine-keyed Details tab (TXT_KEY_POPUP_GAME_DETAILS).
+-- The Mods tab lists every mod active in the current save: NO_MODS for the
+-- empty-list state, MOD_ENTRY for each row.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB"] = "Actions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_MODS_TAB"] = "Mods"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_NO_MODS"] = "No mods activated."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_MOD_ENTRY"] = "{1_Title}, version {2_Version}"
--- Civilopedia (picker/reader two-tab) strings.
+-- Civilopedia (picker/reader two-tab) strings. PICKER_READER_EMPTY and
+-- _NO_SELECTION are the two empty-state words used by the shared
+-- PickerReader widget; they are mirrored in the FrontEnd strings file
+-- because PickerReader serves both Contexts (saves picker, mods picker,
+-- replay picker on the front-end side; civilopedia on the in-game side).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_CATEGORIES_TAB"] = "Categories"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_CONTENT_TAB"] = "Content"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_ARTICLE"] = "No article text available."
@@ -1208,6 +1388,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_CLOUD_SLOT_EMPTY"] = "Steam Cloud sl
 -- with the spoken text. Singular / plural wording is deliberately relaxed
 -- ("turns", "whales") because screen-reader users tolerate minor grammar
 -- over awkward branching, and Civ's text uses these icons in both counts.
+-- Mirrored in the FrontEnd strings file (each Context has its own
+-- sandboxed CivVAccess_Strings table). Keep the two in sync when adding
+-- or renaming icon keys.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "gold"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "food"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "production"
@@ -1265,13 +1448,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_TECH"] = "Choose Research"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_FREE"] = "free tech, {1_N} remaining"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_STEALING"] = "stealing from {1_Civ}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_SCIENCE"] = "{1_N} science per turn"
+-- Plural is driven by {2_Turns}.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_CURRENT_PIN"] = {
     one = "currently researching {1_Name}, {2_Turns} turn",
     other = "currently researching {1_Name}, {2_Turns} turns",
 }
+-- Per-tech state words on the picker. FREE fires only in free-tech mode
+-- (Liberty finisher, Great Scientist bulb, etc.) for techs that count as
+-- gainable for free. CURRENT marks the active research line. QUEUED marks
+-- a slot in the planned queue; {1_Slot} is the 1-based queue position
+-- counted after the current research (slot 1 = first queued, not the
+-- active one).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_FREE"] = "free"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_CURRENT"] = "currently researching"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_QUEUED"] = "queued slot {1_Slot}"
+-- Plural driven by {1_Num} (turn count).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS"] = {
     one = "{1_Num} turn",
     other = "{1_Num} turns",
@@ -1287,6 +1478,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_STOLEN"] = "stole {1_Na
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE"] = "Tech Tree"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE"] = "Tree"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_QUEUE"] = "Queue"
+-- Per-tech state words. AVAILABLE: pickable now. UNAVAILABLE: prereqs not
+-- met by the player's current research state. LOCKED: in the queue but
+-- waiting on an earlier-queued tech to finish (a sequential block, not a
+-- prerequisite block). RESEARCHED: already complete.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_STATUS_RESEARCHED"] = "researched"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_STATUS_AVAILABLE"] = "available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_STATUS_UNAVAILABLE"] = "prerequisites not met"
@@ -1316,6 +1511,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE"] = "Close Tech 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SOCIAL_POLICY"] = "Social Policies"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_TAB_POLICIES"] = "Policies"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_TAB_IDEOLOGY"] = "Ideology"
+-- Branch-level status words (top tier of the policy tree). OPENED: at
+-- least one policy in the branch is adopted. FINISHED: every policy in
+-- the branch is adopted. ADOPTABLE: branch is closed but the player has
+-- the culture to open it. LOCKED_ERA / LOCKED_RELIGION / LOCKED: cannot
+-- open yet because of era requirement, missing religion, or unmet
+-- prerequisite. BLOCKED: a mutually-exclusive branch was opened first
+-- (the policy UI shows this as a red-X, separate from the "needs prereq"
+-- lock the tech tree spells "locked").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_OPENED"] = "opened"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_FINISHED"] = "finished"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_ADOPTABLE"] = "adoptable"
@@ -1324,6 +1527,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED_RELIGION"] = "
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED"] = "locked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_BLOCKED"] = "blocked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_BRANCH_COUNT"] = "{1_Num} of {2_Total} adopted"
+-- Individual-policy status words (one tier down, applies to each policy
+-- inside an opened branch). OPENER / FINISHER mark the two automatic
+-- bookend policies. ADOPTED: chosen and active. ADOPTABLE: selectable now
+-- with the player's current culture. BLOCKED: prerequisite policy in the
+-- same branch hasn't been adopted yet (a within-branch sequencing block,
+-- distinct from STATUS_BLOCKED above which is a cross-branch ideology
+-- conflict). LOCKED: the parent branch isn't opened.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_OPENER"] = "opener, granted free when branch opens"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_FINISHER"] = "finisher, awarded when branch is complete"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_ADOPTED"] = "adopted"
@@ -1350,6 +1560,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_DISABLED"] = "ideol
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_LEVEL_1"] = "Level 1 tenets"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_LEVEL_2"] = "Level 2 tenets"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_LEVEL_3"] = "Level 3 tenets"
+-- Ideology tenet-slot rows. {1_Num} is the slot index within its level.
+-- _FILLED carries the picked tenet's name and short effect; _NAME_ONLY
+-- omits the effect (used in compact contexts). The four EMPTY_* variants
+-- describe why the slot can't be picked yet: AVAILABLE means it can be
+-- picked now; REQ_SLOT means another slot in the same level must be
+-- filled first ({2_Req} is that slot's index); REQ_CROSS means the
+-- prerequisite is in a different level ({2_Level} is the ideology tier
+-- 1 / 2 / 3, {3_Req} is the slot index within that tier); CULTURE means
+-- the player does not have enough culture for any tenet right now.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED"] = "slot {1_Num}, {2_Name}, {3_Effect}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED_NAME_ONLY"] = "slot {1_Num}, {2_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_AVAILABLE"] = "slot {1_Num}, empty, available"
@@ -1402,7 +1621,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OFFERING_EMPTY"] = "nothing on the 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE"] = "you have {1_Num}"
 -- DiploCurrentDeals review labels. Each deal renders as one Text leaf
 -- whose label inlines the full contents; these are the side prefixes the
--- builder concatenates around the per-item descriptions.
+-- builder concatenates around the per-item descriptions. Colon-then-list
+-- form, distinct from LABEL_VALUE's space form and DIPLO_GOLD_AMOUNT's
+-- comma form; the colon reads as a brief pause before the list of items.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_WE_GIVE"] = "we give: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_THEY_GIVE"] = "they give: {1_List}"
 -- Diplomatic Overview (Relations / Global tabs). Per-civ composed lines,
@@ -1411,6 +1632,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV"] = "{1_Leader} of {2
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_SCORE_VAL"] = "score {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_VAL"] = "gold {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GPT_VAL"] = "gold per turn {1_N}"
+-- Per-resource entry inside strategic / luxury / nearby lists.
+-- {1_Name} is the resource's localized name, {2_N} is the count owned.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RES_COUNT"] = "{1_Name} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "strategic: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "luxury: {1_List}"
@@ -1435,6 +1658,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_FAITH"] = "+{1_N} faith"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_FOOD_CAPITAL"] = "+{1_N} food in capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_FOOD_OTHER"] = "+{1_N} food in other cities"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_SCIENCE"] = "+{1_N} science"
+-- Plural driven by {1_N} (turns until next gift unit arrives).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_MILITARY"] = {
     one = "next gift unit in {1_N} turn",
     other = "next gift unit in {1_N} turns",
@@ -1508,6 +1732,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_ROUTE"] = "{1_Direction} 
 -- Community-Patch-DLL CvLuaPlayer.cpp lGetPotentialInternationalTrade
 -- RouteDestinations.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_DEST_INTL"] = "{1_Civ}, {2_City}"
+-- Plural driven by {1_Num} (hex distance to destination).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_DISTANCE"] = {
     one = "{1_Num} hex",
     other = "{1_Num} hexes",
@@ -1517,6 +1742,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET"] = "They get {1_Yie
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE"] = "{1_Num} {2_Religion} pressure"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_DESTINATIONS"] = "No valid destinations."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"] = "No valid home cities."
+-- Trade Route Overview (TRO) screen. Distinct from the per-pick
+-- ChooseInternationalTradeRoutePopup above: TRO is the standalone Ctrl+T
+-- screen that surveys every trade route currently active in the game.
+-- Three tabs: Yours (your active routes), Available (routes you could
+-- start but haven't), and With You (routes other civs run to your
+-- cities). Domain words distinguish caravan (land) from cargo ship (sea).
+-- ROUTE_HEADER carries five placeholders: domain word, source city, source
+-- civ, destination city, destination civ.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_KEY"] = "Ctrl+T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_DESC"] = "Open Trade Route Overview"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_YOURS"] = "Your trade routes"
@@ -1526,19 +1759,34 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_LAND"] = "caravan"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_SEA"] = "cargo ship"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ROUTE_HEADER"] =
     "{1_Domain}, {2_FromCity} ({3_FromCiv}) to {4_ToCity} ({5_ToCiv})"
+-- Plural driven by {1_Num} (turns until the route arrives at its
+-- destination and resolves).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT"] = {
     one = "{1_Num} turn left",
     other = "{1_Num} turns left",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_ROUTES"] = "No routes."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_DETAILS"] = "No source breakdown available."
--- Defense group: each defensive building announces with the same {Building}
--- format string so adding a new defensive building only adds a row, not a
--- new label.
+-- Defense group of the City Stats drillable. Each defensive building
+-- announces with the same {Building} format string so adding a new
+-- defensive building only adds a row, not a new label.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_DEFENSE_BUILDING_LINE"] = "{1_Building}"
 -- Leader descriptions. Spoken on F2 over LeaderHeadRoot /
 -- DiscussionDialog / DiploTrade, keyed by Leaders.Type (Players[i]:GetLeaderType()
 -- -> GameInfo.Leaders[lt].Type). Sourced from docs/leader-descriptions.md.
+--
+-- Each entry is a long-form prose description of what sighted players see in
+-- the leader's diplomacy splash art: clothing, regalia, posture, setting,
+-- background details. The intent is to give blind players the same first-
+-- impression context a sighted player would get from looking at the leader's
+-- portrait when meeting them in the diplomacy screen.
+--
+-- Translation guidance: produce equivalent natural prose in the target
+-- language; do not translate literally. Historical and cultural terms
+-- (regnal titles, dynasty names, garment names, weapon names) should use
+-- the target language's conventional rendering when one exists. The leader's
+-- name and titles at the start of each description follow whatever form is
+-- standard for that historical figure in the target language.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_LEADER_DESC"] = "Describe leader"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_MISSING"] = "No description available for this leader."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_LEADER_WASHINGTON"] =
@@ -1708,6 +1956,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_LABEL_VALUE"] = "{1_Label}, {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCORE_ROW"] = "{1_Name}, score {2_Score}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCORE_ROW_LOST"] = "{1_Name}, score {2_Score}, capital lost"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TEAM_SUFFIX"] = "team {1_Num}"
+-- Plural driven by {1_Num} (count of boosters built for the spaceship,
+-- vanilla allows up to 3).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_BOOSTERS"] = {
     one = "{1_Num} booster",
     other = "{1_Num} boosters",
@@ -1838,6 +2088,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_READY"] =
     "Trade your {1_YourName} for {2_TheirName} from {3_TheirCiv}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_SENT"] = "swap sent"
 -- Tab 3 (Culture Victory). Per-civ row + drill-in detail.
+-- VICTORY_ROW placeholders: {1_Civ} civ short name; {2_Influenced} a count
+-- like "3 of 7" of cities you've reached the influential level on (uses
+-- VICTORY_INFLUENCED_OF below); {3_Tou} tourism per turn integer;
+-- {4_Ideology} the ideology name (Freedom / Order / Autocracy) or NO_IDEOLOGY;
+-- {5_Opinion} the public-opinion enum word from engine TXT_KEY_CO_OPINION_*
+-- (Content / Dissent / Revolt) or OPINION_NA; {6_Unhappy} integer unhappiness
+-- their civ's ideology pressure imposes on you; {7_Happy} integer excess
+-- happiness your civ holds (the cushion against {6_Unhappy}).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_ROW"] =
     "{1_Civ}, {2_Influenced} influenced, tourism {3_Tou}, {4_Ideology}, {5_Opinion}, {6_Unhappy} unhappiness, {7_Happy} excess happiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_INFLUENCED_OF"] = "{1_N} of {2_Total}"
@@ -1877,6 +2135,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_EFFECTS"] = "Effects"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_RENAME"] = "Rename"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_YOU"] = "(you)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_HOST"] = "host"
+-- Plural driven by {1_N} (delegate count this member holds in the league).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATES"] = {
     one = "{1_N} delegate",
     other = "{1_N} delegates",
@@ -1890,10 +2149,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_LEAGUE"] = "No World Congress"
 -- LeagueOverviewRow.formatStatusPill.
 -- Tab 2 actions line.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_ACTIONS"] = "No actions available this session."
+-- Plural driven by {1_N} (proposals the player can submit this session).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE"] = {
     one = "{1_N} proposal available.",
     other = "{1_N} proposals available.",
 }
+-- Plural driven by {1_N} (delegates the player has not yet allocated
+-- to a vote in the current session).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING"] = {
     one = "{1_N} delegate remaining.",
     other = "{1_N} delegates remaining.",
@@ -1919,6 +2181,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY"] = {
     one = "{1_N} Nay",
     other = "{1_N} Nay",
 }
+-- Cast-vote row used in Diplomatic Victory voting where each delegate slot
+-- can name a specific civ. {1_N} is the count of votes cast (1 per
+-- delegate); {2_Civ} is the civ they were cast for.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV"] = "{1_N} for {2_Civ}"
 -- Footer button labels reuse engine keys verbatim
 -- (TXT_KEY_LEAGUE_OVERVIEW_RESET_PROPOSALS / _COMMIT_PROPOSALS /
@@ -1962,7 +2227,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_AGENTS"] = "Agents"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_CITIES"] = "Cities"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_INTRIGUE"] = "Intrigue"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_DISABLED"] = "Espionage is disabled in this game"
--- Agent row.
+-- Agent row. {1_Rank} is the engine's tier name (Recruit, Agent, Special
+-- Agent, ...); {2_Name} is the spy's proper name; {3_Where} is either a
+-- city name (when stationed) or the engine's "in your hideout" / "in
+-- transit" phrase; {4_Activity} is the current mission verb from the
+-- engine (e.g. "establishing surveillance", "stealing technology",
+-- "rigging election"). The _TURNS variant adds the time remaining.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE"] = "{1_Rank} {2_Name}, {3_Where}, {4_Activity}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE_TURNS"] = {
     one = "{1_Rank} {2_Name}, {3_Where}, {4_Activity}, {5_Turns} turn",

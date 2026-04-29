@@ -2,6 +2,14 @@
 -- CivVAccess_Strings table that CivVAccess_InGameStrings_en_US.lua sets
 -- up; include order in Boot places the base InGame strings first so this
 -- file can append.
+--
+-- The surveyor answers "what is in a radius around the cursor" questions:
+-- yields, resources, terrain, friendly units, enemy units, and cities. Each
+-- of the six scope queries (yields / resources / terrain / own units /
+-- enemy units / cities) has its own Shift+letter binding documented in the
+-- help-overlay block below. See the translator orientation block at the
+-- top of CivVAccess_InGameStrings_en_US.lua for the conventions that
+-- apply across all in-game string files.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 -- ===== Radius announcements =====

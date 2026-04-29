@@ -4,11 +4,23 @@
 -- CivVAccess_InGameStrings_en_US.lua; include order in Boot places the
 -- base InGame strings first so this file can freely assume the table
 -- exists.
+--
+-- The scanner is the keyboard-driven map enumerator: a hierarchy of
+-- categories (cities, units, improvements, etc.) and subcategories that
+-- the user pages through with PageUp / PageDown chords. Every string in
+-- this file is spoken by Tolk through the screen reader; see the
+-- translator orientation block at the top of CivVAccess_InGameStrings_en_US.lua
+-- for the conventions that apply (lead with the distinguishing word, no
+-- decorative punctuation, plural-form bundles use CLDR keywords).
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 -- ===== Category labels (where no clean game key exists) =====
 -- Cities category uses the game's TXT_KEY_CITIES_HEADING1_TITLE ("Cities")
 -- at the category level; these are its four subcategory labels.
+-- Category and subcategory labels are title-cased to match the engine's
+-- own headings (TXT_KEY_CITIES_HEADING1_TITLE et al). Inline status tokens
+-- like "here" / "empty" further down stay lowercase because they tail
+-- another phrase rather than head a section.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_MY"] = "My Cities"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_NEUTRAL"] = "Neutral Cities"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_ENEMY"] = "Enemy Cities"
