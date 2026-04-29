@@ -232,18 +232,12 @@ function ShowHideHandler( bIsHide )
 end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
--------------------------------------------------
--------------------------------------------------
-function InputHandler( uiMsg, wParam, lParam )
-    if( m_bChatOpen 
-        and uiMsg == KeyEvents.KeyUp
-        and wParam == Keys.VK_TAB ) then
-        Controls.ChatEntry:TakeFocus();
-        return true;
-    end
-end
-ContextPtr:SetInputHandler( InputHandler );
-
+-- Stock InputHandler grabbed Tab on KeyUp and called Controls.ChatEntry:
+-- TakeFocus(), trapping the keyboard inside the engine chat edit box --
+-- arrows then move the text cursor and never reach our BaseMenu nav.
+-- Mod-bound `\` opens an accessible chat panel via CivVAccess_ChatAccess
+-- with proper focus handling, so DiploCorner has no reason to intercept
+-- input at all.
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
