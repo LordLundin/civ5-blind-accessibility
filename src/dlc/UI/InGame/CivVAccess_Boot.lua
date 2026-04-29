@@ -93,6 +93,12 @@ include("CivVAccess_Bookmarks")
 -- so a load-from-game session starts with an empty review buffer.
 include("CivVAccess_MessageBuffer")
 include("CivVAccess_NotificationAnnounce")
+-- MP-only fallback: networked multiplayer suppresses three reward popups
+-- engine-side, so the standard *PopupAccess wrappers don't fire. This
+-- module routes those three events to speech via engine fork hooks
+-- (goody hut, barb camp) and Events.NaturalWonderRevealed. No-op in SP
+-- and hot seat, where the popup path covers it.
+include("CivVAccess_MultiplayerRewards")
 include("CivVAccess_RevealAnnounce")
 include("CivVAccess_ForeignUnitWatch")
 include("CivVAccess_CombatLog")
@@ -160,6 +166,7 @@ local function onInGameBoot()
     Turn.installListeners()
     MessageBuffer.installListeners()
     NotificationAnnounce.install()
+    MultiplayerRewards.installListeners()
     RevealAnnounce.installListeners()
     ForeignUnitWatch.installListeners()
     CombatLog.installListeners()

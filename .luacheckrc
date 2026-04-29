@@ -154,6 +154,7 @@ globals = {
     "Bookmarks", "Waypoints",
     "MessageBuffer", "ChatBuffer", "CombatLog",
     "RevealAnnounce", "ForeignUnitWatch",
+    "MultiplayerRewards",
 
     -- Base-game helpers pulled in by TechTree's include chain
     -- (TechHelpInclude.lua defines GetHelpTextForTech). Our TechTreeLogic
