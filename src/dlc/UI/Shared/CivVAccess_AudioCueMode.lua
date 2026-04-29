@@ -45,6 +45,9 @@ function AudioCueMode.isSpeechEnabled()
 end
 
 function AudioCueMode.isCueEnabled()
+    if civvaccess_shared.muted then
+        return false
+    end
     local m = AudioCueMode.getMode()
     return m == AudioCueMode.MODE_SPEECH_PLUS_CUE or m == AudioCueMode.MODE_CUE_ONLY
 end

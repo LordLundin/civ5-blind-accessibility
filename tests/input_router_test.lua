@@ -419,10 +419,11 @@ function M.test_search_hook_error_logged_and_falls_through()
     T.eq(bindingFired, 1, "binding still fires after search hook error")
 end
 
--- Hotseat hard-mute toggle (Ctrl+Shift+F12) ------------------------------
--- The dispatch-time logic this section guards: stop-then-flip on enter,
--- flip-then-speak on exit, debounce against key-repeat, short-circuit
--- subsequent dispatch while muted.
+-- Hotseat-mute toggle (Ctrl+Shift+F12) -----------------------------------
+-- Order invariant: pause announcement speaks BEFORE the flag flips,
+-- resume announcement speaks AFTER the flag clears. Either way, the
+-- speak must happen on the unmuted side of the transition so
+-- SpeechPipeline's own gate doesn't swallow it.
 
 local VK_F12 = 123
 local MOD_CTRL_SHIFT = 1 + 2
@@ -441,13 +442,9 @@ local function setupMute()
         return clock
     end
     local spoken = {}
-    local stopCount = 0
     SpeechPipeline = {
         speakInterrupt = function(text)
             spoken[#spoken + 1] = { text = text, mutedAtSpeak = civvaccess_shared.muted }
-        end,
-        stop = function()
-            stopCount = stopCount + 1
         end,
     }
     Text = {
@@ -458,22 +455,24 @@ local function setupMute()
     local function advance(dt)
         clock = clock + dt
     end
-    return spoken, function()
-        return stopCount
-    end, advance
+    return spoken, advance
 end
 
-function M.test_mute_toggle_enters_mute_and_stops_speech()
-    local spoken, stopCount, advance = setupMute()
+function M.test_mute_toggle_enters_mute_and_speaks_paused_before_flip()
+    local spoken, advance = setupMute()
     advance(1)
     T.truthy(InputRouter.dispatch(VK_F12, MOD_CTRL_SHIFT, WM_KEYDOWN))
     T.truthy(civvaccess_shared.muted, "muted flag set on enter")
-    T.eq(stopCount(), 1, "in-flight speech stopped on enter")
-    T.eq(#spoken, 0, "no announcement spoken on enter (hard mute)")
+    T.eq(#spoken, 1)
+    T.eq(spoken[1].text, "TXT_KEY_CIVVACCESS_MUTE_PAUSED")
+    T.falsy(
+        spoken[1].mutedAtSpeak,
+        "flag must be unset at speak time so SpeechPipeline's own gate doesn't swallow the announcement"
+    )
 end
 
 function M.test_mute_toggle_exits_mute_and_speaks_resumed_after_flip()
-    local spoken, stopCount, advance = setupMute()
+    local spoken, advance = setupMute()
     civvaccess_shared.muted = true
     advance(1)
     T.truthy(InputRouter.dispatch(VK_F12, MOD_CTRL_SHIFT, WM_KEYDOWN))
@@ -487,7 +486,7 @@ function M.test_mute_toggle_exits_mute_and_speaks_resumed_after_flip()
 end
 
 function M.test_mute_toggle_debounces_key_repeat()
-    local _, _, advance = setupMute()
+    local _, advance = setupMute()
     InputRouter.dispatch(VK_F12, MOD_CTRL_SHIFT, WM_KEYDOWN)
     T.truthy(civvaccess_shared.muted, "first press enters mute")
     advance(0.05)

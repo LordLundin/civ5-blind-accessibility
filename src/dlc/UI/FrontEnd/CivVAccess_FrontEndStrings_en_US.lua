@@ -3,6 +3,11 @@
 -- needs its own strings file with the keys relevant to that Context.
 CivVAccess_Strings = CivVAccess_Strings or {}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Accessibility mod ready."
+-- Hotseat-mute toggle (Ctrl+Shift+F12). Mirrored from the in-game strings
+-- file because the toggle lives in InputRouter, which routes both
+-- front-end and in-game dispatch.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod paused"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "mod resumed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_PREV_PAGE"] = "Previous page"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_NEXT_PAGE"] = "Next page"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"

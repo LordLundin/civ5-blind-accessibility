@@ -71,8 +71,12 @@ function InputRouter.dispatch(keyCode, modMask, msg)
         return false
     end
 
-    -- On exit-mute, flip the flag BEFORE the resume announcement so
-    -- SpeechPipeline's own gate doesn't swallow it.
+    -- Order matters in both directions: the pause announcement speaks
+    -- BEFORE the flag flips (otherwise SpeechPipeline's gate swallows it
+    -- and there's no audible confirmation the toggle worked); the resume
+    -- announcement speaks AFTER the flag clears (same reason). Tolk takes
+    -- the text synchronously and plays it asynchronously, so the pause
+    -- announcement reaches the screen reader before mute takes effect.
     if keyCode == VK_F12 and modMask == (MOD_CTRL + MOD_SHIFT) then
         local now = InputRouter._timeSource()
         if (now - _lastMuteToggleTime) < MUTE_TOGGLE_DEBOUNCE_SECONDS then
@@ -83,7 +87,7 @@ function InputRouter.dispatch(keyCode, modMask, msg)
             civvaccess_shared.muted = false
             SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_MUTE_RESUMED"))
         else
-            SpeechPipeline.stop()
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_MUTE_PAUSED"))
             civvaccess_shared.muted = true
         end
         return true

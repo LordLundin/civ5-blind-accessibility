@@ -4,9 +4,11 @@
 -- relying on Civ V's include() semantics.
 CivVAccess_Strings = CivVAccess_Strings or {}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization V accessibility loaded in-game."
--- Spoken when the hotseat hard-mute (Ctrl+Shift+F12) is lifted. Mute itself
--- is silent; this is the only signal the player gets that the toggle worked.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "resumed"
+-- Hotseat-mute toggle (Ctrl+Shift+F12). The pause announcement speaks
+-- before the flag flips so the screen reader hears it; the resume speaks
+-- after the flag clears so SpeechPipeline's gate doesn't swallow it.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod paused"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "mod resumed"
 -- Unit speech. Selection, info dump, action result, and target preview
 -- strings. Moves and HP follow an "<current>/<max>" fraction form; the
 -- embarked prefix is a lowercase glue token (base TXT_KEY_UNIT_STATUS_EMBARKED
