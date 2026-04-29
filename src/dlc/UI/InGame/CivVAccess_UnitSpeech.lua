@@ -55,10 +55,33 @@ local function nameWithEmbarked(unit)
     return name
 end
 
+-- MovesLeft / MaxMoves are engine-internal 60ths (GameDefines.MOVE_DENOMINATOR
+-- is 60). Roads charge 30/60 and railroads 10/60 per tile, so a step often
+-- leaves a partial-MP remainder; a flat math.floor would say "1 of 2" for
+-- a 90/60 unit that can still cross another road tile. Round to two
+-- decimal places to absorb floating-point noise (railroad residues like
+-- 1.83333... collapse to 1.83), then build the string from integer parts
+-- so the decimal separator stays "." regardless of LC_NUMERIC -- string
+-- format with %g / %f routes through the C runtime and would emit "1,5"
+-- on a comma-decimal locale, which a screen reader reads as "one comma
+-- five." Civ V's Lua state happens to stay in the C locale in practice,
+-- but this keeps the speech path locale-immune by construction.
+local function formatMoves(sixtieths)
+    local hundredths = math.floor(sixtieths * 100 / GameDefines.MOVE_DENOMINATOR + 0.5)
+    local whole = math.floor(hundredths / 100)
+    local frac = hundredths - whole * 100
+    if frac == 0 then
+        return tostring(whole)
+    end
+    if frac % 10 == 0 then
+        return tostring(whole) .. "." .. tostring(frac / 10)
+    end
+    return tostring(whole) .. "." .. tostring(frac)
+end
+
 local function movesFraction(unit)
-    local denom = GameDefines.MOVE_DENOMINATOR
-    local cur = math.floor(unit:MovesLeft() / denom)
-    local maxMoves = math.floor(unit:MaxMoves() / denom)
+    local cur = formatMoves(unit:MovesLeft())
+    local maxMoves = formatMoves(unit:MaxMoves())
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION", cur, maxMoves)
 end
 
@@ -1166,8 +1189,9 @@ end
 -- when the move was committed from the target-mode cursor.
 function UnitSpeech.moveResult(unit, targetX, targetY, turnsToArrival)
     if unit:GetX() == targetX and unit:GetY() == targetY then
-        local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)
-        return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_MOVED_TO", movesLeft, movesLeft)
+        local pluralCount = unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR
+        local display = formatMoves(unit:MovesLeft())
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_MOVED_TO", pluralCount, display)
     end
     if turnsToArrival ~= nil and turnsToArrival > 0 then
         return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT_TURNS", turnsToArrival, turnsToArrival)

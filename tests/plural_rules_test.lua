@@ -193,4 +193,29 @@ function M.test_negative_count_uses_absolute_value()
     teardown()
 end
 
+-- Fractional counts should never pick the integer-bound singular forms.
+-- 1.5 dogs is plural in English, "1.5 chiens" is plural in French
+-- (vs. 1 chien / 0 chien which take the "one" form), and the Slavic
+-- "few" / "many" forms are integer-domain in CLDR. Cover the boundary
+-- across one-form and three-form locales.
+function M.test_en_other_for_non_integer()
+    setup("en_US")
+    T.eq(PluralRules.select(0.5), "other")
+    T.eq(PluralRules.select(1.5), "other")
+    teardown()
+end
+
+function M.test_fr_other_for_non_integer()
+    setup("fr_FR")
+    T.eq(PluralRules.select(1.5), "other")
+    teardown()
+end
+
+function M.test_ru_other_for_non_integer()
+    setup("ru_RU")
+    T.eq(PluralRules.select(1.5), "other")
+    T.eq(PluralRules.select(2.5), "other")
+    teardown()
+end
+
 return M

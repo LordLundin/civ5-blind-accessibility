@@ -275,6 +275,24 @@ function M.test_selection_moves_always_announced_zero()
     T.truthy(out:find("0/2 moves", 1, true), "zero moves must still be announced: " .. out)
 end
 
+-- Roads cost 30 / 60, so a 2-MP unit that crosses one road tile ends with
+-- 90 / 60 left -- the fraction has to survive into speech, otherwise the
+-- user can't tell it apart from a unit with a flat 60 / 60 remaining and
+-- misses that another road step is still affordable this turn.
+function M.test_selection_moves_announced_with_road_remainder()
+    setup()
+    local u = mkUnit({ moves = 90, maxMoves = 120 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("1.5/2 moves", 1, true), "road remainder must speak as 1.5: " .. out)
+end
+
+function M.test_selection_moves_announced_with_half_move()
+    setup()
+    local u = mkUnit({ moves = 30, maxMoves = 120 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("0.5/2 moves", 1, true), "half-move must not floor to 0: " .. out)
+end
+
 -- ===== Selection: promotion available =====
 
 function M.test_selection_promotion_available_on()

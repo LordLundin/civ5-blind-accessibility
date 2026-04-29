@@ -169,6 +169,9 @@ local function registerPendingFor(opts)
 end
 
 -- ===== Reached target =====
+-- 30 / 60 = 0.5 MP remaining is a road-step residue; UnitSpeech.moveResult
+-- preserves the fraction so the user can tell apart "stuck for the turn"
+-- from "still has half a move, can step onto another road tile."
 function M.test_dispatched_at_target_speaks_moved()
     setup()
     local unit = registerPendingFor({ id = 7, x = 0, y = 0, targetX = 1, targetY = 1 })
@@ -176,7 +179,7 @@ function M.test_dispatched_at_target_speaks_moved()
     unit._movesLeft = 30
     UnitControl._onMissionDispatched(0, 7, 1, 1, 1)
     T.eq(#spoken, 1, "exactly one speech line")
-    T.eq(spoken[1].text, "moved, 0 moves left")
+    T.eq(spoken[1].text, "moved, 0.5 moves left")
     T.eq(spoken[1].interrupt, false, "queued, not interrupt")
 end
 

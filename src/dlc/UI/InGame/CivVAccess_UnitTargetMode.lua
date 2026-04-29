@@ -68,14 +68,18 @@ end
 -- Format a 60ths MP value as the engine does: integer when whole,
 -- one decimal when fractional. Road/railroad costs (e.g. 20/60 MP)
 -- need the decimal; plain terrain (60/60, 120/60) reads cleaner as
--- "1" / "2" than "1.0" / "2.0".
+-- "1" / "2" than "1.0" / "2.0". Built from integer parts so the
+-- decimal separator stays "." regardless of LC_NUMERIC -- a comma-
+-- decimal locale would otherwise feed "1,5" to Tolk, spoken as "one
+-- comma five."
 local function formatMP(mp60ths)
-    local whole = mp60ths / 60
-    local rounded = math.floor(whole * 10 + 0.5) / 10
-    if rounded == math.floor(rounded) then
-        return tostring(math.floor(rounded))
+    local tenths = math.floor(mp60ths * 10 / 60 + 0.5)
+    local whole = math.floor(tenths / 10)
+    local frac = tenths - whole * 10
+    if frac == 0 then
+        return tostring(whole)
     end
-    return string.format("%.1f", rounded)
+    return tostring(whole) .. "." .. tostring(frac)
 end
 
 local function movePathPreview(actor, targetPlot)

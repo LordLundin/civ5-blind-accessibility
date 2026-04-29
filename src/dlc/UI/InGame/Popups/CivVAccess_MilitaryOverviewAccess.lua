@@ -122,17 +122,41 @@ local function unitStatusText(unit)
     return nil
 end
 
+-- MovesLeft / MaxMoves are 60ths; flooring would lose road / railroad
+-- remainders ("1 of 2" for a 90/60 unit). Round to two decimal places
+-- to absorb floating-point noise, then build the string from integer
+-- parts so the decimal separator stays "." regardless of LC_NUMERIC
+-- (a comma-decimal locale would otherwise feed "1,5" to Tolk, spoken
+-- as "one comma five"). Mirrors UnitSpeech.formatMoves; kept local
+-- to avoid a Context-wide include just for one helper.
+local function formatMoves(sixtieths)
+    local hundredths = math.floor(sixtieths * 100 / GameDefines["MOVE_DENOMINATOR"] + 0.5)
+    local whole = math.floor(hundredths / 100)
+    local frac = hundredths - whole * 100
+    if frac == 0 then
+        return tostring(whole)
+    end
+    if frac % 10 == 0 then
+        return tostring(whole) .. "." .. tostring(frac / 10)
+    end
+    return tostring(whole) .. "." .. tostring(frac)
+end
+
 -- Pre-compute row fields once per build so the sort compare can read scalars
 -- and the announce closure can format on demand without re-querying the unit.
+-- Numeric movesLeft / maxMoves drive the SORT_MOVEMENT / SORT_MOVES compare;
+-- the *Text variants are the speech-ready strings rowLabel inserts.
 local function buildRowEntry(unit)
-    local moveDenom = GameDefines["MOVE_DENOMINATOR"]
+    local denom = GameDefines["MOVE_DENOMINATOR"]
     return {
         unit = unit,
         unitID = unit:GetID(),
         displayName = Text.key(unit:GetNameKey()),
         status = unitStatusText(unit),
-        movesLeft = math.floor(unit:MovesLeft() / moveDenom),
-        maxMoves = math.floor(unit:MaxMoves() / moveDenom),
+        movesLeft = unit:MovesLeft() / denom,
+        maxMoves = unit:MaxMoves() / denom,
+        movesLeftText = formatMoves(unit:MovesLeft()),
+        maxMovesText = formatMoves(unit:MaxMoves()),
         strength = unit:GetBaseCombatStrength(),
         ranged = unit:GetBaseRangedCombatStrength(),
         hasPromotion = unit:CanPromote(),
@@ -144,7 +168,7 @@ local function rowLabel(entry)
     if entry.status ~= nil then
         parts[#parts + 1] = entry.status
     end
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION", entry.movesLeft, entry.maxMoves)
+    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION", entry.movesLeftText, entry.maxMovesText)
     if entry.strength > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_MO_ROW_STRENGTH", entry.strength)
     end

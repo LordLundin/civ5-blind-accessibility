@@ -104,8 +104,12 @@ local function currentRule()
 end
 
 -- Map a count to its CLDR plural keyword for the active locale. Negative
--- counts are folded to absolute value and fractions to their integer
--- floor; CLDR rules are integer-domain for our purposes.
+-- counts are folded to absolute value. Non-integer counts (e.g. 1.5
+-- moves left) short-circuit to "other": every CLDR cardinal rule we
+-- ship treats fractional values as plural -- "1.5 moves" is plural in
+-- English, French, Russian, Polish, and the no-plural East Asian locales
+-- already collapse to "other" anyway -- so this stays correct without
+-- per-locale fraction handling.
 function PluralRules.select(count)
     if type(count) ~= "number" then
         return "other"
@@ -113,7 +117,10 @@ function PluralRules.select(count)
     if count < 0 then
         count = -count
     end
-    return currentRule()(math.floor(count))
+    if count ~= math.floor(count) then
+        return "other"
+    end
+    return currentRule()(count)
 end
 
 -- Test seam: force a specific locale's rule (ignoring the cached engine
