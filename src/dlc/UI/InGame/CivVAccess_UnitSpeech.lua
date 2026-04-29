@@ -37,11 +37,7 @@ local function unitName(unit)
     if owner == nil then
         return ""
     end
-    return Text.format(
-        "TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV",
-        owner:GetCivilizationAdjectiveKey(),
-        unit:GetNameKey()
-    )
+    return Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
 end
 
 -- Base name with the "embarked" compound prefix when the unit is at sea.

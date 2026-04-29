@@ -79,3 +79,26 @@ function Text.format(keyName, ...)
     end
     return out
 end
+
+-- Compose "<civ adjective> <unit name>" through the base-game format
+-- TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV. In some non-English locales
+-- (notably French) the localized template uses a gender-form selector
+-- on the adjective that requires gender metadata on the unit-name row.
+-- For unit names whose row lacks that tag the engine logs "Could not
+-- deduce form based on gender and plurality" and returns the template
+-- with {  ^  *  syntax characters still in it instead of taking the
+-- explicit fallback the format provides. Detect that residue and
+-- compose the pieces ourselves so the player always hears a usable
+-- name. Adjective ends up in default form and word order is adjective-
+-- then-noun (English-like), which is suboptimal grammar in romance
+-- locales but always intelligible -- and only kicks in for entries
+-- the format would have mangled anyway.
+function Text.unitWithCiv(adjKey, nameKey)
+    local out = Locale.ConvertTextKey(
+        "TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", adjKey, nameKey
+    )
+    if out and not out:find("[{^]") then
+        return out
+    end
+    return Locale.ConvertTextKey(adjKey) .. " " .. Locale.ConvertTextKey(nameKey)
+end

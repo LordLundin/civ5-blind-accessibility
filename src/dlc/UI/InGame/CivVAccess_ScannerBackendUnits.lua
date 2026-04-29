@@ -119,11 +119,7 @@ local function unitItemName(unit, category)
     if owner == nil then
         return Text.key(row.Description)
     end
-    return Text.format(
-        "TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV",
-        owner:GetCivilizationAdjectiveKey(),
-        row.Description
-    )
+    return Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), row.Description)
 end
 
 function ScannerBackendUnits.Scan(activePlayer, activeTeam)
