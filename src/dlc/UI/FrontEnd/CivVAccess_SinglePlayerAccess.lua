@@ -1,6 +1,7 @@
--- SinglePlayer accessibility wiring. ScenariosButton is hidden when no
--- Firaxis scenarios are installed; BaseMenu's live :IsHidden() check
--- transparently skips it.
+-- SinglePlayer accessibility wiring. Tutorial and Scenarios buttons are
+-- omitted: both crash the game with no explanation and the mod has no
+-- plans to support them, so making them undiscoverable beats letting
+-- players hit the crash.
 --
 -- StartGameButton carries a dynamic settings-summary tooltip set via
 -- Controls.StartGameButton:SetToolTipString inside the screen's own
@@ -95,20 +96,6 @@ BaseMenu.install(ContextPtr, {
             textKey = "TXT_KEY_LOAD_GAME",
             activate = function()
                 LoadGameClick()
-            end,
-        }),
-        BaseMenuItems.Button({
-            controlName = "ScenariosButton",
-            textKey = "TXT_KEY_SCENARIOS",
-            activate = function()
-                ScenariosClicked()
-            end,
-        }),
-        BaseMenuItems.Button({
-            controlName = "LoadTutorialButton",
-            textKey = "TXT_KEY_TUTORIAL",
-            activate = function()
-                LoadTutorialClick()
             end,
         }),
         BaseMenuItems.Button({
