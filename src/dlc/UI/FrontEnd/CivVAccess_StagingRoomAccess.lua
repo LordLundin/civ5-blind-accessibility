@@ -206,12 +206,6 @@ local function slotSummary(playerID)
     if tm then
         parts[#parts + 1] = tm
     end
-    if status == SlotStatus.SS_COMPUTER then
-        local hc = handicapText(playerID)
-        if hc then
-            parts[#parts + 1] = hc
-        end
-    end
     if PreGame.IsReady(playerID) then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_STAGING_READY")
     end
@@ -592,7 +586,7 @@ local function announceDeltas(newSnap, oldSnap)
                         or "TXT_KEY_CIVVACCESS_STAGING_DELTA_UNREADY"
                     SpeechPipeline.speakQueued(Text.format(key, name))
                 end
-                if o.handicap ~= n.handicap then
+                if o.handicap ~= n.handicap and n.status == SlotStatus.SS_TAKEN then
                     local hc = handicapText(pid)
                     if hc ~= nil then
                         SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DELTA_HANDICAP", name, hc))
