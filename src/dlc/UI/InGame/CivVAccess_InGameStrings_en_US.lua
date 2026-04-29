@@ -1794,15 +1794,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_DIRECTION"] =
 -- [ / ] step within the active filter; Ctrl+ jumps to ends; Shift+ cycles
 -- the filter category and re-anchors at the newest matching entry.
 -- Filter labels lead the announcement on Shift+, comma-joined to the
--- newest matching entry; edge markers ("newest" / "oldest") confirm the
--- key fired when navigation runs off either end without moving position.
+-- newest matching entry. Walking off either end of the buffer re-speaks
+-- the current entry rather than announcing a separate edge marker, so
+-- only the "no messages" key remains for the empty-buffer case.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_ALL"] = "All messages"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_NOTIFICATION"] = "Notifications"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_REVEAL"] = "Reveals"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_COMBAT"] = "Combat"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_CHAT"] = "Chat"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_NEWEST"] = "newest"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_OLDEST"] = "oldest"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_EMPTY"] = "no messages"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV"] = "Left bracket and right bracket"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_NAV"] =
@@ -1812,4 +1811,4 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_EDGE"] =
     "Oldest and newest message in the buffer"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER"] = "Shift plus left bracket and right bracket"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
-    "Cycle buffer filter category"
+    "Cycle buffer filter category, skipping empty categories"

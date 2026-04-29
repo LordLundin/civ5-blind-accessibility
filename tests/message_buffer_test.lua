@@ -1,9 +1,10 @@
 -- MessageBuffer tests. Covers append (with cap eviction and the position
--- shift that follows it), single-step navigation, end-jumps, edge markers
--- when running off either end, filter cycling and the reset-to-newest
--- contract that follows a filter change, and reset-on-boot. Speech goes
--- through SpeechPipeline's _speakAction seam so each test asserts on the
--- exact text + interrupt the user would hear.
+-- shift that follows it), single-step navigation, end-jumps, edge re-
+-- speak when running off either end, filter cycling that skips empty
+-- categories and the reset-to-newest contract that follows a filter
+-- change, the empty-buffer announcement on every input, and reset-on-
+-- boot. Speech goes through SpeechPipeline's _speakAction seam so each
+-- test asserts on the exact text + interrupt the user would hear.
 
 local T = require("support")
 local M = {}
@@ -26,6 +27,16 @@ local function setup()
     spoken = {}
     SpeechPipeline._speakAction = function(text, interrupt)
         spoken[#spoken + 1] = { text = text, interrupt = interrupt }
+    end
+    -- Edge re-speaks fire the same string twice in a row, and the
+    -- pipeline's 50ms interrupt-dedupe would silently swallow the second
+    -- call when both happen within the same os.clock() tick. Drive the
+    -- pipeline's clock from a counter so every speakInterrupt sees a
+    -- fresh timestamp well past the dedupe window.
+    local tick = 0
+    SpeechPipeline._timeSource = function()
+        tick = tick + 1
+        return tick
     end
 end
 
@@ -90,26 +101,30 @@ function M.test_prev_walks_backward_through_entries()
     T.eq(spoken[3].text, "a")
 end
 
-function M.test_prev_at_oldest_speaks_edge_marker()
+function M.test_prev_at_oldest_repeats_current_entry()
     setup()
     MessageBuffer.append("a", "notification")
     MessageBuffer.prev()
     T.eq(lastSpoken().text, "a")
     MessageBuffer.prev()
-    T.eq(lastSpoken().text, "oldest", "edge marker fires when running off the back")
-    -- Position must not have moved into invalid territory.
+    -- Walking off the back re-speaks the current entry rather than
+    -- announcing an "oldest" marker. Same string as the previous press,
+    -- which the user reads as "you tried to go further but couldn't."
+    T.eq(lastSpoken().text, "a", "edge re-speaks the current entry")
     local s = MessageBuffer._snapshot()
     T.eq(s.position, 1, "position pinned at oldest after edge")
 end
 
-function M.test_next_from_uninitialized_speaks_edge_marker()
+function M.test_next_from_uninitialized_enters_at_newest()
     setup()
     MessageBuffer.append("a", "notification")
-    -- Position 0 is conceptually past-the-newest. Pressing ] from there
-    -- is already at the forward edge -- the user enters the buffer with
-    -- [ and walks back, then can use ] to come forward again.
+    MessageBuffer.append("b", "notification")
+    -- Position 0 is uninitialized. Both bracket keys enter the buffer at
+    -- the newest matching entry from there; ] is symmetric to [.
     MessageBuffer.next()
-    T.eq(lastSpoken().text, "newest")
+    T.eq(lastSpoken().text, "b")
+    local s = MessageBuffer._snapshot()
+    T.eq(s.position, 2, "position lands on newest after entry")
 end
 
 function M.test_next_walks_forward_after_prev()
@@ -125,7 +140,9 @@ function M.test_next_walks_forward_after_prev()
     MessageBuffer.next()
     T.eq(lastSpoken().text, "c")
     MessageBuffer.next()
-    T.eq(lastSpoken().text, "newest", "stopped at newest with edge marker")
+    T.eq(lastSpoken().text, "c", "stopped at newest, current entry re-spoken")
+    local s = MessageBuffer._snapshot()
+    T.eq(s.position, 3, "position pinned at newest after edge")
 end
 
 function M.test_prev_on_empty_buffer_speaks_empty_marker()
@@ -135,24 +152,7 @@ function M.test_prev_on_empty_buffer_speaks_empty_marker()
 end
 
 function M.test_next_on_empty_buffer_speaks_empty_marker()
-    -- ] from position 0 means "already at the forward edge", but with no
-    -- entries at all "newest" is misleading -- there is no newest. Mirror
-    -- prev's empty-buffer branch and speak the empty marker instead.
     setup()
-    MessageBuffer.next()
-    T.eq(lastSpoken().text, "no messages")
-end
-
-function M.test_next_on_empty_filter_speaks_empty_marker()
-    -- Same logic for an empty filter category: position 0, no entries
-    -- match the active filter, so ] should speak EMPTY rather than
-    -- claim the user is at the "newest" of nothing.
-    setup()
-    MessageBuffer.append("a", "combat")
-    MessageBuffer.cycleFilterForward() -- All -> Notifications, empty
-    -- cycleFilter spoke "Notifications, no messages"; reset spoken so
-    -- the next() assertion sees only its own output.
-    spoken = {}
     MessageBuffer.next()
     T.eq(lastSpoken().text, "no messages")
 end
@@ -200,27 +200,45 @@ function M.test_filter_forward_cycles_and_announces_with_newest()
     T.eq(s.position, 1, "position resets to newest matching after filter change")
 end
 
-function M.test_filter_forward_skips_to_next_when_current_filter_empty()
+function M.test_filter_forward_skips_empty_categories()
     setup()
     MessageBuffer.append("clash", "combat")
-    MessageBuffer.cycleFilterForward() -- All -> Notifications, empty
-    T.eq(lastSpoken().text, "Notifications, no messages")
-    MessageBuffer.cycleFilterForward() -- Notifications -> Reveals, empty
-    T.eq(lastSpoken().text, "Reveals, no messages")
-    MessageBuffer.cycleFilterForward() -- Reveals -> Combat, has clash
+    -- All -> notifications (empty, skip) -> reveals (empty, skip) -> combat.
+    MessageBuffer.cycleFilterForward()
     T.eq(lastSpoken().text, "Combat, clash")
+    local s = MessageBuffer._snapshot()
+    T.eq(s.filter, "combat", "filter landed on the only non-empty category")
+    -- Combat -> all (still has the same one entry).
+    MessageBuffer.cycleFilterForward()
+    T.eq(lastSpoken().text, "All messages, clash")
 end
 
-function M.test_filter_backward_cycles_in_reverse()
+function M.test_filter_backward_skips_empty_categories()
     setup()
     MessageBuffer.append("a", "notification")
-    -- Backward from "all" should wrap to the last filter in the cycle.
-    MessageBuffer.cycleFilterBackward()
-    T.eq(lastSpoken().text, "Combat, no messages")
-    MessageBuffer.cycleFilterBackward()
-    T.eq(lastSpoken().text, "Reveals, no messages")
+    -- All going backward: combat (empty, skip) -> reveals (empty, skip)
+    -- -> notifications (has a). Wraps past the empty tail of the cycle
+    -- in one announcement.
     MessageBuffer.cycleFilterBackward()
     T.eq(lastSpoken().text, "Notifications, a")
+    -- Notifications backward: hops back to all (only other non-empty).
+    MessageBuffer.cycleFilterBackward()
+    T.eq(lastSpoken().text, "All messages, a")
+end
+
+function M.test_filter_cycle_on_empty_buffer_speaks_only_empty_marker()
+    setup()
+    -- Buffer fully empty. Cycling shouldn't announce a filter name (no
+    -- filter view has anything in it) and shouldn't change the active
+    -- filter -- there's nothing to switch to.
+    MessageBuffer.cycleFilterForward()
+    T.eq(lastSpoken().text, "no messages")
+    local s = MessageBuffer._snapshot()
+    T.eq(s.filter, "all", "filter unchanged on empty buffer")
+    MessageBuffer.cycleFilterBackward()
+    T.eq(lastSpoken().text, "no messages")
+    s = MessageBuffer._snapshot()
+    T.eq(s.filter, "all", "filter unchanged on empty buffer (backward)")
 end
 
 function M.test_filter_change_resets_position_to_newest()
@@ -232,13 +250,13 @@ function M.test_filter_change_resets_position_to_newest()
     MessageBuffer.prev() -- newest in all -> c2
     MessageBuffer.prev() -- n2
     MessageBuffer.prev() -- c1
-    -- We're at c1 (position 2). Switching to combat filter should jump to
-    -- the newest combat entry (c2), not stay at the absolute index.
+    -- We're at c1 (position 2). Cycling forward visits notifications
+    -- (has n1/n2) then skips reveals (empty) and lands on combat. Each
+    -- landing position is the newest matching entry, not the absolute
+    -- index the user was at.
     MessageBuffer.cycleFilterForward() -- All -> Notifications
     T.eq(lastSpoken().text, "Notifications, n2")
-    MessageBuffer.cycleFilterForward() -- Notifications -> Reveals
-    T.eq(lastSpoken().text, "Reveals, no messages")
-    MessageBuffer.cycleFilterForward() -- Reveals -> Combat
+    MessageBuffer.cycleFilterForward() -- skip Reveals (empty), land on Combat
     T.eq(lastSpoken().text, "Combat, c2", "newest combat entry after filter change")
 end
 
@@ -248,12 +266,12 @@ function M.test_navigation_within_filter_skips_non_matching()
     MessageBuffer.append("c1", "combat")
     MessageBuffer.append("n2", "notification")
     MessageBuffer.append("c2", "combat")
-    MessageBuffer.cycleFilterForward() -- Notifications -> n2
+    MessageBuffer.cycleFilterForward() -- All -> Notifications -> n2
     T.eq(lastSpoken().text, "Notifications, n2")
     MessageBuffer.prev()
     T.eq(lastSpoken().text, "n1", "skips combat entries when filter is notification")
     MessageBuffer.prev()
-    T.eq(lastSpoken().text, "oldest", "edge after walking through both notifications")
+    T.eq(lastSpoken().text, "n1", "edge re-speaks current entry after walking through both notifications")
 end
 
 -- Cap eviction ------------------------------------------------------------

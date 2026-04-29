@@ -33,7 +33,9 @@ local _cap = 5000
 -- Cycle order for Shift+[ / Shift+]. "all" first so the default state
 -- after reset matches the cycle's home position. New categories slot in
 -- before "all" rolls over (chat will go between combat and all when MP
--- chat is wired up).
+-- chat is wired up). Empty categories are skipped at cycle time so the
+-- user never lands on a filter view with nothing in it -- the cycle
+-- order is what to consider, not what to visit unconditionally.
 local FILTER_CYCLE = { "all", "notification", "reveal", "combat" }
 
 -- Categories must stay in lockstep with FILTER_CYCLE: an entry that
@@ -63,8 +65,8 @@ local function matches(entry, filter)
 end
 
 -- Walk from fromIdx in the given direction until a matching entry is
--- found. Returns the index, or nil if the walk falls off the end. Caller
--- handles the edge announcement.
+-- found. Returns the index, or nil if the walk falls off the end.
+-- Callers re-speak the current entry on nil.
 local function walk(entries, filter, fromIdx, direction)
     local i = fromIdx + direction
     while i >= 1 and i <= #entries do
@@ -92,19 +94,13 @@ local function speakKey(key)
     SpeechPipeline.speakInterrupt(Text.key(key))
 end
 
--- Filter announce form: "<filter name>, <newest entry text>" or
--- "<filter name>, <empty marker>". Single speakInterrupt so a fast
--- Shift-cycle through filters cuts the prior announcement cleanly
--- instead of stacking queued entries.
+-- Filter announce form: "<filter name>, <newest entry text>". Single
+-- speakInterrupt so a fast Shift-cycle through filters cuts the prior
+-- announcement cleanly instead of stacking queued entries. Filter cycle
+-- skips empty categories, so the entry argument is always non-nil here.
 local function speakFilterChange(filter, entry)
     local filterName = Text.key("TXT_KEY_CIVVACCESS_MSGBUF_FILTER_" .. filter:upper())
-    local tail
-    if entry == nil then
-        tail = Text.key("TXT_KEY_CIVVACCESS_MSGBUF_EMPTY")
-    else
-        tail = entry.text
-    end
-    SpeechPipeline.speakInterrupt(filterName .. ", " .. tail)
+    SpeechPipeline.speakInterrupt(filterName .. ", " .. entry.text)
 end
 
 function MessageBuffer.append(text, category)
@@ -130,25 +126,28 @@ function MessageBuffer.append(text, category)
     end
 end
 
+-- Walking off either end re-speaks the current entry rather than
+-- announcing an "edge" marker. The bracket key still feels responsive
+-- (something speaks) and the user gets the actual content again, which
+-- doubles as the "you tried to go further but couldn't" feedback.
 function MessageBuffer.next()
     local s = state()
-    -- Position 0 is "uninitialized / past newest" so ] from there is
-    -- already at the forward edge. The user has to press [ first to
-    -- enter the buffer (lands on newest matching) and then can scroll
-    -- both ways from there. Empty buffer / empty filter is distinct
-    -- from "at the newest edge with content behind you" -- mirror
-    -- prev's branch so the user hears the right marker either way.
     if s.position == 0 then
-        if newestMatching(s.entries, s.filter) == nil then
+        -- Uninitialized: pressing either bracket from a fresh state
+        -- enters the buffer at the newest matching entry. Empty buffer
+        -- (or empty filter) speaks the no-messages marker.
+        local idx = newestMatching(s.entries, s.filter)
+        if idx == nil then
             speakKey("TXT_KEY_CIVVACCESS_MSGBUF_EMPTY")
-        else
-            speakKey("TXT_KEY_CIVVACCESS_MSGBUF_NEWEST")
+            return
         end
+        s.position = idx
+        speakText(s.entries[idx].text)
         return
     end
     local idx = walk(s.entries, s.filter, s.position, 1)
     if idx == nil then
-        speakKey("TXT_KEY_CIVVACCESS_MSGBUF_NEWEST")
+        speakText(s.entries[s.position].text)
         return
     end
     s.position = idx
@@ -157,21 +156,19 @@ end
 
 function MessageBuffer.prev()
     local s = state()
-    local idx
     if s.position == 0 then
-        idx = newestMatching(s.entries, s.filter)
-    else
-        idx = walk(s.entries, s.filter, s.position, -1)
-    end
-    if idx == nil then
-        if s.position == 0 then
-            -- Empty buffer or no entries match the active filter.
-            -- Distinct from the oldest-edge case where there were
-            -- matches but the user has walked past them all.
+        local idx = newestMatching(s.entries, s.filter)
+        if idx == nil then
             speakKey("TXT_KEY_CIVVACCESS_MSGBUF_EMPTY")
-        else
-            speakKey("TXT_KEY_CIVVACCESS_MSGBUF_OLDEST")
+            return
         end
+        s.position = idx
+        speakText(s.entries[idx].text)
+        return
+    end
+    local idx = walk(s.entries, s.filter, s.position, -1)
+    if idx == nil then
+        speakText(s.entries[s.position].text)
         return
     end
     s.position = idx
@@ -200,27 +197,53 @@ function MessageBuffer.jumpLast()
     speakText(s.entries[idx].text)
 end
 
-local function rotate(filter, direction)
+-- Walk the filter cycle from the current filter in the given direction
+-- until a filter with at least one matching entry is found. Returns the
+-- filter name plus the index of its newest matching entry, or nil if no
+-- filter has entries (which means the buffer is fully empty -- "all"
+-- matches every entry, so any non-empty buffer is reachable through it).
+-- Walks a full lap of n steps so the fully-empty case exhausts every
+-- slot before returning nil to applyFilter as the empty-buffer signal.
+local function rotateNonEmpty(entries, currentFilter, direction)
     local n = #FILTER_CYCLE
+    local startIdx = 1
     for i, f in ipairs(FILTER_CYCLE) do
-        if f == filter then
-            local nxt = i + direction
-            if nxt < 1 then
-                nxt = n
-            elseif nxt > n then
-                nxt = 1
-            end
-            return FILTER_CYCLE[nxt]
+        if f == currentFilter then
+            startIdx = i
+            break
         end
     end
-    return FILTER_CYCLE[1]
+    for step = 1, n do
+        local idx = startIdx + step * direction
+        while idx < 1 do
+            idx = idx + n
+        end
+        while idx > n do
+            idx = idx - n
+        end
+        local f = FILTER_CYCLE[idx]
+        local newest = newestMatching(entries, f)
+        if newest ~= nil then
+            return f, newest
+        end
+    end
+    return nil
 end
 
 local function applyFilter(s, direction)
-    s.filter = rotate(s.filter, direction)
-    local idx = newestMatching(s.entries, s.filter)
-    s.position = idx or 0
-    speakFilterChange(s.filter, idx and s.entries[idx] or nil)
+    local nextFilter, idx = rotateNonEmpty(s.entries, s.filter, direction)
+    if nextFilter == nil then
+        -- Buffer fully empty. Don't change the filter -- there is nothing
+        -- to view in any cycle slot, so cycling has no meaning. Speak the
+        -- bare empty marker rather than "<filter>, no messages" so the
+        -- announcement matches what the bracket keys say in the same
+        -- state.
+        speakKey("TXT_KEY_CIVVACCESS_MSGBUF_EMPTY")
+        return
+    end
+    s.filter = nextFilter
+    s.position = idx
+    speakFilterChange(s.filter, s.entries[idx])
 end
 
 function MessageBuffer.cycleFilterForward()
