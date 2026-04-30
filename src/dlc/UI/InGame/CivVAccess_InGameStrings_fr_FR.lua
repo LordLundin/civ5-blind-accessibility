@@ -519,7 +519,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RESISTANCE"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_OCCUPIED"] = "occupée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PUPPET"] = "vassale"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_BLOCKADED"] = "bloquée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_BLOCKADED"] = "sous blocus"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} population"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEFENSE"] = "{1_Num} défense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} of {2_Max} hp"

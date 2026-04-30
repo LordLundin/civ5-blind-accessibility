@@ -72,6 +72,16 @@
 --   tu/usted, etc.) have already had that choice made by Firaxis in the
 --   base game's TXT keys; use the same register here. Stay consistent
 --   across this file's strings.
+-- - Different keys with identical English values are intentional, not
+--   redundant. The unit of identity is "the spot in the UI this string is
+--   spoken from", not "the English word that fills it". The same word
+--   ("Sort by", "Mods", "Players", "Civilization") appears under multiple
+--   screen prefixes because each screen owns its own copy and may want to
+--   diverge in some target language. Before adding a new TXT_KEY, check
+--   whether the slot you need really is the same screen and same consumer
+--   as an existing key (in which case reuse it); if it sits on a different
+--   screen or serves a different consumer, give it its own key even if the
+--   English value will match.
 CivVAccess_Strings = CivVAccess_Strings or {}
 -- Spoken once, after the front-end Boot Lua finishes installing handlers, so
 -- the user knows the mod attached.

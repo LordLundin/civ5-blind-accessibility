@@ -44,6 +44,19 @@
 --   the two sides in sync when adding or modifying mirrored keys (the help-
 --   overlay, settings-overlay, generic widget, and icon-substitution blocks
 --   are the main examples).
+-- - Different keys with identical English values are intentional, not
+--   redundant. The unit of identity is "the spot in the UI this string is
+--   spoken from", not "the English word that fills it". Yields appear in
+--   both CITYSTATS and CITYVIEW prefixes; status words ("occupied", "puppet",
+--   "capital") sit on cursor / scanner / overview / choose-production paths;
+--   per-screen help-key labels ("Enter", "Escape") repeat under each screen's
+--   prefix. Each instance is owned by a different consumer that may want to
+--   diverge in some target language even when English happens to coincide.
+--   Before adding a new TXT_KEY, check whether the slot you need really is
+--   the same gameplay concept on the same screen as an existing key (in
+--   which case reuse the existing key); if it sits on a different screen or
+--   serves a different consumer, give it its own key even if the English
+--   value will match.
 -- - Canonical Civ V terminology for the target locale lives in the base
 --   game's own TXT_KEY data, shipped under
 --   Sid Meier's Civilization V/Assets/.../GameText/<locale>/*.xml. When a
@@ -1006,7 +1019,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F4"] = "Open the Diplomacy
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F5"] = "F5"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F5"] = "Open the Social Policies screen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F6"] = "F6"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F6"] = "Open the Tech Tree"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F6"] = "Open Tech Tree"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F7"] = "F7"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F7"] = "Open the turn and event log"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F8"] = "F8"
@@ -1040,7 +1053,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_PREV_CITY"] = "no previous ci
 -- just to check.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS"] = "Stats"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS"] = "Wonders"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE"] = "Great people progress"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE"] = "Great People progress"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"] = "Worker focus"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNEMPLOYED_ACTION"] = "Unemployed: {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_WONDERS_EMPTY"] = "No wonders built."
