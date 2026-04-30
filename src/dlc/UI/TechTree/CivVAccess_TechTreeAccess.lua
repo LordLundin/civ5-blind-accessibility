@@ -1,16 +1,42 @@
 -- Tech Tree screen accessibility. Wraps the in-game TechTree Context
 -- (BUTTONPOPUP_TECH_TREE) as a TabbedShell with two tabs:
 --
---   Tree    hand-rolled tab object; arrow-key DAG cursor (Up/Down for
---           parent/child, Left/Right for siblings), Enter / Shift+Enter
---           commits via Network.SendResearch, type-ahead search across
---           tech name + unlocks prose. NavigableGraph owns the pure DAG
---           cursor; tech-specific adjacency lambdas, label composition,
---           and commit eligibility live in CivVAccess_TechTreeLogic so
---           offline tests can exercise them without dofiling this wrapper.
+--   Tree    hand-rolled tab object; two arrow-key navigation modes that
+--           the user toggles with Space.
+--             grid (default) walks the visual layout: Up/Down through the
+--             era column at the cursor's GridX, Left/Right across the row
+--             at the cursor's GridY, both skipping empty cells and
+--             stopping silently at edges. Spatial nav is path-independent
+--             so the user can cut across to a peer tech they remember
+--             without retracing prereq edges.
+--             tree walks the prereq DAG: Right to a child (dependent
+--             tech), Left to a parent (prerequisite), Up/Down across
+--             siblings (children of the parent we descended from, or the
+--             parents of the child we ascended to). NavigableGraph owns
+--             the pure DAG cursor; tech-specific adjacency lambdas,
+--             label composition, and commit eligibility live in
+--             CivVAccess_TechTreeLogic so offline tests can exercise them
+--             without dofiling this wrapper.
+--           Mode toggle preserves the cursor; siblings are reseeded so
+--           tree mode's Up/Down has a fresh sibling list around wherever
+--           the cursor is. Help entries swap on toggle: only the active
+--           mode's arrow descriptions are listed under ?.
+--           Enter / Shift+Enter commits via Network.SendResearch in
+--           either mode. Type-ahead search across tech name + unlocks
+--           prose works in either mode.
+--           Era boundary announcement: when an arrow move lands on a
+--           tech in a different era than the previous cursor position,
+--           the era display name prefixes the landing speech ("Classical
+--           Era. Banking, available, ..."). Same-era moves don't repeat
+--           it. Skipped on search-driven jumps (the search target is
+--           usually far from the prior cursor; the era word adds noise),
+--           but _prevEraID is updated silently so the next arrow move
+--           compares against the searched-to era.
 --   Queue   TabbedShell.menuTab over a BaseMenu list. Items are rebuilt
 --           on every onTabActivated so the queue reflects post-commit
---           state when the user Tabs over after queuing a tech.
+--           state when the user Tabs over after queuing a tech. Era
+--           announcement is tree-tab-only -- the queue is a flat list
+--           ordered by queue slot, not era.
 --
 -- Commit: Network.SendResearch(techID, numFreeTechs, stealingTargetID,
 -- shift). Normal / free modes pass GetNumFreeTechs; stealing passes 0
@@ -89,6 +115,28 @@ local _graph = nil
 local _cursor = nil
 local _corpus = nil
 local _search = nil
+local _grid = nil
+-- "grid" or "tree". Default grid; toggled by Space within the tree tab.
+-- Reset to "grid" on hide so each open starts in the spatial mode.
+local _navMode = "grid"
+-- Era ID of the cursor's current tech, used to detect era boundaries on
+-- the next move. nil after setupForShow so the very first speech of an
+-- open announces the era as orientation. Updated by every speech path
+-- (arrow, search, mode toggle, tab re-entry) so future comparisons are
+-- consistent regardless of how the cursor moved.
+local _prevEraID = nil
+-- Captured in onShow. Used by the Space toggle to call rebuildExposed()
+-- after swapping the tab's helpEntries so ? help shows the active mode's
+-- arrow description.
+local _shellHandler = nil
+-- Mode-specific help entry lists, populated in buildTreeTab and assigned
+-- to the live tab.helpEntries on each toggle. Same shell-level entries
+-- (Tab cycling, F1) compose around either set.
+local _gridHelpEntries = nil
+local _treeHelpEntries = nil
+-- Reference to the tree tab table so setMode can mutate its helpEntries
+-- in place. Assigned in buildTreeTab.
+local _treeTab = nil
 
 local function currentPlayer()
     return Players[Game.GetActivePlayer()]
@@ -104,11 +152,30 @@ end
 
 -- ===== Speech helpers =====
 
+-- Speak the landing speech with an era prefix when the new tech's era
+-- differs from the previous cursor's era. Updates _prevEraID as a side
+-- effect so the next call compares against the just-spoken tech.
 local function speakLanding(techID)
     local p = currentPlayer()
     if p == nil then
         return
     end
+    local prefix
+    prefix, _prevEraID = TechTreeLogic.eraPrefix(_prevEraID, techID)
+    SpeechPipeline.speakInterrupt(prefix .. TechTreeLogic.buildLandingSpeech(techID, p))
+end
+
+-- Same as speakLanding but suppresses the era prefix. Used by search-
+-- driven landings (per design: search jumps don't announce era boundaries
+-- because every search is a jump). _prevEraID still updates to the new
+-- tech's era so a subsequent arrow move compares from there rather than
+-- falsely announcing a boundary against the pre-search position.
+local function speakLandingNoEra(techID)
+    local p = currentPlayer()
+    if p == nil then
+        return
+    end
+    _prevEraID = TechTreeLogic.eraID(techID) or _prevEraID
     SpeechPipeline.speakInterrupt(TechTreeLogic.buildLandingSpeech(techID, p))
 end
 
@@ -184,28 +251,39 @@ local function buildSearchable()
                 return
             end
             TechTreeLogic.seedCursorSiblings(_cursor, entry.tech, _graph)
-            local p = currentPlayer()
-            if p == nil then
-                return
-            end
-            SpeechPipeline.speakInterrupt(TechTreeLogic.buildLandingSpeech(entry.tech.ID, p))
+            speakLandingNoEra(entry.tech.ID)
         end,
     }
 end
 
 -- ===== Tree nav =====
+--
+-- Each arrow's outer handler clears the search buffer and dispatches to
+-- the per-mode implementation. Mode-specific implementations both end at
+-- speakLanding, which applies the era prefix uniformly.
 
-local function onUp()
-    clearSearch()
-    local n = _cursor.navigateUp()
+-- Move along one grid axis. Reseeds siblings on every move so a
+-- subsequent toggle into tree mode starts with a fresh sibling list
+-- around the new position.
+local function gridMove(axis, dir)
+    local cur = _cursor and _cursor.current()
+    if cur == nil then
+        return
+    end
+    local n = TechTreeLogic.gridNeighbor(_grid, cur, axis, dir)
     if n == nil then
         return
     end
+    TechTreeLogic.seedCursorSiblings(_cursor, n, _graph)
     speakLanding(n.ID)
 end
 
-local function onDown()
-    clearSearch()
+-- Tree mode uses the DAG cursor with axes rotated to match the visual
+-- left-to-right tech progression: Right descends to a child, Left ascends
+-- to a parent, Up/Down cycle the sibling set the last vertical move
+-- produced.
+
+local function treeRight()
     local n = _cursor.navigateDown()
     if n == nil then
         return
@@ -213,8 +291,23 @@ local function onDown()
     speakLanding(n.ID)
 end
 
-local function onLeft()
-    clearSearch()
+local function treeLeft()
+    local n = _cursor.navigateUp()
+    if n == nil then
+        return
+    end
+    speakLanding(n.ID)
+end
+
+local function treeUp()
+    local n = _cursor.cycleSibling(1)
+    if n == nil then
+        return
+    end
+    speakLanding(n.ID)
+end
+
+local function treeDown()
     local n = _cursor.cycleSibling(-1)
     if n == nil then
         return
@@ -222,13 +315,69 @@ local function onLeft()
     speakLanding(n.ID)
 end
 
+local function onUp()
+    clearSearch()
+    if _navMode == "grid" then
+        gridMove("column", -1)
+    else
+        treeUp()
+    end
+end
+
+local function onDown()
+    clearSearch()
+    if _navMode == "grid" then
+        gridMove("column", 1)
+    else
+        treeDown()
+    end
+end
+
+local function onLeft()
+    clearSearch()
+    if _navMode == "grid" then
+        gridMove("row", -1)
+    else
+        treeLeft()
+    end
+end
+
 local function onRight()
     clearSearch()
-    local n = _cursor.cycleSibling(1)
-    if n == nil then
+    if _navMode == "grid" then
+        gridMove("row", 1)
+    else
+        treeRight()
+    end
+end
+
+-- Toggle between grid and tree navigation. Speaks just "grid" or "tree";
+-- the cursor stays put. After the swap we reseed siblings so tree mode's
+-- Up/Down has a sibling list centered on the current tech (rather than
+-- whichever set the cursor was carrying from the prior mode's last
+-- vertical move). Help entries are swapped via tab.helpEntries mutation
+-- + shell rebuildExposed so ? lists the active mode's arrow description.
+local function onToggleMode()
+    if _treeTab == nil then
         return
     end
-    speakLanding(n.ID)
+    local newMode = (_navMode == "grid") and "tree" or "grid"
+    _navMode = newMode
+    local cur = _cursor and _cursor.current()
+    if cur ~= nil then
+        TechTreeLogic.seedCursorSiblings(_cursor, cur, _graph)
+    end
+    if newMode == "grid" then
+        _treeTab.helpEntries = _gridHelpEntries
+    else
+        _treeTab.helpEntries = _treeHelpEntries
+    end
+    if _shellHandler ~= nil and type(_shellHandler.rebuildExposed) == "function" then
+        _shellHandler.rebuildExposed()
+    end
+    SpeechPipeline.speakInterrupt(
+        Text.key(newMode == "grid" and "TXT_KEY_CIVVACCESS_TECHTREE_MODE_GRID" or "TXT_KEY_CIVVACCESS_TECHTREE_MODE_TREE")
+    )
 end
 
 local function openPediaForCurrent()
@@ -275,14 +424,75 @@ end
 
 local bind = HandlerStack.bind
 
-local function buildTreeTab()
+-- Static help entries shared by both modes (everything except the arrow
+-- description). withModeNav prepends the mode-specific arrow entry to
+-- this list.
+local function buildBaseHelpEntries()
     return {
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_TOGGLE_MODE",
+            description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TOGGLE_MODE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_ENTER",
+            description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SHIFT_ENTER",
+            description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_PEDIA",
+            description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SEARCH",
+            description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SEARCH",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F6",
+            description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE",
+            description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE",
+        },
+    }
+end
+
+local function withModeNav(modeDescKey)
+    local out = {
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_NAV",
+            description = modeDescKey,
+        },
+    }
+    for _, e in ipairs(buildBaseHelpEntries()) do
+        out[#out + 1] = e
+    end
+    return out
+end
+
+local function buildTreeTab()
+    _gridHelpEntries = withModeNav("TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_GRID")
+    _treeHelpEntries = withModeNav("TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_TREE")
+    local tab = {
         tabName = "TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE",
         bindings = {
-            bind(Keys.VK_UP, MOD_NONE, onUp, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
-            bind(Keys.VK_DOWN, MOD_NONE, onDown, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
-            bind(Keys.VK_LEFT, MOD_NONE, onLeft, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
-            bind(Keys.VK_RIGHT, MOD_NONE, onRight, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"),
+            -- The arrow descriptions on the binding entries are
+            -- informational metadata only; the ? help overlay reads
+            -- helpEntries (which we swap on mode toggle) for what the
+            -- user actually sees. Both descriptions point at the grid
+            -- variant so a stray binding-list reader sees the default.
+            bind(Keys.VK_UP, MOD_NONE, onUp, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_GRID"),
+            bind(Keys.VK_DOWN, MOD_NONE, onDown, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_GRID"),
+            bind(Keys.VK_LEFT, MOD_NONE, onLeft, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_GRID"),
+            bind(Keys.VK_RIGHT, MOD_NONE, onRight, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_GRID"),
+            -- Space toggle. Search-active Space is consumed by
+            -- handleSearchInput first (InputRouter walks search before
+            -- bindings), so this only fires when the search buffer is
+            -- empty -- exactly the moment a mode swap is unambiguous.
+            bind(Keys.VK_SPACE, MOD_NONE, onToggleMode, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TOGGLE_MODE"),
             bind(Keys.VK_RETURN, MOD_NONE, function()
                 commit(false)
             end, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER"),
@@ -292,36 +502,7 @@ local function buildTreeTab()
             bind(Keys.VK_F6, MOD_NONE, closer, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6"),
             bind(Keys.I, MOD_CTRL, openPediaForCurrent, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA"),
         },
-        helpEntries = {
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_NAV",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_ENTER",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SHIFT_ENTER",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_PEDIA",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SEARCH",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SEARCH",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F6",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE",
-                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE",
-            },
-        },
+        helpEntries = _gridHelpEntries,
         handleSearchInput = treeHandleSearchInput,
         -- announce=false on first-open: shell already spoke displayName,
         -- queue preamble + landing under it. announce=true on Tab cycle:
@@ -341,7 +522,9 @@ local function buildTreeTab()
             end
             local cur = _cursor and _cursor.current()
             if cur ~= nil then
-                SpeechPipeline.speakQueued(TechTreeLogic.buildLandingSpeech(cur.ID, p))
+                local prefix
+                prefix, _prevEraID = TechTreeLogic.eraPrefix(_prevEraID, cur.ID)
+                SpeechPipeline.speakQueued(prefix .. TechTreeLogic.buildLandingSpeech(cur.ID, p))
             end
         end,
         onTabDeactivated = function()
@@ -359,6 +542,8 @@ local function buildTreeTab()
             return false
         end,
     }
+    _treeTab = tab
+    return tab
 end
 
 -- ===== Queue tab =====
@@ -440,6 +625,7 @@ local function setupForShow()
         return
     end
     _graph = TechTreeLogic.buildGraph()
+    _grid = TechTreeLogic.buildGrid()
     _cursor = NavigableGraph.new({
         getParents = _graph.getParents,
         getChildren = _graph.getChildren,
@@ -468,9 +654,21 @@ local function wrappedPriorShowHide(bIsHide, bIsInit)
     end
     if bIsHide then
         _graph = nil
+        _grid = nil
         _cursor = nil
         _corpus = nil
         _search = nil
+        _navMode = "grid"
+        _prevEraID = nil
+        _shellHandler = nil
+        -- Restore the tree tab's help to the grid-mode set so the
+        -- subsequent resetTabsForNextOpen-time rebuildExposed (which
+        -- runs after this hook) composes shell.helpEntries with the
+        -- right entries for the next open. We run before TabbedShell's
+        -- own hide bookkeeping per install's priorShowHide ordering.
+        if _treeTab ~= nil and _gridHelpEntries ~= nil then
+            _treeTab.helpEntries = _gridHelpEntries
+        end
     end
 end
 
@@ -484,7 +682,8 @@ TabbedShell.install(ContextPtr, {
     initialTabIndex = 1,
     priorInput = priorInput,
     priorShowHide = wrappedPriorShowHide,
-    onShow = function()
+    onShow = function(handler)
+        _shellHandler = handler
         setupForShow()
     end,
     onEscape = function(handler)

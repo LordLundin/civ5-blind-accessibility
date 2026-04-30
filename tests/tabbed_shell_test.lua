@@ -438,6 +438,38 @@ function M.test_help_entries_compose_shell_then_active_tab()
     T.truthy(foundB)
 end
 
+function M.test_rebuildExposed_picks_up_active_tab_help_mutation()
+    -- Screens that swap a tab's helpEntries in place (e.g. tech tree's
+    -- grid/tree mode toggle) call rebuildExposed to recompose the shell
+    -- handler's helpEntries so the ? overlay reads the active set.
+    setup()
+    local tab = stubTab({
+        tabName = "TXT_KEY_CIVVACCESS_TS_TAB_A",
+        helpEntries = { { keyLabel = "TXT_KEY_BEFORE", description = "before" } },
+    })
+    local h = TabbedShell.create({
+        name = "X",
+        displayName = "X",
+        tabs = { tab },
+    })
+    local function findKey(label)
+        for _, e in ipairs(h.helpEntries) do
+            if e.keyLabel == label then
+                return true
+            end
+        end
+        return false
+    end
+    T.truthy(findKey("TXT_KEY_BEFORE"))
+    tab.helpEntries = { { keyLabel = "TXT_KEY_AFTER", description = "after" } }
+    -- Mutation alone doesn't update the shell's composed list; rebuild
+    -- is what propagates.
+    T.truthy(findKey("TXT_KEY_BEFORE"), "mutation without rebuild leaves stale help")
+    h.rebuildExposed()
+    T.falsy(findKey("TXT_KEY_BEFORE"))
+    T.truthy(findKey("TXT_KEY_AFTER"))
+end
+
 -- F1 readShellHeader ---------------------------------------------------
 
 function M.test_f1_reads_displayName_then_active_tab_name()

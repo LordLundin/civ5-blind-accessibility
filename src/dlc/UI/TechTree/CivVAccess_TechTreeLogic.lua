@@ -258,6 +258,123 @@ function TechTreeLogic.commitEligibility(player, techID, mode, stealingTargetID)
     return true, nil
 end
 
+-- ===== Grid mode =====
+--
+-- Grid mode walks the visual tech tree layout instead of the prereq DAG.
+-- Each tech has GridX (era column) and GridY (row within the column).
+-- byRow lets Left / Right walk the row at a given GridY (skipping empty
+-- cells); byColumn lets Up / Down walk the column at a given GridX. Both
+-- lists are sorted in their primary axis so neighbor lookup is a linear
+-- scan with consistent direction. Static across a session, built once at
+-- screen-open.
+function TechTreeLogic.buildGrid()
+    local byRow = {}
+    local byColumn = {}
+    for tech in GameInfo.Technologies() do
+        if tech.GridX ~= nil and tech.GridY ~= nil then
+            byRow[tech.GridY] = byRow[tech.GridY] or {}
+            byRow[tech.GridY][#byRow[tech.GridY] + 1] = tech
+            byColumn[tech.GridX] = byColumn[tech.GridX] or {}
+            byColumn[tech.GridX][#byColumn[tech.GridX] + 1] = tech
+        end
+    end
+    for _, list in pairs(byRow) do
+        table.sort(list, function(a, b)
+            return a.GridX < b.GridX
+        end)
+    end
+    for _, list in pairs(byColumn) do
+        table.sort(list, function(a, b)
+            return a.GridY < b.GridY
+        end)
+    end
+    return { byRow = byRow, byColumn = byColumn }
+end
+
+-- Find the next tech in a given direction along one grid axis. axis is
+-- "row" (Left / Right walks GridX at fixed GridY) or "column" (Up / Down
+-- walks GridY at fixed GridX); dir is +1 (Right / Down) or -1 (Left / Up).
+-- Returns nil at the edge so callers can treat "no neighbor" as a silent
+-- stop, matching the DAG cursor's behavior at root / leaf.
+function TechTreeLogic.gridNeighbor(grid, tech, axis, dir)
+    local list, key
+    if axis == "row" then
+        list = grid.byRow[tech.GridY]
+        key = "GridX"
+    else
+        list = grid.byColumn[tech.GridX]
+        key = "GridY"
+    end
+    if list == nil then
+        return nil
+    end
+    local current = tech[key]
+    if dir > 0 then
+        for i = 1, #list do
+            if list[i][key] > current then
+                return list[i]
+            end
+        end
+    else
+        for i = #list, 1, -1 do
+            if list[i][key] < current then
+                return list[i]
+            end
+        end
+    end
+    return nil
+end
+
+-- ===== Era prefix =====
+--
+-- Era ID for a tech (e.g. "ERA_CLASSICAL"). Used as the comparison key
+-- between cursor moves to detect an era boundary. Returns nil for techs
+-- whose Era column is empty (no vanilla tech does this, but tolerate it).
+function TechTreeLogic.eraID(techID)
+    local techInfo = GameInfo.Technologies[techID]
+    if techInfo == nil then
+        return nil
+    end
+    return techInfo.Era
+end
+
+-- Localized era display name for a tech's era (e.g. "Classical Era").
+-- Returns nil if the tech has no era or the era's Description key is
+-- missing. Name is reread per call -- no caching, per project rule.
+function TechTreeLogic.eraName(techID)
+    local techInfo = GameInfo.Technologies[techID]
+    if techInfo == nil or techInfo.Era == nil then
+        return nil
+    end
+    local eraInfo = GameInfo.Eras[techInfo.Era]
+    if eraInfo == nil or eraInfo.Description == nil then
+        return nil
+    end
+    return Text.key(eraInfo.Description)
+end
+
+-- Era boundary prefix for the landing speech. When the new tech's era
+-- differs from prevEraID, returns ("<Era Name>. ", newEraID) so the era
+-- announcement leads the speech and screen readers get a stronger pause
+-- before the tech name. Otherwise returns ("", prevEraID). Caller passes
+-- nil prevEraID on first landing of an open so the era announces; resets
+-- to nil on screen hide.
+function TechTreeLogic.eraPrefix(prevEraID, newTechID)
+    local newEra = TechTreeLogic.eraID(newTechID)
+    if newEra == nil or newEra == prevEraID then
+        return "", prevEraID
+    end
+    local name = TechTreeLogic.eraName(newTechID)
+    if name == nil then
+        -- Era exists but its display name is missing (Description key
+        -- absent). Advance prev anyway so a subsequent move into a third,
+        -- fully-described era compares against this one rather than the
+        -- one before it -- otherwise the boundary announces twice.
+        return "", newEra
+    end
+    return name .. ". ", newEra
+end
+
 -- Initial cursor: current research, else the first CanResearch tech in
 -- (GridY, ID) order, else the first root. Engine guarantees at least one
 -- root tech, so the triple fallback always terminates on something

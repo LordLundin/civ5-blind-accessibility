@@ -598,6 +598,238 @@ function M.test_seedCursorSiblings_uses_roots_when_landing_is_a_root()
     T.eq(n, nil, "single-root case yields no cycle target")
 end
 
+-- ===== buildGrid / gridNeighbor =====
+
+-- Tech with GridX, GridY, and Era populated. Era stays nil unless passed.
+local function gridTech(id, typeName, gridX, gridY, era)
+    return {
+        ID = id,
+        Type = typeName,
+        Description = typeName,
+        GridX = gridX,
+        GridY = gridY,
+        Era = era,
+    }
+end
+
+local function installGridTechs(techs)
+    installTechDB(techs, {})
+end
+
+function M.test_buildGrid_byRow_sorted_by_gridX()
+    setup()
+    installGridTechs({
+        gridTech(0, "T_FAR", 5, 1),
+        gridTech(1, "T_NEAR", 2, 1),
+        gridTech(2, "T_MID", 3, 1),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local row1 = grid.byRow[1]
+    T.eq(#row1, 3)
+    T.eq(row1[1].Type, "T_NEAR", "lowest GridX first")
+    T.eq(row1[2].Type, "T_MID")
+    T.eq(row1[3].Type, "T_FAR")
+end
+
+function M.test_buildGrid_byColumn_sorted_by_gridY()
+    setup()
+    installGridTechs({
+        gridTech(0, "T_BOT", 3, 7),
+        gridTech(1, "T_TOP", 3, 1),
+        gridTech(2, "T_MID", 3, 4),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local col3 = grid.byColumn[3]
+    T.eq(#col3, 3)
+    T.eq(col3[1].Type, "T_TOP", "lowest GridY first")
+    T.eq(col3[3].Type, "T_BOT")
+end
+
+function M.test_gridNeighbor_row_right_finds_next_tech_at_same_gridY()
+    setup()
+    installGridTechs({
+        gridTech(0, "T_A", 1, 1),
+        gridTech(1, "T_B", 3, 1),
+        gridTech(2, "T_C", 5, 1),
+        gridTech(3, "T_OTHER", 2, 2),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local a = GameInfo.Technologies["T_A"]
+    local n = TechTreeLogic.gridNeighbor(grid, a, "row", 1)
+    T.eq(n.Type, "T_B", "skips empty GridX=2 column to land on next tech at row 1")
+end
+
+function M.test_gridNeighbor_row_left_finds_prior_tech()
+    setup()
+    installGridTechs({
+        gridTech(0, "T_A", 1, 1),
+        gridTech(1, "T_B", 5, 1),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local b = GameInfo.Technologies["T_B"]
+    local n = TechTreeLogic.gridNeighbor(grid, b, "row", -1)
+    T.eq(n.Type, "T_A")
+end
+
+function M.test_gridNeighbor_column_down_finds_next_tech_at_same_gridX()
+    setup()
+    installGridTechs({
+        gridTech(0, "T_TOP", 3, 1),
+        gridTech(1, "T_OTHER", 4, 2),
+        gridTech(2, "T_BOT", 3, 5),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local top = GameInfo.Technologies["T_TOP"]
+    local n = TechTreeLogic.gridNeighbor(grid, top, "column", 1)
+    T.eq(n.Type, "T_BOT", "skips intermediate GridY positions with no tech at GridX=3")
+end
+
+function M.test_gridNeighbor_column_up_finds_prior_tech()
+    setup()
+    installGridTechs({
+        gridTech(0, "T_TOP", 3, 1),
+        gridTech(1, "T_BOT", 3, 5),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local bot = GameInfo.Technologies["T_BOT"]
+    local n = TechTreeLogic.gridNeighbor(grid, bot, "column", -1)
+    T.eq(n.Type, "T_TOP")
+end
+
+function M.test_gridNeighbor_returns_nil_at_row_edge()
+    setup()
+    installGridTechs({
+        gridTech(0, "T_A", 1, 1),
+        gridTech(1, "T_B", 3, 1),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local b = GameInfo.Technologies["T_B"]
+    -- Right of the rightmost tech in this row is nothing.
+    T.eq(TechTreeLogic.gridNeighbor(grid, b, "row", 1), nil)
+    -- Left of the leftmost is nothing too.
+    local a = GameInfo.Technologies["T_A"]
+    T.eq(TechTreeLogic.gridNeighbor(grid, a, "row", -1), nil)
+end
+
+function M.test_gridNeighbor_returns_nil_at_column_edge()
+    setup()
+    installGridTechs({
+        gridTech(0, "T_TOP", 3, 1),
+        gridTech(1, "T_BOT", 3, 4),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local bot = GameInfo.Technologies["T_BOT"]
+    T.eq(TechTreeLogic.gridNeighbor(grid, bot, "column", 1), nil)
+    local top = GameInfo.Technologies["T_TOP"]
+    T.eq(TechTreeLogic.gridNeighbor(grid, top, "column", -1), nil)
+end
+
+function M.test_gridNeighbor_returns_nil_when_row_or_column_unpopulated()
+    setup()
+    installGridTechs({
+        gridTech(0, "T_LONE", 5, 5),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    -- A made-up tech at a row/column nothing else lives in returns nil
+    -- in every direction (no list at that index).
+    local stranded = { ID = 99, Type = "T_GHOST", GridX = 9, GridY = 9 }
+    T.eq(TechTreeLogic.gridNeighbor(grid, stranded, "row", 1), nil)
+    T.eq(TechTreeLogic.gridNeighbor(grid, stranded, "column", 1), nil)
+end
+
+-- ===== eraID / eraName / eraPrefix =====
+
+local function installEras()
+    GameInfo.Eras = {
+        ERA_ANCIENT = { ID = 0, Type = "ERA_ANCIENT", Description = "TXT_KEY_ERA_ANCIENT" },
+        ERA_CLASSICAL = { ID = 1, Type = "ERA_CLASSICAL", Description = "TXT_KEY_ERA_CLASSICAL" },
+    }
+    -- Era display strings live under vanilla TXT_KEY_ERA_* keys, not the
+    -- CIVVACCESS namespace, so Text.key falls through to Locale. Stub
+    -- those mappings here.
+    local prior = Locale.ConvertTextKey
+    local map = {
+        TXT_KEY_ERA_ANCIENT = "Ancient Era",
+        TXT_KEY_ERA_CLASSICAL = "Classical Era",
+    }
+    Locale.ConvertTextKey = function(k, ...)
+        if map[k] ~= nil and select("#", ...) == 0 then
+            return map[k]
+        end
+        return prior(k, ...)
+    end
+end
+
+function M.test_eraID_returns_techs_era_key()
+    setup()
+    installGridTechs({ gridTech(0, "T_X", 1, 1, "ERA_CLASSICAL") })
+    installEras()
+    T.eq(TechTreeLogic.eraID(0), "ERA_CLASSICAL")
+end
+
+function M.test_eraID_returns_nil_for_missing_tech()
+    setup()
+    installGridTechs({ gridTech(0, "T_X", 1, 1, "ERA_CLASSICAL") })
+    T.eq(TechTreeLogic.eraID(999), nil)
+end
+
+function M.test_eraName_returns_localized_era_description()
+    setup()
+    installGridTechs({ gridTech(0, "T_X", 1, 1, "ERA_CLASSICAL") })
+    installEras()
+    T.eq(TechTreeLogic.eraName(0), "Classical Era")
+end
+
+function M.test_eraPrefix_announces_when_era_changes()
+    setup()
+    installGridTechs({ gridTech(0, "T_X", 1, 1, "ERA_CLASSICAL") })
+    installEras()
+    local prefix, newEra = TechTreeLogic.eraPrefix("ERA_ANCIENT", 0)
+    T.eq(prefix, "Classical Era. ", "prefix uses period+space so era boundary is its own clause")
+    T.eq(newEra, "ERA_CLASSICAL")
+end
+
+function M.test_eraPrefix_silent_when_era_unchanged()
+    setup()
+    installGridTechs({ gridTech(0, "T_X", 1, 1, "ERA_CLASSICAL") })
+    installEras()
+    local prefix, newEra = TechTreeLogic.eraPrefix("ERA_CLASSICAL", 0)
+    T.eq(prefix, "")
+    T.eq(newEra, "ERA_CLASSICAL")
+end
+
+function M.test_eraPrefix_announces_on_first_landing_with_nil_prev()
+    setup()
+    installGridTechs({ gridTech(0, "T_X", 1, 1, "ERA_ANCIENT") })
+    installEras()
+    local prefix, newEra = TechTreeLogic.eraPrefix(nil, 0)
+    T.eq(prefix, "Ancient Era. ", "nil prev counts as a boundary so first landing announces era")
+    T.eq(newEra, "ERA_ANCIENT")
+end
+
+function M.test_eraPrefix_silent_when_tech_has_no_era()
+    setup()
+    installGridTechs({ gridTech(0, "T_X", 1, 1, nil) })
+    installEras()
+    local prefix, newEra = TechTreeLogic.eraPrefix("ERA_ANCIENT", 0)
+    T.eq(prefix, "")
+    T.eq(newEra, "ERA_ANCIENT", "prev era preserved when the new tech has none to compare")
+end
+
+function M.test_eraPrefix_advances_prev_when_era_known_but_name_missing()
+    -- Era exists in GameInfo.Eras but its Description key is unmapped.
+    -- The prefix is empty (nothing to speak), but prev advances to the
+    -- new era so a subsequent move into a third era doesn't compare
+    -- against the one before this gap and announce a stale boundary.
+    setup()
+    installGridTechs({ gridTech(0, "T_X", 1, 1, "ERA_INDUSTRIAL") })
+    installEras()
+    GameInfo.Eras.ERA_INDUSTRIAL = { ID = 5, Type = "ERA_INDUSTRIAL", Description = nil }
+    local prefix, newEra = TechTreeLogic.eraPrefix("ERA_ANCIENT", 0)
+    T.eq(prefix, "")
+    T.eq(newEra, "ERA_INDUSTRIAL", "prev advances to the new era despite missing display name")
+end
+
 function M.test_seedCursorSiblings_uses_first_parents_children_for_non_root()
     setup()
     loadNavigableGraph()

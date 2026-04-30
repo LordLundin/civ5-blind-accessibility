@@ -337,6 +337,14 @@ function TabbedShell.create(spec)
         return self._tabs[self._activeIdx]
     end
 
+    -- Recompose self.bindings / self.helpEntries from the active tab. Call
+    -- after mutating tab.helpEntries (or tab.bindings) so the live shell
+    -- handler picks up the change without a tab cycle. Help.lua reads
+    -- handler.helpEntries at ? press time, so a refresh here propagates.
+    function self.rebuildExposed()
+        rebuildExposed(self)
+    end
+
     return self
 end
 
