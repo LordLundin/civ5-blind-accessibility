@@ -376,7 +376,9 @@ local function onToggleMode()
         _shellHandler.rebuildExposed()
     end
     SpeechPipeline.speakInterrupt(
-        Text.key(newMode == "grid" and "TXT_KEY_CIVVACCESS_TECHTREE_MODE_GRID" or "TXT_KEY_CIVVACCESS_TECHTREE_MODE_TREE")
+        Text.key(
+            newMode == "grid" and "TXT_KEY_CIVVACCESS_TECHTREE_MODE_GRID" or "TXT_KEY_CIVVACCESS_TECHTREE_MODE_TREE"
+        )
     )
 end
 

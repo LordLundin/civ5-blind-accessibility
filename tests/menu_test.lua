@@ -1726,7 +1726,9 @@ function M.test_silent_first_open_function_truthy_suppresses()
         displayName = "Screen",
         preamble = "body text",
         items = buttonSpec({ "A", "B" }),
-        silentFirstOpen = function() return true end,
+        silentFirstOpen = function()
+            return true
+        end,
     })
     HandlerStack.push(h)
     T.eq(#speaks, 1, "only displayName spoken when fn returns true")
@@ -1741,7 +1743,9 @@ function M.test_silent_first_open_function_falsy_speaks()
         displayName = "Screen",
         preamble = "body text",
         items = buttonSpec({ "A", "B" }),
-        silentFirstOpen = function() return false end,
+        silentFirstOpen = function()
+            return false
+        end,
     })
     HandlerStack.push(h)
     T.eq(#speaks, 3, "displayName, preamble, first item all spoken when fn returns false")
@@ -1758,7 +1762,9 @@ function M.test_silent_first_open_function_error_treated_as_false()
         displayName = "Screen",
         preamble = "body text",
         items = buttonSpec({ "A" }),
-        silentFirstOpen = function() error("boom") end,
+        silentFirstOpen = function()
+            error("boom")
+        end,
     })
     HandlerStack.push(h)
     T.eq(#errors, 1, "error logged through Log.error")

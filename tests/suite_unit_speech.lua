@@ -267,10 +267,7 @@ function M.test_selection_named_unit_embarked_combines_prefix_and_paren_form()
     setup()
     local u = mkUnit({ hasName = true, nameNoDesc = "George", embarked = true })
     local out = UnitSpeech.selection(u, 0, 0)
-    T.truthy(
-        out:find("embarked George %(Roman Warrior%)"),
-        "embarked prefix must wrap the personal-name form: " .. out
-    )
+    T.truthy(out:find("embarked George %(Roman Warrior%)"), "embarked prefix must wrap the personal-name form: " .. out)
 end
 
 -- ===== Selection: HP =====

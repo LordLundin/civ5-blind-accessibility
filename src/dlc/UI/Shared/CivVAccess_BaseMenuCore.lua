@@ -648,7 +648,8 @@ function BaseMenu.create(spec)
         -- function; when a function, called (no args) at the gate site so
         -- per-instance gating (great-work popup, only writings narrate)
         -- can read the latest captured popup info.
-        _silentFirstOpen = (type(spec.silentFirstOpen) == "function" and spec.silentFirstOpen) or spec.silentFirstOpen == true,
+        _silentFirstOpen = (type(spec.silentFirstOpen) == "function" and spec.silentFirstOpen)
+            or spec.silentFirstOpen == true,
         -- When true, the first-open announce skips the displayName line;
         -- preamble / tab / first-item speak as usual via speakQueued, and
         -- F1 refresh still re-reads displayName on demand. Any in-flight
