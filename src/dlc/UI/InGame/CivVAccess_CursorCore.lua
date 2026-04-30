@@ -170,7 +170,17 @@ local function announceForMove(plot)
     local spoken, identity = PlotSections.ownerIdentity(plot)
     local glance = PlotComposers.glance(plot, { cueOnly = cueOnly })
     local ownerPrefix = ""
-    if identity ~= _lastOwnerIdentity then
+    -- borderAlwaysAnnounce flips the prefix from "fires on crossings only"
+    -- (the _lastOwnerIdentity diff) to "fires on every move into civ-owned
+    -- territory; silent on unclaimed". The diff state is still kept in sync
+    -- so flipping the toggle off mid-game doesn't immediately re-fire on
+    -- the next step.
+    if civvaccess_shared.borderAlwaysAnnounce then
+        if identity ~= "unclaimed" then
+            ownerPrefix = spoken .. ". "
+        end
+        _lastOwnerIdentity = identity
+    elseif identity ~= _lastOwnerIdentity then
         _lastOwnerIdentity = identity
         ownerPrefix = spoken .. ". "
     end
@@ -181,7 +191,10 @@ local function announceForMove(plot)
     local targetPrefix = targetabilityPrefix(plot)
     if glance == "" then
         if ownerPrefix ~= "" then
-            return targetPrefix .. spoken .. "."
+            -- ownerPrefix ends in ". " for concatenation with glance; with
+            -- no glance to lead into, strip the trailing space so the
+            -- sentence terminates cleanly.
+            return targetPrefix .. ownerPrefix:sub(1, -2)
         end
         if targetPrefix ~= "" then
             -- Featureless plot (open ocean, mostly) inside a ranged mode:

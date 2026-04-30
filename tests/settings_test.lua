@@ -107,16 +107,17 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_open_builds_eleven_items()
+function M.test_open_builds_twelve_items()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(
         #h._items,
-        11,
+        12,
         "audio cue group + volume slider + scanner-auto-move toggle + cursor-follows-selection toggle + "
-            .. "cursor-coord-mode group + scanner-coords toggle + read-subtitles toggle + reveal-announce toggle + "
-            .. "ai-combat-announce toggle + foreign-unit-watch-announce toggle + foreign-clear-announce toggle"
+            .. "cursor-coord-mode group + border-always-announce toggle + scanner-coords toggle + "
+            .. "read-subtitles toggle + reveal-announce toggle + ai-combat-announce toggle + "
+            .. "foreign-unit-watch-announce toggle + foreign-clear-announce toggle"
     )
 end
 
@@ -288,13 +289,44 @@ function M.test_cursor_coord_mode_choice_writes_shared_and_prefs()
     T.eq(prefsStore["CursorCoordMode"], 2)
 end
 
--- Scanner coords toggle -------------------------------------------------
+-- Border always-announce toggle ----------------------------------------
 
-function M.test_sixth_item_is_scanner_coords_toggle()
+function M.test_sixth_item_is_border_always_announce_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(h._items[6].kind, "checkbox")
+end
+
+function M.test_border_always_announce_default_off()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.borderAlwaysAnnounce, false, "lazy-init defaults to off")
+end
+
+function M.test_border_always_announce_toggle_flip_writes_shared_and_prefs()
+    setup()
+    civvaccess_shared.borderAlwaysAnnounce = false
+    Settings.open()
+    local handler = HandlerStack.active()
+    -- Down 5 times: from item 1 (group) past slider, scanner toggle,
+    -- cursor-follows toggle, cursor-coord group, into border-always toggle.
+    for _ = 1, 5 do
+        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    end
+    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(civvaccess_shared.borderAlwaysAnnounce, true)
+    T.eq(prefsStore["BorderAlwaysAnnounce"], true)
+end
+
+-- Scanner coords toggle -------------------------------------------------
+
+function M.test_seventh_item_is_scanner_coords_toggle()
+    setup()
+    Settings.open()
+    local h = HandlerStack.active()
+    T.eq(h._items[7].kind, "checkbox")
 end
 
 function M.test_scanner_coords_toggle_flip_writes_shared_and_prefs()
@@ -302,9 +334,10 @@ function M.test_scanner_coords_toggle_flip_writes_shared_and_prefs()
     civvaccess_shared.scannerCoords = false
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 5 times: from item 1 (group) past slider, scanner toggle,
-    -- cursor-follows toggle, cursor-coord group, into scanner-coords toggle.
-    for _ = 1, 5 do
+    -- Down 6 times: from item 1 (group) past slider, scanner toggle,
+    -- cursor-follows toggle, cursor-coord group, border-always toggle,
+    -- into scanner-coords toggle.
+    for _ = 1, 6 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -315,11 +348,11 @@ end
 
 -- Read-subtitles toggle -------------------------------------------------
 
-function M.test_seventh_item_is_read_subtitles_toggle()
+function M.test_eighth_item_is_read_subtitles_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[7].kind, "checkbox")
+    T.eq(h._items[8].kind, "checkbox")
 end
 
 function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
@@ -327,8 +360,8 @@ function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     civvaccess_shared.readSubtitles = false
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 6 times to reach the read-subtitles toggle (item 7).
-    for _ = 1, 6 do
+    -- Down 7 times to reach the read-subtitles toggle (item 8).
+    for _ = 1, 7 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -339,11 +372,11 @@ end
 
 -- AI combat announce toggle ---------------------------------------------
 
-function M.test_ninth_item_is_ai_combat_announce_toggle()
+function M.test_tenth_item_is_ai_combat_announce_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[9].kind, "checkbox")
+    T.eq(h._items[10].kind, "checkbox")
 end
 
 function M.test_ai_combat_announce_default_on()
@@ -356,8 +389,8 @@ function M.test_ai_combat_announce_toggle_flip_writes_shared_and_prefs()
     setup()
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 8 times to reach the AI combat toggle (item 9).
-    for _ = 1, 8 do
+    -- Down 9 times to reach the AI combat toggle (item 10).
+    for _ = 1, 9 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -368,11 +401,11 @@ end
 
 -- Foreign-unit-watch announce toggle ------------------------------------
 
-function M.test_tenth_item_is_foreign_unit_watch_announce_toggle()
+function M.test_eleventh_item_is_foreign_unit_watch_announce_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[10].kind, "checkbox")
+    T.eq(h._items[11].kind, "checkbox")
 end
 
 function M.test_foreign_unit_watch_announce_default_on()
@@ -385,8 +418,8 @@ function M.test_foreign_unit_watch_announce_toggle_flip_writes_shared_and_prefs(
     setup()
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 9 times to reach the foreign-unit-watch toggle (item 10).
-    for _ = 1, 9 do
+    -- Down 10 times to reach the foreign-unit-watch toggle (item 11).
+    for _ = 1, 10 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")

@@ -98,6 +98,28 @@ local function setCursorCoordMode(name)
     Prefs.setInt("CursorCoordMode", CURSOR_COORD_BY_NAME[name])
 end
 
+-- Always-announce-territory toggle. Off by default: the cursor's owner
+-- prefix only fires on civ-border crossings (the diff in CursorCore against
+-- _lastOwnerIdentity). When on, every cursor move into a civ-owned tile
+-- prepends the civ name; unclaimed tiles get no prefix at all. CursorCore
+-- reads civvaccess_shared.borderAlwaysAnnounce live in announceForMove.
+-- The PlotSections city banner also reads the same flag and drops the civ
+-- adjective when on, since the prefix already says it -- "Arabia. Rome."
+-- instead of "Arabia. Arabian Rome." on every step within Arabia.
+if civvaccess_shared.borderAlwaysAnnounce == nil then
+    civvaccess_shared.borderAlwaysAnnounce = Prefs.getBool("BorderAlwaysAnnounce", false)
+end
+
+local function getBorderAlwaysAnnounce()
+    return civvaccess_shared.borderAlwaysAnnounce == true
+end
+
+local function setBorderAlwaysAnnounce(v)
+    local b = v and true or false
+    civvaccess_shared.borderAlwaysAnnounce = b
+    Prefs.setBool("BorderAlwaysAnnounce", b)
+end
+
 -- Scanner coordinate-append toggle. Off by default. When on, scanner
 -- announcements (each cycle's "<name>. <dir>. <N> of <M>.") gain an
 -- "<x>, <y>" segment between dir and the count. ScannerNav reads
@@ -259,6 +281,11 @@ local function buildItems()
                 cursorCoordModeChoice("prepend", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_PREPEND"),
                 cursorCoordModeChoice("append", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_APPEND"),
             },
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BORDER_ALWAYS_ANNOUNCE",
+            getValue = getBorderAlwaysAnnounce,
+            setValue = setBorderAlwaysAnnounce,
         }),
         BaseMenuItems.VirtualToggle({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS",

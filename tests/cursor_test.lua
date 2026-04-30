@@ -35,6 +35,7 @@ local function setup()
     audio._reset()
     civvaccess_shared.plotAudioHandles = nil
     civvaccess_shared.audioCueMode = AudioCueMode.MODE_SPEECH
+    civvaccess_shared.borderAlwaysAnnounce = nil
 
     Game.GetActivePlayer = function()
         return 0
@@ -760,6 +761,102 @@ function M.test_cursor_move_into_city_of_same_civ_does_not_refire_owner_prefix()
     -- new behavior emits it once, from the glance section only.
     local _, count = second:gsub("TXT_KEY_CITY_OF", "")
     T.eq(count, 1, "city banner must announce exactly once on entry: " .. second)
+end
+
+function M.test_cursor_move_always_announce_speaks_owner_on_every_step()
+    -- borderAlwaysAnnounce flips the prefix from "fires on crossings only"
+    -- (the default diff) to "fires on every move into civ-owned territory".
+    -- Both moves into Arabia must speak the civ name; the diff suppression
+    -- the default mode applies on the second step is bypassed.
+    setup()
+    civvaccess_shared.borderAlwaysAnnounce = true
+    Players[3] = T.fakePlayer({ shortDesc = "Arabia", adj = "Arabian" })
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local start = T.fakePlot({ x = 0, y = 0, owner = -1, terrain = 1 })
+    local arab1 = T.fakePlot({ x = 1, y = 0, owner = 3, terrain = 1 })
+    local arab2 = T.fakePlot({ x = 2, y = 0, owner = 3, terrain = 1 })
+    local plotByXY = { ["0,0"] = start, ["1,0"] = arab1, ["2,0"] = arab2 }
+    Map.GetPlot = function(x, y)
+        return plotByXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return plotByXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    UI.GetHeadSelectedUnit = function()
+        local u = T.fakeUnit({})
+        u._plot = start
+        return u
+    end
+    Cursor.init()
+    local first = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    local second = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(first:find("Arabia", 1, true), "first entry must speak owner: " .. first)
+    T.truthy(second:find("Arabia", 1, true), "always-announce mode must repeat owner: " .. second)
+end
+
+function M.test_cursor_move_always_announce_silent_on_unclaimed()
+    -- The new mode prepends civ name on civ tiles, but unclaimed tiles get
+    -- nothing -- saying "unclaimed" on every step into wilderness would be
+    -- the noise the option is meant to avoid.
+    setup()
+    civvaccess_shared.borderAlwaysAnnounce = true
+    Players[3] = T.fakePlayer({ shortDesc = "Arabia", adj = "Arabian" })
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local start = T.fakePlot({ x = 0, y = 0, owner = 3, terrain = 1 })
+    local wild = T.fakePlot({ x = 1, y = 0, owner = -1, terrain = 1 })
+    local plotByXY = { ["0,0"] = start, ["1,0"] = wild }
+    Map.GetPlot = function(x, y)
+        return plotByXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return plotByXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    UI.GetHeadSelectedUnit = function()
+        local u = T.fakeUnit({})
+        u._plot = start
+        return u
+    end
+    Cursor.init()
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(not out:find("unclaimed", 1, true), "always-announce mode must stay silent on unclaimed: " .. out)
+end
+
+function M.test_city_banner_drops_civ_adjective_when_always_announce_on()
+    -- With borderAlwaysAnnounce on, the cursor's prefix carries the civ
+    -- identity on every step, so the City section drops TXT_KEY_CITY_OF
+    -- (which embeds the civ adjective) for major civs and speaks just the
+    -- city name. Avoids "Arabia. Arabian Rome." every step within Arabia.
+    setup()
+    civvaccess_shared.borderAlwaysAnnounce = true
+    Players[3] = T.fakePlayer({ shortDesc = "Arabia", adj = "Arabian" })
+    local rome = T.fakeCity({ name = "Rome", owner = 3, id = 7 })
+    local cityPlot = T.fakePlot({ owner = 3, isCity = true, city = rome })
+    local tokens = PlotSections.city.Read(cityPlot, {})
+    T.eq(tokens[1], "Rome", "always-announce major city banner must be bare city name: " .. tostring(tokens[1]))
+end
+
+function M.test_city_banner_keeps_city_state_designator_when_always_announce_on()
+    -- City-states keep TXT_KEY_CITY_STATE_OF even with always-announce on
+    -- so the user still hears the "city-state" designator. The prefix says
+    -- the CS name (e.g. "Athens") and the banner adds "City-State of Athens";
+    -- the redundancy is acceptable because it carries the major-vs-CS signal
+    -- the user otherwise loses with the adjective stripped from majors.
+    setup()
+    civvaccess_shared.borderAlwaysAnnounce = true
+    Players[5] = T.fakePlayer({ shortDesc = "Athens", isMinor = true })
+    local athens = T.fakeCity({ name = "Athens", owner = 5 })
+    local cityPlot = T.fakePlot({ owner = 5, isCity = true, city = athens })
+    local tokens = PlotSections.city.Read(cityPlot, {})
+    T.truthy(
+        tokens[1]:find("CITY_STATE_OF", 1, true),
+        "city-state banner must keep CITY_STATE_OF designator: " .. tostring(tokens[1])
+    )
 end
 
 function M.test_cursor_move_emits_edge_of_map_at_boundary()

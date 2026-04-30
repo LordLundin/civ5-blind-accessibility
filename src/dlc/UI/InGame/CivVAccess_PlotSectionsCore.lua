@@ -67,6 +67,14 @@ PlotSections.city = {
         local banner
         if owner:IsMinorCiv() then
             banner = Text.format("TXT_KEY_CITY_STATE_OF", owner:GetCivilizationShortDescriptionKey())
+        elseif civvaccess_shared.borderAlwaysAnnounce then
+            -- Always-announce mode: the cursor's owner prefix already names
+            -- the civ on every step within its borders, so the TXT_KEY_CITY_OF
+            -- adjective ("Arabian Rome") would be a redundant repeat. Speak
+            -- the bare city name and let the prefix carry the civ identity.
+            -- City-states keep TXT_KEY_CITY_STATE_OF above so the user still
+            -- hears the "city-state" designator.
+            banner = city:GetName()
         else
             banner = Text.format("TXT_KEY_CITY_OF", owner:GetCivilizationAdjectiveKey(), city:GetName())
         end
