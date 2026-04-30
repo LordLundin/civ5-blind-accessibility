@@ -1164,6 +1164,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_RUIN_PART"] = {
     one = "{1_Num} ruine antique visible",
     other = "{1_Num} ruines antiques visibles",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_HEADER"] = "Disparu"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_CAMP_PART"] = {
+    one = "campement barbare",
+    other = "{1_Num} campements barbares",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
+    one = "ruines antiques",
+    other = "{1_Num} ruines antiques",
+}
 -- Turn lifecycle speech. Turn-start is the game-side "Turn: N" label plus
 -- the game's AD/BC year, joined by a comma so the moving parts (number
 -- first, year second) read as a single line.

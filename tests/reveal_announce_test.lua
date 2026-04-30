@@ -139,6 +139,12 @@ local function setup()
         if k == "TXT_KEY_CIVVACCESS_REVEAL_HEADER" then
             return "Revealed"
         end
+        if k == "TXT_KEY_CIVVACCESS_GONE_HEADER" then
+            return "Gone"
+        end
+        if k == "TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_AND" then
+            return " and "
+        end
         return k
     end
     Text.format = function(k, arg)
@@ -451,6 +457,257 @@ function M.test_snapshot_refreshes_after_flush()
     T.eq(#SpeechPipeline._calls, 1, "first flush announces")
     RevealAnnounce._flush()
     T.eq(#SpeechPipeline._calls, 1, "second flush silent -- snapshot already reflects the hide")
+end
+
+-- ===== Gone-on-revisit =====
+
+-- Improvement-type indices for the gone tests. Real engine indices are
+-- enum-defined; here they're arbitrary positive integers paired with
+-- GameInfo.Improvements rows that supply the .Type / .Goody fields the
+-- gone-classifier reads.
+local CAMP_IMP = 7
+local RUIN_IMP = 8
+
+local function installCampAndRuinRows()
+    GameInfo.Improvements[CAMP_IMP] = { Type = "IMPROVEMENT_BARBARIAN_CAMP" }
+    GameInfo.Improvements[RUIN_IMP] = { Type = "IMPROVEMENT_GOODY_HUT", Goody = true }
+end
+
+-- Wire the Map globals RevealAnnounce reads at install time (the
+-- bootstrap walk uses GetNumPlots + GetPlotByIndex) AND at flush time
+-- (recordNowVisible uses GetPlot + ToGridFromHex; gone walk uses
+-- GetPlotByIndex). Must be called BEFORE installListeners so the
+-- bootstrap snapshots the right state. plotIndex maps directly to the
+-- list index minus one for simplicity.
+local function installPlotMap(plots)
+    Map.GetPlotByIndex = function(idx)
+        for _, p in ipairs(plots) do
+            if p:GetPlotIndex() == idx then
+                return p
+            end
+        end
+        return nil
+    end
+    Map.GetNumPlots = function()
+        local maxIdx = -1
+        for _, p in ipairs(plots) do
+            if p:GetPlotIndex() > maxIdx then
+                maxIdx = p:GetPlotIndex()
+            end
+        end
+        return maxIdx + 1
+    end
+    Map.GetPlot = function(x, y)
+        for _, p in ipairs(plots) do
+            if p:GetX() == x and p:GetY() == y then
+                return p
+            end
+        end
+        return nil
+    end
+    ToGridFromHex = function(hx, hy)
+        return hx, hy
+    end
+end
+
+-- Fire a HexFOWStateChanged event for a plot the player is now seeing
+-- again (no first-reveal hook). Assumes installPlotMap already ran so
+-- recordNowVisible can find the plot via Map.GetPlot.
+local function fireRevisit(plot)
+    for _, fn in ipairs(fowListeners) do
+        fn({ x = plot:GetX(), y = plot:GetY() }, 0, false)
+    end
+end
+
+-- Fire BOTH CivVAccessPlotRevealed and HexFOWStateChanged so the plot
+-- ends up in _firstReveals AND _nowVisible: the gone-detection gate
+-- (`not firstReveals`) must keep these out of the diff.
+local function fireFirstReveal(plot)
+    for _, fn in ipairs(revealedListeners) do
+        fn(0, plot:GetX(), plot:GetY())
+    end
+    for _, fn in ipairs(fowListeners) do
+        fn({ x = plot:GetX(), y = plot:GetY() }, 0, false)
+    end
+end
+
+-- Camp on a previously-revealed plot, now empty. The bootstrap walk at
+-- installListeners snapshots the plot's revealed-type as "camp"; on
+-- revisit, GetImprovementType returns -1 (camp cleared in fog), and the
+-- diff fires. Singular form drops the count.
+function M.test_camp_gone_on_revisit()
+    setup()
+    installCampAndRuinRows()
+    local plot = T.fakePlot({ visible = true, plotIndex = 1, improvement = CAMP_IMP })
+    plot.GetImprovementType = function()
+        return -1
+    end
+    installPlotMap({ plot })
+    RevealAnnounce.installListeners()
+    fireRevisit(plot)
+    RevealAnnounce._flush()
+    T.eq(#SpeechPipeline._calls, 1, "single gone line")
+    T.eq(SpeechPipeline._calls[1].mode, "queued", "gone uses speakQueued")
+    T.eq(SpeechPipeline._calls[1].text, "Gone: barbarian camp")
+end
+
+-- Goody hut path. Classification is by .Goody flag, so the same logic
+-- routes ancient ruins regardless of the row's exact Type string.
+function M.test_ruin_gone_on_revisit()
+    setup()
+    installCampAndRuinRows()
+    local plot = T.fakePlot({ visible = true, plotIndex = 1, improvement = RUIN_IMP })
+    plot.GetImprovementType = function()
+        return -1
+    end
+    installPlotMap({ plot })
+    RevealAnnounce.installListeners()
+    fireRevisit(plot)
+    RevealAnnounce._flush()
+    T.eq(SpeechPipeline._calls[1].text, "Gone: ancient ruins")
+end
+
+-- A first-reveal plot has no prior state to diff against. Even if the
+-- engine claims revealed-type is camp at this moment, firstReveals[idx]
+-- gates the diff out. Failure mode: gate slips and a phantom gone
+-- announces on first-reveal.
+function M.test_first_reveal_does_not_announce_gone()
+    setup()
+    installCampAndRuinRows()
+    -- Plot has no entry in the bootstrap-time map (simulating a brand
+    -- new plot the player hasn't seen before): plot's revealed-type is
+    -- empty at install, so the snapshot is empty for this idx.
+    local plot = T.fakePlot({ visible = true, plotIndex = 1, improvement = -1 })
+    plot.GetImprovementType = function()
+        return CAMP_IMP
+    end
+    installPlotMap({ plot })
+    RevealAnnounce.installListeners()
+    fireFirstReveal(plot)
+    RevealAnnounce._flush()
+    for _, call in ipairs(SpeechPipeline._calls) do
+        T.falsy(call.text:find("Gone"), "first-reveal must not produce a Gone line")
+    end
+end
+
+-- Camp still there on revisit. Bootstrap snapshots "camp"; revisit's
+-- GetImprovementType also returns CAMP_IMP. Diff is zero. No speech.
+-- (Note: shouldSkipPlot also filters this plot out of announcePlots,
+-- but the gone walk iterates nowVisible directly, so the diff still
+-- runs -- it just produces no count.)
+function M.test_persistent_camp_no_gone()
+    setup()
+    installCampAndRuinRows()
+    local plot = T.fakePlot({ visible = true, plotIndex = 1, improvement = CAMP_IMP })
+    plot.GetImprovementType = function()
+        return CAMP_IMP
+    end
+    installPlotMap({ plot })
+    RevealAnnounce.installListeners()
+    fireRevisit(plot)
+    RevealAnnounce._flush()
+    T.eq(#SpeechPipeline._calls, 0, "still-there camp does not announce as gone")
+end
+
+-- Two camps gone in the same flush aggregate via Text.formatPlural.
+-- Failure mode: each detection emits its own line, or the formatter
+-- picks the singular form for count > 1.
+function M.test_two_camps_aggregate_with_plural()
+    setup()
+    installCampAndRuinRows()
+    local plot1 = T.fakePlot({ x = 0, y = 0, visible = true, plotIndex = 1, improvement = CAMP_IMP })
+    plot1.GetImprovementType = function()
+        return -1
+    end
+    local plot2 = T.fakePlot({ x = 1, y = 0, visible = true, plotIndex = 2, improvement = CAMP_IMP })
+    plot2.GetImprovementType = function()
+        return -1
+    end
+    installPlotMap({ plot1, plot2 })
+    RevealAnnounce.installListeners()
+    fireRevisit(plot1)
+    fireRevisit(plot2)
+    RevealAnnounce._flush()
+    T.eq(#SpeechPipeline._calls, 1, "single combined gone line")
+    T.eq(SpeechPipeline._calls[1].text, "Gone: 2 barbarian camps")
+end
+
+-- One of each in the same flush joins with the AND key, mirroring
+-- ForeignClearWatch's "Someone else has claimed N camps and N ruins."
+function M.test_camp_and_ruin_joined_with_and()
+    setup()
+    installCampAndRuinRows()
+    local plot1 = T.fakePlot({ x = 0, y = 0, visible = true, plotIndex = 1, improvement = CAMP_IMP })
+    plot1.GetImprovementType = function()
+        return -1
+    end
+    local plot2 = T.fakePlot({ x = 1, y = 0, visible = true, plotIndex = 2, improvement = RUIN_IMP })
+    plot2.GetImprovementType = function()
+        return -1
+    end
+    installPlotMap({ plot1, plot2 })
+    RevealAnnounce.installListeners()
+    fireRevisit(plot1)
+    fireRevisit(plot2)
+    RevealAnnounce._flush()
+    T.eq(SpeechPipeline._calls[1].text, "Gone: barbarian camp and ancient ruins")
+end
+
+-- After the first gone announcement, the snapshot stores nil for this
+-- plot. A second revisit (no further state change) must NOT re-announce
+-- -- otherwise every walk past a once-cleared site would repeat the
+-- line. Failure mode: snapshot update skipped after the diff fires.
+function M.test_repeat_revisit_does_not_re_announce()
+    setup()
+    installCampAndRuinRows()
+    local plot = T.fakePlot({ visible = true, plotIndex = 1, improvement = CAMP_IMP })
+    plot.GetImprovementType = function()
+        return -1
+    end
+    installPlotMap({ plot })
+    RevealAnnounce.installListeners()
+    fireRevisit(plot)
+    RevealAnnounce._flush()
+    T.eq(#SpeechPipeline._calls, 1, "first revisit announces once")
+    fireRevisit(plot)
+    RevealAnnounce._flush()
+    T.eq(#SpeechPipeline._calls, 1, "second revisit silent -- snapshot reflects post-flush state")
+end
+
+-- Lifecycle path that the bootstrap can't cover: plot the player has
+-- never seen at install (snapshot empty for it), then first-revealed
+-- during gameplay with a camp, then walked away, camp cleared in fog,
+-- walked back. The first-reveal flush has to write the snapshot even
+-- though the diff itself is gated out for first-reveals -- otherwise
+-- the subsequent revisit has no prior to compare and silently misses
+-- the gone announce. Failure mode: snapshot only updates on revisits.
+function M.test_first_reveal_writes_snapshot_for_later_diff()
+    setup()
+    installCampAndRuinRows()
+    -- Plot has no revealed improvement at install (player has never
+    -- seen it). _currentImp drives GetImprovementType so the test can
+    -- mutate the plot's current state across phases.
+    local plot = T.fakePlot({ visible = true, plotIndex = 1, improvement = -1 })
+    plot._currentImp = CAMP_IMP
+    plot.GetImprovementType = function(self)
+        return self._currentImp
+    end
+    installPlotMap({ plot })
+    RevealAnnounce.installListeners()
+    -- Phase 1: first reveal of the plot, camp present. Snapshot must
+    -- now record "camp" for this idx so a later revisit has a baseline.
+    fireFirstReveal(plot)
+    RevealAnnounce._flush()
+    for _, call in ipairs(SpeechPipeline._calls) do
+        T.falsy(call.text:find("Gone"), "first-reveal phase must not produce a Gone line")
+    end
+    local callsAfterFirstReveal = #SpeechPipeline._calls
+    -- Phase 2: walk back later. Camp cleared in fog meanwhile.
+    plot._currentImp = -1
+    fireRevisit(plot)
+    RevealAnnounce._flush()
+    T.eq(#SpeechPipeline._calls, callsAfterFirstReveal + 1, "revisit produces exactly one new line")
+    T.eq(SpeechPipeline._calls[#SpeechPipeline._calls].text, "Gone: barbarian camp")
 end
 
 return M

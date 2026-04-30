@@ -1291,6 +1291,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_RUIN_PART"] = {
     one = "{1_Num} visible ancient ruin",
     other = "{1_Num} visible ancient ruins",
 }
+-- Gone-on-revisit. RevealAnnounce speaks this as the third line of its
+-- flush (after Revealed: and Hidden:) when a barbarian camp / ancient
+-- ruins disappeared from a plot the active team had previously seen
+-- it on. Singular form drops the count for naturalness ("Gone:
+-- barbarian camp" beats "Gone: 1 barbarian camp"); plural prefixes
+-- the count. AND-join reuses TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_AND
+-- since the connective is the same.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_HEADER"] = "Gone"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_CAMP_PART"] = {
+    one = "barbarian camp",
+    other = "{1_Num} barbarian camps",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
+    one = "ancient ruins",
+    other = "{1_Num} ancient ruins",
+}
 -- Turn lifecycle speech. Turn-start is the game-side "Turn: N" label plus
 -- the game's AD/BC year, joined by a comma so the moving parts (number
 -- first, year second) read as a single line.

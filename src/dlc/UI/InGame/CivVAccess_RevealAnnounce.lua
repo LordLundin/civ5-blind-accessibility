@@ -5,14 +5,19 @@
 -- (and old ones slide back into fog) while a screen-reader user has
 -- nothing to react to.
 --
--- Two readouts in one flush. Reveal lists tiles that came into view
+-- Three readouts in one flush. Reveal lists tiles that came into view
 -- with their foreign-unit / foreign-city / resource payload. Hide
 -- lists foreign units that left view because the active player's
 -- actions retracted LOS (a unit moved away, a unit died, a city was
--- lost). Cities and resources are excluded from the hide direction:
--- once discovered they stay revealed -- only unit positions actually
--- become unknown again. A single move can emit either or both lines;
--- when both fire, reveal speaks first and hide queues after.
+-- lost). Gone lists barbarian camps and ancient ruins that were on a
+-- plot the active team had previously revealed but are no longer
+-- there -- cleared by someone the team couldn't see at the moment
+-- of clearing; the diff fires only on revisit because first-reveal
+-- plots have no prior state to compare. Cities and resources are
+-- excluded from the hide direction: once discovered they stay
+-- revealed -- only unit positions actually become unknown again. A
+-- single move can emit any subset of these three lines; reveal
+-- speaks first, then hide, then gone.
 --
 -- Hide is computed by snapshot-diff. Once a tile turns to fog the
 -- foreign units on it are unreachable through the plot, so a snapshot
@@ -72,6 +77,62 @@ local FLUSH_DELAY_FRAMES = 6
 local _firstReveals = {}
 local _nowVisible = {}
 local _flushTargetFrame = -1
+
+-- Per-plot tracking for the gone-on-revisit announcement. Maps
+-- plotIndex -> "camp" / "ruin" for plots whose last-known state showed
+-- one; absent for everything else. Source of truth is Lua: bootstrapped
+-- at installListeners by walking the revealed map (engine's
+-- GetRevealedImprovementType is accurate at that moment because no
+-- changeVisibilityCount has fired since the load), then maintained on
+-- every flush by reading GetImprovementType for each plot in nowVisible.
+-- We can't read the engine's revealed type at flush time -- CvPlot::
+-- setRevealed's "if(!bTerrainOnly)" block is OUTSIDE the revealed-bit
+-- transition guard, so on every revisit it synchronously runs
+-- setRevealedImprovementType(eTeam, getImprovementType()) (CvPlot.cpp
+-- line 8349). By the time HexFOWStateChanged dispatches to Lua, the
+-- engine's revealed-type already equals the current type, so the diff
+-- would always be zero.
+local _campOrRuinKind = {}
+
+local function classifyImprovementAsCampOrRuin(improvementType)
+    if improvementType == nil or improvementType < 0 then
+        return nil
+    end
+    local row = GameInfo.Improvements[improvementType]
+    if row == nil then
+        return nil
+    end
+    if row.Type == "IMPROVEMENT_BARBARIAN_CAMP" then
+        return "camp"
+    end
+    if row.Goody then
+        return "ruin"
+    end
+    return nil
+end
+
+-- One-time install-time walk to bootstrap the snapshot from the engine's
+-- per-team revealed-improvement-type. Runs before any move has triggered
+-- changeVisibilityCount in this session, so the engine's value is the
+-- saved last-sighted state for each plot. Map.GetNumPlots may be missing
+-- in degraded environments (test harness, pre-game contexts); guard
+-- defensively so installListeners never crashes the boot path.
+local function bootstrapCampOrRuinSnapshot()
+    if Map == nil or Map.GetNumPlots == nil or Map.GetPlotByIndex == nil then
+        return
+    end
+    local team = Game.GetActiveTeam()
+    local n = Map.GetNumPlots()
+    for i = 0, n - 1 do
+        local plot = Map.GetPlotByIndex(i)
+        if plot ~= nil then
+            local kind = classifyImprovementAsCampOrRuin(plot:GetRevealedImprovementType(team, false))
+            if kind ~= nil then
+                _campOrRuinKind[i] = kind
+            end
+        end
+    end
+end
 
 -- Snapshot of foreign units the active team can see, keyed by
 -- "<ownerId>:<unitId>". Primed in installListeners and rebuilt at the
@@ -341,6 +402,7 @@ function RevealAnnounce._flushBody()
     end
 
     local enemyUnits, otherUnits, cities, resources = {}, {}, {}, {}
+    local goneCamps, goneRuins = 0, 0
 
     for idx, plot in pairs(announcePlots) do
         local city = plot:GetPlotCity()
@@ -391,6 +453,35 @@ function RevealAnnounce._flushBody()
                     resources[#resources + 1] = name
                 end
             end
+        end
+    end
+
+    -- Gone-on-revisit walk. Iterates nowVisible directly rather than
+    -- announcePlots: shouldSkipPlot filters out plots whose CURRENT
+    -- improvement is a camp / ruin (because the engine speaks new
+    -- camps / ruins via popup), but the gone diff needs to know the
+    -- LAST-KNOWN camp / ruin state, which can only come from the Lua
+    -- snapshot. Reading GetImprovementType here, comparing to the
+    -- snapshot's stored kind, and writing the snapshot afterwards. The
+    -- diff is gated to revisits (`not firstReveals[idx]`) since
+    -- first-reveals have nothing prior to compare; the snapshot still
+    -- updates for first-reveals so a subsequent walk-away-and-back
+    -- cycle has a baseline.
+    for idx in pairs(nowVisible) do
+        local plot = Map.GetPlotByIndex(idx)
+        if plot ~= nil then
+            local nowKind = classifyImprovementAsCampOrRuin(plot:GetImprovementType())
+            if not firstReveals[idx] then
+                local prevKind = _campOrRuinKind[idx]
+                if prevKind ~= nil and prevKind ~= nowKind then
+                    if prevKind == "camp" then
+                        goneCamps = goneCamps + 1
+                    else
+                        goneRuins = goneRuins + 1
+                    end
+                end
+            end
+            _campOrRuinKind[idx] = nowKind
         end
     end
 
@@ -460,6 +551,23 @@ function RevealAnnounce._flushBody()
         hideLine = Text.key("TXT_KEY_CIVVACCESS_HIDDEN_HEADER") .. ": " .. table.concat(hidePayload, ". ")
     end
 
+    -- Gone line: per-category plural counts joined with the same AND
+    -- key ForeignClearWatch uses, prefixed with the GONE_HEADER + ": "
+    -- to mirror the Revealed: / Hidden: shape.
+    local goneLine
+    if goneCamps > 0 or goneRuins > 0 then
+        local goneParts = {}
+        if goneCamps > 0 then
+            goneParts[#goneParts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_GONE_CAMP_PART", goneCamps, goneCamps)
+        end
+        if goneRuins > 0 then
+            goneParts[#goneParts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_GONE_RUIN_PART", goneRuins, goneRuins)
+        end
+        goneLine = Text.key("TXT_KEY_CIVVACCESS_GONE_HEADER")
+            .. ": "
+            .. table.concat(goneParts, Text.key("TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_AND"))
+    end
+
     if revealLine ~= nil then
         SpeechPipeline.speakQueued(revealLine)
         MessageBuffer.append(revealLine, "reveal")
@@ -467,6 +575,10 @@ function RevealAnnounce._flushBody()
     if hideLine ~= nil then
         SpeechPipeline.speakQueued(hideLine)
         MessageBuffer.append(hideLine, "reveal")
+    end
+    if goneLine ~= nil then
+        SpeechPipeline.speakQueued(goneLine)
+        MessageBuffer.append(goneLine, "reveal")
     end
 end
 
@@ -501,6 +613,14 @@ function RevealAnnounce.installListeners()
     -- _visibleUnits to the file-scope default, so the baseline has to
     -- be re-established against the new game's state.
     _visibleUnits = buildVisibleForeignUnits()
+    -- Reset the gone-on-revisit snapshot and bootstrap from the engine's
+    -- per-team revealed-improvement-type. Bootstrap must run BEFORE the
+    -- player's first move triggers changeVisibilityCount, since that
+    -- call's setRevealed body synchronously rewrites the engine's
+    -- revealed-type to the current improvement; the snapshot then drives
+    -- detection on its own.
+    _campOrRuinKind = {}
+    bootstrapCampOrRuinSnapshot()
     if GameEvents ~= nil and GameEvents.CivVAccessPlotRevealed ~= nil then
         GameEvents.CivVAccessPlotRevealed.Add(recordFirstReveal)
     else
