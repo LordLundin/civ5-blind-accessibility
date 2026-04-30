@@ -99,6 +99,10 @@ include("CivVAccess_Bookmarks")
 -- callsites resolve to the live module. Cleared on every onInGameBoot
 -- so a load-from-game session starts with an empty review buffer.
 include("CivVAccess_MessageBuffer")
+-- HotseatMessageBuffer manipulates civvaccess_shared.messageBuffer on
+-- every active-player change, so it loads after MessageBuffer (whose
+-- installListeners initializes that slot to nil at boot).
+include("CivVAccess_HotseatMessageBufferRestore")
 include("CivVAccess_NotificationAnnounce")
 -- MP-only fallback: networked multiplayer suppresses three reward popups
 -- engine-side, so the standard *PopupAccess wrappers don't fire. This
@@ -183,6 +187,7 @@ local function onInGameBoot()
     Turn.installListeners()
     HotseatCursor.installListeners()
     MessageBuffer.installListeners()
+    HotseatMessageBuffer.installListeners()
     NotificationAnnounce.install()
     MultiplayerRewards.installListeners()
     RevealAnnounce.installListeners()

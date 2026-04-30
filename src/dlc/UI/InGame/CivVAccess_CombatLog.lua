@@ -22,6 +22,20 @@
 -- only this Context flips it, and installListeners resets it on every
 -- Boot (load-game-from-game re-runs Boot which re-includes this file
 -- and re-arms the listeners against fresh closures).
+--
+-- Hotseat. AI turns process while the active player is whoever just
+-- ended (CvPlayer.cpp:15812 only calls setActivePlayer inside
+-- setTurnActive for humans, so AI setTurnActive runs doTurn / doTurnUnits
+-- without changing the active player). Combat events during the AI
+-- batch are scoped to that human's team via setVisualizeCombat /
+-- isActiveVisible, so the log accumulates from their visibility -- not
+-- the visibility of the next human about to take over. To avoid leaking
+-- AI-window combats from the prior human's view to the next, the
+-- hotseat path also clears the log on Events.GameplaySetActivePlayer
+-- (which fires only on actual active-player change at CvGame.cpp:5584).
+-- A single human against many AIs has no GameplaySetActivePlayer firing
+-- between rounds, so their log is preserved across the AI batch as in
+-- single-player.
 
 CombatLog = {}
 
@@ -48,6 +62,10 @@ function CombatLog._onTurnStart()
     _inAiTurn = false
 end
 
+function CombatLog._onActivePlayerChanged()
+    civvaccess_shared.combatLog = nil
+end
+
 -- Registers fresh listeners on every call. See CivVAccess_Boot.lua's
 -- LoadScreenClose registration for the rationale: prior-Context listener
 -- closures die on load-game-from-game.
@@ -63,5 +81,12 @@ function CombatLog.installListeners()
         Events.ActivePlayerTurnStart.Add(CombatLog._onTurnStart)
     else
         Log.warn("CombatLog: Events.ActivePlayerTurnStart missing")
+    end
+    if Game.IsHotSeat() then
+        if Events ~= nil and Events.GameplaySetActivePlayer ~= nil then
+            Events.GameplaySetActivePlayer.Add(CombatLog._onActivePlayerChanged)
+        else
+            Log.warn("CombatLog: Events.GameplaySetActivePlayer missing in hotseat session")
+        end
     end
 end

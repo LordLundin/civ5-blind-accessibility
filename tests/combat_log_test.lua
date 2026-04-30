@@ -6,12 +6,24 @@
 local T = require("support")
 local M = {}
 
+local activePlayerListeners
+
 local function setup()
     civvaccess_shared = {}
+    activePlayerListeners = {}
     Events = {
         ActivePlayerTurnEnd = { Add = function(_) end },
         ActivePlayerTurnStart = { Add = function(_) end },
+        GameplaySetActivePlayer = {
+            Add = function(fn)
+                activePlayerListeners[#activePlayerListeners + 1] = fn
+            end,
+        },
     }
+    Game = Game or {}
+    Game.IsHotSeat = function()
+        return false
+    end
     CombatLog = nil
     dofile("src/dlc/UI/InGame/CivVAccess_CombatLog.lua")
     CombatLog.installListeners()
@@ -75,6 +87,38 @@ function M.test_reinstall_resets_state()
     T.eq(civvaccess_shared.combatLog, nil, "shared list cleared on install")
     CombatLog.recordCombat("would-be combat")
     T.eq(civvaccess_shared.combatLog, nil, "window closed after install until TurnEnd")
+end
+
+-- Hotseat path -----------------------------------------------------------
+
+-- In a non-hotseat session, the GameplaySetActivePlayer listener is not
+-- registered. Single-human-many-AI games run as hotseat at the engine
+-- level too, but this branch covers SP / networked MP.
+function M.test_no_active_player_listener_outside_hotseat()
+    setup()
+    T.eq(#activePlayerListeners, 0, "non-hotseat install must not register a player-change listener")
+end
+
+-- In a hotseat session, GameplaySetActivePlayer fires only on actual
+-- active-player change (CvGame.cpp:5584). Engine-side, AI combats during
+-- the AI batch were scoped to the prior human's visibility, so the
+-- accumulated log is from THEIR view -- the next human never had those
+-- events fired for their team. Drop the log on the swap so it doesn't
+-- bleed across players.
+function M.test_hotseat_active_player_change_clears_log()
+    setup()
+    Game.IsHotSeat = function()
+        return true
+    end
+    CombatLog.installListeners()
+    T.eq(#activePlayerListeners, 1, "hotseat install must register the player-change listener")
+    -- Simulate the AI window populating the log.
+    CombatLog._onTurnEnd()
+    CombatLog.recordCombat("ai-window combat")
+    T.eq(#civvaccess_shared.combatLog, 1)
+    -- Active player change: the log goes away.
+    activePlayerListeners[1](1, 0)
+    T.eq(civvaccess_shared.combatLog, nil, "active-player change clears the AI-window log in hotseat")
 end
 
 return M

@@ -161,7 +161,15 @@ Game = Game
         GetGameTurn = function()
             return 0
         end,
+        IsHotSeat = function()
+            return false
+        end,
     }
+if Game.IsHotSeat == nil then
+    Game.IsHotSeat = function()
+        return false
+    end
+end
 
 Players = Players or {}
 Teams = Teams or {}
