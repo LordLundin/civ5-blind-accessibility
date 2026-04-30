@@ -121,10 +121,7 @@ function M.test_unit_with_civ_dedup_when_name_already_contains_adj()
         end
         return key
     end
-    T.eq(
-        Text.unitWithCiv("TXT_KEY_CIV_BABYLON_ADJECTIVE", "TXT_KEY_UNIT_BABYLON_BOWMAN"),
-        "Archer Babylonien"
-    )
+    T.eq(Text.unitWithCiv("TXT_KEY_CIV_BABYLON_ADJECTIVE", "TXT_KEY_UNIT_BABYLON_BOWMAN"), "Archer Babylonien")
     teardown()
 end
 

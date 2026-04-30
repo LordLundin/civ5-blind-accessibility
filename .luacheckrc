@@ -111,7 +111,7 @@ globals = {
     -- Shared modules (UI/Shared/)
     "HandlerStack", "InputRouter", "TickPump", "BaselineHandler",
     "SpeechEngine", "SpeechPipeline", "TextFilter", "Text", "PluralRules",
-    "Log", "Help", "Nav", "Icons",
+    "Log", "Help", "Nav", "Icons", "StringsLoader",
     "PickerReader", "PullDownProbe", "TypeAheadSearch",
     "BaseMenu", "BaseMenuItems", "BaseMenuTabs", "BaseMenuHelp", "BaseMenuEditMode",
     "BaseMenuNumberEntry",
@@ -153,7 +153,7 @@ globals = {
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
     "Bookmarks", "Waypoints",
     "MessageBuffer", "ChatBuffer", "CombatLog",
-    "RevealAnnounce", "ForeignUnitWatch",
+    "RevealAnnounce", "ForeignUnitWatch", "ForeignClearWatch",
     "MultiplayerRewards",
 
     -- Base-game helpers pulled in by TechTree's include chain

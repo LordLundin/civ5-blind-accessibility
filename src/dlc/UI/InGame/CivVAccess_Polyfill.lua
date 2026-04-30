@@ -18,11 +18,10 @@ if include == nil then
     include = function() end
 end
 
-StringsLoader = StringsLoader
-    or {
-        loadOverlay = function() end,
-        _setSupportedLocales = function() end,
-    }
+StringsLoader = StringsLoader or {
+    loadOverlay = function() end,
+    _setSupportedLocales = function() end,
+}
 
 Locale = Locale
     or {
