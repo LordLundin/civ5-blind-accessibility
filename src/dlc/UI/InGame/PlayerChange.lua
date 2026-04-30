@@ -101,7 +101,13 @@ function OnPasswordChanged( ePlayer )
 	frameSize.y = iBoxHeight;
 	frameSize.y = iBoxHeight;
 	
-   	Controls.EnterPasswordEditBox:TakeFocus();
+    -- CIVVACCESS: stock auto-focuses EnterPasswordEditBox here. The
+    -- focused EditBox traps keyboard input inside itself, so arrow
+    -- keys, F1, and other menu-nav keys never reach our SetInputHandler
+    -- wrapper -- only Enter / Esc pass through. The user reaches the
+    -- password field through normal menu nav (arrow to the Textfield
+    -- item, Enter to start editing); BaseMenuEditMode calls TakeFocus
+    -- at that point.
    	if (bShowPassword) then
    		local bValid = PreGame.TestPassword( Game.GetActivePlayer(), Controls.EnterPasswordEditBox:GetText());
 		Controls.ContinueButton:SetDisabled( not bValid );   	
