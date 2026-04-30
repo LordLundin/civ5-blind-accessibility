@@ -448,6 +448,44 @@ function M.test_filterHelpText_handles_empty_input()
     T.eq(ChooseTechLogic.filterHelpText(nil, "Archery"), "")
 end
 
+function M.test_filterHelpText_strips_researched_marker()
+    -- TechHelpInclude appends "[COLOR_POSITIVE_TEXT](RESEARCHED)[ENDCOLOR]"
+    -- after the tech name when researched. The status word is already in
+    -- our landing speech, so the prose must drop the engine's marker to
+    -- avoid the doubled announcement.
+    setup()
+    local raw = "SAILING [COLOR_POSITIVE_TEXT](RESEARCHED)[ENDCOLOR]"
+        .. "[NEWLINE]Cost: 57 Science[NEWLINE]Leads to: Optics"
+    local out = ChooseTechLogic.filterHelpText(raw, "Sailing")
+    T.falsy(out:find("RESEARCHED"), "engine's RESEARCHED marker is gone")
+    T.falsy(out:find("%(%)"), "no leftover empty parens after the strip")
+    T.truthy(out:find("57 Science"), "downstream sections survive")
+    T.truthy(out:find("Leads to: Optics"))
+end
+
+function M.test_filterHelpText_strips_localized_researched_marker()
+    -- Same shape with a localized inner word. The %b() balanced-parens
+    -- match doesn't care what's between them, so non-English plays right.
+    setup()
+    local raw = "VOILE [COLOR_POSITIVE_TEXT](RECHERCHÉ)[ENDCOLOR]"
+        .. "[NEWLINE]Coût: 57 Science"
+    local out = ChooseTechLogic.filterHelpText(raw, "Voile")
+    T.falsy(out:find("RECHERCHÉ"))
+    T.truthy(out:find("57 Science"))
+end
+
+function M.test_filterHelpText_preserves_leads_to_color_span()
+    -- The leads-to list uses [COLOR_POSITIVE_TEXT] without parens around
+    -- the inner content, so the strip pattern must not match it; the
+    -- tech name (Optics) must survive into the cleaned output.
+    setup()
+    local raw = "SAILING[NEWLINE]Cost: 57 Science"
+        .. "[NEWLINE]Leads to: [COLOR_POSITIVE_TEXT]Optics[ENDCOLOR]"
+    local out = ChooseTechLogic.filterHelpText(raw, "Sailing")
+    T.truthy(out:find("Optics"), "leads-to color span keeps its content")
+    T.truthy(out:find("Leads to:"))
+end
+
 -- ===== buildPreamble =====
 --
 -- Shared with CivVAccess_TechTreeAccess; coverage lives here because the

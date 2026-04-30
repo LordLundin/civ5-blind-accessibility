@@ -141,7 +141,18 @@ function ChooseTechLogic.filterHelpText(rawHelp, techName)
     if rawHelp == nil or rawHelp == "" then
         return ""
     end
-    local s = rawHelp:gsub("%[NEWLINE%]", ", ")
+    -- TechHelpInclude.GetHelpTextForTech appends
+    -- "[COLOR_POSITIVE_TEXT](RESEARCHED)[ENDCOLOR]" after the tech name
+    -- when the player's team has the tech. We already speak our own
+    -- "researched" status word ahead of the help prose, so strip the
+    -- engine's parenthesized marker to avoid the doubled announcement.
+    -- %b() matches the balanced parens regardless of locale, so this
+    -- works for "(RECHERCHÉ)", "(ERFORSCHT)", etc. The pattern requires
+    -- the parens to sit immediately inside the COLOR markers, which is
+    -- only true for the RESEARCHED suffix; the leads-to spans use the
+    -- same color but wrap a bare tech name (no parens) and stay intact.
+    local s = rawHelp:gsub(" ?%[COLOR_POSITIVE_TEXT%]%b()%[ENDCOLOR%]", "")
+    s = s:gsub("%[NEWLINE%]", ", ")
     return ChooseTechLogic.cleanHelpText(TextFilter.filter(s), techName)
 end
 
